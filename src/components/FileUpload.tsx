@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -141,7 +140,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ userId, userRole, onFileUploade
     );
   }
 
-  // Full component with metadata for regular file uploads
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -159,7 +157,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ userId, userRole, onFileUploade
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <FileIcon className="w-8 h-8 mb-2 text-gray-500" />
                   <p className="text-sm text-gray-500">{file.name}</p>
-                  <p className="text-xs text-gray-500">{Math.round(file.size / 1024)} KB}</p>
+                  <p className="text-xs text-gray-500">{Math.round(file.size / 1024)} KB</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
