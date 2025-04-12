@@ -2,10 +2,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/use-toast';
 
 interface ProtectedRouteProps {
   children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
@@ -18,7 +14,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireLicense = false,
   requiredRole
 }) => {
-  const { state, updateUser } = useAuth();
+  const { state } = useAuth();
   const { user, loading } = state;
   
   if (loading) {
@@ -37,7 +33,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check license for teacher routes that require license
   if (requiredRole === 'teacher' && requireLicense) {
     // Check if teacher has valid license or is exempt
-    if (!user.licenseExempt && (!user.school || user.school.licence_status === 'expired')) {
+    if (!user.licenseExempt && !user.schoolId) {
       return <Navigate to="/required-license" />;
     }
   }
