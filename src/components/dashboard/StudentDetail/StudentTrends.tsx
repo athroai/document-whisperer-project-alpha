@@ -54,7 +54,7 @@ const StudentTrends = ({ student, classAveragesData, subjectComparisonData }: St
                 key={`student-bar-${index}`}
                 dataKey="confidence" 
                 name={`${student.name}'s Confidence`} 
-                data={[{ subject: entry.subject, confidence: entry.confidence }]}
+                data={[{ x: entry.subject, confidence: entry.confidence }]}
                 fill="#82ca9d" 
               />
             ))}
