@@ -440,15 +440,19 @@ const TeacherDashboardPage = () => {
                           <Tooltip />
                           <Legend />
                           <Bar dataKey="confidence" name="Class Average" fill="#8884d8" />
-                          {student && subjectComparisonData.map((entry, index) => (
-                            <Bar 
-                              key={`student-${index}`}
-                              dataKey="confidence" 
-                              name={`${student.name}'s Confidence`} 
-                              data={[{ subject: entry.subject, confidence: entry.confidence }]}
-                              fill="#82ca9d" 
-                            />
-                          ))}
+                          {student && (
+                            <React.Fragment>
+                              {subjectComparisonData.map((entry, index) => (
+                                <Bar 
+                                  key={`student-${index}`}
+                                  dataKey="confidence" 
+                                  name={`${student.name}'s Confidence`} 
+                                  data={[{ subject: entry.subject, confidence: entry.confidence }]}
+                                  fill="#82ca9d" 
+                                />
+                              ))}
+                            </React.Fragment>
+                          )}
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
