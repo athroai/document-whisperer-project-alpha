@@ -1,10 +1,10 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import StatsCards from '@/components/dashboard/StatsCards';
 import StudentsList from '@/components/dashboard/StudentsList';
 import StudentDetail from '@/components/dashboard/StudentDetail';
 import { calculateClassAverages } from '@/utils/dashboardUtils';
+import { QuizResult } from '@/types/quiz';
 
 // Mock data
 const mockStudents = [
@@ -85,14 +85,82 @@ const mockStudents = [
 const TeacherDashboardPage = () => {
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [markingStyle, setMarkingStyle] = useState('detailed');
+  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
+  const [students, setStudents] = useState(mockStudents);
   
-  // Find the selected student from the students list
+  // Load quiz results from localStorage when the component mounts
+  useEffect(() => {
+    const savedResults = JSON.parse(localStorage.getItem('quizResults') || '[]');
+    if (savedResults.length > 0) {
+      setQuizResults(savedResults);
+    }
+  }, []);
+
+  // Update students data with quiz results
+  useEffect(() => {
+    if (quizResults.length === 0) return;
+    
+    const updatedStudents = [...students];
+    
+    // Process each quiz result
+    quizResults.forEach(result => {
+      // Find the student by userId
+      const studentIndex = updatedStudents.findIndex(s => s.id === result.userId);
+      if (studentIndex === -1) return;
+      
+      const student = updatedStudents[studentIndex];
+      
+      // Update last quiz info
+      const quizDate = new Date(result.timestamp);
+      const formattedDate = `${quizDate.getFullYear()}-${String(quizDate.getMonth() + 1).padStart(2, '0')}-${String(quizDate.getDate()).padStart(2, '0')}`;
+      
+      if (!student.lastQuiz || new Date(student.lastQuiz.date) < quizDate) {
+        student.lastQuiz = {
+          date: formattedDate,
+          score: (result.score / result.questionsAsked.length) * 100,
+          subject: result.subject
+        };
+      }
+      
+      // Update subject data
+      const subjectKey = result.subject.toLowerCase();
+      if (student.subjects[subjectKey]) {
+        // Update average score
+        const scorePercent = (result.score / result.questionsAsked.length) * 100;
+        student.subjects[subjectKey].averageScore = 
+          (student.subjects[subjectKey].averageScore + scorePercent) / 2;
+          
+        // Update confidence
+        student.subjects[subjectKey].confidence = result.confidenceAfter;
+        
+        // Update sessions count
+        student.subjects[subjectKey].sessionsThisWeek += 1;
+      }
+      
+      // Update confidence trend
+      const today = new Date();
+      if (quizDate.getTime() > today.getTime() - 7 * 24 * 60 * 60 * 1000) { // If quiz is from the last 7 days
+        student.confidenceTrend.push({
+          date: formattedDate,
+          confidence: result.confidenceAfter
+        });
+        
+        // Sort by date and keep only the most recent 5 entries
+        student.confidenceTrend.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        student.confidenceTrend = student.confidenceTrend.slice(-5);
+      }
+    });
+    
+    setStudents(updatedStudents);
+  }, [quizResults]);
+  
+  // Find the selected student from the updated students list
   const student = selectedStudent 
-    ? mockStudents.find(s => s.id === selectedStudent) 
+    ? students.find(s => s.id === selectedStudent) 
     : null;
     
   // Calculate class averages for the trends tab
-  const classAveragesData = calculateClassAverages(mockStudents);
+  const classAveragesData = calculateClassAverages(students);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -103,13 +171,16 @@ const TeacherDashboardPage = () => {
       />
 
       {/* Stats Cards */}
-      <StatsCards studentCount={mockStudents.length} />
+      <StatsCards 
+        studentCount={students.length}
+        quizCount={quizResults.length}
+      />
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Students List */}
         <StudentsList 
-          students={mockStudents} 
+          students={students} 
           selectedStudent={selectedStudent} 
           setSelectedStudent={setSelectedStudent} 
         />
@@ -118,6 +189,7 @@ const TeacherDashboardPage = () => {
         <StudentDetail 
           student={student} 
           classAveragesData={classAveragesData} 
+          quizResults={quizResults.filter(result => student && result.userId === student.id)}
         />
       </div>
     </div>

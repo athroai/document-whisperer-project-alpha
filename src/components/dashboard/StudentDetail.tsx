@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Student, SubjectData } from '@/types/dashboard';
+import { QuizResult } from '@/types/quiz';
 import StudentOverview from './StudentDetail/StudentOverview';
 import StudentSubjects from './StudentDetail/StudentSubjects';
 import StudentTrends from './StudentDetail/StudentTrends';
+import StudentQuizzes from './StudentDetail/StudentQuizzes';
 
 interface StudentDetailProps {
   student: Student | null;
@@ -16,9 +18,10 @@ interface StudentDetailProps {
     confidence: number;
     score: number;
   }>;
+  quizResults?: QuizResult[];
 }
 
-const StudentDetail = ({ student, classAveragesData }: StudentDetailProps) => {
+const StudentDetail = ({ student, classAveragesData, quizResults = [] }: StudentDetailProps) => {
   if (!student) {
     return (
       <Card className="lg:col-span-2">
@@ -49,10 +52,11 @@ const StudentDetail = ({ student, classAveragesData }: StudentDetailProps) => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-3 mb-4">
+          <TabsList className="grid grid-cols-4 mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="subjects">Subjects</TabsTrigger>
             <TabsTrigger value="trends">Trends</TabsTrigger>
+            <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview">
@@ -65,6 +69,10 @@ const StudentDetail = ({ student, classAveragesData }: StudentDetailProps) => {
           
           <TabsContent value="trends">
             <StudentTrends student={student} classAveragesData={classAveragesData} subjectComparisonData={subjectComparisonData} />
+          </TabsContent>
+          
+          <TabsContent value="quizzes">
+            <StudentQuizzes quizResults={quizResults} />
           </TabsContent>
         </Tabs>
         

@@ -1,21 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Question, Answer, mockQuestions } from '@/types/quiz';
+import { Question, Answer, mockQuestions, QuizResult } from '@/types/quiz';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
+import { Slider } from '@/components/ui/slider';
 
 import SubjectSelector from '@/components/quiz/SubjectSelector';
 import QuestionCard from '@/components/quiz/QuestionCard';
 import QuizSummary from '@/components/quiz/QuizSummary';
+import { useAuth } from '@/contexts/AuthContext';
 
 const QuizPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   
   // Extract subject from URL params if present
   const queryParams = new URLSearchParams(location.search);
@@ -34,6 +37,7 @@ const QuizPage: React.FC = () => {
   const [confidenceAfter, setConfidenceAfter] = useState<number>(5);
   const [isCurrentAnswerCorrect, setIsCurrentAnswerCorrect] = useState<boolean | null>(null);
   const [currentUserAnswer, setCurrentUserAnswer] = useState<string>('');
+  const [noExactMatch, setNoExactMatch] = useState<boolean>(false);
 
   // Load appropriate questions when subject changes
   useEffect(() => {
@@ -48,36 +52,59 @@ const QuizPage: React.FC = () => {
     // Filter by subject
     const subjectQuestions = mockQuestions.filter(q => q.subject === subject);
     
-    // Determine difficulty range based on confidence
-    let minDifficulty = 1;
-    let maxDifficulty = 5;
-    
-    if (confidence >= 1 && confidence <= 4) {
-      maxDifficulty = 2; // Easy
-    } else if (confidence >= 5 && confidence <= 7) {
-      minDifficulty = 3;
-      maxDifficulty = 3; // Medium
-    } else {
-      minDifficulty = 4; // Hard
+    if (subjectQuestions.length === 0) {
+      toast({
+        title: "No questions available",
+        description: `There are no questions available for ${subject}.`,
+        variant: "destructive",
+      });
+      
+      setQuizQuestions([]);
+      return;
     }
     
-    // Filter by difficulty
-    const filteredQuestions = subjectQuestions.filter(
-      q => q.difficulty >= minDifficulty && q.difficulty <= maxDifficulty
-    );
+    // Determine difficulty range based on confidence
+    let targetDifficulty = 1;
+    
+    if (confidence >= 1 && confidence <= 4) {
+      targetDifficulty = 2; // Easy
+    } else if (confidence >= 5 && confidence <= 7) {
+      targetDifficulty = 3; // Medium
+    } else {
+      targetDifficulty = 4; // Hard
+    }
+    
+    // Try to find exact difficulty match
+    let filteredQuestions = subjectQuestions.filter(q => q.difficulty === targetDifficulty);
+    
+    // If not enough questions at target difficulty, implement fallback logic
+    if (filteredQuestions.length < 5) {
+      setNoExactMatch(true);
+      
+      // Try difficulty ±1
+      const expandedQuestions = subjectQuestions.filter(
+        q => q.difficulty === targetDifficulty - 1 || q.difficulty === targetDifficulty + 1
+      );
+      
+      filteredQuestions = [...filteredQuestions, ...expandedQuestions];
+      
+      // If still not enough, use any available questions
+      if (filteredQuestions.length < 5) {
+        filteredQuestions = subjectQuestions;
+      }
+      
+      toast({
+        title: "Limited questions available",
+        description: "No exact match found — using nearest available difficulty.",
+        variant: "warning",
+      });
+    } else {
+      setNoExactMatch(false);
+    }
     
     // Randomize and pick 5 (or fewer if not enough questions)
     const shuffled = [...filteredQuestions].sort(() => 0.5 - Math.random());
     const selected = shuffled.slice(0, Math.min(5, shuffled.length));
-    
-    // Handle case where we don't have enough questions of the right difficulty
-    if (selected.length < 5 && subjectQuestions.length >= 5) {
-      const remaining = shuffled
-        .filter(q => !selected.includes(q))
-        .slice(0, 5 - selected.length);
-      
-      selected.push(...remaining);
-    }
     
     setQuizQuestions(selected);
     setCurrentIndex(0);
@@ -160,6 +187,36 @@ const QuizPage: React.FC = () => {
     navigate('/home');
   };
 
+  const handleQuizComplete = () => {
+    // Save the quiz result
+    const score = calculateScore();
+    const quizResult: QuizResult = {
+      userId: user?.id || 'anonymous',
+      subject,
+      questionsAsked: quizQuestions.map(q => q.id),
+      answers,
+      confidenceBefore: confidence,
+      confidenceAfter: confidenceAfter,
+      score,
+      timestamp: new Date().toISOString()
+    };
+
+    // Here you would save to Firestore in the future
+    // For now, console log and store in localStorage for demo purposes
+    console.log('Quiz Completed:', quizResult);
+    
+    // Save to localStorage for teacher dashboard
+    const savedResults = JSON.parse(localStorage.getItem('quizResults') || '[]');
+    savedResults.push(quizResult);
+    localStorage.setItem('quizResults', JSON.stringify(savedResults));
+    
+    toast({
+      title: "Quiz completed!",
+      description: `Your score: ${score}/${quizQuestions.length}`,
+      className: "bg-green-50 text-green-800 border-green-200",
+    });
+  };
+
   // Calculate current score
   const calculateScore = () => {
     return answers.filter(answer => answer.correct).length;
@@ -217,8 +274,10 @@ const QuizPage: React.FC = () => {
             questions={quizQuestions}
             confidenceBefore={confidence}
             confidenceAfter={confidenceAfter}
+            onConfidenceAfterChange={setConfidenceAfter}
             onStartNewQuiz={handleRestartQuiz}
             onGoHome={handleGoHome}
+            onComplete={handleQuizComplete}
           />
         </div>
       </div>
@@ -239,6 +298,13 @@ const QuizPage: React.FC = () => {
             <p className="text-gray-500">Answer 5 questions to test your knowledge</p>
           </div>
         </div>
+        
+        {noExactMatch && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center">
+            <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
+            <p className="text-amber-800">No exact match found — using nearest available difficulty.</p>
+          </div>
+        )}
         
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2 text-sm text-gray-500">
@@ -308,14 +374,14 @@ const QuizPage: React.FC = () => {
                   <span>Not confident</span>
                   <span>Very confident</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-4">
                   <span className="text-sm">1</span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={confidence}
-                    onChange={(e) => setConfidence(parseInt(e.target.value))}
+                  <Slider
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={[confidence]}
+                    onValueChange={(value) => setConfidence(value[0])}
                     className="flex-1"
                   />
                   <span className="text-sm">10</span>

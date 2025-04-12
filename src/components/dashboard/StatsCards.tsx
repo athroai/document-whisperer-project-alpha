@@ -1,70 +1,63 @@
 
 import React from 'react';
-import { Users, TrendingUp, Clock, Book } from 'lucide-react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription } from '@/components/ui/card';
+import { Pencil, BookOpen, Users, BarChart } from 'lucide-react';
 
 interface StatsCardsProps {
   studentCount: number;
+  quizCount?: number;
 }
 
-const StatsCards = ({ studentCount }: StatsCardsProps) => {
+const StatsCards = ({ studentCount, quizCount = 0 }: StatsCardsProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardContent className="flex flex-row items-center justify-between p-6">
           <div>
-            <CardTitle className="text-lg">Students</CardTitle>
-            <CardDescription>Total students in class</CardDescription>
+            <p className="text-sm font-medium text-muted-foreground">Active Students</p>
+            <p className="text-3xl font-bold">{studentCount}</p>
           </div>
-          <Users className="h-5 w-5 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold">{studentCount}</div>
+          <div className="rounded-full bg-primary/10 p-3">
+            <Users className="h-8 w-8 text-primary" />
+          </div>
         </CardContent>
       </Card>
       
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardContent className="flex flex-row items-center justify-between p-6">
           <div>
-            <CardTitle className="text-lg">Average Confidence</CardTitle>
-            <CardDescription>Class-wide confidence score</CardDescription>
+            <p className="text-sm font-medium text-muted-foreground">Total Quizzes</p>
+            <p className="text-3xl font-bold">{quizCount}</p>
           </div>
-          <TrendingUp className="h-5 w-5 text-green-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold">7.5</div>
+          <div className="rounded-full bg-green-100 p-3">
+            <BookOpen className="h-8 w-8 text-green-600" />
+          </div>
         </CardContent>
       </Card>
       
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardContent className="flex flex-row items-center justify-between p-6">
           <div>
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
-            <CardDescription>Last 7 days</CardDescription>
+            <p className="text-sm font-medium text-muted-foreground">Average Score</p>
+            <p className="text-3xl font-bold">
+              {quizCount > 0 ? '78%' : '-'}
+            </p>
           </div>
-          <Clock className="h-5 w-5 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold">16 sessions</div>
+          <div className="rounded-full bg-blue-100 p-3">
+            <BarChart className="h-8 w-8 text-blue-600" />
+          </div>
         </CardContent>
       </Card>
       
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardContent className="flex flex-row items-center justify-between p-6">
           <div>
-            <CardTitle className="text-lg">Subject Performance</CardTitle>
-            <CardDescription>Top subject: English</CardDescription>
+            <p className="text-sm font-medium text-muted-foreground">Assignments</p>
+            <p className="text-3xl font-bold">12</p>
           </div>
-          <Book className="h-5 w-5 text-blue-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold">8.2</div>
+          <div className="rounded-full bg-amber-100 p-3">
+            <Pencil className="h-8 w-8 text-amber-600" />
+          </div>
         </CardContent>
       </Card>
     </div>

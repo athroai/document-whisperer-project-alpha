@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Award, Book, ArrowRight, ThumbsUp, AlertTriangle } from 'lucide-react';
 import { Answer, Question } from '@/types/quiz';
+import { Slider } from '@/components/ui/slider';
 
 interface QuizSummaryProps {
   subject: string;
@@ -14,8 +15,10 @@ interface QuizSummaryProps {
   questions: Question[];
   confidenceBefore: number;
   confidenceAfter: number;
+  onConfidenceAfterChange: (value: number) => void;
   onStartNewQuiz: () => void;
   onGoHome: () => void;
+  onComplete: () => void;
 }
 
 const QuizSummary: React.FC<QuizSummaryProps> = ({
@@ -26,10 +29,30 @@ const QuizSummary: React.FC<QuizSummaryProps> = ({
   questions,
   confidenceBefore,
   confidenceAfter,
+  onConfidenceAfterChange,
   onStartNewQuiz,
-  onGoHome
+  onGoHome,
+  onComplete
 }) => {
+  const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const percentage = Math.round((score / totalQuestions) * 100);
+  
+  // Complete the quiz when user submits final confidence
+  const handleComplete = () => {
+    if (!isCompleted) {
+      onComplete();
+      setIsCompleted(true);
+    }
+  };
+  
+  // Call handleComplete when component unmounts if not already completed
+  useEffect(() => {
+    return () => {
+      if (!isCompleted) {
+        onComplete();
+      }
+    };
+  }, [isCompleted]);
   
   // Calculate topic performance
   const topicPerformance: Record<string, { correct: number, total: number }> = {};
@@ -154,41 +177,65 @@ const QuizSummary: React.FC<QuizSummaryProps> = ({
         
         {/* Confidence comparison */}
         <div className="pt-4 border-t">
-          <h4 className="text-center font-medium mb-4">Confidence Change</h4>
+          <h4 className="text-center font-medium mb-4">How confident are you feeling now?</h4>
           <div className="space-y-3">
             <div>
               <div className="flex justify-between text-sm text-gray-500 mb-1">
                 <span>Before: {confidenceBefore}/10</span>
                 <span>After: {confidenceAfter}/10</span>
               </div>
-              <div className="relative pt-1">
-                <div className="flex items-center justify-between">
-                  <div className="h-2 rounded-full bg-gray-100 w-full">
-                    <div 
-                      className={`h-full rounded-full ${
-                        confidenceAfter > confidenceBefore 
-                          ? "bg-green-500" 
-                          : confidenceAfter < confidenceBefore 
-                            ? "bg-amber-500" 
-                            : "bg-blue-500"
-                      }`}
-                      style={{width: `${(confidenceAfter / 10) * 100}%`}}
-                    ></div>
-                  </div>
-                </div>
-                <div className="absolute top-0 h-2 rounded-full border-r-2 border-gray-700" 
-                     style={{left: `${(confidenceBefore / 10) * 100}%`}}>
-                </div>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm">1</span>
+                <Slider
+                  min={1}
+                  max={10}
+                  step={1}
+                  value={[confidenceAfter]}
+                  onValueChange={(value) => onConfidenceAfterChange(value[0])}
+                  className="flex-1"
+                />
+                <span className="text-sm">10</span>
+              </div>
+              <div className="text-center mt-2">
+                <span className="text-lg font-medium">{confidenceAfter}</span>
+                <span className="text-gray-500">/10</span>
+              </div>
+              <div className="relative h-2 mt-4 rounded-full bg-gray-100">
+                <div 
+                  className={`absolute h-full rounded-full ${
+                    confidenceAfter > confidenceBefore 
+                      ? "bg-green-500" 
+                      : confidenceAfter < confidenceBefore 
+                        ? "bg-amber-500" 
+                        : "bg-blue-500"
+                  }`}
+                  style={{width: `${(confidenceAfter / 10) * 100}%`}}
+                ></div>
+                <div className="absolute bottom-0 h-4 w-0.5 bg-gray-700" 
+                     style={{left: `${(confidenceBefore / 10) * 100}%`, transform: 'translateX(-50%)'}}></div>
+              </div>
+              <div className="text-center mt-4 text-sm text-gray-500">
+                {confidenceAfter > confidenceBefore 
+                  ? "Your confidence has increased! Great progress." 
+                  : confidenceAfter < confidenceBefore 
+                    ? "Your confidence has decreased. More practice will help." 
+                    : "Your confidence level is unchanged."}
               </div>
             </div>
           </div>
         </div>
       </CardContent>
       <CardFooter className="flex justify-center gap-4 pt-2">
-        <Button variant="outline" onClick={onGoHome}>
+        <Button variant="outline" onClick={() => {
+          handleComplete();
+          onGoHome();
+        }}>
           Return Home
         </Button>
-        <Button onClick={onStartNewQuiz}>
+        <Button onClick={() => {
+          handleComplete();
+          onStartNewQuiz();
+        }}>
           Try Another Quiz
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
