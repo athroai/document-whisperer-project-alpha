@@ -17,6 +17,37 @@ const SignupPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate password length
+    if (password.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       await signup(email, password, role);
       toast({
@@ -38,7 +69,7 @@ const SignupPage: React.FC = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link to="/">
           <img
-            src="/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png"
+            src="/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png"
             alt="Athro Logo"
             className="h-24 mx-auto"
           />
