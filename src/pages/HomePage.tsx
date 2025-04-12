@@ -1,13 +1,42 @@
-import React from 'react';
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Calendar, GraduationCap, Clock, ArrowRight } from 'lucide-react';
+import { BookOpen, Calendar, GraduationCap, Clock, ArrowRight, Gauge } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Slider } from '@/components/ui/slider';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { toast } from 'sonner';
 
 const HomePage: React.FC = () => {
   const { state } = useAuth();
   const { user } = state;
+  const navigate = useNavigate();
+  const [isConfidenceModalOpen, setIsConfidenceModalOpen] = useState(false);
+  const [confidenceScore, setConfidenceScore] = useState(5);
+  const [currentAthro, setCurrentAthro] = useState({
+    name: 'AthroMaths',
+    image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
+  });
+  
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
+  const handleConfidenceSubmit = () => {
+    // In a real implementation, this would store the data in a database
+    console.log(`User confidence score: ${confidenceScore} for ${currentAthro.name}`);
+    toast.success(`Your confidence score of ${confidenceScore}/10 has been recorded!`);
+    setIsConfidenceModalOpen(false);
+  };
 
   const subjects = [
     { name: 'Mathematics', mentor: 'AthroMaths', image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png', progress: 65 },
@@ -25,6 +54,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-12 md:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* Hero Section with Daily Greeting */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-xl p-6 mb-8 text-white">
           <div className="flex flex-col md:flex-row items-center md:items-start">
             <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
@@ -35,19 +65,37 @@ const HomePage: React.FC = () => {
               />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Welcome back, {user?.displayName || 'Student'}!</h1>
+              <h1 className="text-2xl font-bold">{getGreeting()}, {user?.displayName || 'Student'}!</h1>
               <p className="mt-1 text-purple-100">Ready to continue your GCSE journey?</p>
-              <div className="mt-4">
-                <Button 
-                  className="bg-white text-purple-700 hover:bg-purple-50"
-                  onClick={() => {}}
-                >
-                  Continue Learning
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
             </div>
           </div>
+        </div>
+
+        {/* Main Feature Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Button 
+            onClick={() => navigate('/study')}
+            className="p-8 h-auto text-xl flex flex-col items-center bg-purple-600 hover:bg-purple-700"
+          >
+            <BookOpen className="h-12 w-12 mb-2" />
+            <span>Start Study Session</span>
+          </Button>
+          
+          <Button 
+            onClick={() => navigate('/calendar')}
+            className="p-8 h-auto text-xl flex flex-col items-center bg-blue-600 hover:bg-blue-700"
+          >
+            <Calendar className="h-12 w-12 mb-2" />
+            <span>View Calendar</span>
+          </Button>
+          
+          <Button 
+            onClick={() => setIsConfidenceModalOpen(true)}
+            className="p-8 h-auto text-xl flex flex-col items-center bg-amber-500 hover:bg-amber-600"
+          >
+            <Gauge className="h-12 w-12 mb-2" />
+            <span>Check Confidence</span>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -226,7 +274,82 @@ const HomePage: React.FC = () => {
             </Card>
           </div>
         </div>
+
+        {/* Floating Athro Avatar */}
+        <div className="fixed bottom-8 right-8 z-10">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button className="rounded-full p-2 h-16 w-16 shadow-lg bg-white hover:bg-gray-100">
+                <Avatar className="h-14 w-14">
+                  <AvatarImage src={currentAthro.image} alt={currentAthro.name} />
+                  <AvatarFallback>{currentAthro.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-4">
+              <div className="space-y-2">
+                <h3 className="font-medium">Change your Athro</h3>
+                <p className="text-sm text-gray-500">Select your subject mentor:</p>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {subjects.map((subject) => (
+                    <Button 
+                      key={subject.mentor}
+                      variant="outline" 
+                      className="flex flex-col h-auto p-2 items-center justify-center"
+                      onClick={() => {
+                        setCurrentAthro({
+                          name: subject.mentor,
+                          image: subject.image
+                        });
+                        toast.success(`${subject.mentor} is now your active mentor!`);
+                      }}
+                    >
+                      <Avatar className="h-8 w-8 mb-1">
+                        <AvatarImage src={subject.image} />
+                        <AvatarFallback>{subject.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs">{subject.mentor}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
+
+      {/* Confidence Check Modal */}
+      <Dialog open={isConfidenceModalOpen} onOpenChange={setIsConfidenceModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-center">Confidence Check-In</DialogTitle>
+            <DialogDescription className="text-center">
+              On a scale of 1 to 10, how confident do you feel in {currentAthro.name.replace('Athro', '')} today?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6">
+            <div className="flex items-center justify-center mb-6">
+              <span className="text-4xl font-bold text-purple-600">{confidenceScore}</span>
+              <span className="text-xl font-medium text-gray-500">/10</span>
+            </div>
+            <Slider
+              value={[confidenceScore]}
+              min={1}
+              max={10}
+              step={1}
+              onValueChange={(value) => setConfidenceScore(value[0])}
+              className="mb-6"
+            />
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Not confident</span>
+              <span>Very confident</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleConfidenceSubmit} className="w-full">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
