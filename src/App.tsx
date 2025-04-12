@@ -16,6 +16,7 @@ import StudySessionPage from "./pages/StudySessionPage";
 import CalendarPage from "./pages/CalendarPage";
 import QuizPage from "./pages/QuizPage";
 import SettingsPage from "./pages/SettingsPage";
+import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -74,6 +75,14 @@ const App = () => (
                   <>
                     <Navigation />
                     <SettingsPage />
+                  </>
+                </ProtectedRoute>
+              } />
+              <Route path="/teacher-dashboard" element={
+                <ProtectedRoute>
+                  <>
+                    <Navigation />
+                    <TeacherDashboardPage />
                   </>
                 </ProtectedRoute>
               } />

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Calendar, GraduationCap, Settings, LogOut } from 'lucide-react';
+import { Home, BookOpen, Calendar, GraduationCap, Settings, LogOut, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,13 +11,19 @@ const Navigation: React.FC = () => {
   const { state, logout } = useAuth();
   const { user } = state;
 
-  const navItems = [
+  // Base nav items for all users
+  const baseNavItems = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Study', path: '/study', icon: BookOpen },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     { name: 'Quiz', path: '/quiz', icon: GraduationCap },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
+
+  // Add teacher dashboard for teacher role
+  const navItems = user?.role === 'teacher' 
+    ? [...baseNavItems, { name: 'Teacher Dashboard', path: '/teacher-dashboard', icon: Users }] 
+    : baseNavItems;
 
   return (
     <nav className="bg-white shadow-md py-4 px-6">
