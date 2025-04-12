@@ -7,10 +7,24 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar as CalendarIcon, Plus, Clock, BookOpen, GraduationCap } from 'lucide-react';
+import { format } from 'date-fns';
 
 const CalendarPage: React.FC = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [showAddEventDialog, setShowAddEventDialog] = useState(false);
+
+  // Function to ensure selected date is correctly set 
+  const handleDateChange = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      // Create a new Date object at noon to avoid timezone issues
+      const adjustedDate = new Date(selectedDate);
+      adjustedDate.setHours(12, 0, 0, 0);
+      setDate(adjustedDate);
+      console.log('Selected date:', adjustedDate.toISOString());
+    } else {
+      setDate(undefined);
+    }
+  };
 
   // Sample data - would come from a database in a real application
   const events = [
@@ -50,7 +64,7 @@ const CalendarPage: React.FC = () => {
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={handleDateChange}
                   className="border-none"
                 />
               </CardContent>
@@ -77,7 +91,7 @@ const CalendarPage: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {date ? date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Select a date'}
+                  {date ? format(date, 'EEEE, d MMMM yyyy') : 'Select a date'}
                 </CardTitle>
                 <CardDescription>
                   {selectedDateEvents.length > 0 
@@ -145,7 +159,7 @@ const CalendarPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
-                <Input id="date" type="date" defaultValue={date?.toISOString().split('T')[0]} />
+                <Input id="date" type="date" defaultValue={date ? format(date, 'yyyy-MM-dd') : undefined} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="time">Time</Label>
