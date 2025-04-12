@@ -7,6 +7,7 @@ import TeacherSidebar from './TeacherSidebar';
 import TeacherSetsPage from '@/pages/teacher/TeacherSetsPage';
 import TeacherMarkingPage from '@/pages/teacher/TeacherMarkingPage';
 import TeacherStudentProfilesPage from '@/pages/teacher/TeacherStudentProfilesPage';
+import TeacherInsightsPage from '@/pages/teacher/TeacherInsightsPage';
 import NotFound from '@/pages/NotFound';
 
 interface TeacherDashboardLayoutProps {
@@ -37,14 +38,14 @@ const TeacherDashboardLayout: React.FC<TeacherDashboardLayoutProps> = ({ childre
         return <TeacherMarkingPage />;
       case 'profiles':
         return <TeacherStudentProfilesPage />;
+      case 'insights':
+        return <TeacherInsightsPage />;
       case 'notifications':
         return <div className="p-6">Notifications Panel</div>;
       case 'assign':
         return <div className="p-6">Assign Work Panel</div>;
       case 'inquiries':
         return <div className="p-6">Parent Inquiries Panel</div>;
-      case 'insights':
-        return <div className="p-6">Insights Dashboard</div>;
       case 'system':
         return <div className="p-6">System Tools Panel</div>;
       default:
