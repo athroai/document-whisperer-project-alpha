@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, X, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { 
   HoverCard,
   HoverCardContent,
@@ -21,105 +22,141 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-
-// Mock student data for subject tracking
-interface SubjectData {
-  confidence: number;
-  lastStudied: string | null;
-  sessionsThisWeek: number;
-  quizScores: number[];
-  averageScore: number;
-}
-
-interface StudentSubjectRecord {
-  maths: SubjectData;
-  science: SubjectData;
-  english: SubjectData;
-  history: SubjectData;
-}
-
-const defaultSubjectData: SubjectData = {
-  confidence: 5,
-  lastStudied: null,
-  sessionsThisWeek: 0,
-  quizScores: [],
-  averageScore: 0
-};
-
-// Mock initial data
-const mockStudentRecord: StudentSubjectRecord = {
-  maths: { ...defaultSubjectData, sessionsThisWeek: 3, confidence: 7, lastStudied: '2025-04-10' },
-  science: { ...defaultSubjectData, sessionsThisWeek: 0, confidence: 6, lastStudied: '2025-04-05' },
-  english: { ...defaultSubjectData, sessionsThisWeek: 2, confidence: 8, lastStudied: '2025-04-09' },
-  history: { ...defaultSubjectData, sessionsThisWeek: 1, confidence: 4, lastStudied: '2025-04-07' }
-};
-
-// Generate suggestions based on student data
-const generateSuggestions = (data: StudentSubjectRecord): string[] => {
-  const suggestions: string[] = [];
-  
-  // Check for study balance
-  const highestSessions = Math.max(...Object.values(data).map(subject => subject.sessionsThisWeek));
-  const lowestSessions = Math.min(...Object.values(data).map(subject => subject.sessionsThisWeek));
-  
-  if (highestSessions >= 3 && lowestSessions === 0) {
-    const neglectedSubjects = Object.entries(data)
-      .filter(([_, subject]) => subject.sessionsThisWeek === 0)
-      .map(([name, _]) => name);
-      
-    if (neglectedSubjects.length > 0) {
-      suggestions.push(`You've had ${highestSessions} sessions in some subjects but none in ${neglectedSubjects.join(', ')} this week. Shall we balance your study time?`);
-    }
-  }
-  
-  // Check for low confidence
-  const lowConfidenceSubjects = Object.entries(data)
-    .filter(([_, subject]) => subject.confidence < 5)
-    .map(([name, _]) => name);
-    
-  if (lowConfidenceSubjects.length > 0) {
-    suggestions.push(`Your confidence in ${lowConfidenceSubjects.join(', ')} seems lower than other subjects. Would you like to review these topics?`);
-  }
-  
-  // Check for inactive subjects (not studied in the last 7 days)
-  const currentDate = new Date();
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(currentDate.getDate() - 7);
-  
-  const inactiveSubjects = Object.entries(data)
-    .filter(([_, subject]) => {
-      if (!subject.lastStudied) return true;
-      const lastStudyDate = new Date(subject.lastStudied);
-      return lastStudyDate < sevenDaysAgo;
-    })
-    .map(([name, _]) => name);
-    
-  if (inactiveSubjects.length > 0) {
-    suggestions.push(`It's been over a week since you studied ${inactiveSubjects.join(', ')}. A quick revision session could be helpful!`);
-  }
-  
-  // If no specific suggestions, add a general one
-  if (suggestions.length === 0) {
-    suggestions.push("Your study pattern looks well-balanced! Keep up the good work.");
-  }
-  
-  return suggestions;
-};
+import { useAuth } from '@/contexts/AuthContext';
+import { useStudentRecord } from '@/contexts/StudentRecordContext';
 
 const AthroSystem: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<Array<{
+    text: string;
+    subject?: string;
+    topic?: string;
+    actionType: 'study' | 'quiz' | 'review' | 'info';
+  }>>([]);
   const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { state } = useAuth();
+  const { 
+    studentRecord, 
+    getRecommendedSubject, 
+    recordSuggestionDismissal,
+    recordSuggestionAction 
+  } = useStudentRecord();
+  
+  // Generate suggestions based on real student data
+  const generateSuggestions = () => {
+    const newSuggestions = [];
+    
+    // Check if we have actual student data
+    if (Object.keys(studentRecord).length === 0) {
+      newSuggestions.push({
+        text: "Welcome to Athro AI! Start by taking a quiz or study session to get personalized suggestions.",
+        actionType: 'info'
+      });
+      return newSuggestions;
+    }
+    
+    // Get the recommended subject based on confidence and last studied date
+    const recommendedSubject = getRecommendedSubject();
+    
+    // Check for low confidence subjects
+    const lowConfidenceSubjects = Object.entries(studentRecord)
+      .filter(([_, subject]) => subject.confidence < 5)
+      .map(([name, _]) => name);
+      
+    if (lowConfidenceSubjects.length > 0) {
+      const subject = lowConfidenceSubjects[0];
+      newSuggestions.push({
+        text: `Your confidence in ${subject} seems lower than other subjects. Would you like to review these topics?`,
+        subject: subject,
+        actionType: 'study'
+      });
+    }
+    
+    // Check for study balance
+    const highestSessions = Math.max(...Object.values(studentRecord).map(subject => subject.sessionsThisWeek));
+    const lowestSessions = Math.min(...Object.values(studentRecord).map(subject => subject.sessionsThisWeek));
+    
+    if (highestSessions >= 3 && lowestSessions === 0) {
+      const neglectedSubjects = Object.entries(studentRecord)
+        .filter(([_, subject]) => subject.sessionsThisWeek === 0)
+        .map(([name, _]) => name);
+        
+      if (neglectedSubjects.length > 0) {
+        const subject = neglectedSubjects[0];
+        newSuggestions.push({
+          text: `You've had ${highestSessions} sessions in some subjects but none in ${subject} this week. Shall we balance your study time?`,
+          subject: subject,
+          actionType: 'study'
+        });
+      }
+    }
+    
+    // Check for inactive subjects (not studied in the last 7 days)
+    const currentDate = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(currentDate.getDate() - 7);
+    
+    const inactiveSubjects = Object.entries(studentRecord)
+      .filter(([_, subject]) => {
+        if (!subject.lastStudied) return true;
+        const lastStudyDate = new Date(subject.lastStudied);
+        return lastStudyDate < sevenDaysAgo;
+      })
+      .map(([name, _]) => name);
+      
+    if (inactiveSubjects.length > 0) {
+      const subject = inactiveSubjects[0];
+      newSuggestions.push({
+        text: `It's been over a week since you studied ${subject}. A quick revision session could be helpful!`,
+        subject: subject,
+        actionType: 'review'
+      });
+    }
+    
+    // Check if any subject has low quiz scores
+    const lowScoreSubjects = Object.entries(studentRecord)
+      .filter(([_, subject]) => subject.averageScore < 60 && subject.quizScores.length > 0)
+      .map(([name, _]) => name);
+      
+    if (lowScoreSubjects.length > 0) {
+      const subject = lowScoreSubjects[0];
+      newSuggestions.push({
+        text: `Your quiz scores in ${subject} could use some improvement. Would you like to take a practice quiz?`,
+        subject: subject,
+        actionType: 'quiz'
+      });
+    }
+    
+    // If no specific suggestions, add a general one based on the recommended subject
+    if (newSuggestions.length === 0 && recommendedSubject) {
+      newSuggestions.push({
+        text: `Based on your study patterns, now might be a good time to focus on ${recommendedSubject}. Would you like to start a session?`,
+        subject: recommendedSubject,
+        actionType: 'study'
+      });
+    }
+    
+    // If still no suggestions, add a general encouragement
+    if (newSuggestions.length === 0) {
+      newSuggestions.push({
+        text: "Your study pattern looks well-balanced! Keep up the good work.",
+        actionType: 'info'
+      });
+    }
+    
+    return newSuggestions;
+  };
   
   // Initialize suggestions
   useEffect(() => {
-    const newSuggestions = generateSuggestions(mockStudentRecord);
+    const newSuggestions = generateSuggestions();
     setSuggestions(newSuggestions);
     
     // Show a notification after a delay to simulate proactive behavior
     const timer = setTimeout(() => {
-      if (newSuggestions.length > 0) {
+      if (newSuggestions.length > 0 && state.user) {
         toast({
           title: "AthroSystem has a suggestion",
           description: "Click on the AthroSystem icon to view",
@@ -129,12 +166,52 @@ const AthroSystem: React.FC = () => {
     }, 30000); // 30 seconds delay
     
     return () => clearTimeout(timer);
-  }, [toast]);
+  }, [studentRecord, toast, state.user]);
   
   const handleNextSuggestion = () => {
     setCurrentSuggestionIndex((prev) => 
       prev < suggestions.length - 1 ? prev + 1 : 0
     );
+  };
+  
+  const handleDismiss = () => {
+    const currentSuggestion = suggestions[currentSuggestionIndex];
+    
+    // Log the dismissal for analytics
+    if (currentSuggestion.subject && state.user) {
+      recordSuggestionDismissal(currentSuggestion.subject);
+    }
+    
+    setIsOpen(false);
+    
+    // If the user has dismissed 3+ targeted suggestions, notify the teacher
+    // (This would require tracking dismissals count in the StudentRecordContext)
+  };
+  
+  const handleTakeAction = () => {
+    const currentSuggestion = suggestions[currentSuggestionIndex];
+    
+    // Log the action for analytics
+    if (currentSuggestion.subject && state.user) {
+      recordSuggestionAction(currentSuggestion.subject, currentSuggestion.actionType);
+    }
+    
+    // Take action based on the suggestion type
+    if (currentSuggestion.actionType === 'study' || currentSuggestion.actionType === 'review') {
+      // Navigate to study session with the suggested subject
+      navigate('/study', { 
+        state: { 
+          subject: currentSuggestion.subject,
+          topic: currentSuggestion.topic 
+        } 
+      });
+    } else if (currentSuggestion.actionType === 'quiz') {
+      // Navigate to quiz with the suggested subject
+      navigate(`/quiz?subject=${currentSuggestion.subject}`);
+    }
+    
+    // Close the suggestion box
+    setIsOpen(false);
   };
   
   const currentSuggestion = suggestions[currentSuggestionIndex];
@@ -174,7 +251,7 @@ const AthroSystem: React.FC = () => {
               <div className="space-y-4">
                 <div className="bg-purple-50 p-3 rounded-lg">
                   <p className="text-sm">
-                    {currentSuggestion}
+                    {currentSuggestion?.text || "Welcome to Athro AI!"}
                   </p>
                 </div>
                 {suggestions.length > 1 && (
@@ -192,10 +269,14 @@ const AthroSystem: React.FC = () => {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between border-t pt-4">
-              <Button variant="outline" size="sm" onClick={() => setIsOpen(false)}>
+              <Button variant="outline" size="sm" onClick={handleDismiss}>
                 Dismiss
               </Button>
-              <Button size="sm">
+              <Button 
+                size="sm"
+                onClick={handleTakeAction}
+                disabled={currentSuggestion?.actionType === 'info'}
+              >
                 Take action
               </Button>
             </CardFooter>

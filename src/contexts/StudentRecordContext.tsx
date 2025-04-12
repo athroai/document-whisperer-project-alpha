@@ -9,6 +9,8 @@ export interface SubjectData {
   sessionsThisWeek: number;
   quizScores: number[];
   averageScore: number;
+  suggestionDismissals?: number; // Track dismissals for teacher notifications
+  suggestionActions?: number; // Track suggestion acceptances
 }
 
 export interface StudentRecord {
@@ -21,6 +23,8 @@ interface StudentRecordContextType {
   updateSubjectQuizScore: (subject: string, score: number) => void;
   recordStudySession: (subject: string) => void;
   getRecommendedSubject: () => string | null;
+  recordSuggestionDismissal: (subject: string) => void;
+  recordSuggestionAction: (subject: string, actionType: 'study' | 'quiz' | 'review' | 'info') => void;
 }
 
 const defaultSubjectData: SubjectData = {
@@ -28,7 +32,9 @@ const defaultSubjectData: SubjectData = {
   lastStudied: null,
   sessionsThisWeek: 0,
   quizScores: [],
-  averageScore: 0
+  averageScore: 0,
+  suggestionDismissals: 0,
+  suggestionActions: 0
 };
 
 // Default subjects
@@ -116,6 +122,46 @@ export const StudentRecordProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
+  // Record suggestion dismissal for analytics
+  const recordSuggestionDismissal = (subject: string) => {
+    setStudentRecord(prev => {
+      const subjectData = prev[subject] || { ...defaultSubjectData };
+      const dismissals = (subjectData.suggestionDismissals || 0) + 1;
+      
+      // If user has dismissed 3+ suggestions, we could notify the teacher
+      // This would connect to a notification system in a real app
+      if (dismissals >= 3 && user) {
+        console.log(`Notification: Student ${user.id} has dismissed ${dismissals} suggestions for ${subject}`);
+        // In a real app: notifyTeacher(user.id, subject, 'persistent dismissals');
+      }
+      
+      return {
+        ...prev,
+        [subject]: {
+          ...subjectData,
+          suggestionDismissals: dismissals
+        }
+      };
+    });
+  };
+
+  // Record when user takes action on a suggestion
+  const recordSuggestionAction = (subject: string, actionType: 'study' | 'quiz' | 'review' | 'info') => {
+    setStudentRecord(prev => {
+      const subjectData = prev[subject] || { ...defaultSubjectData };
+      return {
+        ...prev,
+        [subject]: {
+          ...subjectData,
+          suggestionActions: (subjectData.suggestionActions || 0) + 1
+        }
+      };
+    });
+    
+    // In a real app, we might log this to analytics:
+    console.log(`Student ${user?.id || 'unknown'} took ${actionType} action for ${subject}`);
+  };
+
   // Get recommended subject based on confidence and last studied date
   const getRecommendedSubject = (): string | null => {
     if (Object.keys(studentRecord).length === 0) return null;
@@ -153,7 +199,9 @@ export const StudentRecordProvider: React.FC<{ children: React.ReactNode }> = ({
       updateSubjectConfidence,
       updateSubjectQuizScore,
       recordStudySession,
-      getRecommendedSubject
+      getRecommendedSubject,
+      recordSuggestionDismissal,
+      recordSuggestionAction
     }}>
       {children}
     </StudentRecordContext.Provider>
