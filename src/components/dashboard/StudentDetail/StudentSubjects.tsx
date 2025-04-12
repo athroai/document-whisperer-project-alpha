@@ -20,6 +20,7 @@ interface StudentSubjectsProps {
     confidence: number;
     score: number;
   }>;
+  isLoading?: boolean;
 }
 
 const getSubjectColor = (subject: string) => {
@@ -32,7 +33,32 @@ const getSubjectColor = (subject: string) => {
   }
 };
 
-const StudentSubjects = ({ student, subjectComparisonData }: StudentSubjectsProps) => {
+const StudentSubjects = ({ student, subjectComparisonData, isLoading = false }: StudentSubjectsProps) => {
+  if (isLoading) {
+    return (
+      <div>
+        <h3 className="text-lg font-medium mb-4">Subject Performance</h3>
+        <div className="h-[250px] w-full animate-pulse bg-gray-200 rounded"></div>
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="py-3">
+                <div className="h-5 bg-gray-200 rounded w-20"></div>
+              </CardHeader>
+              <CardContent className="py-0">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded col-span-2"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div>
       <h3 className="text-lg font-medium mb-4">Subject Performance</h3>

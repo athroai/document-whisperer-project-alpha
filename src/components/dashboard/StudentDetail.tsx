@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuizResult } from '@/types/quiz';
+import { Student, SubjectData } from '@/types/dashboard';
 
 import StudentOverview from './StudentDetail/StudentOverview';
 import StudentSubjects from './StudentDetail/StudentSubjects';
@@ -10,7 +11,7 @@ import StudentTrends from './StudentDetail/StudentTrends';
 import StudentQuizzes from './StudentDetail/StudentQuizzes';
 
 interface StudentDetailProps {
-  student: any | null;
+  student: Student | null;
   classAveragesData: Array<{
     subject: string;
     confidence: number;
@@ -43,11 +44,15 @@ const StudentDetail: React.FC<StudentDetailProps> = ({
   }
 
   // Get student's subject data for comparison with class average
-  const subjectComparisonData = Object.entries(student.subjects || {}).map(([subject, data]) => ({
-    subject: subject.charAt(0).toUpperCase() + subject.slice(1),
-    confidence: data.confidence || 0,
-    score: data.averageScore || 0
-  }));
+  const subjectComparisonData = Object.entries(student.subjects || {}).map(([subject, data]) => {
+    // Use type assertion since we know the structure of the data
+    const subjectData = data as SubjectData;
+    return {
+      subject: subject.charAt(0).toUpperCase() + subject.slice(1),
+      confidence: subjectData.confidence || 0,
+      score: subjectData.averageScore || 0
+    };
+  });
 
   return (
     <div className="lg:col-span-2">
@@ -71,7 +76,11 @@ const StudentDetail: React.FC<StudentDetailProps> = ({
               <StudentOverview student={student} isLoading={isLoading} />
             </TabsContent>
             <TabsContent value="subjects">
-              <StudentSubjects student={student} isLoading={isLoading} />
+              <StudentSubjects 
+                student={student} 
+                subjectComparisonData={subjectComparisonData}
+                isLoading={isLoading}
+              />
             </TabsContent>
             <TabsContent value="trends">
               <StudentTrends 
