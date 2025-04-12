@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation';
@@ -8,7 +8,11 @@ import TeacherSetsPage from '@/pages/teacher/TeacherSetsPage';
 import TeacherMarkingPage from '@/pages/teacher/TeacherMarkingPage';
 import NotFound from '@/pages/NotFound';
 
-const TeacherDashboardLayout: React.FC = () => {
+interface TeacherDashboardLayoutProps {
+  children?: ReactNode;
+}
+
+const TeacherDashboardLayout: React.FC<TeacherDashboardLayoutProps> = ({ children }) => {
   const { section } = useParams();
   const { state } = useAuth();
   const { user } = state;
@@ -18,8 +22,13 @@ const TeacherDashboardLayout: React.FC = () => {
     return <div className="p-8">Access Restricted: Teacher role required</div>;
   }
 
-  // Render the correct component based on the section parameter
+  // Render the correct component based on the section parameter if no children are provided
   const renderSection = () => {
+    // If children are provided, render them instead of section content
+    if (children) {
+      return children;
+    }
+    
     switch (section) {
       case 'sets':
         return <TeacherSetsPage />;

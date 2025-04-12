@@ -76,52 +76,52 @@ const TeacherDashboardPage: React.FC = () => {
     return <div className="p-8">Access Restricted: Teacher role required</div>;
   }
 
-  return (
-    <TeacherDashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
-          <p className="text-gray-500">Manage your classes and monitor student progress</p>
-        </div>
-        
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <Card key={stat.title}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg font-medium">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-full ${stat.color}`}>
-                    <stat.icon size={20} />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stat.value}</div>
-                <p className="text-sm text-muted-foreground">{stat.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        
-        {/* Actions Cards */}
-        <h2 className="text-xl font-semibold mt-8 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {actions.map((action) => (
-            <Card key={action.title}>
-              <CardHeader>
-                <CardTitle>{action.title}</CardTitle>
-                <CardDescription>{action.description}</CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Button onClick={() => navigate(action.href)}>{action.buttonText}</Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+  const dashboardContent = (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
+        <p className="text-gray-500">Manage your classes and monitor student progress</p>
       </div>
-    </TeacherDashboardLayout>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <Card key={stat.title}>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg font-medium">{stat.title}</CardTitle>
+                <div className={`p-2 rounded-full ${stat.color}`}>
+                  <stat.icon size={20} />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stat.value}</div>
+              <p className="text-sm text-muted-foreground">{stat.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      
+      {/* Actions Cards */}
+      <h2 className="text-xl font-semibold mt-8 mb-4">Quick Actions</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {actions.map((action) => (
+          <Card key={action.title}>
+            <CardHeader>
+              <CardTitle>{action.title}</CardTitle>
+              <CardDescription>{action.description}</CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Button onClick={() => navigate(action.href)}>{action.buttonText}</Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
+
+  return <TeacherDashboardLayout>{dashboardContent}</TeacherDashboardLayout>;
 };
 
 export default TeacherDashboardPage;
