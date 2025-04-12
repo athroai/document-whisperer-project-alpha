@@ -174,6 +174,38 @@ const StudySessionPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Subject Selector at the top */}
+          <div className="md:col-span-4 mb-4">
+            <Card>
+              <CardContent className="py-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 mr-3">
+                    <img 
+                      src={currentAthro.avatar} 
+                      alt={currentAthro.name} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                  <div className="flex-grow">
+                    <h4 className="font-medium mb-2">Change Subject:</h4>
+                    <Select onValueChange={changeSubject} value={currentSubject}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(athroCharacters).map((subject) => (
+                          <SelectItem key={subject} value={subject}>
+                            {subject}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Sidebar */}
           <div className="md:col-span-1">
             <Card>

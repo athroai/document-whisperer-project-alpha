@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Pause, RotateCcw, Coffee, BookOpen } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -163,24 +162,18 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ onComplete, className }) 
           
           <div className="w-full bg-gray-100 rounded-lg p-3">
             <p className="text-sm text-gray-500 mb-2">Timer Mode:</p>
-            <div className="flex space-x-2">
-              <Button
-                variant={preset === '25/5' ? "default" : "outline"}
-                size="sm"
-                className={preset === '25/5' ? "bg-purple-600" : ""}
-                onClick={() => switchPreset('25/5')}
-              >
-                25/5 min
-              </Button>
-              <Button
-                variant={preset === '50/10' ? "default" : "outline"}
-                size="sm"
-                className={preset === '50/10' ? "bg-purple-600" : ""}
-                onClick={() => switchPreset('50/10')}
-              >
-                50/10 min
-              </Button>
-            </div>
+            <Select 
+              value={preset} 
+              onValueChange={(value: TimerPreset) => switchPreset(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select timer preset" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="25/5">25/5 min</SelectItem>
+                <SelectItem value="50/10">50/10 min</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </CardContent>
