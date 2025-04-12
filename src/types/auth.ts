@@ -11,6 +11,8 @@ export interface User {
   createdAt: Date;
   rememberMe: boolean;
   licenseExempt?: boolean;
+  schoolId?: string;  // Added this property for LicenseCheck and ProtectedRoute
+  examBoard?: 'wjec' | 'ocr' | 'aqa' | 'none';  // Added this property for ProtectedRoute and QuizPage
   confidenceScores?: {
     [subject: string]: number;
   };
