@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Question, Answer, QuizResult } from '@/types/quiz';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
 
 import SubjectSelector from '@/components/quiz/SubjectSelector';
@@ -46,6 +47,7 @@ const QuizPage: React.FC = () => {
   const generateQuiz = async () => {
     setIsLoading(true);
     
+    // Determine difficulty based on confidence level
     let targetDifficulty = 1;
     
     if (confidence >= 1 && confidence <= 4) {
@@ -116,6 +118,8 @@ const QuizPage: React.FC = () => {
     setAnswers([...answers, newAnswer]);
     setShowFeedback(true);
     
+    // Get appropriate toast style based on marking style preference
+    // In a full implementation, this would check the teacher's preference
     if (isCorrect) {
       toast({
         title: "Correct!",

@@ -7,7 +7,9 @@ import StudentDetail from '@/components/dashboard/StudentDetail';
 import { calculateClassAverages } from '@/utils/dashboardUtils';
 import { QuizResult } from '@/types/quiz';
 import { quizService } from '@/services/quizService';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { getTeacherPreference } from '@/services/fileService';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Mock data
 const mockStudents = [
@@ -91,18 +93,29 @@ const TeacherDashboardPage = () => {
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [students, setStudents] = useState(mockStudents);
   const [isLoading, setIsLoading] = useState(false);
+  const { state } = useAuth();
+  const classId = 'default_class'; // In a real app, this would be dynamic
   
-  // Load quiz results using our quizService
-  const loadQuizResults = async () => {
+  // Load quiz results and teacher preferences
+  const loadData = async () => {
     setIsLoading(true);
     try {
+      // Load quiz results
       const results = await quizService.getQuizResults();
       setQuizResults(results);
+      
+      // Load teacher preferences if logged in
+      if (state.user?.id && state.user?.role === 'teacher') {
+        const preference = await getTeacherPreference(state.user.id, classId);
+        if (preference) {
+          setMarkingStyle(preference.markingStyle);
+        }
+      }
     } catch (error) {
-      console.error('Error fetching quiz results:', error);
+      console.error('Error fetching data:', error);
       toast({
-        title: "Error loading quiz results",
-        description: "Could not load student quiz data. Please try again.",
+        title: "Error loading data",
+        description: "Could not load all dashboard data. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -110,10 +123,10 @@ const TeacherDashboardPage = () => {
     }
   };
   
-  // Load quiz results when the component mounts
+  // Load data when the component mounts
   useEffect(() => {
-    loadQuizResults();
-  }, []);
+    loadData();
+  }, [state.user]);
 
   // Update students data with quiz results
   useEffect(() => {
@@ -186,7 +199,8 @@ const TeacherDashboardPage = () => {
       {/* Dashboard Header */}
       <DashboardHeader 
         markingStyle={markingStyle} 
-        setMarkingStyle={setMarkingStyle} 
+        setMarkingStyle={setMarkingStyle}
+        classId={classId}
       />
 
       {/* Stats Cards */}
