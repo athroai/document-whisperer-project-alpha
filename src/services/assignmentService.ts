@@ -1,5 +1,5 @@
 
-import { Assignment, Submission, FeedbackData } from '@/types/assignment';
+import { Assignment, Submission, FeedbackData, StudentAssignmentView } from '@/types/assignment';
 import { toast } from '@/components/ui/use-toast';
 import { getMarkingRecords, markAnswer } from './markingEngine';
 

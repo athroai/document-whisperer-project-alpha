@@ -109,8 +109,9 @@ const StudentAssignmentsPage: React.FC = () => {
     }
     
     if (assignment.daysUntilDue <= 3) {
+      // Changed from "warning" to "secondary" as warning is not a valid variant
       return (
-        <Badge variant="warning" className="flex items-center gap-1 bg-amber-100 text-amber-800 hover:bg-amber-100">
+        <Badge variant="secondary" className="flex items-center gap-1 bg-amber-100 text-amber-800 hover:bg-amber-100">
           <Clock className="h-3 w-3" />
           <span>Due in {assignment.daysUntilDue} days</span>
         </Badge>
