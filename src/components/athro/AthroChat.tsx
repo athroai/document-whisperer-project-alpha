@@ -82,8 +82,8 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         description: `Your answer has been marked with a score of ${result.aiMark.score}/${result.aiMark.outOf}.`,
       });
       
-      // Send feedback as a new message
-      sendMessage(`[Marking feedback: ${result.aiMark.comment}]`, activeCharacter.id);
+      // Send feedback as a new message - Fixed: remove second argument to match function signature
+      sendMessage(`[Marking feedback: ${result.aiMark.comment}]`);
       
     } catch (error) {
       console.error('Error marking message:', error);

@@ -57,8 +57,8 @@ const QuizSummary: React.FC<QuizSummaryProps> = ({
           
           if (question) {
             await markAnswer({
-              prompt: question.text,
-              answer: answer.text || "No answer provided",
+              prompt: question.question, // Fixed: use 'question' property instead of 'text'
+              answer: answer.userAnswer || "No answer provided", // Fixed: use 'userAnswer' property instead of 'text'
               subject,
               topic: question.topic,
               userId: state.user.id,

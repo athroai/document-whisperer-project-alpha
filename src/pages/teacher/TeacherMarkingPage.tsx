@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +26,7 @@ import {
   Download, 
   Send,
   Filter,
-  Calendar
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,7 +41,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MarkingRecord, MarkingStyle } from '@/types/marking';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from '@radix-ui/react-icons';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 
@@ -126,7 +124,6 @@ const TeacherMarkingPage: React.FC = () => {
         finalFeedback: teacherFeedback
       });
       
-      // Refresh the records list
       const updatedStatus = 'teacher_reviewed';
       const updatedRecords = await getMarkingRecords({
         teacherId: user.id,
@@ -163,7 +160,6 @@ const TeacherMarkingPage: React.FC = () => {
         override: false
       });
       
-      // Refresh the records list
       const updatedStatus = 'teacher_reviewed';
       const updatedRecords = await getMarkingRecords({
         teacherId: user.id,
@@ -196,12 +192,10 @@ const TeacherMarkingPage: React.FC = () => {
       description: `Downloading submission as PDF.`,
     });
     
-    // In a real app, this would generate and download a PDF
     console.log('Download functionality would be implemented here');
   };
 
   const getStudentName = (id: string): string => {
-    // In a real app, this would fetch the student name from the database
     const studentMap: Record<string, string> = {
       'student1': 'Jamie Davies',
       'student2': 'Sarah Johnson',
@@ -358,7 +352,7 @@ const TeacherMarkingPage: React.FC = () => {
                         <Calendar
                           mode="single"
                           selected={date}
-                          onSelect={setDate}
+                          onSelect={(newDate) => setDate(newDate)}
                           initialFocus
                         />
                       </PopoverContent>
