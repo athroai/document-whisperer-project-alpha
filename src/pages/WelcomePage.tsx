@@ -14,8 +14,8 @@ const WelcomePage: React.FC = () => {
         <div className="max-w-md w-full space-y-8">
           <div>
             <img
-              src="/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png"
-              alt="Athro Logo"
+              src="/lovable-uploads/a2640d0a-113f-4f37-9120-5533af965b5d.png"
+              alt="Athro AI Logo"
               className="h-48 mx-auto"
             />
             <h1 className="mt-6 text-4xl font-bold text-purple-800 sm:text-5xl">
@@ -143,3 +143,4 @@ const WelcomePage: React.FC = () => {
 };
 
 export default WelcomePage;
+
