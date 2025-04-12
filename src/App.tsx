@@ -5,7 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { StudentRecordProvider } from "./contexts/StudentRecordContext";
 import NotFound from "./pages/NotFound";
+import AthroSystem from "./components/AthroSystem";
 
 // Pages
 import WelcomePage from "./pages/WelcomePage";
@@ -27,72 +29,79 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <div className="flex flex-col min-h-screen">
-            <Routes>
-              <Route path="/" element={<WelcomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              
-              {/* Protected Routes */}
-              <Route path="/home" element={
-                <ProtectedRoute>
-                  <>
-                    <Navigation />
-                    <HomePage />
-                  </>
-                </ProtectedRoute>
-              } />
-              <Route path="/study" element={
-                <ProtectedRoute>
-                  <>
-                    <Navigation />
-                    <StudySessionPage />
-                  </>
-                </ProtectedRoute>
-              } />
-              <Route path="/calendar" element={
-                <ProtectedRoute>
-                  <>
-                    <Navigation />
-                    <CalendarPage />
-                  </>
-                </ProtectedRoute>
-              } />
-              <Route path="/quiz" element={
-                <ProtectedRoute>
-                  <>
-                    <Navigation />
-                    <QuizPage />
-                  </>
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <>
-                    <Navigation />
-                    <SettingsPage />
-                  </>
-                </ProtectedRoute>
-              } />
-              <Route path="/teacher-dashboard" element={
-                <ProtectedRoute>
-                  <>
-                    <Navigation />
-                    <TeacherDashboardPage />
-                  </>
-                </ProtectedRoute>
-              } />
-              
-              {/* Catch-all Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-        </BrowserRouter>
-      </TooltipProvider>
+      <StudentRecordProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <div className="flex flex-col min-h-screen">
+              <Routes>
+                <Route path="/" element={<WelcomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                
+                {/* Protected Routes */}
+                <Route path="/home" element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <HomePage />
+                      <AthroSystem />
+                    </>
+                  </ProtectedRoute>
+                } />
+                <Route path="/study" element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <StudySessionPage />
+                      <AthroSystem />
+                    </>
+                  </ProtectedRoute>
+                } />
+                <Route path="/calendar" element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <CalendarPage />
+                      <AthroSystem />
+                    </>
+                  </ProtectedRoute>
+                } />
+                <Route path="/quiz" element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <QuizPage />
+                      <AthroSystem />
+                    </>
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <SettingsPage />
+                      <AthroSystem />
+                    </>
+                  </ProtectedRoute>
+                } />
+                <Route path="/teacher-dashboard" element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <TeacherDashboardPage />
+                    </>
+                  </ProtectedRoute>
+                } />
+                
+                {/* Catch-all Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </BrowserRouter>
+        </TooltipProvider>
+      </StudentRecordProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
