@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -68,13 +69,23 @@ const WelcomePage: React.FC = () => {
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Meet the Athros - Your Study Mentors</DialogTitle>
+            <DialogTitle>Meet Athro AI - Your Study Mentor</DialogTitle>
             <DialogDescription>
-              Athro AI helps GCSE students with personalized study mentors for each subject.
+              Athro AI helps GCSE students with personalized, interactive study support across all subjects.
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-4">
+            <div className="flex flex-col items-center text-center">
+              <img 
+                src="/lovable-uploads/a2640d0a-113f-4f37-9120-5533af965b5d.png" 
+                alt="Athro AI Science" 
+                className="w-24 h-24 object-cover rounded-full" 
+              />
+              <h3 className="mt-2 font-semibold text-lg">Athro AI Science</h3>
+              <p className="text-sm text-gray-600">Your comprehensive science study companion</p>
+            </div>
+          
             <div className="flex flex-col items-center text-center">
               <img 
                 src="/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png" 
@@ -84,16 +95,6 @@ const WelcomePage: React.FC = () => {
               <h3 className="mt-2 font-semibold text-lg">AthroMaths</h3>
               <p className="text-sm text-gray-600">Your friendly mathematics mentor</p>
             </div>
-          
-          <div className="flex flex-col items-center text-center">
-            <img 
-              src="/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png" 
-              alt="Athro AI" 
-              className="w-24 h-24 object-cover rounded-full" 
-            />
-            <h3 className="mt-2 font-semibold text-lg">Athro AI</h3>
-            <p className="text-sm text-gray-600">Your comprehensive study companion</p>
-          </div>
           
             <div className="flex flex-col items-center text-center">
               <img 
