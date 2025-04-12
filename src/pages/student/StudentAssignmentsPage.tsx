@@ -1,18 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Clock, FileDown, Upload, CheckCircle, AlertCircle, FileCheck } from 'lucide-react';
+import { Calendar, Clock, FileDown, Upload, CheckCircle, AlertCircle, FileCheck, Eye } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { assignmentService } from '@/services/assignmentService';
 import { StudentAssignmentView } from '@/types/assignment';
-import FileUpload from '@/components/FileUpload';
 import { format } from 'date-fns';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const StudentAssignmentsPage: React.FC = () => {
   const { state } = useAuth();
@@ -20,8 +19,6 @@ const StudentAssignmentsPage: React.FC = () => {
   const [assignments, setAssignments] = useState<StudentAssignmentView[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("upcoming");
-  const [selectedAssignment, setSelectedAssignment] = useState<StudentAssignmentView | null>(null);
-  const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
 
   useEffect(() => {
     const loadAssignments = async () => {
@@ -46,49 +43,6 @@ const StudentAssignmentsPage: React.FC = () => {
     loadAssignments();
   }, [user?.id]);
 
-  const handleSubmit = async (fileUrl: string, fileName: string) => {
-    if (!user?.id || !selectedAssignment) return;
-    
-    try {
-      const submission = await assignmentService.createSubmission({
-        assignmentId: selectedAssignment.assignment.id,
-        submittedBy: user.id,
-        submittedAt: new Date().toISOString(),
-        status: "submitted",
-        answers: {
-          fileUrls: [fileUrl],
-          fileNames: [fileName]
-        },
-        teacherFeedback: null,
-        aiFeedback: null,
-        studentComment: null
-      });
-      
-      toast({
-        title: "Assignment submitted",
-        description: "Your work has been submitted successfully.",
-      });
-      
-      setSubmissionDialogOpen(false);
-      
-      // Refresh assignments
-      const updatedAssignments = await assignmentService.getStudentAssignments(user.id);
-      setAssignments(updatedAssignments);
-    } catch (error) {
-      console.error('Error submitting assignment:', error);
-      toast({
-        title: "Submission failed",
-        description: "There was a problem submitting your work. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleOpenSubmissionDialog = (assignment: StudentAssignmentView) => {
-    setSelectedAssignment(assignment);
-    setSubmissionDialogOpen(true);
-  };
-
   const renderDueDate = (assignment: StudentAssignmentView) => {
     if (assignment.isPastDue) {
       return (
@@ -109,7 +63,6 @@ const StudentAssignmentsPage: React.FC = () => {
     }
     
     if (assignment.daysUntilDue <= 3) {
-      // Changed from "warning" to "secondary" as warning is not a valid variant
       return (
         <Badge variant="secondary" className="flex items-center gap-1 bg-amber-100 text-amber-800 hover:bg-amber-100">
           <Clock className="h-3 w-3" />
@@ -153,7 +106,12 @@ const StudentAssignmentsPage: React.FC = () => {
       );
     }
     
-    return null;
+    return (
+      <Badge variant="outline" className="bg-blue-50 text-blue-800 hover:bg-blue-100 border-blue-200">
+        <Clock className="h-3 w-3 mr-1" />
+        <span>Not started</span>
+      </Badge>
+    );
   };
 
   const upcomingAssignments = assignments.filter(a => 
@@ -241,32 +199,36 @@ const StudentAssignmentsPage: React.FC = () => {
           <div>
             {assignment.hasSubmitted ? (
               assignment.hasFeedback ? (
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    // View feedback implementation
-                    toast({
-                      title: "View feedback",
-                      description: "Feedback viewer would open here"
-                    });
-                  }}
-                >
-                  View Feedback
-                </Button>
+                <Link to={`/student/feedback`}>
+                  <Button variant="outline" size="sm">
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Feedback
+                  </Button>
+                </Link>
               ) : (
-                <Badge variant="outline">Awaiting feedback</Badge>
+                <Link to={`/student/assignments/${assignment.assignment.id}`}>
+                  <Button variant="outline" size="sm">
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Submission
+                  </Button>
+                </Link>
               )
             ) : (
-              !assignment.isPastDue && (
-                <Button 
-                  size="sm"
-                  onClick={() => handleOpenSubmissionDialog(assignment)}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Submit Work
+              <Link to={`/student/assignments/${assignment.assignment.id}`}>
+                <Button size="sm">
+                  {assignment.isPastDue ? (
+                    <>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Assignment
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Submit Work
+                    </>
+                  )}
                 </Button>
-              )
+              </Link>
             )}
           </div>
         </CardFooter>
@@ -307,31 +269,6 @@ const StudentAssignmentsPage: React.FC = () => {
           {renderAssignmentsList(pastDueAssignments)}
         </TabsContent>
       </Tabs>
-      
-      <Dialog open={submissionDialogOpen} onOpenChange={setSubmissionDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Submit Assignment</DialogTitle>
-            <DialogDescription>
-              {selectedAssignment?.assignment.title}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <div className="mb-4">
-              <h3 className="font-medium mb-2">Instructions</h3>
-              <p className="text-sm text-gray-700">{selectedAssignment?.assignment.instructions || selectedAssignment?.assignment.description}</p>
-            </div>
-            
-            <h3 className="font-medium mb-2">Upload your work</h3>
-            <FileUpload 
-              userId={user.id}
-              userRole="student"
-              onFileUploaded={handleSubmit}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

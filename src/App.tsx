@@ -26,6 +26,7 @@ import TeacherAssignPage from "./pages/teacher/TeacherAssignPage";
 import TeacherMarkingPage from "./pages/teacher/TeacherMarkingPage"; 
 import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
 import StudentFeedbackPage from "./pages/student/StudentFeedbackPage";
+import StudentAssignmentViewPage from "./pages/student/StudentAssignmentViewPage";
 import { UserRole } from "./types/auth";
 
 function App() {
@@ -165,6 +166,14 @@ function App() {
         element={
           <ProtectedRoute requiredRole="student">
             <StudentAssignmentsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/assignments/:assignmentId"
+        element={
+          <ProtectedRoute requiredRole="student">
+            <StudentAssignmentViewPage />
           </ProtectedRoute>
         }
       />
