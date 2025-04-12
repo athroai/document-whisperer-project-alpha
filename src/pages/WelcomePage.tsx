@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,7 @@ const WelcomePage: React.FC = () => {
         <div className="max-w-md w-full space-y-8">
           <div>
             <img
-              src="/lovable-uploads/a2640d0a-113f-4f37-9120-5533af965b5d.png"
+              src="/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png"
               alt="Athro AI Logo"
               className="h-48 mx-auto"
             />
@@ -56,7 +55,6 @@ const WelcomePage: React.FC = () => {
         </div>
       </main>
       
-      {/* Footer */}
       <footer className="py-6 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-gray-500">
@@ -65,7 +63,6 @@ const WelcomePage: React.FC = () => {
         </div>
       </footer>
       
-      {/* Learn More Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -143,4 +140,3 @@ const WelcomePage: React.FC = () => {
 };
 
 export default WelcomePage;
-
