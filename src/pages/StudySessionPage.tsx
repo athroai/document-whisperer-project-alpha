@@ -7,6 +7,8 @@ import { Send, ThumbsUp, Clock, BookOpen, GraduationCap, FileText } from 'lucide
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import PomodoroTimer from '@/components/PomodoroTimer';
+import { toast } from '@/components/ui/use-toast';
 
 // Define Athro characters with their correct subjects and avatars
 const athroCharacters = {
@@ -48,6 +50,7 @@ const StudySessionPage: React.FC = () => {
   const [selectedPaper, setSelectedPaper] = useState<string>('');
   const [currentSubject, setCurrentSubject] = useState<string>('Mathematics');
   const [currentAthro, setCurrentAthro] = useState(athroCharacters.Mathematics);
+  const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -148,6 +151,14 @@ const StudySessionPage: React.FC = () => {
     }
   };
 
+  const handlePomodoroComplete = () => {
+    toast({
+      title: "Pomodoro Session Complete",
+      description: "Great job! Time for a break.",
+      duration: 5000,
+    });
+  };
+
   // Get the current Athro's topics
   const currentTopics = currentAthro.topics;
 
@@ -214,11 +225,21 @@ const StudySessionPage: React.FC = () => {
                       <ThumbsUp className="mr-2 h-4 w-4" />
                       Rate this session
                     </Button>
-                    <Button variant="outline" className="w-full justify-start text-amber-600 border-amber-200 hover:bg-amber-50">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start text-amber-600 border-amber-200 hover:bg-amber-50"
+                      onClick={() => setShowPomodoroTimer(!showPomodoroTimer)}
+                    >
                       <Clock className="mr-2 h-4 w-4" />
-                      Start Pomodoro Timer
+                      {showPomodoroTimer ? "Hide Pomodoro Timer" : "Start Pomodoro Timer"}
                     </Button>
                   </div>
+
+                  {showPomodoroTimer && (
+                    <div className="pt-2">
+                      <PomodoroTimer onComplete={handlePomodoroComplete} />
+                    </div>
+                  )}
 
                   {/* Subject Selector */}
                   <div className="pt-4">

@@ -14,10 +14,13 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', withText = true }) => {
     lg: 'h-20'
   };
   
+  // Using the Science Athro as the main logo
+  const athroLogo = '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png';
+  
   return (
     <Link to="/" className="flex items-center">
       <img
-        src="/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png"
+        src={athroLogo}
         alt="Athro AI"
         className={`${sizeClasses[size]}`}
       />
