@@ -47,9 +47,11 @@ const StudentTrends = ({ student, classAveragesData, subjectComparisonData }: St
             <Tooltip />
             <Legend />
             <Bar dataKey="confidence" name="Class Average" fill="#8884d8" />
+            
+            {/* Render individual student bars */}
             {subjectComparisonData.map((entry, index) => (
               <Bar 
-                key={`student-${index}`}
+                key={`student-bar-${index}`}
                 dataKey="confidence" 
                 name={`${student.name}'s Confidence`} 
                 data={[{ subject: entry.subject, confidence: entry.confidence }]}
