@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
   requireLicense?: boolean;
 }
 
@@ -23,7 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   // Check if user needs to select an exam board preference
   useEffect(() => {
-    if (user && !loading && !user.examBoard) {
+    if (user && !loading && !user.examBoard && user.role !== 'teacher') {
       setShowExamBoardDialog(true);
     }
   }, [user, loading]);
@@ -54,6 +54,49 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (!user.schoolId) {
       return <Navigate to="/license-required" />;
     }
+  }
+
+  // Redirect teachers to dashboard if trying to access student routes
+  if (user.role === 'teacher' && window.location.pathname === '/home') {
+    return <Navigate to="/teacher-dashboard" />;
+  }
+  
+  // Handle function children that need user data
+  if (typeof children === 'function') {
+    return (
+      <>
+        {children({ user })}
+        
+        {/* Exam Board Preference Dialog */}
+        <Dialog open={showExamBoardDialog} onOpenChange={setShowExamBoardDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Select Your Exam Board</DialogTitle>
+              <DialogDescription>
+                This helps us tailor quiz questions to your specific curriculum.
+                You can change this later in your settings.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Select value={examBoard} onValueChange={setExamBoard}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an exam board" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="wjec">WJEC</SelectItem>
+                  <SelectItem value="ocr">OCR</SelectItem>
+                  <SelectItem value="aqa">AQA</SelectItem>
+                  <SelectItem value="none">No Preference</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button onClick={saveExamBoardPreference}>Save Preference</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
   }
   
   return (

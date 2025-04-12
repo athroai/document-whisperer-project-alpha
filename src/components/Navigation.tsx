@@ -37,30 +37,46 @@ const Navigation: React.FC = () => {
   return (
     <nav className="bg-white shadow-md py-4 px-6">
       <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to={user?.role === 'teacher' ? '/teacher-dashboard' : '/'} className="flex items-center space-x-2">
           <span className="text-xl font-bold text-purple-700">Athro AI</span>
         </Link>
         
         {user ? (
           <div className="flex items-center space-x-6">
             <div className="hidden md:flex space-x-4">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    className={`flex items-center space-x-1 px-3 py-2 rounded-md ${
-                      location.pathname === item.path
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600'
-                    }`}
-                  >
-                    <Icon size={18} />
-                    <span>{item.name}</span>
-                  </Link>
-                );
-              })}
+              {user.role !== 'teacher' ? (
+                // Student navigation
+                navItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      className={`flex items-center space-x-1 px-3 py-2 rounded-md ${
+                        location.pathname === item.path
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600'
+                      }`}
+                    >
+                      <Icon size={18} />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })
+              ) : (
+                // Teacher only shows the dashboard link
+                <Link 
+                  to="/teacher-dashboard"
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-md ${
+                    location.pathname === '/teacher-dashboard'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600'
+                  }`}
+                >
+                  <Presentation size={18} />
+                  <span>Teacher Dashboard</span>
+                </Link>
+              )}
             </div>
             
             <div className="flex items-center space-x-2">
@@ -92,8 +108,8 @@ const Navigation: React.FC = () => {
         )}
       </div>
       
-      {/* Mobile Navigation */}
-      {user && (
+      {/* Mobile Navigation - Only show for students */}
+      {user && user.role !== 'teacher' && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t py-2 px-6 flex justify-between items-center">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -112,6 +128,23 @@ const Navigation: React.FC = () => {
               </Link>
             );
           })}
+        </div>
+      )}
+      
+      {/* Mobile Navigation - Simple version for teachers */}
+      {user && user.role === 'teacher' && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t py-2 px-6 flex justify-center items-center">
+          <Link
+            to="/teacher-dashboard"
+            className={`flex flex-col items-center p-2 ${
+              location.pathname.includes('/teacher')
+                ? 'text-purple-700'
+                : 'text-gray-500 hover:text-purple-600'
+            }`}
+          >
+            <Presentation size={20} />
+            <span className="text-xs mt-1">Dashboard</span>
+          </Link>
         </div>
       )}
     </nav>

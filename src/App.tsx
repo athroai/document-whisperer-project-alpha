@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { StudentRecordProvider } from "./contexts/StudentRecordContext";
 import NotFound from "./pages/NotFound";
@@ -28,6 +28,7 @@ import TeacherMarkingPage from "./pages/teacher/TeacherMarkingPage";
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navigation from "./components/Navigation";
+import TeacherDashboardLayout from "./components/dashboard/TeacherDashboardLayout";
 
 const queryClient = new QueryClient();
 
@@ -45,67 +46,82 @@ const App = () => (
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 
-                {/* Protected Routes */}
+                {/* Student Protected Routes */}
                 <Route path="/home" element={
                   <ProtectedRoute>
-                    <>
-                      <Navigation />
-                      <HomePage />
-                      <AthroSystem />
-                    </>
+                    {({ user }) => user?.role === 'teacher' ? 
+                      <Navigate to="/teacher-dashboard" /> : 
+                      <>
+                        <Navigation />
+                        <HomePage />
+                        <AthroSystem />
+                      </>
+                    }
                   </ProtectedRoute>
                 } />
                 <Route path="/study" element={
                   <ProtectedRoute>
-                    <>
-                      <Navigation />
-                      <StudySessionPage />
-                      <AthroSystem />
-                    </>
+                    {({ user }) => user?.role === 'teacher' ? 
+                      <Navigate to="/teacher-dashboard" /> : 
+                      <>
+                        <Navigation />
+                        <StudySessionPage />
+                        <AthroSystem />
+                      </>
+                    }
                   </ProtectedRoute>
                 } />
                 <Route path="/calendar" element={
                   <ProtectedRoute>
-                    <>
-                      <Navigation />
-                      <CalendarPage />
-                      <AthroSystem />
-                    </>
+                    {({ user }) => user?.role === 'teacher' ? 
+                      <Navigate to="/teacher-dashboard" /> : 
+                      <>
+                        <Navigation />
+                        <CalendarPage />
+                        <AthroSystem />
+                      </>
+                    }
                   </ProtectedRoute>
                 } />
                 <Route path="/quiz" element={
                   <ProtectedRoute>
-                    <>
-                      <Navigation />
-                      <QuizPage />
-                      <AthroSystem />
-                    </>
+                    {({ user }) => user?.role === 'teacher' ? 
+                      <Navigate to="/teacher-dashboard" /> : 
+                      <>
+                        <Navigation />
+                        <QuizPage />
+                        <AthroSystem />
+                      </>
+                    }
                   </ProtectedRoute>
                 } />
                 <Route path="/settings" element={
                   <ProtectedRoute>
-                    <>
-                      <Navigation />
-                      <SettingsPage />
-                      <AthroSystem />
-                    </>
+                    {({ user }) => 
+                      <>
+                        <Navigation />
+                        <SettingsPage />
+                        {user?.role !== 'teacher' && <AthroSystem />}
+                      </>
+                    }
                   </ProtectedRoute>
                 } />
+                
+                {/* Teacher Dashboard Main Route */}
                 <Route path="/teacher-dashboard" element={
                   <ProtectedRoute>
                     <TeacherDashboardPage />
                   </ProtectedRoute>
                 } />
                 
-                {/* Teacher Dashboard Routes */}
-                <Route path="/teacher/sets" element={
+                {/* Teacher Dashboard Sub-Routes */}
+                <Route path="/teacher/:section" element={
                   <ProtectedRoute>
-                    <TeacherSetsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/teacher/marking" element={
-                  <ProtectedRoute>
-                    <TeacherMarkingPage />
+                    {({ user }) => 
+                      user?.role === 'teacher' ? 
+                        <TeacherDashboardLayout /> : 
+                        <Navigate to="/home" />
+                    }
                   </ProtectedRoute>
                 } />
                 

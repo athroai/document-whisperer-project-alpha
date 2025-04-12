@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Bell, 
@@ -9,7 +9,8 @@ import {
   UserCircle, 
   Mail, 
   BarChart3, 
-  Settings 
+  Settings,
+  Home
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -43,8 +44,10 @@ interface TeacherSidebarProps {
 const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
   const { state } = useAuth();
   const { user } = state;
+  const navigate = useNavigate();
 
   const sidebarItems = [
+    { icon: Home, label: 'Dashboard', href: '/teacher-dashboard' },
     { icon: Users, label: 'My Sets', href: '/teacher/sets' },
     { icon: Bell, label: 'Notifications', href: '/teacher/notifications' },
     { icon: FileCheck, label: 'Marking Panel', href: '/teacher/marking' },
@@ -56,6 +59,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
   ];
 
   if (!user || user.role !== 'teacher') {
+    setTimeout(() => navigate('/home'), 0);
     return null;
   }
 
@@ -74,7 +78,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
             icon={item.icon}
             label={item.label}
             href={item.href}
-            isActive={activePage === item.href.split('/').pop()}
+            isActive={item.href.includes(activePage)}
           />
         ))}
       </div>
