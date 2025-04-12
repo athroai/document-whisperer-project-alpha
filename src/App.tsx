@@ -24,6 +24,7 @@ import FilesPage from "./pages/FilesPage";
 // Teacher dashboard pages
 import TeacherSetsPage from "./pages/teacher/TeacherSetsPage";
 import TeacherMarkingPage from "./pages/teacher/TeacherMarkingPage";
+import TeacherStudentProfilesPage from "./pages/teacher/TeacherStudentProfilesPage";
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";

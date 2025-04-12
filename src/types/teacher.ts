@@ -82,6 +82,19 @@ export interface StudentDetail {
   performance: number;
   lastActive: string;
   classId: string;
+  subjectScores?: {
+    [subject: string]: number;
+  };
+  confidenceScores?: {
+    [subject: string]: number;
+  };
+  attendance?: number;
+  quizResults?: {
+    quizId: string;
+    subject: string;
+    score: number;
+    date: string;
+  }[];
 }
 
 export interface Subject {
