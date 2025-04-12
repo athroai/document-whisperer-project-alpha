@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AthroCharacter } from '@/types/athro';
-import { Calculator, PiCircle, Function, Infinity, Sigma } from 'lucide-react';
+import { Calculator, Circle, BookOpen, Infinity, Sigma } from 'lucide-react';
 
 interface AthroCharacterCardProps {
   character: AthroCharacter;
@@ -22,9 +22,9 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
       case 'Mathematics':
         return <Calculator className="h-5 w-5 text-purple-600" />;
       case 'Science':
-        return <PiCircle className="h-5 w-5 text-green-600" />;
+        return <Circle className="h-5 w-5 text-green-600" />;
       default:
-        return <Function className="h-5 w-5 text-blue-600" />;
+        return <BookOpen className="h-5 w-5 text-blue-600" />;
     }
   };
 
