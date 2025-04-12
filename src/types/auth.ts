@@ -2,6 +2,27 @@
 // If this file already exists, we'll add to it
 // This is a simplified version, assuming the file already has some content
 
+// Adding the User interface that was missing
+export interface User {
+  id: string;
+  email: string;
+  role: 'student' | 'teacher' | 'parent';
+  displayName: string;
+  createdAt: Date;
+  rememberMe: boolean;
+  licenseExempt?: boolean;
+  confidenceScores?: {
+    [subject: string]: number;
+  };
+}
+
+// Adding the AuthState interface that was missing
+export interface AuthState {
+  user: User | null;
+  loading: boolean;
+  error: string | null;
+}
+
 export interface UploadedFile {
   id: string;
   uploadedBy: string;
