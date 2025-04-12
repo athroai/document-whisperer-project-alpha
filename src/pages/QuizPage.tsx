@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Question, Answer, mockQuestions, QuizResult } from '@/types/quiz';
+import { Question, Answer, QuizResult } from '@/types/quiz';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -14,11 +14,12 @@ import SubjectSelector from '@/components/quiz/SubjectSelector';
 import QuestionCard from '@/components/quiz/QuestionCard';
 import QuizSummary from '@/components/quiz/QuizSummary';
 import { useAuth } from '@/contexts/AuthContext';
+import { quizService } from '@/services/quizService';
 
 const QuizPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { state } = useAuth(); // Fix 1: Access user through state property
+  const { state } = useAuth();
   
   // Extract subject from URL params if present
   const queryParams = new URLSearchParams(location.search);
@@ -38,6 +39,7 @@ const QuizPage: React.FC = () => {
   const [isCurrentAnswerCorrect, setIsCurrentAnswerCorrect] = useState<boolean | null>(null);
   const [currentUserAnswer, setCurrentUserAnswer] = useState<string>('');
   const [noExactMatch, setNoExactMatch] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Load appropriate questions when subject changes
   useEffect(() => {
@@ -48,22 +50,10 @@ const QuizPage: React.FC = () => {
   }, [subject, quizStarted]);
 
   // Generate quiz questions based on subject and confidence
-  const generateQuiz = () => {
-    // Filter by subject
-    const subjectQuestions = mockQuestions.filter(q => q.subject === subject);
+  const generateQuiz = async () => {
+    setIsLoading(true);
     
-    if (subjectQuestions.length === 0) {
-      toast({
-        title: "No questions available",
-        description: `There are no questions available for ${subject}.`,
-        variant: "destructive",
-      });
-      
-      setQuizQuestions([]);
-      return;
-    }
-    
-    // Determine difficulty range based on confidence
+    // Determine target difficulty based on confidence
     let targetDifficulty = 1;
     
     if (confidence >= 1 && confidence <= 4) {
@@ -74,44 +64,48 @@ const QuizPage: React.FC = () => {
       targetDifficulty = 4; // Hard
     }
     
-    // Try to find exact difficulty match
-    let filteredQuestions = subjectQuestions.filter(q => q.difficulty === targetDifficulty);
-    
-    // If not enough questions at target difficulty, implement fallback logic
-    if (filteredQuestions.length < 5) {
-      setNoExactMatch(true);
+    try {
+      // Fetch questions using our service
+      const questions = await quizService.getQuestionsBySubject(subject, targetDifficulty, 5);
       
-      // Try difficulty ±1
-      const expandedQuestions = subjectQuestions.filter(
-        q => q.difficulty === targetDifficulty - 1 || q.difficulty === targetDifficulty + 1
-      );
-      
-      filteredQuestions = [...filteredQuestions, ...expandedQuestions];
-      
-      // If still not enough, use any available questions
-      if (filteredQuestions.length < 5) {
-        filteredQuestions = subjectQuestions;
+      if (questions.length === 0) {
+        toast({
+          title: "No questions available",
+          description: `There are no questions available for ${subject}.`,
+          variant: "destructive",
+        });
+        
+        setQuizQuestions([]);
+      } else if (questions.length < 5 || 
+                questions.some(q => q.difficulty !== targetDifficulty)) {
+        // If we didn't get exactly what we wanted
+        setNoExactMatch(true);
+        setQuizQuestions(questions);
+        
+        toast({
+          title: "Limited questions available",
+          description: "No exact match found — using nearest available difficulty.",
+          variant: "default",
+        });
+      } else {
+        setNoExactMatch(false);
+        setQuizQuestions(questions);
       }
-      
+    } catch (error) {
+      console.error('Error generating quiz:', error);
       toast({
-        title: "Limited questions available",
-        description: "No exact match found — using nearest available difficulty.",
-        // Fix 2: Change "warning" to "default"
-        variant: "default", 
+        title: "Error loading quiz",
+        description: "Could not load questions. Please try again.",
+        variant: "destructive",
       });
-    } else {
-      setNoExactMatch(false);
+      setQuizQuestions([]);
+    } finally {
+      setIsLoading(false);
+      setCurrentIndex(0);
+      setAnswers([]);
+      setShowFeedback(false);
+      setQuizFinished(false);
     }
-    
-    // Randomize and pick 5 (or fewer if not enough questions)
-    const shuffled = [...filteredQuestions].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, Math.min(5, shuffled.length));
-    
-    setQuizQuestions(selected);
-    setCurrentIndex(0);
-    setAnswers([]);
-    setShowFeedback(false);
-    setQuizFinished(false);
   };
 
   const handleConfidenceSubmit = () => {
@@ -188,11 +182,11 @@ const QuizPage: React.FC = () => {
     navigate('/home');
   };
 
-  const handleQuizComplete = () => {
+  const handleQuizComplete = async () => {
     // Save the quiz result
     const score = calculateScore();
     const quizResult: QuizResult = {
-      userId: state.user?.id || 'anonymous', // Fix 1: Access user through state property
+      userId: state.user?.id || 'anonymous',
       subject,
       questionsAsked: quizQuestions.map(q => q.id),
       answers,
@@ -202,20 +196,32 @@ const QuizPage: React.FC = () => {
       timestamp: new Date().toISOString()
     };
 
-    // Here you would save to Firestore in the future
-    // For now, console log and store in localStorage for demo purposes
-    console.log('Quiz Completed:', quizResult);
-    
-    // Save to localStorage for teacher dashboard
-    const savedResults = JSON.parse(localStorage.getItem('quizResults') || '[]');
-    savedResults.push(quizResult);
-    localStorage.setItem('quizResults', JSON.stringify(savedResults));
-    
-    toast({
-      title: "Quiz completed!",
-      description: `Your score: ${score}/${quizQuestions.length}`,
-      className: "bg-green-50 text-green-800 border-green-200",
-    });
+    try {
+      // Save result using our service
+      await quizService.saveQuizResult(quizResult);
+      
+      // Update the user's confidence score for this subject
+      if (state.user?.id) {
+        await quizService.updateUserConfidenceScores(
+          state.user.id,
+          subject,
+          confidenceAfter
+        );
+      }
+      
+      toast({
+        title: "Quiz completed!",
+        description: `Your score: ${score}/${quizQuestions.length}`,
+        className: "bg-green-50 text-green-800 border-green-200",
+      });
+    } catch (error) {
+      console.error('Error saving quiz results:', error);
+      toast({
+        title: "Error saving results",
+        description: "Your quiz results couldn't be saved. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Calculate current score
@@ -315,7 +321,15 @@ const QuizPage: React.FC = () => {
           <Progress value={((currentIndex + 1) / quizQuestions.length) * 100} />
         </div>
         
-        {quizQuestions.length > 0 && (
+        {isLoading ? (
+          <Card>
+            <CardContent className="py-8">
+              <div className="text-center">
+                <p className="text-gray-500">Loading questions...</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : quizQuestions.length > 0 ? (
           <div className="mb-6">
             <QuestionCard 
               question={quizQuestions[currentIndex]}
@@ -325,9 +339,7 @@ const QuizPage: React.FC = () => {
               userAnswer={currentUserAnswer}
             />
           </div>
-        )}
-        
-        {quizQuestions.length === 0 && (
+        ) : (
           <Card>
             <CardContent className="py-8">
               <div className="text-center">

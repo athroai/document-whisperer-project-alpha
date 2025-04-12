@@ -24,9 +24,13 @@ import {
 
 interface StudentQuizzesProps {
   quizResults: QuizResult[];
+  isLoading?: boolean;
 }
 
-const StudentQuizzes: React.FC<StudentQuizzesProps> = ({ quizResults }) => {
+const StudentQuizzes: React.FC<StudentQuizzesProps> = ({ 
+  quizResults,
+  isLoading = false 
+}) => {
   // Calculate average scores by subject
   const subjectScores: Record<string, { total: number, count: number, scores: number[] }> = {};
   
@@ -59,6 +63,34 @@ const StudentQuizzes: React.FC<StudentQuizzesProps> = ({ quizResults }) => {
       score: Math.round((result.score / result.questionsAsked.length) * 100)
     }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white p-4 rounded-lg border shadow-sm animate-pulse">
+          <div className="h-6 bg-gray-200 rounded mb-4 w-1/4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-16 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg border shadow-sm animate-pulse">
+          <div className="h-6 bg-gray-200 rounded mb-4 w-1/4"></div>
+          <div className="h-[300px] bg-gray-200 rounded"></div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg border shadow-sm animate-pulse">
+          <div className="h-6 bg-gray-200 rounded mb-4 w-1/4"></div>
+          <div className="space-y-2">
+            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">

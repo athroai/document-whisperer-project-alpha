@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import StatsCards from '@/components/dashboard/StatsCards';
@@ -5,6 +6,8 @@ import StudentsList from '@/components/dashboard/StudentsList';
 import StudentDetail from '@/components/dashboard/StudentDetail';
 import { calculateClassAverages } from '@/utils/dashboardUtils';
 import { QuizResult } from '@/types/quiz';
+import { quizService } from '@/services/quizService';
+import { toast } from '@/components/ui/use-toast';
 
 // Mock data
 const mockStudents = [
@@ -87,13 +90,29 @@ const TeacherDashboardPage = () => {
   const [markingStyle, setMarkingStyle] = useState('detailed');
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [students, setStudents] = useState(mockStudents);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Load quiz results from localStorage when the component mounts
-  useEffect(() => {
-    const savedResults = JSON.parse(localStorage.getItem('quizResults') || '[]');
-    if (savedResults.length > 0) {
-      setQuizResults(savedResults);
+  // Load quiz results using our quizService
+  const loadQuizResults = async () => {
+    setIsLoading(true);
+    try {
+      const results = await quizService.getQuizResults();
+      setQuizResults(results);
+    } catch (error) {
+      console.error('Error fetching quiz results:', error);
+      toast({
+        title: "Error loading quiz results",
+        description: "Could not load student quiz data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  };
+  
+  // Load quiz results when the component mounts
+  useEffect(() => {
+    loadQuizResults();
   }, []);
 
   // Update students data with quiz results
@@ -174,6 +193,7 @@ const TeacherDashboardPage = () => {
       <StatsCards 
         studentCount={students.length}
         quizCount={quizResults.length}
+        isLoading={isLoading}
       />
 
       {/* Main Content */}
@@ -182,7 +202,8 @@ const TeacherDashboardPage = () => {
         <StudentsList 
           students={students} 
           selectedStudent={selectedStudent} 
-          setSelectedStudent={setSelectedStudent} 
+          setSelectedStudent={setSelectedStudent}
+          isLoading={isLoading}
         />
 
         {/* Student Detail */}
@@ -190,6 +211,7 @@ const TeacherDashboardPage = () => {
           student={student} 
           classAveragesData={classAveragesData} 
           quizResults={quizResults.filter(result => student && result.userId === student.id)}
+          isLoading={isLoading}
         />
       </div>
     </div>

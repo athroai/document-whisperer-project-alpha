@@ -1,21 +1,63 @@
-
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { 
   LineChart, 
   Line, 
+  CartesianGrid, 
   XAxis, 
   YAxis, 
-  CartesianGrid, 
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { Student } from '@/types/dashboard';
 
 interface StudentOverviewProps {
-  student: Student;
+  student: any;
+  isLoading?: boolean;
 }
 
-const StudentOverview = ({ student }: StudentOverviewProps) => {
+const StudentOverview: React.FC<StudentOverviewProps> = ({ 
+  student,
+  isLoading = false
+}) => {
+  // Only keep the last 5 entries for display
+  const confidenceData = student.confidenceTrend || [];
+  
+  // Calculate average confidence
+  const averageConfidence = confidenceData.length > 0
+    ? Math.round(
+        confidenceData.reduce((sum: number, entry: any) => sum + entry.confidence, 0) / 
+        confidenceData.length
+      )
+    : 0;
+  
+  // Get subjects
+  const subjects = Object.entries(student.subjects || {}).map(([key, value]: [string, any]) => ({
+    name: key.charAt(0).toUpperCase() + key.slice(1),
+    confidence: value.confidence,
+    average: value.averageScore
+  }));
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white p-4 rounded-lg border shadow-sm animate-pulse">
+              <div className="h-5 bg-gray-200 rounded mb-2 w-1/2"></div>
+              <div className="h-7 bg-gray-200 rounded w-1/3"></div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg border shadow-sm animate-pulse">
+          <div className="h-6 bg-gray-200 rounded mb-4 w-1/4"></div>
+          <div className="h-[250px] bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>

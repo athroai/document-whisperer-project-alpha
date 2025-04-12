@@ -1,65 +1,60 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription } from '@/components/ui/card';
-import { Pencil, BookOpen, Users, BarChart } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Users, FileText } from 'lucide-react';
 
 interface StatsCardsProps {
   studentCount: number;
-  quizCount?: number;
+  quizCount: number;
+  isLoading?: boolean;
 }
 
-const StatsCards = ({ studentCount, quizCount = 0 }: StatsCardsProps) => {
+const StatsCards: React.FC<StatsCardsProps> = ({ 
+  studentCount, 
+  quizCount,
+  isLoading = false
+}) => {
+  const cards = [
+    {
+      title: 'Total Students',
+      value: studentCount,
+      icon: <Users className="h-6 w-6" />,
+      change: '+2 since last month',
+      trend: 'up'
+    },
+    {
+      title: 'Quizzes Completed',
+      value: quizCount,
+      icon: <FileText className="h-6 w-6" />,
+      change: '+12 since last week',
+      trend: 'up'
+    }
+  ];
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-      <Card>
-        <CardContent className="flex flex-row items-center justify-between p-6">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Active Students</p>
-            <p className="text-3xl font-bold">{studentCount}</p>
-          </div>
-          <div className="rounded-full bg-primary/10 p-3">
-            <Users className="h-8 w-8 text-primary" />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardContent className="flex flex-row items-center justify-between p-6">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Total Quizzes</p>
-            <p className="text-3xl font-bold">{quizCount}</p>
-          </div>
-          <div className="rounded-full bg-green-100 p-3">
-            <BookOpen className="h-8 w-8 text-green-600" />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardContent className="flex flex-row items-center justify-between p-6">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Average Score</p>
-            <p className="text-3xl font-bold">
-              {quizCount > 0 ? '78%' : '-'}
-            </p>
-          </div>
-          <div className="rounded-full bg-blue-100 p-3">
-            <BarChart className="h-8 w-8 text-blue-600" />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardContent className="flex flex-row items-center justify-between p-6">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Assignments</p>
-            <p className="text-3xl font-bold">12</p>
-          </div>
-          <div className="rounded-full bg-amber-100 p-3">
-            <Pencil className="h-8 w-8 text-amber-600" />
-          </div>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {cards.map((card, index) => (
+        <Card key={index}>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-muted-foreground">{card.title}</span>
+              <div className="rounded-full bg-gray-100 p-2">
+                {card.icon}
+              </div>
+            </div>
+            <div>
+              {isLoading ? (
+                <div className="h-8 w-20 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <span className="text-3xl font-bold">{card.value}</span>
+              )}
+            </div>
+            <div className={`text-sm mt-1 ${card.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+              {card.change}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

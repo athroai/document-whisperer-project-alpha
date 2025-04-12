@@ -1,95 +1,93 @@
 
-import React from 'react';
-import { BookOpen } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Student, SubjectData } from '@/types/dashboard';
 import { QuizResult } from '@/types/quiz';
+
 import StudentOverview from './StudentDetail/StudentOverview';
 import StudentSubjects from './StudentDetail/StudentSubjects';
 import StudentTrends from './StudentDetail/StudentTrends';
 import StudentQuizzes from './StudentDetail/StudentQuizzes';
 
 interface StudentDetailProps {
-  student: Student | null;
+  student: any | null;
   classAveragesData: Array<{
     subject: string;
     confidence: number;
     score: number;
   }>;
-  quizResults?: QuizResult[];
+  quizResults: QuizResult[];
+  isLoading?: boolean;
 }
 
-const StudentDetail = ({ student, classAveragesData, quizResults = [] }: StudentDetailProps) => {
+const StudentDetail: React.FC<StudentDetailProps> = ({ 
+  student, 
+  classAveragesData,
+  quizResults,
+  isLoading = false
+}) => {
+  const [activeTab, setActiveTab] = useState('overview');
+
   if (!student) {
     return (
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Select a student to view details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            Select a student from the list to view their details
-          </div>
-        </CardContent>
-      </Card>
+      <div className="lg:col-span-2">
+        <Card className="h-full min-h-[75vh] flex items-center justify-center">
+          <CardContent>
+            <p className="text-muted-foreground">
+              Select a student to view details
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
-  // Convert student subjects for the subjects tab
-  const subjectComparisonData = [
-    { subject: 'Maths', confidence: student.subjects.maths.confidence, score: student.subjects.maths.averageScore },
-    { subject: 'Science', confidence: student.subjects.science.confidence, score: student.subjects.science.averageScore },
-    { subject: 'English', confidence: student.subjects.english.confidence, score: student.subjects.english.averageScore },
-    { subject: 'History', confidence: student.subjects.history.confidence, score: student.subjects.history.averageScore },
-  ];
+  // Get student's subject data for comparison with class average
+  const subjectComparisonData = Object.entries(student.subjects || {}).map(([subject, data]) => ({
+    subject: subject.charAt(0).toUpperCase() + subject.slice(1),
+    confidence: data.confidence || 0,
+    score: data.averageScore || 0
+  }));
 
   return (
-    <Card className="lg:col-span-2">
-      <CardHeader>
-        <CardTitle>{`${student.name}'s Performance`}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="subjects">Subjects</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-            <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview">
-            <StudentOverview student={student} />
-          </TabsContent>
-          
-          <TabsContent value="subjects">
-            <StudentSubjects student={student} subjectComparisonData={subjectComparisonData} />
-          </TabsContent>
-          
-          <TabsContent value="trends">
-            <StudentTrends student={student} classAveragesData={classAveragesData} subjectComparisonData={subjectComparisonData} />
-          </TabsContent>
-          
-          <TabsContent value="quizzes">
-            <StudentQuizzes quizResults={quizResults} />
-          </TabsContent>
-        </Tabs>
-        
-        <div className="mt-6">
-          <h3 className="text-lg font-medium">Actions</h3>
-          <div className="flex gap-2 mt-2">
-            <Button size="sm">
-              <BookOpen size={16} className="mr-1" />
-              View Progress
-            </Button>
-            <Button size="sm" variant="outline">
-              Send Message
-            </Button>
+    <div className="lg:col-span-2">
+      <Card className="h-full min-h-[75vh]">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">{student.name}</h2>
+              <p className="text-muted-foreground">{student.email}</p>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="subjects">Subjects</TabsTrigger>
+              <TabsTrigger value="trends">Trends</TabsTrigger>
+              <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview">
+              <StudentOverview student={student} isLoading={isLoading} />
+            </TabsContent>
+            <TabsContent value="subjects">
+              <StudentSubjects student={student} isLoading={isLoading} />
+            </TabsContent>
+            <TabsContent value="trends">
+              <StudentTrends 
+                student={student} 
+                classAveragesData={classAveragesData} 
+                subjectComparisonData={subjectComparisonData}
+                isLoading={isLoading}
+              />
+            </TabsContent>
+            <TabsContent value="quizzes">
+              <StudentQuizzes quizResults={quizResults} isLoading={isLoading} />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
