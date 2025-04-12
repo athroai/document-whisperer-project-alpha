@@ -151,7 +151,8 @@ const TeacherSetsPage: React.FC = () => {
     set => set.subject === selectedSubject && set.yearGroup === selectedYearGroup
   );
 
-  const setStudents = selectedSet 
+  // Get students for the selected set
+  const setStudentsList = selectedSet 
     ? students.filter(student => student.classId === selectedSet)
     : [];
 
@@ -171,7 +172,7 @@ const TeacherSetsPage: React.FC = () => {
     // In production, this would update Firestore
     // Update local state for now
     const updatedStudents = students.map(student => 
-      student.id === studentId ? { ...student, status: "approved" } : student
+      student.id === studentId ? { ...student, status: "approved" as const } : student
     );
     setStudents(updatedStudents);
     
@@ -185,7 +186,7 @@ const TeacherSetsPage: React.FC = () => {
     // In production, this would update Firestore
     // Update local state for now
     const updatedStudents = students.map(student => 
-      student.id === studentId ? { ...student, status: "removed" } : student
+      student.id === studentId ? { ...student, status: "removed" as const } : student
     );
     setStudents(updatedStudents);
     
@@ -198,6 +199,9 @@ const TeacherSetsPage: React.FC = () => {
   const handleCloseStudentProfile = () => {
     setSelectedStudent(null);
   };
+
+  // Add temporary type safety check
+  console.log("Student shape:", students);
 
   const setsPageContent = (
     <div className="space-y-6">
@@ -285,9 +289,9 @@ const TeacherSetsPage: React.FC = () => {
           <h2 className="text-xl font-semibold mb-4">
             Students in {filteredSets.find(s => s.id === selectedSet)?.name}
           </h2>
-          {setStudents.length > 0 ? (
+          {setStudentsList.length > 0 ? (
             <div className="bg-white rounded-md border">
-              {setStudents.map(student => (
+              {setStudentsList.map(student => (
                 <div 
                   key={student.id}
                   className="flex items-center justify-between p-4 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
