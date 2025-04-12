@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,29 +11,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 
-const SettingsPage: React.FC = () => {
-  const { state } = useAuth();
+const SettingsPage = () => {
+  const { state, updateUser } = useAuth();
   const { user } = state;
   
   // Profile settings state
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [examBoard, setExamBoard] = useState(user?.examBoard || 'none');
+  const [examBoard, setExamBoard] = useState<'wjec' | 'ocr' | 'aqa' | 'none'>(
+    (user?.examBoard as 'wjec' | 'ocr' | 'aqa' | 'none') || 'none'
+  );
   
   // Notification settings state
   const [emailNotifications, setEmailNotifications] = useState(true);
+  const [appNotifications, setAppNotifications] = useState(true);
   const [studyReminders, setStudyReminders] = useState(true);
-  const [quizReminders, setQuizReminders] = useState(true);
-  const [achievementNotifications, setAchievementNotifications] = useState(true);
   
-  // Accessibility settings state
+  // Theme settings state
+  const [darkMode, setDarkMode] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
   const [largeText, setLargeText] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
   
-  // Study preference state
-  const [studyDuration, setStudyDuration] = useState('30');
-  const [breakDuration, setBreakDuration] = useState('5');
+  // License information
+  const licenseStatus = user?.licenseExempt ? "Exempted" : "Active";
+  const schoolName = "St. Thomas High School";
+  const licenseExpiry = "2025-12-31";
+  const licenseType = "Educational Institution";
   
   const handleSaveProfile = () => {
     // Would update the user profile in a real implementation
@@ -60,86 +64,77 @@ const SettingsPage: React.FC = () => {
     });
   };
   
-  const handleSaveAccessibility = () => {
+  const handleSaveTheme = () => {
     toast({
-      title: "Accessibility settings updated",
-      description: "Your accessibility preferences have been saved.",
+      title: "Theme preferences updated", 
+      description: "Your theme settings have been saved."
     });
   };
-  
-  const handleSaveStudyPreferences = () => {
-    toast({
-      title: "Study preferences updated",
-      description: "Your study preferences have been saved.",
-    });
-  };
+
+  if (!user) {
+    return <div className="p-8">Please log in to access settings.</div>;
+  }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="space-y-0.5 mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="text-gray-500">
-            Manage your account preferences and settings
-          </p>
-        </div>
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="theme">Theme</TabsTrigger>
+          <TabsTrigger value="license">License</TabsTrigger>
+        </TabsList>
         
-        <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="accessibility">Accessibility</TabsTrigger>
-            <TabsTrigger value="study-preferences">Study Preferences</TabsTrigger>
-          </TabsList>
-          
-          {/* Profile Settings */}
-          <TabsContent value="profile" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile</CardTitle>
-                <CardDescription>
-                  Manage your personal information and account settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col sm:flex-row gap-6">
-                  <div className="flex flex-col items-center space-y-2">
-                    <Avatar className="w-24 h-24">
-                      <AvatarImage src="" />
-                      <AvatarFallback className="text-2xl bg-purple-100 text-purple-800">
-                        {user?.displayName?.[0].toUpperCase() || user?.email[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <Button variant="outline" size="sm">
-                      Change Avatar
-                    </Button>
+        <TabsContent value="profile">
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Settings</CardTitle>
+              <CardDescription>
+                Manage your account information and preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-center mb-6">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-purple-200 text-purple-800 text-2xl">
+                    {user.displayName?.[0].toUpperCase() || user.email[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Display Name</Label>
+                    <Input
+                      id="displayName"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                    />
                   </div>
                   
-                  <div className="flex-1 space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="displayName">Display Name</Label>
-                      <Input
-                        id="displayName"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={true}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Contact support to change your email address
+                    </p>
+                  </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="examBoard">Exam Board</Label>
                       <Select 
                         value={examBoard} 
-                        onValueChange={setExamBoard}
+                        onValueChange={(value: 'wjec' | 'ocr' | 'aqa' | 'none') => setExamBoard(value)}
                       >
                         <SelectTrigger id="examBoard">
                           <SelectValue placeholder="Select exam board" />
@@ -160,253 +155,162 @@ const SettingsPage: React.FC = () => {
                       <Label htmlFor="role">User Type</Label>
                       <Input
                         id="role"
-                        value={user?.role || 'student'}
-                        disabled
+                        value={user.role}
+                        disabled={true}
                       />
                       <p className="text-xs text-gray-500">
-                        Contact support to change your user type
+                        Your account type determines available features
                       </p>
                     </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button onClick={handleSaveProfile}>Save Changes</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="notifications">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Settings</CardTitle>
+              <CardDescription>
+                Configure how and when you receive notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Email Notifications</h3>
+                  <p className="text-sm text-gray-500">Receive updates via email</p>
+                </div>
+                <Switch 
+                  checked={emailNotifications}
+                  onCheckedChange={setEmailNotifications}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">App Notifications</h3>
+                  <p className="text-sm text-gray-500">Receive in-app notifications</p>
+                </div>
+                <Switch 
+                  checked={appNotifications}
+                  onCheckedChange={setAppNotifications}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Study Reminders</h3>
+                  <p className="text-sm text-gray-500">Get reminders for scheduled study sessions</p>
+                </div>
+                <Switch 
+                  checked={studyReminders}
+                  onCheckedChange={setStudyReminders}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button onClick={handleSaveNotifications}>Save Preferences</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="theme">
+          <Card>
+            <CardHeader>
+              <CardTitle>Theme Settings</CardTitle>
+              <CardDescription>
+                Customize the application appearance
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Dark Mode</h3>
+                  <p className="text-sm text-gray-500">Use dark color scheme</p>
+                </div>
+                <Switch 
+                  checked={darkMode}
+                  onCheckedChange={setDarkMode}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">High Contrast</h3>
+                  <p className="text-sm text-gray-500">Increase contrast for better readability</p>
+                </div>
+                <Switch 
+                  checked={highContrast}
+                  onCheckedChange={setHighContrast}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Large Text</h3>
+                  <p className="text-sm text-gray-500">Increase text size throughout the app</p>
+                </div>
+                <Switch 
+                  checked={largeText}
+                  onCheckedChange={setLargeText}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button onClick={handleSaveTheme}>Save Theme</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="license">
+          <Card>
+            <CardHeader>
+              <CardTitle>License Information</CardTitle>
+              <CardDescription>
+                View details about your Athro AI license
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-md">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">License Status</h3>
+                    <p className="font-medium">{licenseStatus}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">School/Institution</h3>
+                    <p className="font-medium">{schoolName}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Expiry Date</h3>
+                    <p className="font-medium">{licenseExpiry}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">License Type</h3>
+                    <p className="font-medium">{licenseType}</p>
                   </div>
                 </div>
-              </CardContent>
-              <CardFooter className="border-t pt-6">
-                <Button onClick={handleSaveProfile}>Save Changes</Button>
-              </CardFooter>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Change Password</CardTitle>
-                <CardDescription>
-                  Update your password to keep your account secure
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
-                  <Input id="current-password" type="password" />
+              </div>
+              
+              <div className="border-t pt-4">
+                <h3 className="font-medium mb-2">License Management</h3>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button variant="outline">Contact Support</Button>
+                  <Button>Upgrade License</Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input id="new-password" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input id="confirm-password" type="password" />
-                </div>
-              </CardContent>
-              <CardFooter className="border-t pt-6">
-                <Button>Update Password</Button>
-              </CardFooter>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-red-600">Danger Zone</CardTitle>
-                <CardDescription>
-                  Actions here cannot be undone
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-500 mb-4">
-                  When you delete your account, all of your data will be permanently removed.
-                  This action cannot be undone.
-                </p>
-                <Button variant="destructive">Delete Account</Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          {/* Notification Settings */}
-          <TabsContent value="notifications" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>
-                  Control how you receive notifications and updates
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="email-notifications">Email Notifications</Label>
-                    <p className="text-sm text-gray-500">Receive notifications via email</p>
-                  </div>
-                  <Switch
-                    id="email-notifications"
-                    checked={emailNotifications}
-                    onCheckedChange={setEmailNotifications}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="study-reminders">Study Reminders</Label>
-                    <p className="text-sm text-gray-500">Get reminded about your scheduled study sessions</p>
-                  </div>
-                  <Switch
-                    id="study-reminders"
-                    checked={studyReminders}
-                    onCheckedChange={setStudyReminders}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="quiz-reminders">Quiz Reminders</Label>
-                    <p className="text-sm text-gray-500">Get reminded about upcoming quizzes</p>
-                  </div>
-                  <Switch
-                    id="quiz-reminders"
-                    checked={quizReminders}
-                    onCheckedChange={setQuizReminders}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="achievement-notifications">Achievement Notifications</Label>
-                    <p className="text-sm text-gray-500">Get notified when you earn new achievements</p>
-                  </div>
-                  <Switch
-                    id="achievement-notifications"
-                    checked={achievementNotifications}
-                    onCheckedChange={setAchievementNotifications}
-                  />
-                </div>
-              </CardContent>
-              <CardFooter className="border-t pt-6">
-                <Button onClick={handleSaveNotifications}>Save Preferences</Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-          
-          {/* Accessibility Settings */}
-          <TabsContent value="accessibility" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Accessibility</CardTitle>
-                <CardDescription>
-                  Customize your learning experience with accessibility options
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="high-contrast">High Contrast Mode</Label>
-                    <p className="text-sm text-gray-500">Increase visual contrast for better readability</p>
-                  </div>
-                  <Switch
-                    id="high-contrast"
-                    checked={highContrast}
-                    onCheckedChange={setHighContrast}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="large-text">Large Text</Label>
-                    <p className="text-sm text-gray-500">Increase text size throughout the application</p>
-                  </div>
-                  <Switch
-                    id="large-text"
-                    checked={largeText}
-                    onCheckedChange={setLargeText}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="reduced-motion">Reduced Motion</Label>
-                    <p className="text-sm text-gray-500">Minimize animations throughout the application</p>
-                  </div>
-                  <Switch
-                    id="reduced-motion"
-                    checked={reducedMotion}
-                    onCheckedChange={setReducedMotion}
-                  />
-                </div>
-              </CardContent>
-              <CardFooter className="border-t pt-6">
-                <Button onClick={handleSaveAccessibility}>Save Preferences</Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-          
-          {/* Study Preferences */}
-          <TabsContent value="study-preferences" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Study Preferences</CardTitle>
-                <CardDescription>
-                  Customize your study sessions and learning experience
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="study-duration">Default Study Session Duration (minutes)</Label>
-                  <Input
-                    id="study-duration"
-                    type="number"
-                    min="5"
-                    step="5"
-                    value={studyDuration}
-                    onChange={(e) => setStudyDuration(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="break-duration">Default Break Duration (minutes)</Label>
-                  <Input
-                    id="break-duration"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={breakDuration}
-                    onChange={(e) => setBreakDuration(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Preferred Study Time</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {['Morning', 'Afternoon', 'Evening', 'Night'].map((time) => (
-                      <Button
-                        key={time}
-                        variant="outline"
-                        className="justify-center"
-                        onClick={() => {}}
-                      >
-                        {time}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Preferred Learning Style</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {['Visual', 'Auditory', 'Reading/Writing', 'Kinesthetic'].map((style) => (
-                      <Button
-                        key={style}
-                        variant="outline"
-                        className="justify-center"
-                        onClick={() => {}}
-                      >
-                        {style}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t pt-6">
-                <Button onClick={handleSaveStudyPreferences}>Save Preferences</Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
