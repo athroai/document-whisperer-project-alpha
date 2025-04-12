@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Send, CheckCircle, AlertCircle, FileText, Calendar } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -103,7 +104,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         description: `Your answer has been marked with a score of ${result.aiMark.score}/${result.aiMark.outOf}.`,
       });
       
-      // Send feedback as a new message - Fixed: remove second argument to match function signature
+      // Send feedback as a new message - Fixed to match function signature
       sendMessage(`[Marking feedback: ${result.aiMark.comment}]`);
       
     } catch (error) {

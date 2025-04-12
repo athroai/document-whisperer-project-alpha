@@ -10,11 +10,13 @@ import { toast } from '@/components/ui/use-toast';
 interface ProtectedRouteProps {
   children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
   requireLicense?: boolean;
+  requiredRole?: 'student' | 'teacher' | 'parent'; // Added this property
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requireLicense = false 
+  requireLicense = false,
+  requiredRole
 }) => {
   const { state, updateUser } = useAuth();
   const { user, loading } = state;
@@ -25,6 +27,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   if (!user) {
     return <Navigate to="/login" />;
+  }
+  
+  // If specific role is required, check user role
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to={user.role === 'teacher' ? '/teacher-dashboard' : '/home'} />;
   }
   
   // If license is required and user doesn't have a license exemption, check license
