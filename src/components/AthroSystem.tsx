@@ -7,10 +7,8 @@ import { MessageCircle } from 'lucide-react';
 import AthroChat from './athro/AthroChat';
 
 const AthroSystem: React.FC = () => {
-  const { activeCharacter } = useAthro();
+  const { activeCharacter, sendMessage } = useAthro();
   const [isOpen, setIsOpen] = useState(false);
-
-  if (!activeCharacter) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
@@ -29,16 +27,16 @@ const AthroSystem: React.FC = () => {
             <SheetTitle className="flex items-center">
               <div className="h-8 w-8 mr-2 rounded-full overflow-hidden">
                 <img 
-                  src={activeCharacter.avatarUrl} 
-                  alt={activeCharacter.name} 
+                  src={activeCharacter?.avatarUrl || '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'} 
+                  alt={activeCharacter?.name || 'Athro AI'} 
                   className="h-full w-full object-cover"
                 />
               </div>
-              Chat with {activeCharacter.name}
+              Chat with {activeCharacter?.name || 'Athro AI'}
             </SheetTitle>
           </SheetHeader>
           <div className="h-[calc(100vh-80px)]">
-            <AthroChat />
+            <AthroChat isCompactMode={true} />
           </div>
         </SheetContent>
       </Sheet>

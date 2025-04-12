@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { AthroCharacterConfig, SubjectData } from '@/types/athroCharacter';
 import { athroCharacters } from '@/config/athrosConfig';
+import { mockAthroResponse } from '@/services/athroService';
 
 // Mock data for student progress in different subjects
 const mockStudentProgress: Record<string, SubjectData> = {
@@ -60,7 +60,7 @@ interface AthroContextProps {
   characters: AthroCharacter[];
   activeCharacter: AthroCharacter | null;
   messages: AthroMessage[];
-  setActiveCharacter: (character: AthroCharacter) => void;
+  setActiveCharacter: (character: AthroCharacter | AthroCharacterConfig) => void;
   sendMessage: (content: string) => void;
   isTyping: boolean;
   studentProgress: Record<string, SubjectData>;
@@ -88,7 +88,7 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }));
 
   const [characters] = useState<AthroCharacter[]>(convertedCharacters);
-  const [activeCharacter, setActiveCharacter] = useState<AthroCharacter | null>(null);
+  const [activeCharacter, setActiveCharacterState] = useState<AthroCharacter | null>(null);
   const [messages, setMessages] = useState<AthroMessage[]>([]);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [studentProgress] = useState<Record<string, SubjectData>>(mockStudentProgress);
@@ -96,9 +96,52 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     // Set default character when the component mounts
     if (characters.length > 0 && !activeCharacter) {
-      setActiveCharacter(characters[0]);
+      setActiveCharacterState(characters[0]);
     }
   }, [characters, activeCharacter]);
+
+  const setActiveCharacter = (character: AthroCharacter | AthroCharacterConfig) => {
+    // Clear messages when changing character
+    setMessages([]);
+    
+    // If we received a config, convert it to an AthroCharacter
+    if ('promptTemplate' in character) {
+      const convertedChar: AthroCharacter = {
+        id: character.id,
+        name: character.name,
+        subject: character.subject,
+        avatarUrl: character.avatarUrl,
+        shortDescription: character.shortDescription,
+        fullDescription: character.fullDescription,
+        tone: character.tone,
+        supportsMathNotation: character.supportsMathNotation || false,
+        supportsSpecialCharacters: character.supportsSpecialCharacters || false,
+        supportedLanguages: character.supportedLanguages || [],
+        topics: character.topics,
+        examBoards: character.examBoards,
+      };
+      setActiveCharacterState(convertedChar);
+      
+      // Add welcome message from this character
+      addWelcomeMessage(convertedChar);
+    } else {
+      setActiveCharacterState(character);
+      
+      // Add welcome message from this character
+      addWelcomeMessage(character);
+    }
+  };
+  
+  const addWelcomeMessage = (character: AthroCharacter) => {
+    const welcomeMessage: AthroMessage = {
+      id: Date.now().toString(),
+      senderId: character.id,
+      content: `Hello! I'm ${character.name}, your ${character.subject} mentor. How can I help you today?`,
+      timestamp: new Date().toISOString(),
+    };
+    
+    setMessages([welcomeMessage]);
+  };
 
   const getTopicConfidence = (subject: string, topic: string): number => {
     const subjectData = studentProgress[subject];
@@ -127,7 +170,7 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return [...new Set([...lowConfidenceTopics, ...recentTopics])];
   };
 
-  const sendMessage = (content: string) => {
+  const sendMessage = async (content: string) => {
     if (!activeCharacter || !content.trim()) return;
 
     // Add user message
@@ -142,43 +185,30 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Show typing indicator
     setIsTyping(true);
     
-    // Simulate AI response (this would call your AI service in production)
-    setTimeout(() => {
-      const subject = activeCharacter.subject;
-      const mockResponse = generateMockResponse(content, subject);
+    try {
+      // Call our mock service
+      const response = await mockAthroResponse(
+        content,
+        activeCharacter.subject,
+        activeCharacter.examBoards[0]
+      );
       
-      const athroMessage: AthroMessage = {
+      setMessages(prev => [...prev, response]);
+    } catch (error) {
+      console.error("Error getting Athro response:", error);
+      
+      // Add fallback message
+      const errorMessage: AthroMessage = {
         id: (Date.now() + 1).toString(),
         senderId: activeCharacter.id,
-        content: mockResponse,
+        content: "I'm having trouble connecting right now. Could you try again in a moment?",
         timestamp: new Date().toISOString(),
       };
       
-      setMessages(prev => [...prev, athroMessage]);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
-  };
-
-  const generateMockResponse = (userMessage: string, subject: string): string => {
-    const lowerMessage = userMessage.toLowerCase();
-    
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      return `Hello! I'm your ${subject} study mentor. How can I help you today?`;
     }
-    
-    if (lowerMessage.includes('help')) {
-      return `I'd be happy to help with your ${subject} studies. What specific topic are you working on right now?`;
-    }
-    
-    if (subject === 'Mathematics' && (lowerMessage.includes('algebra') || lowerMessage.includes('equation'))) {
-      return "Algebra is all about finding the unknown. Let's work through this problem step by step. Could you share the specific equation you're working on?";
-    }
-    
-    if (subject === 'Science' && (lowerMessage.includes('biology') || lowerMessage.includes('cell'))) {
-      return "The cell is the fundamental unit of life. Would you like to explore cell structure, function, or perhaps a specific organelle?";
-    }
-    
-    return `That's an interesting question about ${subject}. To help you better, could you tell me what specific aspect you're studying?`;
   };
 
   return (

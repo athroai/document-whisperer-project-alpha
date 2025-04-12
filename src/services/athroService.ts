@@ -1,101 +1,114 @@
 
-import { AthroCharacterConfig, AthroPromptContext, AthroResponse } from '@/types/athroCharacter';
-import { formatPrompt } from '@/config/athrosConfig';
+import { AthroMessage } from '@/types/athro';
+import { pastPapers, PastPaper, PastPaperQuestion } from '@/data/athro-maths/past-papers';
+import { modelAnswers, ModelAnswer } from '@/data/athro-maths/model-answers';
 
-// This is a placeholder service that would connect to your backend/API
-export const generateAthroResponse = async (
-  character: AthroCharacterConfig,
-  message: string,
-  context: AthroPromptContext
-): Promise<AthroResponse> => {
-  try {
-    // This is a mock response - in production, this would call an API
-    console.log(`[Athro] Generating response for ${character.name} with context:`, context);
+export async function mockAthroResponse(
+  message: string, 
+  subject: string,
+  examBoard: string = 'wjec'
+): Promise<AthroMessage> {
+  // Mock delay to simulate API call
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  
+  // Check if the message matches any past paper questions
+  const questionMatch = findMatchingQuestion(message);
+  
+  let content = '';
+  let referencedResources: string[] = [];
+  
+  if (questionMatch) {
+    // If we have a matching question, use its model answer
+    const answer = findModelAnswer(questionMatch.id);
     
-    // Format the system prompt based on the character's template
-    const systemPrompt = formatPrompt(character.promptTemplate, {
-      tone: character.tone,
-      currentTopic: context.currentTopic || 'general topics'
-    });
-    
-    console.log(`[Athro] System prompt: ${systemPrompt}`);
-    console.log(`[Athro] User message: ${message}`);
-    
-    // In a real implementation, this would call OpenAI or another API
-    // For now, return a mock response
-    return mockResponse(character, message, context);
-  } catch (error) {
-    console.error('Error generating Athro response:', error);
-    return {
-      message: "I'm having trouble processing that right now. Could you try again in a moment?"
-    };
+    if (answer) {
+      content = `I can help with this ${questionMatch.topic} question.\n\n${formatWorkingSteps(answer.workingSteps)}\n\nThe final answer is: ${answer.markScheme}`;
+      referencedResources = [questionMatch.id];
+    } else {
+      content = generateSubjectResponse(message, subject);
+    }
+  } else {
+    content = generateSubjectResponse(message, subject);
   }
-};
+  
+  return {
+    id: Date.now().toString(),
+    senderId: `athro-${subject.toLowerCase()}`,
+    content,
+    timestamp: new Date().toISOString(),
+    referencedResources
+  };
+}
 
-// Mock response generator for development
-const mockResponse = (
-  character: AthroCharacterConfig,
-  message: string,
-  context: AthroPromptContext
-): AthroResponse => {
+function findMatchingQuestion(message: string): PastPaperQuestion | null {
+  // Very basic matching logic - in a real implementation this would be much more sophisticated
   const lowerMessage = message.toLowerCase();
   
-  // Check if the message is a greeting
-  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || message.length < 5) {
-    return {
-      message: `Hello! I'm ${character.name}, your ${character.subject} study mentor. How can I help you today with your studies?`,
-      suggestedTopics: character.topics.slice(0, 3)
-    };
-  }
-  
-  // Check if the message is about a specific topic
-  for (const topic of character.topics) {
-    if (lowerMessage.includes(topic.toLowerCase())) {
-      return {
-        message: `Let's explore ${topic} together! This is an important topic in ${character.subject}. What specific aspect of ${topic} would you like to work on?`,
-        suggestedTopics: [topic],
-        confidence: context.confidenceScores?.[topic] || 5
-      };
+  for (const paper of pastPapers) {
+    for (const question of paper.questions) {
+      // Check if significant parts of the question text appear in the message
+      const keywords = question.text.toLowerCase().split(' ')
+        .filter(word => word.length > 3) // Only match on significant words
+        .filter(word => !['what', 'find', 'calculate', 'solve', 'work', 'out'].includes(word));
+      
+      const matchCount = keywords.filter(word => lowerMessage.includes(word)).length;
+      const matchThreshold = Math.ceil(keywords.length * 0.6); // 60% match threshold
+      
+      if (matchCount >= matchThreshold) {
+        return question;
+      }
     }
   }
   
-  // Generic response
-  return {
-    message: `That's an interesting question about ${character.subject}. To help you better, could you tell me what specific topic you're studying right now?`,
-    suggestedTopics: character.topics.slice(0, 3),
-    confidence: 5
-  };
-};
+  return null;
+}
 
-// Handle file references
-export const getRelevantResources = (
-  subject: string,
-  userId: string,
-  topic?: string
-): string[] => {
-  // This is a placeholder - in production, this would query your database
-  console.log(`[Athro] Getting resources for ${subject}, topic: ${topic}`);
-  return [
-    `${subject} Study Guide`,
-    `${topic || subject} Practice Questions`,
-    `${subject} Key Concepts`
-  ];
-};
+function findModelAnswer(questionId: string): ModelAnswer | undefined {
+  return modelAnswers.find(answer => answer.questionId === questionId);
+}
 
-// Generate a contextual prompt for the specific Athro and user situation
-export const buildPromptContext = (
-  character: AthroCharacterConfig,
-  userId: string,
-  subjectData: any,
-  currentTopic?: string
-): AthroPromptContext => {
-  return {
-    studentName: "Student", // In production, fetch from user profile
-    recentTopics: subjectData?.recentTopics || [],
-    confidenceScores: subjectData?.confidenceScores || {},
-    examBoard: "wjec", // Default or user preference
-    currentTopic,
-    recentQuizScores: subjectData?.quizScores || [],
-    uploadedResources: [] // In production, fetch from file service
-  };
-};
+function formatWorkingSteps(steps: string[]): string {
+  return steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
+}
+
+function generateSubjectResponse(message: string, subject: string): string {
+  const lowerMessage = message.toLowerCase();
+  
+  if (subject === 'Mathematics') {
+    if (lowerMessage.includes('algebra') || lowerMessage.includes('equation') || lowerMessage.includes('solve')) {
+      return "Algebra is all about finding unknown values. Let's tackle this step-by-step. Could you share the specific equation you're working on?";
+    }
+    
+    if (lowerMessage.includes('geometry') || lowerMessage.includes('circle') || lowerMessage.includes('triangle') || lowerMessage.includes('angle')) {
+      return "Geometry problems are best approached by identifying what we know and what we need to find. Let's break down this question together.";
+    }
+    
+    if (lowerMessage.includes('statistics') || lowerMessage.includes('mean') || lowerMessage.includes('median') || lowerMessage.includes('mode')) {
+      return "Statistics involves analyzing and interpreting data. For this problem, we need to understand which measure of central tendency is most appropriate.";
+    }
+    
+    return "I'm your mathematics mentor. Could you provide more details about your maths question? It helps me to see the specific problem you're working on.";
+  }
+  
+  return `I'm your ${subject} mentor. How can I help you today?`;
+}
+
+export async function getPastPapers(subject: string, examBoard?: string): Promise<PastPaper[]> {
+  // Mock delay
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  
+  // In a real implementation, this would filter from a database
+  if (examBoard) {
+    return pastPapers.filter(paper => paper.examBoard === examBoard.toLowerCase());
+  }
+  
+  return pastPapers;
+}
+
+export async function getModelAnswer(questionId: string): Promise<ModelAnswer | null> {
+  // Mock delay
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  
+  const answer = modelAnswers.find(a => a.questionId === questionId);
+  return answer || null;
+}

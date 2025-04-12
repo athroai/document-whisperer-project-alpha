@@ -74,7 +74,23 @@ const App = () => (
                       }
                     </ProtectedRoute>
                   } />
+                  
+                  {/* Athro Routes */}
                   <Route path="/athro" element={<AthroPage />} />
+                  <Route path="/athro/mathematics" element={
+                    <ProtectedRoute>
+                      {() => (
+                        <>
+                          <Navigation />
+                          <React.Suspense fallback={<div>Loading...</div>}>
+                            {React.lazy(() => import('./pages/athro/AthroMathsPage'))}
+                          </React.Suspense>
+                          <AthroSystem />
+                        </>
+                      )}
+                    </ProtectedRoute>
+                  } />
+                  
                   <Route path="/calendar" element={
                     <ProtectedRoute>
                       {({ user }) => user?.role === 'teacher' ? 
@@ -87,6 +103,7 @@ const App = () => (
                       }
                     </ProtectedRoute>
                   } />
+                  
                   <Route path="/quiz" element={
                     <ProtectedRoute>
                       {({ user }) => user?.role === 'teacher' ? 

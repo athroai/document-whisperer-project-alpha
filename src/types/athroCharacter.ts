@@ -1,4 +1,3 @@
-
 import { AthroSubject, AthroLanguage, ExamBoard } from './athro';
 
 export interface AthroCharacterConfig {
@@ -19,6 +18,15 @@ export interface AthroCharacterConfig {
   supportedLanguages?: AthroLanguage[];
   topics: string[];
   examBoards: ExamBoard[];
+  features?: {
+    latexSupport?: boolean;
+    pastPaperIntegration?: boolean;
+    aiMarking?: boolean;
+  };
+  examBoardLogic?: {
+    default: ExamBoard;
+    fallback: ExamBoard[];
+  };
 }
 
 export interface AthroPromptContext {
