@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Users, TrendingUp, Clock, BookOpen, Upload, Settings, Book } from 'lucide-react';
 import { 
@@ -37,7 +36,6 @@ import {
   Bar
 } from 'recharts';
 
-// Enhanced mock data for students with subject-specific information
 const mockStudents = [
   {
     id: '1',
@@ -113,7 +111,6 @@ const mockStudents = [
   },
 ];
 
-// Helper function to get subject-specific colors
 const getSubjectColor = (subject: string) => {
   switch (subject.toLowerCase()) {
     case 'maths': return '#8884d8';
@@ -133,7 +130,6 @@ const TeacherDashboardPage = () => {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      // In a real app, we would handle the file upload to a storage service
       toast({
         title: "Files uploaded",
         description: `${files.length} file(s) have been uploaded successfully.`,
@@ -145,7 +141,6 @@ const TeacherDashboardPage = () => {
     ? mockStudents.find(s => s.id === selectedStudent) 
     : null;
 
-  // Prepare data for subject comparison chart
   const subjectComparisonData = student ? [
     { subject: 'Maths', confidence: student.subjects.maths.confidence, score: student.subjects.maths.averageScore },
     { subject: 'Science', confidence: student.subjects.science.confidence, score: student.subjects.science.averageScore },
@@ -153,7 +148,6 @@ const TeacherDashboardPage = () => {
     { subject: 'History', confidence: student.subjects.history.confidence, score: student.subjects.history.averageScore },
   ] : [];
 
-  // Calculate class-wide subject averages
   const classAverages = mockStudents.reduce((acc, student) => {
     Object.entries(student.subjects).forEach(([subject, data]) => {
       if (!acc[subject]) {
@@ -446,15 +440,17 @@ const TeacherDashboardPage = () => {
                           <Tooltip />
                           <Legend />
                           <Bar dataKey="confidence" name="Class Average" fill="#8884d8" />
-                          {subjectComparisonData.map((entry, index) => (
-                            <Bar 
-                              key={`student-${index}`}
-                              dataKey="confidence" 
-                              name={`${student.name}'s Confidence`} 
-                              data={[{ subject: entry.subject, confidence: entry.confidence }]}
-                              fill="#82ca9d" 
-                            />
-                          ))}
+                          <>
+                            {subjectComparisonData.map((entry, index) => (
+                              <Bar 
+                                key={`student-${index}`}
+                                dataKey="confidence" 
+                                name={`${student.name}'s Confidence`} 
+                                data={[{ subject: entry.subject, confidence: entry.confidence }]}
+                                fill="#82ca9d" 
+                              />
+                            ))}
+                          </>
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
