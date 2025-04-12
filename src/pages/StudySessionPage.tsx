@@ -3,7 +3,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Send, ThumbsUp, Clock, BookOpen, GraduationCap, FileText } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import PomodoroTimer from '@/components/PomodoroTimer';
@@ -53,6 +53,7 @@ const StudySessionPage: React.FC = () => {
   const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
   const [showFileReferences, setShowFileReferences] = useState(false);
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
+  const [hasShownFallback, setHasShownFallback] = useState(false);
 
   const mockUserId = 'user_1';
 
@@ -60,12 +61,24 @@ const StudySessionPage: React.FC = () => {
     if (message.trim()) {
       setMessages([...messages, { text: message, sender: 'user', avatar: '' }]);
       
+      const isVagueInput = message.trim().length < 5 || ['dunno', 'not sure', 'idk', 'help', 'hi'].includes(message.trim().toLowerCase());
+      
       setTimeout(() => {
-        setMessages(prev => [...prev, {
-          text: `I'm here to help with your ${currentSubject} questions! Let me know what specific topic you'd like to explore or what problems you're facing.`,
-          sender: 'athro',
-          avatar: currentAthro.avatar
-        }]);
+        if (isVagueInput && !hasShownFallback) {
+          setMessages(prev => [...prev, {
+            text: `I'm here to help with your ${currentSubject} questions! Let me know what specific topic you'd like to explore or what problems you're facing.`,
+            sender: 'athro',
+            avatar: currentAthro.avatar
+          }]);
+          setHasShownFallback(true);
+        } else {
+          const subjectSpecificResponse = generateSubjectResponse(message, currentSubject);
+          setMessages(prev => [...prev, {
+            text: subjectSpecificResponse,
+            sender: 'athro',
+            avatar: currentAthro.avatar
+          }]);
+        }
         
         if (Math.random() > 0.5) {
           setShowFileReferences(true);
@@ -74,6 +87,25 @@ const StudySessionPage: React.FC = () => {
       
       setMessage('');
     }
+  };
+
+  const generateSubjectResponse = (userMessage: string, subject: string) => {
+    const lowerCaseMessage = userMessage.toLowerCase();
+    
+    if (subject === 'Science' && lowerCaseMessage.includes('atom')) {
+      return "An atom is the basic unit of a chemical element. It's made up of a nucleus containing protons and neutrons, with electrons orbiting around it. Would you like me to explain more about atomic structure?";
+    } 
+    else if (subject === 'Mathematics' && (lowerCaseMessage.includes('equation') || lowerCaseMessage.includes('solve'))) {
+      return "I'd be happy to help you solve that equation. Let's work through it step by step. First, we need to identify the variables and constants...";
+    }
+    else if (subject === 'History' && lowerCaseMessage.includes('war')) {
+      return "Wars have shaped much of human history. Which specific conflict are you interested in learning about? I can help with World Wars, Cold War, or many other historical conflicts.";
+    }
+    else if (subject === 'English' && (lowerCaseMessage.includes('essay') || lowerCaseMessage.includes('write'))) {
+      return "For essay writing, it's important to start with a clear structure: introduction, body paragraphs, and conclusion. Would you like some specific tips on how to improve your essay writing?";
+    }
+    
+    return `That's an interesting question about ${subject}. To help you better, could you tell me a bit more about what specific aspect of this topic you're studying? I'll do my best to provide a useful explanation.`;
   };
 
   const changeSubject = (subject: string) => {
@@ -92,6 +124,7 @@ const StudySessionPage: React.FC = () => {
     setActiveSession(null);
     setSelectedTopic('');
     setSelectedPaper('');
+    setHasShownFallback(false);
   };
 
   const startAISession = () => {
@@ -127,6 +160,22 @@ const StudySessionPage: React.FC = () => {
         avatar: currentAthro.avatar
       }
     ]);
+  };
+
+  const continueWithoutTopic = () => {
+    setMessages([
+      ...messages,
+      {
+        text: `What would you like to learn about in ${currentSubject} today? I'm here to help with any questions you might have.`,
+        sender: 'athro',
+        avatar: currentAthro.avatar
+      }
+    ]);
+  };
+
+  const handleModalClose = () => {
+    setActiveSession(null);
+    continueWithoutTopic();
   };
 
   const handlePaperSelection = (paper: string) => {
@@ -406,10 +455,10 @@ const StudySessionPage: React.FC = () => {
               )}
               
               {activeSession === 'manual' && !selectedTopic && (
-                <Dialog open={true} onOpenChange={() => setShowOptions(true)}>
-                  <DialogContent>
+                <Dialog open={true} onOpenChange={() => handleModalClose()}>
+                  <DialogContent className="sm:max-w-md bg-white">
                     <DialogHeader>
-                      <DialogTitle>Select a Topic to Review</DialogTitle>
+                      <DialogTitle>Select a Topic in {currentSubject}</DialogTitle>
                     </DialogHeader>
                     <div className="grid grid-cols-2 gap-2 py-4">
                       {currentTopics.map((topic) => (
@@ -417,19 +466,36 @@ const StudySessionPage: React.FC = () => {
                           key={topic}
                           variant="outline"
                           className="h-auto py-3 justify-start"
-                          onClick={() => handleTopicSelection(topic)}
+                          onClick={() => {
+                            handleTopicSelection(topic);
+                            setActiveSession(null);
+                          }}
                         >
                           {topic}
                         </Button>
                       ))}
                     </div>
+                    <div className="flex justify-center mt-4">
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => {
+                          setActiveSession(null);
+                          continueWithoutTopic();
+                        }}
+                      >
+                        Skip topic selection
+                      </Button>
+                    </div>
+                    <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none" 
+                      onClick={handleModalClose}
+                    />
                   </DialogContent>
                 </Dialog>
               )}
               
               {activeSession === 'past-paper' && !selectedPaper && (
-                <Dialog open={true} onOpenChange={() => setShowOptions(true)}>
-                  <DialogContent>
+                <Dialog open={true} onOpenChange={() => handleModalClose()}>
+                  <DialogContent className="sm:max-w-md bg-white">
                     <DialogHeader>
                       <DialogTitle>Select a Past Paper</DialogTitle>
                     </DialogHeader>
@@ -437,7 +503,10 @@ const StudySessionPage: React.FC = () => {
                     <div className="space-y-4 py-4">
                       <div>
                         <Label htmlFor="paperSelect">Choose from available papers:</Label>
-                        <Select onValueChange={handlePaperSelection}>
+                        <Select onValueChange={(paper) => {
+                          handlePaperSelection(paper);
+                          setActiveSession(null);
+                        }}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a paper" />
                           </SelectTrigger>
@@ -470,12 +539,30 @@ const StudySessionPage: React.FC = () => {
                               type="file"
                               accept=".pdf"
                               className="hidden"
-                              onChange={handleFileUpload}
+                              onChange={(e) => {
+                                handleFileUpload(e);
+                                setActiveSession(null);
+                              }}
                             />
                           </Label>
                         </div>
                       </div>
+                      
+                      <div className="flex justify-center mt-4">
+                        <Button 
+                          variant="ghost" 
+                          onClick={() => {
+                            setActiveSession(null);
+                            continueWithoutTopic();
+                          }}
+                        >
+                          Skip paper selection
+                        </Button>
+                      </div>
                     </div>
+                    <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none" 
+                      onClick={handleModalClose}
+                    />
                   </DialogContent>
                 </Dialog>
               )}
