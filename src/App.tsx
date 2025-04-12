@@ -1,4 +1,3 @@
-
 import { Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -26,6 +25,7 @@ import TeacherAssignPage from "./pages/teacher/TeacherAssignPage";
 import TeacherMarkingPage from "./pages/teacher/TeacherMarkingPage"; 
 import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
 import StudentFeedbackPage from "./pages/student/StudentFeedbackPage";
+import { UserRole } from "./types/auth";
 
 function App() {
   return (
@@ -112,7 +112,7 @@ function App() {
       <Route
         path="/teacher"
         element={
-          <ProtectedRoute requiredRole="teacher">
+          <ProtectedRoute requiredRole="teacher" as UserRole>
             <TeacherDashboardPage />
           </ProtectedRoute>
         }
@@ -120,7 +120,7 @@ function App() {
       <Route
         path="/teacher/profiles"
         element={
-          <ProtectedRoute requiredRole="teacher">
+          <ProtectedRoute requiredRole="teacher" as UserRole>
             <TeacherStudentProfilesPage />
           </ProtectedRoute>
         }
@@ -128,7 +128,7 @@ function App() {
       <Route
         path="/teacher/sets"
         element={
-          <ProtectedRoute requiredRole="teacher">
+          <ProtectedRoute requiredRole="teacher" as UserRole>
             <TeacherSetsPage />
           </ProtectedRoute>
         }
@@ -136,7 +136,7 @@ function App() {
       <Route
         path="/teacher/insights"
         element={
-          <ProtectedRoute requiredRole="teacher">
+          <ProtectedRoute requiredRole="teacher" as UserRole>
             <TeacherInsightsPage />
           </ProtectedRoute>
         }
@@ -144,7 +144,7 @@ function App() {
       <Route
         path="/teacher/assign"
         element={
-          <ProtectedRoute requiredRole="teacher">
+          <ProtectedRoute requiredRole="teacher" as UserRole>
             <TeacherAssignPage />
           </ProtectedRoute>
         }
@@ -152,7 +152,7 @@ function App() {
       <Route
         path="/teacher/marking"
         element={
-          <ProtectedRoute requiredRole="teacher" requireLicense={true}>
+          <ProtectedRoute requiredRole="teacher" as UserRole requireLicense={true}>
             <TeacherMarkingPage />
           </ProtectedRoute>
         }
@@ -162,7 +162,7 @@ function App() {
       <Route
         path="/student/assignments"
         element={
-          <ProtectedRoute requiredRole="student">
+          <ProtectedRoute requiredRole="student" as UserRole>
             <StudentAssignmentsPage />
           </ProtectedRoute>
         }
@@ -170,7 +170,7 @@ function App() {
       <Route
         path="/student/feedback"
         element={
-          <ProtectedRoute requiredRole="student">
+          <ProtectedRoute requiredRole="student" as UserRole>
             <StudentFeedbackPage />
           </ProtectedRoute>
         }

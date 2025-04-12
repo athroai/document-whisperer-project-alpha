@@ -3,10 +3,12 @@
 // This is a simplified version, assuming the file already has some content
 
 // Adding the User interface that was missing
+export type UserRole = 'student' | 'teacher' | 'parent' | 'admin';
+
 export interface User {
   id: string;
   email: string;
-  role: 'student' | 'teacher' | 'parent';
+  role: UserRole;
   displayName: string;
   createdAt: Date;
   rememberMe: boolean;
