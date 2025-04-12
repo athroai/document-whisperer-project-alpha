@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Question, Answer, QuizResult } from '@/types/quiz';
@@ -66,7 +65,7 @@ const QuizPage: React.FC = () => {
     
     try {
       // Fetch questions using our service
-      const questions = await quizService.getQuestionsBySubject(subject, targetDifficulty, 5);
+      const questions = await quizService.getQuestionsBySubject(subject, targetDifficulty, 5, state.user?.examBoard);
       
       if (questions.length === 0) {
         toast({
