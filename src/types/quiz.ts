@@ -1,4 +1,3 @@
-
 export interface Question {
   id: string;
   subject: string;
@@ -9,6 +8,7 @@ export interface Question {
   options?: string[];
   hint: string;
   type: "multiple-choice" | "short-answer";
+  examBoard?: string;
 }
 
 export interface Answer {
@@ -40,7 +40,8 @@ export const mockQuestions: Question[] = [
     answer: "62",
     options: ["52", "62", "72", "82"],
     hint: "Add the ones column first, then the tens column",
-    type: "multiple-choice"
+    type: "multiple-choice",
+    examBoard: "wjec"
   },
   {
     id: "m2",
@@ -51,7 +52,8 @@ export const mockQuestions: Question[] = [
     answer: "55",
     options: ["45", "55", "65", "75"],
     hint: "Subtract the ones column first, then the tens column",
-    type: "multiple-choice"
+    type: "multiple-choice",
+    examBoard: "aqa"
   },
   {
     id: "m3",
