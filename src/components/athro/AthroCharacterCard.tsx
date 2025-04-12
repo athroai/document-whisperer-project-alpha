@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AthroCharacter } from '@/types/athro';
+import { Calculator, PiCircle, Function, Infinity, Sigma } from 'lucide-react';
 
 interface AthroCharacterCardProps {
   character: AthroCharacter;
@@ -15,6 +16,37 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
   onSelect,
   isActive = false
 }) => {
+  // Get subject-specific icon
+  const getSubjectIcon = () => {
+    switch (character.subject) {
+      case 'Mathematics':
+        return <Calculator className="h-5 w-5 text-purple-600" />;
+      case 'Science':
+        return <PiCircle className="h-5 w-5 text-green-600" />;
+      default:
+        return <Function className="h-5 w-5 text-blue-600" />;
+    }
+  };
+
+  // Get subject-specific capabilities
+  const getSpecialCapabilities = () => {
+    const capabilities = [];
+    
+    if (character.supportsMathNotation) {
+      capabilities.push('Mathematical notation');
+    }
+    
+    if (character.supportsSpecialCharacters) {
+      capabilities.push('Special characters');
+    }
+    
+    if (character.supportedLanguages && character.supportedLanguages.length > 0) {
+      capabilities.push(`${character.supportedLanguages.join(', ')} support`);
+    }
+    
+    return capabilities;
+  };
+
   return (
     <Card className={`overflow-hidden transition-all ${isActive ? 'border-purple-500 shadow-md' : 'hover:shadow-md'}`}>
       <CardHeader className="pb-2">
@@ -27,7 +59,10 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
             />
           </div>
           <div>
-            <CardTitle>{character.name}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              {character.name}
+              {getSubjectIcon()}
+            </CardTitle>
             <CardDescription>{character.shortDescription}</CardDescription>
           </div>
         </div>
@@ -36,6 +71,15 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
         <p className="text-sm text-muted-foreground">
           {character.subject} expert with knowledge of {character.examBoards.join(', ')} exam boards
         </p>
+        
+        {getSpecialCapabilities().length > 0 && (
+          <div className="mt-1">
+            <p className="text-xs text-purple-600 font-medium">
+              Special capabilities: {getSpecialCapabilities().join(', ')}
+            </p>
+          </div>
+        )}
+        
         <div className="mt-2">
           <h4 className="text-sm font-medium">Topics:</h4>
           <div className="mt-1 flex flex-wrap gap-1">

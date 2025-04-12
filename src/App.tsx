@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -75,17 +74,7 @@ const App = () => (
                       }
                     </ProtectedRoute>
                   } />
-                  <Route path="/athro" element={
-                    <ProtectedRoute>
-                      {({ user }) => user?.role === 'teacher' ? 
-                        <Navigate to="/teacher-dashboard" /> : 
-                        <>
-                          <Navigation />
-                          <AthroPage />
-                        </>
-                      }
-                    </ProtectedRoute>
-                  } />
+                  <Route path="/athro" element={<AthroPage />} />
                   <Route path="/calendar" element={
                     <ProtectedRoute>
                       {({ user }) => user?.role === 'teacher' ? 

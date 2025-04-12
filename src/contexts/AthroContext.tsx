@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { useStudentRecord } from './StudentRecordContext';
 import { AthroCharacter, AthroSubject, AthroMessage, AthroResource, AthroStudySession } from '@/types/athro';
 
 interface AthroContextType {
@@ -16,19 +17,34 @@ interface AthroContextType {
   endSession: () => void;
   isLoading: boolean;
   error: string | null;
+  studentPerformance: {
+    confidenceByTopic: Record<string, number>;
+    recentQuizScores: { date: string, score: number }[];
+    suggestedTopics: string[];
+  };
+  referencedResources: AthroResource[];
+  setReferencedResources: (resources: AthroResource[]) => void;
 }
 
 const AthroContext = createContext<AthroContextType | undefined>(undefined);
 
 export const AthroProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { state: authState } = useAuth();
+  const studentRecord = useStudentRecord();
+  
   const [activeCharacter, setActiveCharacter] = useState<AthroCharacter | null>(null);
   const [characters, setCharacters] = useState<AthroCharacter[]>([]);
   const [messages, setMessages] = useState<AthroMessage[]>([]);
   const [resources, setResources] = useState<AthroResource[]>([]);
+  const [referencedResources, setReferencedResources] = useState<AthroResource[]>([]);
   const [currentSession, setCurrentSession] = useState<AthroStudySession | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [studentPerformance, setStudentPerformance] = useState({
+    confidenceByTopic: {} as Record<string, number>,
+    recentQuizScores: [] as { date: string, score: number }[],
+    suggestedTopics: [] as string[]
+  });
 
   // Load characters on initialization
   useEffect(() => {
@@ -48,8 +64,19 @@ export const AthroProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             supportsMathNotation: true,
             topics: ['Algebra', 'Geometry', 'Trigonometry', 'Statistics', 'Probability', 'Number Theory'],
             examBoards: ['wjec', 'aqa', 'ocr']
+          },
+          {
+            id: 'athro-science',
+            name: 'AthroScience',
+            subject: 'Science',
+            avatarUrl: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png',
+            shortDescription: 'Your GCSE Science companion',
+            fullDescription: 'AthroScience guides you through biology, chemistry, and physics concepts with clear explanations and exam-focused practice.',
+            tone: 'curious, precise, and explanatory',
+            supportsMathNotation: true,
+            topics: ['Biology', 'Chemistry', 'Physics', 'Earth Science', 'Ecology', 'Scientific Method'],
+            examBoards: ['wjec', 'aqa', 'ocr']
           }
-          // More characters will be added as they are developed
         ];
         
         setCharacters(mockCharacters);
@@ -68,6 +95,46 @@ export const AthroProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     loadCharacters();
   }, []);
+
+  // When active character changes, update student performance data
+  useEffect(() => {
+    if (activeCharacter && studentRecord) {
+      try {
+        const subject = activeCharacter.subject.toLowerCase();
+        const subjectRecord = studentRecord.studentRecord[subject];
+        
+        if (subjectRecord) {
+          // Get confidence scores for topics in this subject
+          const confidenceByTopic = subjectRecord.quizScores.length > 0
+            ? { ...subjectRecord.confidenceScores }
+            : activeCharacter.topics.reduce((acc, topic) => {
+                acc[topic] = 5; // Default confidence if no data
+                return acc;
+              }, {} as Record<string, number>);
+          
+          // Get quiz scores
+          const recentQuizScores = subjectRecord.quizScores.map((score, index) => ({
+            date: new Date(Date.now() - index * 86400000).toISOString().split('T')[0], // Mock dates for demo
+            score
+          }));
+          
+          // Suggest topics with low confidence
+          const suggestedTopics = Object.entries(confidenceByTopic)
+            .sort(([, a], [, b]) => a - b)
+            .slice(0, 3)
+            .map(([topic]) => topic);
+          
+          setStudentPerformance({
+            confidenceByTopic,
+            recentQuizScores,
+            suggestedTopics
+          });
+        }
+      } catch (error) {
+        console.error('Error loading student performance:', error);
+      }
+    }
+  }, [activeCharacter, studentRecord]);
 
   // Start a new study session
   const startSession = (characterId: string, subject: AthroSubject, topic?: string) => {
@@ -173,6 +240,14 @@ export const AthroProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return "Geometry involves shapes, sizes, and the properties of space. Would you like to focus on 2D shapes like circles and triangles, or 3D shapes like spheres and prisms?";
       } else if (lowerMessage.includes('help')) {
         return "I'm here to help with your mathematics studies! We can work on specific problems, review concepts, or practice past paper questions. What would you like to focus on?";
+      } else if (lowerMessage.includes('equation')) {
+        return "When solving equations, we aim to find the value(s) of the unknown variable. For example, to solve $2x + 3 = 7$, we subtract 3 from both sides to get $2x = 4$, then divide by 2 to find $x = 2$. What equation are you trying to solve?";
+      }
+    } else if (character.subject === 'Science') {
+      if (lowerMessage.includes('chemistry')) {
+        return "Chemistry is the study of matter, its properties, and the changes it undergoes. Are you looking at atomic structure, chemical reactions, or perhaps something else?";
+      } else if (lowerMessage.includes('biology')) {
+        return "Biology explores living organisms and their interactions with each other and the environment. What specific area of biology are you studying?";
       }
     }
     
@@ -202,7 +277,10 @@ export const AthroProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     startSession,
     endSession,
     isLoading,
-    error
+    error,
+    studentPerformance,
+    referencedResources,
+    setReferencedResources
   };
 
   return <AthroContext.Provider value={value}>{children}</AthroContext.Provider>;
