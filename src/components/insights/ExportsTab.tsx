@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InsightsFilter } from '@/types/insights';
 import insightsService from '@/services/insightsService';
-import { Download, FileSpreadsheet, FilePdf, Calendar, BarChart3, TrendingUp, BookOpen } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, Calendar, BarChart3, TrendingUp, BookOpen } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 interface ExportsTabProps {
@@ -156,7 +155,7 @@ const ExportsTab: React.FC<ExportsTabProps> = ({ teacherId, filter, loading }) =
                           </span>
                         ) : (
                           <span className="flex items-center">
-                            <FilePdf size={16} className="mr-1" />
+                            <FileText size={16} className="mr-1" />
                             PDF
                           </span>
                         )}
