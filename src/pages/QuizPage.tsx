@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const QuizPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { state } = useAuth(); // Fix 1: Access user through state property
   
   // Extract subject from URL params if present
   const queryParams = new URLSearchParams(location.search);
@@ -96,7 +96,8 @@ const QuizPage: React.FC = () => {
       toast({
         title: "Limited questions available",
         description: "No exact match found — using nearest available difficulty.",
-        variant: "warning",
+        // Fix 2: Change "warning" to "default"
+        variant: "default", 
       });
     } else {
       setNoExactMatch(false);
@@ -191,7 +192,7 @@ const QuizPage: React.FC = () => {
     // Save the quiz result
     const score = calculateScore();
     const quizResult: QuizResult = {
-      userId: user?.id || 'anonymous',
+      userId: state.user?.id || 'anonymous', // Fix 1: Access user through state property
       subject,
       questionsAsked: quizQuestions.map(q => q.id),
       answers,
