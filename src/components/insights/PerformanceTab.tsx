@@ -203,7 +203,7 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ teacherId, filter, load
         </div>
         <div className="flex items-center">
           <div className="w-4 h-4 rounded bg-red-100 border border-red-800 mr-2"></div>
-          <span className="text-sm">Needs Improvement (< 50%)</span>
+          <span className="text-sm">Needs Improvement (&lt; 50%)</span>
         </div>
       </div>
     </div>

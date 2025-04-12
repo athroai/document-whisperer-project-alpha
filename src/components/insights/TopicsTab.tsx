@@ -204,7 +204,7 @@ const TopicsTab: React.FC<TopicsTabProps> = ({ teacherId, filter, loading }) => 
                 </div>
                 <div className="flex items-center">
                   <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                  <span className="text-sm">Critical (< 45%)</span>
+                  <span className="text-sm">Critical (&lt; 45%)</span>
                 </div>
               </div>
             </>
