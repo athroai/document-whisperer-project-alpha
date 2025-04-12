@@ -1,37 +1,78 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Check, AlertCircle, HelpCircle, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Check, AlertCircle, HelpCircle, AlertTriangle, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
+import { Class, StudentDetail, Subject } from '@/types/teacher';
 
-const subjects = [
+// Mock data for development - will be replaced with Firestore in production
+const subjects: Subject[] = [
   { id: "maths", name: "Mathematics" },
   { id: "science", name: "Science" },
-  { id: "english", name: "English" }
+  { id: "english", name: "English" },
+  { id: "history", name: "History" },
+  { id: "geography", name: "Geography" }
 ];
 
 const yearGroups = ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11"];
 
-const sets = [
-  { id: "maths-y10-s1", subject: "maths", yearGroup: "Year 10", name: "Set 1", studentCount: 15 },
-  { id: "maths-y10-s2", subject: "maths", yearGroup: "Year 10", name: "Set 2", studentCount: 12 },
-  { id: "science-y11-s1", subject: "science", yearGroup: "Year 11", name: "Set 1", studentCount: 18 },
-  { id: "english-y9-s1", subject: "english", yearGroup: "Year 9", name: "Set 1", studentCount: 16 }
+// Mock classes that would be fetched from Firestore
+const mockClasses: Class[] = [
+  { 
+    id: "maths-y10-s1", 
+    name: "Set 1", 
+    teacher_id: "123456789",
+    school_id: "school-1",
+    subject: "maths",
+    student_ids: ["1", "2", "3"],
+    yearGroup: "Year 10" 
+  },
+  { 
+    id: "maths-y10-s2", 
+    name: "Set 2", 
+    teacher_id: "123456789",
+    school_id: "school-1",
+    subject: "maths",
+    student_ids: ["4", "5"],
+    yearGroup: "Year 10" 
+  },
+  { 
+    id: "science-y11-s1", 
+    name: "Set 1", 
+    teacher_id: "123456789",
+    school_id: "school-1",
+    subject: "science",
+    student_ids: ["6", "7", "8", "9"],
+    yearGroup: "Year 11" 
+  },
+  { 
+    id: "english-y9-s1", 
+    name: "Set 1", 
+    teacher_id: "123456789",
+    school_id: "school-1",
+    subject: "english",
+    student_ids: ["10", "11", "12"],
+    yearGroup: "Year 9" 
+  }
 ];
 
-const students = [
+// Mock students that would be fetched from Firestore
+const mockStudents: StudentDetail[] = [
   { 
     id: "1", 
     name: "Jamie Davies", 
+    email: "jamie.d@school.edu",
     avatarSrc: "",
     status: "approved", 
-    setId: "maths-y10-s1",
+    classId: "maths-y10-s1",
     performance: 85,
     lastActive: "2025-04-11",
     parentInquiry: false 
@@ -39,9 +80,10 @@ const students = [
   { 
     id: "2", 
     name: "Sarah Johnson", 
+    email: "sarah.j@school.edu",
     avatarSrc: "", 
     status: "approved", 
-    setId: "maths-y10-s1",
+    classId: "maths-y10-s1",
     performance: 92,
     lastActive: "2025-04-12",
     parentInquiry: false 
@@ -49,9 +91,10 @@ const students = [
   { 
     id: "3", 
     name: "Michael Chen", 
+    email: "michael.c@school.edu",
     avatarSrc: "", 
     status: "pending", 
-    setId: "maths-y10-s1",
+    classId: "maths-y10-s1",
     performance: 75,
     lastActive: "2025-04-10",
     parentInquiry: false 
@@ -59,9 +102,10 @@ const students = [
   { 
     id: "4", 
     name: "Emma Williams", 
+    email: "emma.w@school.edu",
     avatarSrc: "", 
     status: "approved", 
-    setId: "maths-y10-s2",
+    classId: "maths-y10-s2",
     performance: 88,
     lastActive: "2025-04-11",
     parentInquiry: true 
@@ -69,9 +113,10 @@ const students = [
   { 
     id: "5", 
     name: "Daniel Smith", 
+    email: "daniel.s@school.edu",
     avatarSrc: "", 
     status: "removed", 
-    setId: "maths-y10-s2",
+    classId: "maths-y10-s2",
     performance: 62,
     lastActive: "2025-04-05",
     parentInquiry: false 
@@ -83,20 +128,53 @@ const TeacherSetsPage: React.FC = () => {
   const [selectedYearGroup, setSelectedYearGroup] = useState(yearGroups[3]); // Year 10
   const [selectedSet, setSelectedSet] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [showNewSetDialog, setShowNewSetDialog] = useState(false);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [students, setStudents] = useState<StudentDetail[]>([]);
+  
+  const { state } = useAuth();
+  const { user } = state;
 
-  const filteredSets = sets.filter(
+  useEffect(() => {
+    // In production, this would fetch from Firestore
+    // where teacher_id = user.id
+    if (user) {
+      // Simulating fetch from Firestore
+      setTimeout(() => {
+        setClasses(mockClasses);
+        setStudents(mockStudents);
+      }, 500);
+    }
+  }, [user]);
+
+  const filteredSets = classes.filter(
     set => set.subject === selectedSubject && set.yearGroup === selectedYearGroup
   );
 
   const setStudents = selectedSet 
-    ? students.filter(student => student.setId === selectedSet)
+    ? students.filter(student => student.classId === selectedSet)
     : [];
 
   const studentDetails = selectedStudent 
     ? students.find(s => s.id === selectedStudent)
     : null;
 
+  const handleCreateNewSet = () => {
+    setShowNewSetDialog(true);
+  };
+
+  const handleCloseNewSetDialog = () => {
+    setShowNewSetDialog(false);
+  };
+
   const handleApproveStudent = (studentId: string) => {
+    // In production, this would update Firestore
+    // Update local state for now
+    const updatedStudents = students.map(student => 
+      student.id === studentId ? { ...student, status: "approved" } : student
+    );
+    setStudents(updatedStudents);
+    
     toast({
       title: "Student approved",
       description: "Student has been approved for this set."
@@ -104,6 +182,13 @@ const TeacherSetsPage: React.FC = () => {
   };
 
   const handleRemoveStudent = (studentId: string) => {
+    // In production, this would update Firestore
+    // Update local state for now
+    const updatedStudents = students.map(student => 
+      student.id === studentId ? { ...student, status: "removed" } : student
+    );
+    setStudents(updatedStudents);
+    
     toast({
       title: "Student removed",
       description: "Student has been removed from this set."
@@ -116,9 +201,15 @@ const TeacherSetsPage: React.FC = () => {
 
   const setsPageContent = (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Sets</h1>
-        <p className="text-gray-500">View and manage your class sets and students</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">My Sets</h1>
+          <p className="text-gray-500">View and manage your class sets and students</p>
+        </div>
+        <Button onClick={handleCreateNewSet} className="flex items-center gap-2">
+          <Plus size={16} />
+          Create New Set
+        </Button>
       </div>
       
       <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
@@ -128,7 +219,7 @@ const TeacherSetsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={selectedSubject} onValueChange={setSelectedSubject}>
-              <TabsList className="mb-2">
+              <TabsList className="mb-2 flex flex-wrap">
                 {subjects.map(subject => (
                   <TabsTrigger key={subject.id} value={subject.id}>
                     {subject.name}
@@ -145,7 +236,7 @@ const TeacherSetsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={selectedYearGroup} onValueChange={setSelectedYearGroup}>
-              <TabsList className="mb-2">
+              <TabsList className="mb-2 flex flex-wrap">
                 {yearGroups.map(year => (
                   <TabsTrigger key={year} value={year}>
                     {year}
@@ -169,8 +260,12 @@ const TeacherSetsPage: React.FC = () => {
                 <CardTitle>{set.name}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">{set.studentCount} students</p>
-                <p className="text-sm text-muted-foreground">{set.yearGroup} - {subjects.find(s => s.id === set.subject)?.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {set.student_ids.length} students
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {set.yearGroup} - {subjects.find(s => s.id === set.subject)?.name}
+                </p>
               </CardContent>
             </Card>
           ))
@@ -179,7 +274,7 @@ const TeacherSetsPage: React.FC = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>No sets found</AlertTitle>
             <AlertDescription>
-              No sets found for the selected subject and year group.
+              No sets found for the selected subject and year group. Create a new set to get started.
             </AlertDescription>
           </Alert>
         )}
@@ -187,7 +282,9 @@ const TeacherSetsPage: React.FC = () => {
 
       {selectedSet && (
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Students in {filteredSets.find(s => s.id === selectedSet)?.name}</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            Students in {filteredSets.find(s => s.id === selectedSet)?.name}
+          </h2>
           {setStudents.length > 0 ? (
             <div className="bg-white rounded-md border">
               {setStudents.map(student => (
@@ -205,7 +302,9 @@ const TeacherSetsPage: React.FC = () => {
                     </Avatar>
                     <div>
                       <div className="font-medium">{student.name}</div>
-                      <div className="text-sm text-gray-500">Last active: {student.lastActive}</div>
+                      <div className="text-sm text-gray-500">
+                        Last active: {student.lastActive}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -239,13 +338,14 @@ const TeacherSetsPage: React.FC = () => {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>No students</AlertTitle>
               <AlertDescription>
-                No students found in this set.
+                No students found in this set. Share the class code to invite students.
               </AlertDescription>
             </Alert>
           )}
         </div>
       )}
 
+      {/* Student Profile Dialog */}
       <Dialog open={!!selectedStudent} onOpenChange={handleCloseStudentProfile}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -265,9 +365,9 @@ const TeacherSetsPage: React.FC = () => {
                 <div>
                   <h3 className="font-medium text-lg">{studentDetails.name}</h3>
                   <p className="text-sm text-gray-500">
-                    {filteredSets.find(s => s.id === studentDetails.setId)?.yearGroup} - 
-                    {subjects.find(s => s.id === filteredSets.find(set => set.id === studentDetails.setId)?.subject)?.name} - 
-                    {filteredSets.find(s => s.id === studentDetails.setId)?.name}
+                    {filteredSets.find(s => s.id === studentDetails.classId)?.yearGroup} - 
+                    {subjects.find(s => s.id === filteredSets.find(set => set.id === studentDetails.classId)?.subject)?.name} - 
+                    {filteredSets.find(s => s.id === studentDetails.classId)?.name}
                   </p>
                 </div>
               </div>
@@ -291,6 +391,11 @@ const TeacherSetsPage: React.FC = () => {
                 </div>
               </div>
               
+              <div className="bg-gray-50 p-3 rounded-md">
+                <p className="text-sm text-gray-500">Email</p>
+                <p className="font-medium">{studentDetails.email}</p>
+              </div>
+              
               <div className="flex justify-end space-x-2 pt-4">
                 {studentDetails.status === 'pending' && (
                   <Button onClick={() => handleApproveStudent(studentDetails.id)}>
@@ -308,6 +413,74 @@ const TeacherSetsPage: React.FC = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Create New Set Dialog */}
+      <Dialog open={showNewSetDialog} onOpenChange={setShowNewSetDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Set</DialogTitle>
+            <DialogDescription>
+              Add a new class set for your students
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="set-name" className="text-sm font-medium">
+                Set Name
+              </label>
+              <input
+                id="set-name"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="e.g. Set 1, Group A"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <label htmlFor="set-year" className="text-sm font-medium">
+                Year Group
+              </label>
+              <select
+                id="set-year"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                defaultValue={selectedYearGroup}
+              >
+                {yearGroups.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="grid gap-2">
+              <label htmlFor="set-subject" className="text-sm font-medium">
+                Subject
+              </label>
+              <select
+                id="set-subject"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                defaultValue={selectedSubject}
+              >
+                {subjects.map(subject => (
+                  <option key={subject.id} value={subject.id}>{subject.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseNewSetDialog}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              toast({
+                title: "Set created",
+                description: "Your new set has been created successfully."
+              });
+              setShowNewSetDialog(false);
+            }}>
+              Create Set
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
