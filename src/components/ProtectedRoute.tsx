@@ -10,7 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 interface ProtectedRouteProps {
   children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
   requireLicense?: boolean;
-  requiredRole?: 'student' | 'teacher' | 'parent'; // Added this property
+  requiredRole?: 'student' | 'teacher' | 'parent';
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
@@ -31,20 +31,28 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   // If specific role is required, check user role
   if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to={user.role === 'teacher' ? '/teacher-dashboard' : '/home'} />;
+    return <Navigate to={user.role === 'teacher' ? '/teacher' : '/home'} />;
+  }
+  
+  // Check license for teacher routes that require license
+  if (requiredRole === 'teacher' && requireLicense) {
+    // Check if teacher has valid license or is exempt
+    if (!user.licenseExempt && (!user.school || user.school.licence_status === 'expired')) {
+      return <Navigate to="/required-license" />;
+    }
   }
   
   // If license is required and user doesn't have a license exemption, check license
   if (requireLicense && !user.licenseExempt && !user.email.endsWith('@nexastream.co.uk')) {
     // Mock license check - in production would check against Firestore
     if (!user.schoolId) {
-      return <Navigate to="/license-required" />;
+      return <Navigate to="/required-license" />;
     }
   }
 
   // Redirect teachers to dashboard if trying to access student routes
   if (user.role === 'teacher' && window.location.pathname === '/home') {
-    return <Navigate to="/teacher-dashboard" />;
+    return <Navigate to="/teacher" />;
   }
   
   // Handle function children that need user data
@@ -52,7 +60,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return children({ user });
   }
   
-  return children;
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;

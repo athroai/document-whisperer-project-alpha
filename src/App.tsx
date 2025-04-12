@@ -152,7 +152,7 @@ function App() {
       <Route
         path="/teacher/marking"
         element={
-          <ProtectedRoute requiredRole="teacher">
+          <ProtectedRoute requiredRole="teacher" requireLicense={true}>
             <TeacherMarkingPage />
           </ProtectedRoute>
         }
