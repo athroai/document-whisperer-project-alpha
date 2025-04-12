@@ -3,9 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Award, Book, ArrowRight, ThumbsUp, AlertTriangle } from 'lucide-react';
+import { Award, Book, ArrowRight, ThumbsUp, AlertTriangle, FileText } from 'lucide-react';
 import { Answer, Question } from '@/types/quiz';
 import { Slider } from '@/components/ui/slider';
+import { markAnswer, getMarkingRecords } from '@/services/markingEngine';
+import { useAuth } from '@/contexts/AuthContext';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { MarkingRecord } from '@/types/marking';
 
 interface QuizSummaryProps {
   subject: string;
@@ -36,6 +40,68 @@ const QuizSummary: React.FC<QuizSummaryProps> = ({
 }) => {
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const percentage = Math.round((score / totalQuestions) * 100);
+  const [markingRecords, setMarkingRecords] = useState<MarkingRecord[]>([]);
+  const [isLoadingRecords, setIsLoadingRecords] = useState(false);
+  const { state } = useAuth();
+  
+  // Process answers for marking engine
+  useEffect(() => {
+    const processAnswers = async () => {
+      if (isCompleted || !state.user?.id) return;
+      
+      try {
+        // Submit each answer to the marking engine
+        for (let i = 0; i < answers.length; i++) {
+          const answer = answers[i];
+          const question = questions.find(q => q.id === answer.questionId);
+          
+          if (question) {
+            await markAnswer({
+              prompt: question.text,
+              answer: answer.text || "No answer provided",
+              subject,
+              topic: question.topic,
+              userId: state.user.id,
+              sourceType: 'quiz'
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error processing quiz answers for marking:", error);
+      }
+    };
+
+    processAnswers();
+  }, [answers, questions, subject, isCompleted, state.user?.id]);
+  
+  // Fetch marking records
+  useEffect(() => {
+    const fetchMarkingRecords = async () => {
+      if (!state.user?.id) return;
+      
+      setIsLoadingRecords(true);
+      try {
+        const records = await getMarkingRecords({
+          studentId: state.user.id,
+          subject: subject.toLowerCase()
+        });
+        
+        // Only show the most recent records that match this quiz
+        const quizRecords = records
+          .filter(r => r.source === 'quiz')
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          .slice(0, totalQuestions);
+          
+        setMarkingRecords(quizRecords);
+      } catch (error) {
+        console.error("Error fetching marking records:", error);
+      } finally {
+        setIsLoadingRecords(false);
+      }
+    };
+    
+    fetchMarkingRecords();
+  }, [state.user?.id, subject, totalQuestions]);
   
   // Complete the quiz when user submits final confidence
   const handleComplete = () => {
@@ -52,7 +118,7 @@ const QuizSummary: React.FC<QuizSummaryProps> = ({
         onComplete();
       }
     };
-  }, [isCompleted]);
+  }, [isCompleted, onComplete]);
   
   // Calculate topic performance
   const topicPerformance: Record<string, { correct: number, total: number }> = {};
@@ -98,6 +164,14 @@ const QuizSummary: React.FC<QuizSummaryProps> = ({
     } else {
       return `Keep practicing! Focus on ${weakestTopic} and consider reviewing the basics before taking another quiz.`;
     }
+  };
+
+  // Get character name based on subject
+  const getAthroName = () => {
+    const subjectLower = subject.toLowerCase();
+    if (subjectLower.includes('math')) return 'AthroMaths';
+    if (subjectLower.includes('science')) return 'AthroScience';
+    return 'Athro AI';
   };
 
   return (
@@ -165,11 +239,47 @@ const QuizSummary: React.FC<QuizSummaryProps> = ({
           </div>
         </div>
 
+        {/* AI Feedback Section */}
+        {markingRecords.length > 0 && (
+          <Collapsible className="border rounded-lg">
+            <CollapsibleTrigger className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 text-purple-600 mr-2" />
+                <span className="font-medium">View Detailed Feedback</span>
+              </div>
+              <span className="text-xs text-gray-500">
+                {markingRecords.length} item{markingRecords.length !== 1 ? 's' : ''}
+              </span>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-3 p-4 border-t">
+                {markingRecords.map((record, index) => (
+                  <div key={record.id} className="p-3 bg-gray-50 rounded-md">
+                    <div className="flex justify-between items-start">
+                      <div className="font-medium text-sm">Question {index + 1}</div>
+                      <div className="text-sm font-medium">
+                        Score: {record.aiMark.score}/{record.aiMark.outOf}
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-700 mt-2">{record.originalPrompt}</p>
+                    <div className="mt-2 text-xs text-gray-500">Your answer:</div>
+                    <p className="text-sm mt-1">{record.studentAnswer}</p>
+                    <div className="mt-3 p-2 bg-blue-50 rounded text-sm text-blue-800">
+                      <span className="font-medium">Feedback: </span>
+                      {record.teacherMark ? record.teacherMark.comment : record.aiMark.comment}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-6">
           <div className="flex">
             <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
             <div>
-              <p className="font-medium text-blue-800">AthroMaths suggests:</p>
+              <p className="font-medium text-blue-800">{getAthroName()} suggests:</p>
               <p className="mt-1 text-blue-700">{getSuggestion()}</p>
             </div>
           </div>
