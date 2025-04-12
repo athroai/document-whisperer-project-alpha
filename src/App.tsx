@@ -19,6 +19,7 @@ import CalendarPage from "./pages/CalendarPage";
 import QuizPage from "./pages/QuizPage";
 import SettingsPage from "./pages/SettingsPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
+import FilesPage from "./pages/FilesPage";
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -91,6 +92,15 @@ const App = () => (
                     <>
                       <Navigation />
                       <TeacherDashboardPage />
+                    </>
+                  </ProtectedRoute>
+                } />
+                <Route path="/files" element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <FilesPage />
+                      <AthroSystem />
                     </>
                   </ProtectedRoute>
                 } />

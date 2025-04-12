@@ -18,3 +18,15 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
 }
+
+export interface UploadedFile {
+  id: string;
+  uploadedBy: string;
+  subject: string;
+  fileType: 'paper' | 'notes' | 'quiz';
+  visibility: 'public' | 'private';
+  filename: string;
+  storagePath: string;
+  timestamp: string;
+  label?: string;
+}

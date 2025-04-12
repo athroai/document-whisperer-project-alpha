@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import PomodoroTimer from '@/components/PomodoroTimer';
 import { toast } from '@/components/ui/use-toast';
+import FileReference from '@/components/FileReference';
+import { UploadedFile } from '@/types/auth';
 
-// Define Athro characters with their correct subjects and avatars
 const athroCharacters = {
   Mathematics: { 
     name: 'AthroMaths', 
@@ -51,19 +51,25 @@ const StudySessionPage: React.FC = () => {
   const [currentSubject, setCurrentSubject] = useState<string>('Mathematics');
   const [currentAthro, setCurrentAthro] = useState(athroCharacters.Mathematics);
   const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
+  const [showFileReferences, setShowFileReferences] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
+
+  const mockUserId = 'user_1';
 
   const handleSendMessage = () => {
     if (message.trim()) {
-      // Add the user message to the chat
       setMessages([...messages, { text: message, sender: 'user', avatar: '' }]);
       
-      // Simulate Athro response
       setTimeout(() => {
         setMessages(prev => [...prev, {
           text: `I'm here to help with your ${currentSubject} questions! Let me know what specific topic you'd like to explore or what problems you're facing.`,
           sender: 'athro',
           avatar: currentAthro.avatar
         }]);
+        
+        if (Math.random() > 0.5) {
+          setShowFileReferences(true);
+        }
       }, 1000);
       
       setMessage('');
@@ -74,7 +80,6 @@ const StudySessionPage: React.FC = () => {
     setCurrentSubject(subject);
     setCurrentAthro(athroCharacters[subject as keyof typeof athroCharacters]);
     
-    // Update the messages to reflect the new Athro
     setMessages([
       { 
         text: `Hello! I'm ${athroCharacters[subject as keyof typeof athroCharacters].name}, your ${subject} mentor. How can I help you today?`, 
@@ -83,7 +88,6 @@ const StudySessionPage: React.FC = () => {
       },
     ]);
     
-    // Reset session state
     setShowOptions(true);
     setActiveSession(null);
     setSelectedTopic('');
@@ -151,6 +155,21 @@ const StudySessionPage: React.FC = () => {
     }
   };
 
+  const handleFileSelect = (file: UploadedFile) => {
+    setSelectedFile(file);
+    setShowFileReferences(false);
+    
+    const fileReference = file.label 
+      ? `your ${file.label}` 
+      : `the ${file.subject} ${file.fileType === 'paper' ? 'past paper' : file.fileType}`;
+    
+    setMessages(prev => [...prev, {
+      text: `Let's take a look at ${fileReference}. What specific part would you like to focus on?`,
+      sender: 'athro',
+      avatar: currentAthro.avatar
+    }]);
+  };
+
   const handlePomodoroComplete = () => {
     toast({
       title: "Pomodoro Session Complete",
@@ -159,10 +178,8 @@ const StudySessionPage: React.FC = () => {
     });
   };
 
-  // Get the current Athro's topics
   const currentTopics = currentAthro.topics;
 
-  // Generate past paper names based on the current subject
   const pastPapers = [
     `${currentSubject} Unit 1 - Autumn 2022`,
     `${currentSubject} Unit 2 - Summer 2022`,
@@ -174,7 +191,6 @@ const StudySessionPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Subject Selector at the top */}
           <div className="md:col-span-4 mb-4">
             <Card>
               <CardContent className="py-4">
@@ -206,7 +222,6 @@ const StudySessionPage: React.FC = () => {
             </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="md:col-span-1">
             <Card>
               <CardHeader>
@@ -265,6 +280,14 @@ const StudySessionPage: React.FC = () => {
                       <Clock className="mr-2 h-4 w-4" />
                       {showPomodoroTimer ? "Hide Pomodoro Timer" : "Start Pomodoro Timer"}
                     </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-purple-600 border-purple-200 hover:bg-purple-50"
+                      onClick={() => setShowFileReferences(!showFileReferences)}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      {showFileReferences ? "Hide Study Materials" : "View Study Materials"}
+                    </Button>
                   </div>
 
                   {showPomodoroTimer && (
@@ -273,7 +296,14 @@ const StudySessionPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Subject Selector */}
+                  {showFileReferences && (
+                    <FileReference 
+                      userId={mockUserId} 
+                      subject={currentSubject.toLowerCase()} 
+                      onFileSelect={handleFileSelect} 
+                    />
+                  )}
+
                   <div className="pt-4">
                     <h4 className="font-medium mb-2">Change Subject:</h4>
                     <Select onValueChange={changeSubject} value={currentSubject}>
@@ -294,7 +324,6 @@ const StudySessionPage: React.FC = () => {
             </Card>
           </div>
           
-          {/* Main Chat */}
           <div className="md:col-span-3 flex flex-col h-[calc(100vh-8rem)]">
             <Card className="flex-grow flex flex-col overflow-hidden">
               <CardHeader className="border-b bg-white sticky top-0 z-10">
@@ -376,7 +405,6 @@ const StudySessionPage: React.FC = () => {
                 </CardContent>
               )}
               
-              {/* Topic Selection Dialog for Manual Review */}
               {activeSession === 'manual' && !selectedTopic && (
                 <Dialog open={true} onOpenChange={() => setShowOptions(true)}>
                   <DialogContent>
@@ -399,7 +427,6 @@ const StudySessionPage: React.FC = () => {
                 </Dialog>
               )}
               
-              {/* Past Paper Selection Dialog */}
               {activeSession === 'past-paper' && !selectedPaper && (
                 <Dialog open={true} onOpenChange={() => setShowOptions(true)}>
                   <DialogContent>
@@ -453,7 +480,6 @@ const StudySessionPage: React.FC = () => {
                 </Dialog>
               )}
               
-              {/* Message Input (only show when not displaying options) */}
               {!showOptions && (
                 <div className="border-t p-4 bg-white">
                   <div className="flex space-x-2">
