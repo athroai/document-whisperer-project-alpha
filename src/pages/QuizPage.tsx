@@ -4,7 +4,7 @@ import { Question, Answer, QuizResult } from '@/types/quiz';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronRight, AlertTriangle } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
 import { Slider } from '@/components/ui/slider';
@@ -20,11 +20,9 @@ const QuizPage: React.FC = () => {
   const location = useLocation();
   const { state } = useAuth();
   
-  // Extract subject from URL params if present
   const queryParams = new URLSearchParams(location.search);
   const subjectFromParams = queryParams.get('subject');
   
-  // State management
   const [subject, setSubject] = useState<string>(subjectFromParams || '');
   const [confidence, setConfidence] = useState<number>(5); // Default to medium
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
@@ -37,22 +35,17 @@ const QuizPage: React.FC = () => {
   const [confidenceAfter, setConfidenceAfter] = useState<number>(5);
   const [isCurrentAnswerCorrect, setIsCurrentAnswerCorrect] = useState<boolean | null>(null);
   const [currentUserAnswer, setCurrentUserAnswer] = useState<string>('');
-  const [noExactMatch, setNoExactMatch] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Load appropriate questions when subject changes
   useEffect(() => {
     if (subject && quizStarted) {
-      // Show confidence dialog before starting quiz
       setShowConfidenceDialog(true);
     }
   }, [subject, quizStarted]);
 
-  // Generate quiz questions based on subject and confidence
   const generateQuiz = async () => {
     setIsLoading(true);
     
-    // Determine target difficulty based on confidence
     let targetDifficulty = 1;
     
     if (confidence >= 1 && confidence <= 4) {
@@ -64,7 +57,6 @@ const QuizPage: React.FC = () => {
     }
     
     try {
-      // Fetch questions using our service
       const questions = await quizService.getQuestionsBySubject(subject, targetDifficulty, 5, state.user?.examBoard);
       
       if (questions.length === 0) {
@@ -75,19 +67,7 @@ const QuizPage: React.FC = () => {
         });
         
         setQuizQuestions([]);
-      } else if (questions.length < 5 || 
-                questions.some(q => q.difficulty !== targetDifficulty)) {
-        // If we didn't get exactly what we wanted
-        setNoExactMatch(true);
-        setQuizQuestions(questions);
-        
-        toast({
-          title: "Limited questions available",
-          description: "No exact match found — using nearest available difficulty.",
-          variant: "default",
-        });
       } else {
-        setNoExactMatch(false);
         setQuizQuestions(questions);
       }
     } catch (error) {
@@ -124,7 +104,6 @@ const QuizPage: React.FC = () => {
         ? answer === currentQuestion.answer 
         : answer.toLowerCase().trim() === currentQuestion.answer.toLowerCase().trim();
     
-    // Store the answer
     const newAnswer: Answer = {
       questionId: currentQuestion.id,
       userAnswer: answer,
@@ -137,7 +116,6 @@ const QuizPage: React.FC = () => {
     setAnswers([...answers, newAnswer]);
     setShowFeedback(true);
     
-    // Show toast for immediate feedback
     if (isCorrect) {
       toast({
         title: "Correct!",
@@ -159,10 +137,8 @@ const QuizPage: React.FC = () => {
     setCurrentUserAnswer('');
     
     if (currentIndex < quizQuestions.length - 1) {
-      // Move to next question
       setCurrentIndex(currentIndex + 1);
     } else {
-      // Quiz is complete
       setQuizFinished(true);
     }
   };
@@ -182,7 +158,6 @@ const QuizPage: React.FC = () => {
   };
 
   const handleQuizComplete = async () => {
-    // Save the quiz result
     const score = calculateScore();
     const quizResult: QuizResult = {
       userId: state.user?.id || 'anonymous',
@@ -196,10 +171,8 @@ const QuizPage: React.FC = () => {
     };
 
     try {
-      // Save result using our service
       await quizService.saveQuizResult(quizResult);
       
-      // Update the user's confidence score for this subject
       if (state.user?.id) {
         await quizService.updateUserConfidenceScores(
           state.user.id,
@@ -223,12 +196,10 @@ const QuizPage: React.FC = () => {
     }
   };
 
-  // Calculate current score
   const calculateScore = () => {
     return answers.filter(answer => answer.correct).length;
   };
 
-  // If we haven't started a quiz yet, show the subject selector
   if (!quizStarted) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -255,7 +226,6 @@ const QuizPage: React.FC = () => {
     );
   }
 
-  // Show the quiz summary when finished
   if (quizFinished) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -304,13 +274,6 @@ const QuizPage: React.FC = () => {
             <p className="text-gray-500">Answer 5 questions to test your knowledge</p>
           </div>
         </div>
-        
-        {noExactMatch && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center">
-            <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
-            <p className="text-amber-800">No exact match found — using nearest available difficulty.</p>
-          </div>
-        )}
         
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2 text-sm text-gray-500">
@@ -369,7 +332,6 @@ const QuizPage: React.FC = () => {
         )}
       </div>
       
-      {/* Confidence Before Quiz Dialog */}
       <Dialog open={showConfidenceDialog} onOpenChange={setShowConfidenceDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
