@@ -138,11 +138,11 @@ const StudentAssignmentViewPage = () => {
         answers = [];
       }
       
-      const newSubmission = {
+      const newSubmission: Omit<Submission, "id"> = {
         assignmentId: assignment.id,
         submittedBy: user.id,
         submittedAt: new Date().toISOString(),
-        status: "submitted",
+        status: "submitted" as const, // Explicitly typed as the literal "submitted"
         answers,
         teacherFeedback: null,
         aiFeedback: null,
