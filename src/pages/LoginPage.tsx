@@ -1,17 +1,26 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const { login, state } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (state.user && !state.loading) {
+      navigate('/home');
+    }
+  }, [state.user, state.loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +35,7 @@ const LoginPage: React.FC = () => {
     }
     
     try {
-      await login(email, password);
+      await login(email, password, rememberMe);
       toast({
         title: "Login successful!",
         description: "Welcome back to Athro AI",
@@ -40,6 +49,18 @@ const LoginPage: React.FC = () => {
       });
     }
   };
+
+  // Show loading while checking auth state
+  if (state.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-100 to-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-purple-800">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gradient-to-b from-purple-100 to-white">
@@ -91,6 +112,16 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Checkbox 
+                  id="remember-me" 
+                  checked={rememberMe} 
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
+                  Remember me
+                </label>
+              </div>
               <div className="text-sm">
                 <Link
                   to="/forgot-password"
