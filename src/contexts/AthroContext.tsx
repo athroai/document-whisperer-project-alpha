@@ -4,6 +4,8 @@ import { AthroCharacterConfig, SubjectData } from '@/types/athroCharacter';
 import { athroCharacters } from '@/config/athrosConfig';
 import { pastPapers } from '@/data/athro-maths/past-papers';
 import { modelAnswers } from '@/data/athro-maths/model-answers';
+import biologyPastPapers from '@/data/athro-science/past-papers-biology';
+import biologyModelAnswers from '@/data/athro-science/model-answers-biology';
 
 // Mock data for student progress in different subjects
 const mockStudentProgress: Record<string, SubjectData> = {
@@ -68,6 +70,8 @@ interface AthroContextProps {
   studentProgress: Record<string, SubjectData>;
   getTopicConfidence: (subject: string, topic: string) => number;
   getSuggestedTopics: (subject: string) => string[];
+  currentScienceSubject?: string;
+  setCurrentScienceSubject?: (subject: string) => void;
 }
 
 const AthroContext = createContext<AthroContextProps | undefined>(undefined);
@@ -96,6 +100,7 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [studentProgress] = useState<Record<string, SubjectData>>(mockStudentProgress);
   const [conversationContext, setConversationContext] = useState<string[]>([]);
+  const [currentScienceSubject, setCurrentScienceSubject] = useState<string>('biology');
   
   useEffect(() => {
     if (messages.length > 0) {
@@ -178,27 +183,51 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const findMatchingPastPaperQuestion = (query: string, subject: string, examBoard?: string) => {
-    if (subject !== 'Mathematics') return null;
-    
     const keywords = query.toLowerCase().split(/\s+/);
     
-    let filteredPapers = pastPapers;
-    if (examBoard && examBoard !== 'none') {
-      filteredPapers = pastPapers.filter(paper => paper.examBoard === examBoard);
-    }
-    
-    for (const paper of filteredPapers) {
-      for (const question of paper.questions) {
-        const questionText = question.text.toLowerCase();
-        const matchesKeywords = keywords.some(keyword => 
-          questionText.includes(keyword) || question.topic.toLowerCase().includes(keyword)
-        );
-        
-        if (matchesKeywords) {
-          const modelAnswer = modelAnswers.find(answer => answer.questionId === question.id);
-          return { question, paper, modelAnswer };
+    if (subject === 'Mathematics') {
+      let filteredPapers = pastPapers;
+      if (examBoard && examBoard !== 'none') {
+        filteredPapers = pastPapers.filter(paper => paper.examBoard === examBoard);
+      }
+      
+      for (const paper of filteredPapers) {
+        for (const question of paper.questions) {
+          const questionText = question.text.toLowerCase();
+          const matchesKeywords = keywords.some(keyword => 
+            questionText.includes(keyword) || question.topic.toLowerCase().includes(keyword)
+          );
+          
+          if (matchesKeywords) {
+            const modelAnswer = modelAnswers.find(answer => answer.questionId === question.id);
+            return { question, paper, modelAnswer };
+          }
         }
       }
+      
+      return null;
+    }
+    else if (subject === 'Science') {
+      let filteredPapers = biologyPastPapers;
+      if (examBoard && examBoard !== 'none') {
+        filteredPapers = biologyPastPapers.filter(paper => paper.examBoard === examBoard);
+      }
+      
+      for (const paper of filteredPapers) {
+        for (const question of paper.questions) {
+          const questionText = question.text.toLowerCase();
+          const matchesKeywords = keywords.some(keyword => 
+            questionText.includes(keyword) || question.topic.toLowerCase().includes(keyword)
+          );
+          
+          if (matchesKeywords) {
+            const modelAnswer = biologyModelAnswers.find(answer => answer.questionId === question.id);
+            return { question, paper, modelAnswer, subjectSection: 'biology' };
+          }
+        }
+      }
+      
+      return null;
     }
     
     return null;
@@ -226,21 +255,52 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else {
         response += `I'd solve this step-by-step:\n\n`;
         
-        if (question.topic === 'Algebra') {
-          response += `1. Identify the variables and what we're solving for\n`;
-          response += `2. Rearrange the equation as needed\n`;
-          response += `3. Solve for the unknown\n`;
-          response += `4. Check the solution in the original equation`;
-        } else if (question.topic === 'Geometry') {
-          response += `1. Draw a diagram if one isn't provided\n`;
-          response += `2. Label all given measurements\n`;
-          response += `3. Apply the relevant formula\n`;
-          response += `4. Calculate the answer with correct units`;
-        } else {
-          response += `1. Understand what the question is asking\n`;
-          response += `2. Identify the formula or method needed\n`;
-          response += `3. Apply the correct mathematical techniques\n`;
-          response += `4. Check the answer is reasonable`;
+        if (subject === 'Mathematics') {
+          if (question.topic === 'Algebra') {
+            response += `1. Identify the variables and what we're solving for\n`;
+            response += `2. Rearrange the equation as needed\n`;
+            response += `3. Solve for the unknown\n`;
+            response += `4. Check the solution in the original equation`;
+          } else if (question.topic === 'Geometry') {
+            response += `1. Draw a diagram if one isn't provided\n`;
+            response += `2. Label all given measurements\n`;
+            response += `3. Apply the relevant formula\n`;
+            response += `4. Calculate the answer with correct units`;
+          } else {
+            response += `1. Understand what the question is asking\n`;
+            response += `2. Identify the formula or method needed\n`;
+            response += `3. Apply the correct mathematical techniques\n`;
+            response += `4. Check the answer is reasonable`;
+          }
+        } else if (subject === 'Science') {
+          if (question.topic === 'Cells') {
+            response += `1. Identify the cell structure or process in question\n`;
+            response += `2. Describe its physical characteristics\n`;
+            response += `3. Explain its function within the cell\n`;
+            response += `4. Connect to the larger cellular system`;
+          } else if (question.topic === 'Respiration') {
+            response += `1. Identify the type of respiration (aerobic/anaerobic)\n`;
+            response += `2. Write the relevant chemical equation\n`;
+            response += `3. Explain where in the cell it occurs\n`;
+            response += `4. Describe the energy yield and products`;
+          } else {
+            response += `1. Understand the scientific concept being asked about\n`;
+            response += `2. Outline the key processes involved\n`;
+            response += `3. Explain using correct scientific terminology\n`;
+            response += `4. Connect to real-world applications if relevant`;
+          }
+          
+          const didYouKnowFacts = {
+            'Cells': 'Did you know? The average human body contains approximately 37.2 trillion cells!',
+            'Respiration': 'Did you know? Muscle cells can switch to anaerobic respiration during intense exercise when oxygen is limited.',
+            'Photosynthesis': 'Did you know? The green pigment chlorophyll absorbs red and blue light but reflects green light, which is why plants appear green.',
+            'Genetics': 'Did you know? If you stretched the DNA from all the cells in your body, it would reach to the sun and back over 600 times!',
+            'Ecology': 'Did you know? In a typical food chain, only about 10% of energy is transferred from one trophic level to the next.'
+          };
+          
+          if (didYouKnowFacts[question.topic]) {
+            response += `\n\n${didYouKnowFacts[question.topic]}`;
+          }
         }
       }
       
@@ -254,9 +314,15 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         messages.forEach(msg => {
           if (msg.senderId !== 'user') {
             const content = msg.content.toLowerCase();
-            if (content.includes('algebra')) previousTopics.add('Algebra');
-            if (content.includes('geometry')) previousTopics.add('Geometry');
-            if (content.includes('trigonometry')) previousTopics.add('Trigonometry');
+            if (subject === 'Mathematics') {
+              if (content.includes('algebra')) previousTopics.add('Algebra');
+              if (content.includes('geometry')) previousTopics.add('Geometry');
+              if (content.includes('trigonometry')) previousTopics.add('Trigonometry');
+            } else if (subject === 'Science') {
+              if (content.includes('cells')) previousTopics.add('Cells');
+              if (content.includes('respiration')) previousTopics.add('Respiration');
+              if (content.includes('photosynthesis')) previousTopics.add('Photosynthesis');
+            }
           }
         });
         
@@ -269,18 +335,29 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       
       if (userQuery.toLowerCase().includes('help')) {
-        response += `I'd be happy to help! I can explain math concepts, walk through problems step-by-step, or help you prepare for your GCSE exams. What specific topic are you working on?`;
+        response += `I'd be happy to help! I can explain concepts, walk through problems step-by-step, or help you prepare for your GCSE exams. What specific topic are you working on?`;
       } else if (userQuery.toLowerCase().includes('example')) {
-        response += `Here's an example to work through:\n\n`;
-        response += `If we have the equation $x^2 + 3x - 4 = 0$, we can solve it using the quadratic formula:\n\n`;
-        response += `$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$\n\n`;
-        response += `Substituting $a=1$, $b=3$, and $c=-4$:\n\n`;
-        response += `$x = \\frac{-3 \\pm \\sqrt{9 - 4(1)(-4)}}{2(1)}$\n`;
-        response += `$x = \\frac{-3 \\pm \\sqrt{9 + 16}}{2}$\n`;
-        response += `$x = \\frac{-3 \\pm \\sqrt{25}}{2}$\n`;
-        response += `$x = \\frac{-3 \\pm 5}{2}$\n\n`;
-        response += `This gives us $x = 1$ or $x = -4$\n\n`;
-        response += `Would you like to try a similar problem?`;
+        if (subject === 'Mathematics') {
+          response += `Here's an example to work through:\n\n`;
+          response += `If we have the equation $x^2 + 3x - 4 = 0$, we can solve it using the quadratic formula:\n\n`;
+          response += `$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$\n\n`;
+          response += `Substituting $a=1$, $b=3$, and $c=-4$:\n\n`;
+          response += `$x = \\frac{-3 \\pm \\sqrt{9 - 4(1)(-4)}}{2(1)}$\n`;
+          response += `$x = \\frac{-3 \\pm \\sqrt{9 + 16}}{2}$\n`;
+          response += `$x = \\frac{-3 \\pm \\sqrt{25}}{2}$\n`;
+          response += `$x = \\frac{-3 \\pm 5}{2}$\n\n`;
+          response += `This gives us $x = 1$ or $x = -4$\n\n`;
+          response += `Would you like to try a similar problem?`;
+        } else if (subject === 'Science') {
+          response += `Here's an example of how photosynthesis works in plants:\n\n`;
+          response += `Photosynthesis is the process by which plants convert light energy into chemical energy. The equation is:\n\n`;
+          response += `$6CO_2 + 6H_2O + \\text{light energy} \\rightarrow C_6H_{12}O_6 + 6O_2$\n\n`;
+          response += `This process takes place in the chloroplasts, specifically in the grana where chlorophyll captures light energy. The process has two main stages:\n\n`;
+          response += `1. Light-dependent reactions: Light energy is captured and converted to ATP and NADPH\n`;
+          response += `2. Light-independent reactions (Calvin cycle): ATP and NADPH are used to convert CO₂ into glucose\n\n`;
+          response += `Did you know? A single leaf can contain millions of chloroplasts, each with their own set of photosynthetic enzymes!\n\n`;
+          response += `Would you like me to explain any part of this process in more detail?`;
+        }
       } else {
         response += `That's a good question about ${subject}. Let me explain:\n\n`;
         
@@ -288,6 +365,20 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           response += `In mathematics, it's important to break problems down step-by-step. `;
           response += `I can help you with topics like algebra, geometry, trigonometry, statistics, and more. `;
           response += `Would you like me to explain a specific concept or provide practice problems?`;
+        } else if (subject === 'Science') {
+          response += `In science, understanding the underlying principles is key. `;
+          response += `I can help you with biology topics like cells, respiration, photosynthesis, genetics, and ecology. `;
+          response += `Would you like to explore a specific biology concept or see some example questions?`;
+          
+          const scienceFacts = [
+            "Did you know? The human body contains enough DNA to stretch from the Sun to Pluto and back 17 times!",
+            "Did you know? The average human body contains approximately 37.2 trillion cells!",
+            "Did you know? The mitochondria in your cells have their own DNA, separate from your nuclear DNA!",
+            "Did you know? Plants can communicate with each other through chemical signals sent via their root systems!"
+          ];
+          
+          const randomFact = scienceFacts[Math.floor(Math.random() * scienceFacts.length)];
+          response += `\n\n${randomFact}`;
         }
       }
       
@@ -377,6 +468,8 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       studentProgress,
       getTopicConfidence,
       getSuggestedTopics,
+      currentScienceSubject,
+      setCurrentScienceSubject
     }}>
       {children}
     </AthroContext.Provider>

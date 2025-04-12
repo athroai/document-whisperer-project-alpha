@@ -11,7 +11,9 @@ const AthroMathsRenderer: React.FC<{ content: string }> = ({ content }) => {
       /\\begin\{(.*?)\}(.*?)\\end\{\1\}/gs,  // Environments: \begin{...}...\end{...}
       /\\frac\{.*?\}\{.*?\}/g,    // Fractions: \frac{...}{...}
       /\\sqrt\{.*?\}/g,           // Square roots: \sqrt{...}
-      /\\[a-zA-Z]+(\{.*?\}|\[.*?\])?/g  // Commands: \command{...} or \command[...]
+      /\\[a-zA-Z]+(\{.*?\}|\[.*?\])?/g,  // Commands: \command{...} or \command[...]
+      /[A-Z]?[a-z]*_[0-9]+/g,     // Chemical subscripts: H_2O, CO_2
+      /[A-Z]?[a-z]*\^[0-9]+/g,    // Chemical superscripts: O^2
     ];
     
     return patterns.some(pattern => pattern.test(text));
@@ -47,8 +49,14 @@ const AthroMathsRenderer: React.FC<{ content: string }> = ({ content }) => {
             {mathContent}
           </span>
         );
-      } else if (part.includes('\\begin{') || part.includes('\\frac') || part.includes('\\sqrt')) {
-        // Other LaTeX elements without delimiters
+      } else if (
+        part.includes('\\begin{') || 
+        part.includes('\\frac') || 
+        part.includes('\\sqrt') || 
+        /[A-Z]?[a-z]*_[0-9]+/.test(part) ||  // Chemical subscripts
+        /[A-Z]?[a-z]*\^[0-9]+/.test(part)     // Chemical superscripts
+      ) {
+        // Other LaTeX elements or chemical notation without delimiters
         return (
           <span key={index} className="math-inline bg-slate-50 border border-slate-200 rounded px-1 font-mono">
             {part}

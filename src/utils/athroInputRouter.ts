@@ -7,6 +7,7 @@ interface ProcessorOptions {
   examBoard?: ExamBoard;
   useMarkScheme?: boolean;
   useLatex?: boolean;
+  subjectSection?: string; // For Science: 'biology', 'chemistry', 'physics'
   context?: any;
 }
 
@@ -14,6 +15,13 @@ interface ProcessorOptions {
 export const openAiProcessor = {
   processQuery: async (query: string, options: ProcessorOptions): Promise<string> => {
     console.log('[Mock] OpenAI processing query:', query, options);
+    
+    // Subject-specific processing logic
+    if (options.subject === 'Science') {
+      const subjectSection = options.subjectSection || 'biology';
+      console.log(`[Mock] Processing ${options.subject}/${subjectSection} query`);
+    }
+    
     return `This is a mock OpenAI response for: ${query}`;
   }
 };
@@ -51,6 +59,21 @@ export const athroInputRouter = {
   shouldUseExternalApi: (): boolean => {
     // In a real implementation, this would check for API keys and config
     return false;
+  },
+  
+  // Get the appropriate data source based on subject and section
+  getDataSource: (subject: AthroSubject, subjectSection?: string): string => {
+    if (subject === 'Science') {
+      if (subjectSection === 'chemistry') {
+        return 'chemistry-data';
+      } else if (subjectSection === 'physics') {
+        return 'physics-data';
+      } else {
+        return 'biology-data'; // Default for Science
+      }
+    }
+    
+    return 'math-data'; // Default
   }
 };
 

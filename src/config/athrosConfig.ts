@@ -30,33 +30,13 @@ export const athroCharacters: AthroCharacterConfig[] = [
     usesMathFont: true,
     supportsMathNotation: true,
     topics: ['Biology', 'Chemistry', 'Physics', 'Earth Science', 'Ecology', 'Astronomy'],
-    examBoards: ['wjec', 'aqa', 'ocr']
-  },
-  {
-    id: 'athro-english',
-    name: 'AthroEnglish',
-    subject: 'English',
-    avatarUrl: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png',
-    shortDescription: 'Your GCSE English Literature & Language guide',
-    fullDescription: 'AthroEnglish helps you analyze texts, improve your writing, and develop critical thinking skills for GCSE English.',
-    tone: 'articulate, expressive, encouraging of creative and critical thinking',
-    promptTemplate: 'You are AthroEnglish, an English mentor for GCSE students. Your approach is {{tone}}. The student is currently studying {{currentTopic}}.',
-    responseStyle: 'essay',
-    topics: ['Literature', 'Poetry', 'Creative Writing', 'Grammar', 'Text Analysis', 'Shakespeare'],
-    examBoards: ['wjec', 'aqa', 'ocr']
-  },
-  {
-    id: 'athro-history',
-    name: 'AthroHistory',
-    subject: 'History',
-    avatarUrl: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png',
-    shortDescription: 'Your guide through historical events and analysis',
-    fullDescription: 'AthroHistory helps you understand key historical events, figures, and their impact, while developing analytical skills for GCSE History.',
-    tone: 'informative, contextual, balanced in perspective',
-    promptTemplate: 'You are AthroHistory, a history mentor for GCSE students. Your approach is {{tone}}. The student is currently studying {{currentTopic}}.',
-    responseStyle: 'essay',
-    topics: ['World Wars', 'Ancient Civilizations', 'Medieval History', 'Industrial Revolution', 'Cold War'],
-    examBoards: ['wjec', 'aqa', 'ocr']
+    examBoards: ['wjec', 'aqa', 'ocr'],
+    features: {
+      latexSupport: true,
+      pastPaperIntegration: true,
+      aiMarking: true
+    },
+    subjectStructure: ['biology', 'chemistry', 'physics']
   }
 ];
 

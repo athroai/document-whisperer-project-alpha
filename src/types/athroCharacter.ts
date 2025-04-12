@@ -1,3 +1,4 @@
+
 import { AthroSubject, AthroLanguage, ExamBoard } from './athro';
 
 export interface AthroCharacterConfig {
@@ -27,6 +28,7 @@ export interface AthroCharacterConfig {
     default: ExamBoard;
     fallback: ExamBoard[];
   };
+  subjectStructure?: string[];
 }
 
 export interface AthroPromptContext {
@@ -35,6 +37,8 @@ export interface AthroPromptContext {
   confidenceScores?: Record<string, number>;
   examBoard?: ExamBoard;
   currentTopic?: string;
+  currentSubject?: string;
+  subjectSection?: string; // For Science: 'biology', 'chemistry', 'physics'
   recentQuizScores?: {
     topic: string;
     score: number;
