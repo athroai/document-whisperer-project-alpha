@@ -13,6 +13,8 @@ export interface Assignment {
   assignmentType: "quiz" | "file-upload" | "open-answer";
   status: "draft" | "published";
   linkedResources: string[]; // array of resource ids
+  instructions?: string;
+  filesAttached?: string[];
 }
 
 export interface Submission {
@@ -25,6 +27,9 @@ export interface Submission {
   teacherFeedback: FeedbackData | null;
   aiFeedback: AIFeedback | null;
   studentComment: string | null;
+  markedByAI?: boolean;
+  markedByTeacher?: boolean;
+  returnedToStudent?: boolean;
 }
 
 export interface FeedbackData {
@@ -53,4 +58,14 @@ export interface FileUploadAnswer {
 
 export interface OpenAnswer {
   text: string;
+}
+
+// New type for student assignment view
+export interface StudentAssignmentView {
+  assignment: Assignment;
+  submission: Submission | null;
+  hasSubmitted: boolean;
+  isPastDue: boolean;
+  daysUntilDue: number;
+  hasFeedback: boolean;
 }

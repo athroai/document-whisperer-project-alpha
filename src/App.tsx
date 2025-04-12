@@ -1,204 +1,184 @@
-import React, { Suspense } from 'react';
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { StudentRecordProvider } from "./contexts/StudentRecordContext";
-import { AthroProvider } from "./contexts/AthroContext";
-import NotFound from "./pages/NotFound";
-import AthroSystem from "./components/AthroSystem";
 
-// Pages
-import WelcomePage from "./pages/WelcomePage";
+import { Route, Routes } from "react-router-dom";
+import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
-import HomePage from "./pages/HomePage";
-import StudySessionPage from "./pages/StudySessionPage";
+import WelcomePage from "./pages/WelcomePage";
+import Index from "./pages/Index";
+import AthroPage from "./pages/AthroPage";
+import AssignmentsPage from "./pages/AssignmentsPage";
+import FilesPage from "./pages/FilesPage";
+import SettingsPage from "./pages/SettingsPage";
+import NotFound from "./pages/NotFound";
 import CalendarPage from "./pages/CalendarPage";
 import QuizPage from "./pages/QuizPage";
-import SettingsPage from "./pages/SettingsPage";
-import TeacherDashboardPage from "./pages/TeacherDashboardPage";
-import FilesPage from "./pages/FilesPage";
-import AthroPage from "./pages/AthroPage";
-import AssignmentsPage from './pages/AssignmentsPage';
-import AssignmentSubmission from './components/assignment/AssignmentSubmission';
-import TeacherAssignPage from './pages/teacher/TeacherAssignPage';
-
-// Lazy-loaded Pages
-const AthroMathsPage = React.lazy(() => import('./pages/athro/AthroMathsPage'));
-
-// Teacher dashboard pages
-import TeacherSetsPage from "./pages/teacher/TeacherSetsPage";
-import TeacherMarkingPage from "./pages/teacher/TeacherMarkingPage";
-import TeacherStudentProfilesPage from "./pages/teacher/TeacherStudentProfilesPage";
-
-// Components
+import StudySessionPage from "./pages/StudySessionPage";
+import LicenseRequiredPage from "./pages/LicenseRequiredPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Navigation from "./components/Navigation";
-import TeacherDashboardLayout from "./components/dashboard/TeacherDashboardLayout";
+import AthroMathsPage from "./pages/athro/AthroMathsPage";
+import AthroSelectorPage from "./pages/athro/AthroSelectorPage";
+import AthroSciencePage from "./pages/athro/AthroSciencePage";
+import TeacherDashboardPage from "./pages/TeacherDashboardPage";
+import TeacherStudentProfilesPage from "./pages/teacher/TeacherStudentProfilesPage";
+import TeacherSetsPage from "./pages/teacher/TeacherSetsPage";
+import TeacherInsightsPage from "./pages/teacher/TeacherInsightsPage";
+import TeacherAssignPage from "./pages/teacher/TeacherAssignPage";
+import TeacherMarkingPage from "./pages/teacher/TeacherMarkingPage"; 
+import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
+import StudentFeedbackPage from "./pages/student/StudentFeedbackPage";
 
-const queryClient = new QueryClient();
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/welcome" element={<WelcomePage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/required-license" element={<LicenseRequiredPage />} />
 
-const App: React.FC = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <StudentRecordProvider>
-        <AthroProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <div className="flex flex-col min-h-screen">
-                <Routes>
-                  <Route path="/" element={<WelcomePage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/signup" element={<SignupPage />} />
-                  
-                  {/* Student Protected Routes */}
-                  <Route path="/home" element={
-                    <ProtectedRoute>
-                      {({ user }) => user?.role === 'teacher' ? 
-                        <Navigate to="/teacher-dashboard" /> : 
-                        <>
-                          <Navigation />
-                          <HomePage />
-                          <AthroSystem />
-                        </>
-                      }
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/study" element={
-                    <ProtectedRoute>
-                      {({ user }) => user?.role === 'teacher' ? 
-                        <Navigate to="/teacher-dashboard" /> : 
-                        <>
-                          <Navigation />
-                          <StudySessionPage />
-                          <AthroSystem />
-                        </>
-                      }
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Athro Routes */}
-                  <Route path="/athro" element={<AthroPage />} />
-                  <Route path="/athro/mathematics" element={
-                    <ProtectedRoute>
-                      {({ user }) => (
-                        <>
-                          <Navigation />
-                          <Suspense fallback={<div>Loading...</div>}>
-                            <AthroMathsPage />
-                          </Suspense>
-                          <AthroSystem />
-                        </>
-                      )}
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/calendar" element={
-                    <ProtectedRoute>
-                      {({ user }) => user?.role === 'teacher' ? 
-                        <Navigate to="/teacher-dashboard" /> : 
-                        <>
-                          <Navigation />
-                          <CalendarPage />
-                          <AthroSystem />
-                        </>
-                      }
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/quiz" element={
-                    <ProtectedRoute>
-                      {({ user }) => user?.role === 'teacher' ? 
-                        <Navigate to="/teacher-dashboard" /> : 
-                        <>
-                          <Navigation />
-                          <QuizPage />
-                          <AthroSystem />
-                        </>
-                      }
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/settings" element={
-                    <ProtectedRoute>
-                      {({ user }) => 
-                        <>
-                          <Navigation />
-                          <SettingsPage />
-                          {user?.role !== 'teacher' && <AthroSystem />}
-                        </>
-                      }
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Teacher Dashboard Main Route */}
-                  <Route path="/teacher-dashboard" element={
-                    <ProtectedRoute>
-                      <TeacherDashboardPage />
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Teacher Dashboard Sub-Routes */}
-                  <Route path="/teacher/:section" element={
-                    <ProtectedRoute>
-                      {({ user }) => 
-                        user?.role === 'teacher' ? 
-                          <TeacherDashboardLayout /> : 
-                          <Navigate to="/home" />
-                      }
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/files" element={
-                    <ProtectedRoute>
-                      <>
-                        <Navigation />
-                        <FilesPage />
-                        <AthroSystem />
-                      </>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Catch-all Route */}
-                  <Route path="*" element={<NotFound />} />
-                  
-                  {/* Add these new routes */}
-                  <Route 
-                    path="/assignments" 
-                    element={
-                      <ProtectedRoute>
-                        <AssignmentsPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/assignment/:id" 
-                    element={
-                      <ProtectedRoute>
-                        <AssignmentSubmission />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/teacher/assign" 
-                    element={
-                      <ProtectedRoute requiredRole="teacher">
-                        <TeacherAssignPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                </Routes>
-              </div>
-            </BrowserRouter>
-          </TooltipProvider>
-        </AthroProvider>
-      </StudentRecordProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+      {/* Protected Routes */}
+      <Route
+        path="/home"
+        element={
+          <ProtectedRoute>
+            <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/assignments"
+        element={
+          <ProtectedRoute>
+            <AssignmentsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/files"
+        element={
+          <ProtectedRoute>
+            <FilesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <CalendarPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/quiz"
+        element={
+          <ProtectedRoute>
+            <QuizPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/quiz/:id"
+        element={
+          <ProtectedRoute>
+            <QuizPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/study"
+        element={
+          <ProtectedRoute>
+            <StudySessionPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Athro Chat Routes */}
+      <Route path="/athro" element={<AthroPage />} />
+      <Route path="/athro/select" element={<AthroSelectorPage />} />
+      <Route path="/athro/maths" element={<AthroMathsPage />} />
+      <Route path="/athro/science" element={<AthroSciencePage />} />
+
+      {/* Teacher Dashboard Routes */}
+      <Route
+        path="/teacher"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/profiles"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherStudentProfilesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/sets"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherSetsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/insights"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherInsightsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/assign"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherAssignPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/marking"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherMarkingPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Student Assignment Routes */}
+      <Route
+        path="/student/assignments"
+        element={
+          <ProtectedRoute requiredRole="student">
+            <StudentAssignmentsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/feedback"
+        element={
+          <ProtectedRoute requiredRole="student">
+            <StudentFeedbackPage />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 export default App;

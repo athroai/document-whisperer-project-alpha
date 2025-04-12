@@ -27,7 +27,9 @@ const initializeMockData = () => {
         visibility: "active",
         assignmentType: "quiz",
         status: "published",
-        linkedResources: ["quiz1"]
+        linkedResources: ["quiz1"],
+        instructions: "Solve all 5 percentage problems and show your work.",
+        filesAttached: ["resource1"]
       },
       {
         id: "assignment_2",
@@ -42,7 +44,8 @@ const initializeMockData = () => {
         visibility: "active",
         assignmentType: "open-answer",
         status: "published",
-        linkedResources: []
+        linkedResources: [],
+        instructions: "Write a 500-word essay explaining the structure and function of animal cells."
       }
     ];
   }
@@ -141,6 +144,8 @@ const mockImplementation = {
     assignmentId?: string;
     studentId?: string;
     status?: "submitted" | "marked" | "returned";
+    markedByTeacher?: boolean;
+    markedByAI?: boolean;
   }): Promise<Submission[]> => {
     initializeMockData();
     
@@ -157,6 +162,14 @@ const mockImplementation = {
       
       if (filters.status) {
         filtered = filtered.filter(s => s.status === filters.status);
+      }
+
+      if (filters.markedByTeacher !== undefined) {
+        filtered = filtered.filter(s => s.markedByTeacher === filters.markedByTeacher);
+      }
+
+      if (filters.markedByAI !== undefined) {
+        filtered = filtered.filter(s => s.markedByAI === filters.markedByAI);
       }
     }
     
@@ -175,6 +188,22 @@ const mockImplementation = {
       ...submission,
       id: `submission_${Date.now()}_${Math.floor(Math.random() * 1000)}`
     };
+
+    // Check if this is a quiz or mixed type assignment for AI marking
+    const assignment = mockAssignments.find(a => a.id === submission.assignmentId);
+    if (assignment && (assignment.assignmentType === 'quiz' || assignment.assignmentType === 'open-answer')) {
+      // Simulate AI marking
+      newSubmission.aiFeedback = {
+        score: Math.floor(Math.random() * 10) + 1, // Random score 1-10 
+        comment: "This is automated AI feedback based on your submission."
+      };
+      newSubmission.markedByAI = true;
+    } else {
+      newSubmission.markedByAI = false;
+    }
+    
+    newSubmission.markedByTeacher = false;
+    newSubmission.returnedToStudent = false;
     
     mockSubmissions.push(newSubmission);
     localStorage.setItem('submissions', JSON.stringify(mockSubmissions));
@@ -210,6 +239,7 @@ const mockImplementation = {
     
     mockSubmissions[index].teacherFeedback = feedback;
     mockSubmissions[index].status = "marked";
+    mockSubmissions[index].markedByTeacher = true;
     
     localStorage.setItem('submissions', JSON.stringify(mockSubmissions));
     
@@ -223,6 +253,7 @@ const mockImplementation = {
     if (index === -1) return null;
     
     mockSubmissions[index].status = "returned";
+    mockSubmissions[index].returnedToStudent = true;
     localStorage.setItem('submissions', JSON.stringify(mockSubmissions));
     
     return mockSubmissions[index];
@@ -243,6 +274,41 @@ const mockImplementation = {
       a.status === "published" &&
       new Date(a.dueDate) > new Date()
     );
+  },
+
+  // New method for student assignment view
+  getStudentAssignments: async (studentId: string): Promise<StudentAssignmentView[]> => {
+    initializeMockData();
+    
+    // Fetch all assignments for the student's classes
+    const studentClasses = ["class1", "class2"]; // In real app, fetch from student record
+    
+    const assignments = mockAssignments.filter(a => 
+      studentClasses.includes(a.classId) &&
+      a.status === "published"
+    );
+    
+    // Fetch submissions for this student
+    const submissions = mockSubmissions.filter(s => s.submittedBy === studentId);
+    
+    // Build the combined view
+    return assignments.map(assignment => {
+      const submission = submissions.find(s => s.assignmentId === assignment.id) || null;
+      const now = new Date();
+      const dueDate = new Date(assignment.dueDate);
+      const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      return {
+        assignment,
+        submission,
+        hasSubmitted: !!submission,
+        isPastDue: dueDate < now,
+        daysUntilDue,
+        hasFeedback: submission ? 
+          (submission.status === "marked" || submission.status === "returned") :
+          false
+      };
+    });
   }
 };
 
@@ -279,6 +345,8 @@ const firestoreImplementation = {
     assignmentId?: string;
     studentId?: string;
     status?: "submitted" | "marked" | "returned";
+    markedByTeacher?: boolean;
+    markedByAI?: boolean;
   }): Promise<Submission[]> => {
     // For now, use mock implementation
     return mockImplementation.getSubmissions(filters);
@@ -317,6 +385,12 @@ const firestoreImplementation = {
   getAssignmentsForAthro: async (studentId: string, subject: string): Promise<Assignment[]> => {
     // For now, use mock implementation
     return mockImplementation.getAssignmentsForAthro(studentId, subject);
+  },
+
+  // New method for student assignment view
+  getStudentAssignments: async (studentId: string): Promise<StudentAssignmentView[]> => {
+    // For now, use mock implementation
+    return mockImplementation.getStudentAssignments(studentId);
   }
 };
 

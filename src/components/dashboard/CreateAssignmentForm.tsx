@@ -24,10 +24,12 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { Assignment } from '@/types/assignment';
 import { useAuth } from '@/contexts/AuthContext';
+import ResourceUpload from './ResourceUpload';
+import { Card, CardContent } from '@/components/ui/card';
 
 // Schema for form validation
 const formSchema = z.object({
@@ -39,7 +41,9 @@ const formSchema = z.object({
   assignmentType: z.enum(["quiz", "file-upload", "open-answer"]),
   dueDate: z.date({ required_error: "Due date is required" }),
   status: z.enum(["draft", "published"]),
-  linkedResources: z.array(z.string()).default([])
+  linkedResources: z.array(z.string()).default([]),
+  instructions: z.string().optional(),
+  filesAttached: z.array(z.string()).default([])
 });
 
 interface CreateAssignmentFormProps {
@@ -54,6 +58,7 @@ const CreateAssignmentForm: React.FC<CreateAssignmentFormProps> = ({
   const { state } = useAuth();
   const { user } = state;
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   
   // Mock class data (would come from API in real app)
   const classesMock = [
@@ -87,7 +92,9 @@ const CreateAssignmentForm: React.FC<CreateAssignmentFormProps> = ({
       assignmentType: "quiz",
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 1 week from now
       status: "draft",
-      linkedResources: []
+      linkedResources: [],
+      instructions: "",
+      filesAttached: []
     },
   });
 
@@ -108,10 +115,20 @@ const CreateAssignmentForm: React.FC<CreateAssignmentFormProps> = ({
       visibility: "active",
       assignmentType: values.assignmentType,
       status: values.status,
-      linkedResources: values.linkedResources
+      linkedResources: values.linkedResources,
+      instructions: values.instructions || values.description,
+      filesAttached: uploadedFiles.length > 0 ? uploadedFiles : undefined
     };
     
     onSubmit(assignmentData);
+  };
+
+  const handleResourceUploadComplete = () => {
+    // In a real app, this would fetch the latest uploaded resources
+    // For now, we'll simulate adding a resource ID
+    const mockResourceId = `resource_${Date.now()}`;
+    setUploadedFiles([...uploadedFiles, mockResourceId]);
+    form.setValue('filesAttached', [...uploadedFiles, mockResourceId]);
   };
 
   return (
@@ -166,11 +183,32 @@ const CreateAssignmentForm: React.FC<CreateAssignmentFormProps> = ({
               <FormLabel>Description</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Provide instructions for students" 
+                  placeholder="Brief description of the assignment" 
+                  rows={2}
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="instructions"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Detailed Instructions</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Provide detailed instructions for students" 
                   rows={4}
                   {...field} 
                 />
               </FormControl>
+              <FormDescription>
+                Include specific requirements, formatting details, or step-by-step guidance
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -291,6 +329,33 @@ const CreateAssignmentForm: React.FC<CreateAssignmentFormProps> = ({
             )}
           />
         </div>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <FormLabel className="block mb-4">Attach Resources</FormLabel>
+            <div className="mb-4">
+              <ResourceUpload 
+                onUploadComplete={handleResourceUploadComplete}
+                subjectId={form.getValues().subject}
+                classId={form.getValues().classId}
+              />
+            </div>
+            
+            {uploadedFiles.length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2">{uploadedFiles.length} file(s) attached</p>
+                <ul className="text-sm text-gray-600">
+                  {uploadedFiles.map((fileId, index) => (
+                    <li key={fileId} className="flex items-center">
+                      <Upload className="h-3 w-3 mr-2" />
+                      File {index + 1}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         
         <FormField
           control={form.control}
