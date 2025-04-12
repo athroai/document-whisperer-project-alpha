@@ -1,17 +1,8 @@
+// Existing types file - append or modify as needed
 
-export type ExamBoard = 'wjec' | 'ocr' | 'aqa' | 'none';
-
-export type AthroSubject = 
-  | 'Mathematics' 
-  | 'Science' 
-  | 'English' 
-  | 'Welsh' 
-  | 'History' 
-  | 'Geography' 
-  | 'Languages' 
-  | 'RE';
-
-export type AthroLanguage = 'Spanish' | 'French' | 'German';
+export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Computer Science';
+export type AthroLanguage = 'English' | 'Welsh' | 'French' | 'Spanish' | 'German';
+export type ExamBoard = 'wjec' | 'aqa' | 'ocr' | 'none';
 
 export interface AthroCharacter {
   id: string;
@@ -20,98 +11,47 @@ export interface AthroCharacter {
   avatarUrl: string;
   shortDescription: string;
   fullDescription: string;
-  tone: string; // Describes the character's tone for AI prompting
+  tone: string;
   supportsMathNotation?: boolean;
   supportsSpecialCharacters?: boolean;
   supportedLanguages?: AthroLanguage[];
-  topics: string[]; // Subject-specific topics
+  topics: string[];
   examBoards: ExamBoard[];
 }
 
 export interface AthroMessage {
   id: string;
-  senderId: string; // 'user' or AthroCharacter ID
+  senderId: string;
   content: string;
   timestamp: string;
-  attachments?: AthroAttachment[];
-  referencedResources?: string[]; // IDs of resources being referenced
-  confidence?: number; // For tracking student confidence
+  markScheme?: string;
+  referencedResources?: string[];
 }
 
-export interface AthroAttachment {
+export interface AthroSession {
   id: string;
-  type: 'image' | 'pdf' | 'mathml' | 'latex' | 'resource';
-  url: string;
-  caption?: string;
-  thumbnailUrl?: string;
-}
-
-export interface AthroStudySession {
-  id: string;
-  studentId: string;
+  userId: string;
   characterId: string;
-  subject: AthroSubject;
-  topic?: string;
-  examBoard: ExamBoard;
   messages: AthroMessage[];
-  startTime: string;
-  endTime?: string;
-  confidenceStart?: number;
-  confidenceEnd?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface AthroResource {
+export interface AthroFileReference {
   id: string;
-  title: string;
-  type: 'past-paper' | 'notes' | 'quiz' | 'topic-sheet' | 'marking-scheme';
+  fileId: string;
+  fileName: string;
+  fileType: string;
   subject: AthroSubject;
-  examBoard: ExamBoard;
-  uploaderId: string;
-  url: string;
-  uploadDate: string;
   topics: string[];
-  visibility: 'private' | 'class' | 'school' | 'public';
-  classId?: string;
+  examBoard?: ExamBoard;
+  uploadedAt: string;
 }
 
-export interface AthroStudentProgress {
-  studentId: string;
-  subject: AthroSubject;
-  confidenceScores: {
-    [topic: string]: number; // 1-10 scale
-  };
-  completedQuizzes: {
-    quizId: string;
-    score: number;
-    date: string;
-  }[];
-  studyTime: {
-    [topic: string]: number; // in minutes
-  };
-  lastStudySession?: string; // timestamp
-}
-
-export interface AthroPrompt {
-  systemPrompt: string;
-  userPrompt?: string;
-  examples?: {
-    userMessage: string;
-    athroResponse: string;
-  }[];
-  characterOverrides?: {
-    [key in AthroSubject]?: string;
-  };
-}
-
-// Interface for MathML or LaTeX rendering options
-export interface MathNotationOptions {
-  displayMode: boolean; // inline or block
-  leqno: boolean; // left equation numbering
-  fleqn: boolean; // flush equations left
-  throwOnError: boolean; // throw error for invalid syntax
-  errorColor: string; // color for error text
-  macros: Record<string, string>; // custom macros
-  minRuleThickness: number; // minimum thickness for rules
-  colorIsTextColor: boolean; // use given color as text color
-  strict: boolean; // strict parsing of TeX
+// Input processor for future API integration
+export interface InputProcessor {
+  name: string;
+  processInput: (input: string, context: any) => Promise<string>;
+  supportedInputTypes: string[];
+  enabled: boolean;
 }

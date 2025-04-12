@@ -5,22 +5,26 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Send, RefreshCcw, Save, Share2, X } from 'lucide-react';
+import { Send, RefreshCcw, Save, Share2, X, ArrowLeft } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
+import AthroMathsRenderer from './AthroMathsRenderer';
 
 interface AthroBaseProps {
   showTopicSelector?: boolean;
 }
 
 const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
-  const { activeCharacter, messages, sendMessage, isTyping, studentProgress, getSuggestedTopics } = useAthro();
+  const { activeCharacter, messages, sendMessage, isTyping, studentProgress, getSuggestedTopics, clearMessages } = useAthro();
   const [userMessage, setUserMessage] = useState<string>('');
   const [showMarkScheme, setShowMarkScheme] = useState<boolean>(false);
+  const [showTopicModal, setShowTopicModal] = useState<boolean>(showTopicSelector);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<string>('chat');
+  const navigate = useNavigate();
   
   // Auto-scroll to the latest message
   useEffect(() => {
@@ -44,7 +48,7 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
   };
 
   const handleClearSession = () => {
-    // This will be implemented when we have session management
+    clearMessages();
     toast({
       title: "Session cleared",
       description: "Your conversation has been reset.",
@@ -67,6 +71,14 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
     });
   };
 
+  const handleExitAthro = () => {
+    navigate('/athro');
+  };
+
+  const handleCloseTopicModal = () => {
+    setShowTopicModal(false);
+  };
+
   if (!activeCharacter) {
     return <div>No Athro character selected. Please select a subject.</div>;
   }
@@ -77,15 +89,20 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
     <div className="flex flex-col h-full">
       <Card className="flex-grow flex flex-col h-full">
         <CardHeader className="border-b bg-white">
-          <div className="flex items-center">
-            <Avatar className="h-10 w-10 mr-2">
-              <AvatarImage src={activeCharacter.avatarUrl} alt={activeCharacter.name} />
-              <AvatarFallback>{activeCharacter.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle className="text-lg">{activeCharacter.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">{activeCharacter.shortDescription}</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Avatar className="h-10 w-10 mr-2">
+                <AvatarImage src={activeCharacter.avatarUrl} alt={activeCharacter.name} />
+                <AvatarFallback>{activeCharacter.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle className="text-lg">{activeCharacter.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">{activeCharacter.shortDescription}</p>
+              </div>
             </div>
+            <Button variant="outline" size="sm" onClick={handleExitAthro}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Exit
+            </Button>
           </div>
         </CardHeader>
 
@@ -97,11 +114,16 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
           </TabsList>
           
           <TabsContent value="chat" className="flex-grow flex flex-col p-0">
-            {showTopicSelector && suggestedTopics.length > 0 && (
+            {showTopicModal && suggestedTopics.length > 0 && (
               <div className="p-4 bg-slate-50 border-b">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">Suggested Topics</h3>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={handleCloseTopicModal}
+                  >
                     <X className="h-4 w-4" />
                     <span className="sr-only">Close</span>
                   </Button>
@@ -114,6 +136,7 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
                       size="sm"
                       onClick={() => {
                         sendMessage(`I'd like to study ${topic}`);
+                        setShowTopicModal(false);
                       }}
                     >
                       {topic}
@@ -146,22 +169,41 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
                           <span className="text-sm font-medium">{activeCharacter.name}</span>
                         </div>
                       )}
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
                       
-                      {/* Mark scheme toggle will be implemented in the future */}
+                      {/* Render messages with math notation support if needed */}
+                      {msg.senderId !== 'user' && activeCharacter.supportsMathNotation ? (
+                        <AthroMathsRenderer content={msg.content} />
+                      ) : (
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                      )}
+                      
+                      {/* Mark scheme toggle will be implemented for past paper matches */}
                       {msg.senderId !== 'user' && msg.referencedResources && msg.referencedResources.length > 0 && (
                         <div className="mt-2 pt-2 border-t border-gray-200">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setShowMarkScheme(!showMarkScheme)}
-                          >
-                            {showMarkScheme ? 'Hide' : 'Show'} Mark Scheme
-                          </Button>
-                          {showMarkScheme && (
+                          <div className="flex flex-wrap gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => setShowMarkScheme(!showMarkScheme)}
+                            >
+                              {showMarkScheme ? 'Hide' : 'View'} Mark Scheme
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                            >
+                              Try Similar Question
+                            </Button>
+                          </div>
+                          
+                          {showMarkScheme && msg.markScheme && (
                             <div className="mt-2 p-2 bg-background rounded text-sm">
                               <p className="font-medium">Mark Scheme:</p>
-                              <p>Example mark scheme content would appear here.</p>
+                              {activeCharacter.supportsMathNotation ? (
+                                <AthroMathsRenderer content={msg.markScheme} />
+                              ) : (
+                                <p>{msg.markScheme}</p>
+                              )}
                             </div>
                           )}
                         </div>
@@ -291,7 +333,8 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
               <Share2 className="mr-2 h-4 w-4" />
               Send to Teacher
             </Button>
-            <Button variant="default" size="sm">
+            <Button variant="default" size="sm" onClick={handleExitAthro}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Exit
             </Button>
           </div>

@@ -1,7 +1,6 @@
 
 import React, { useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
-import { getAthroById } from '@/config/athrosConfig';
 import AthroBase from '@/components/athro/AthroBase';
 import { Card } from '@/components/ui/card';
 import { getAthroBySubject } from '@/config/athrosConfig';
@@ -61,6 +60,16 @@ const AthroMathsPage: React.FC = () => {
                 OCR
               </span>
             </div>
+          </Card>
+          
+          <Card className="p-4">
+            <h2 className="font-medium mb-3">Study Tips</h2>
+            <ul className="text-sm space-y-2 list-disc pl-4">
+              <li>Ask AthroMaths to explain concepts step-by-step</li>
+              <li>Request practice problems on topics you find difficult</li>
+              <li>Try solving past paper questions with guidance</li>
+              <li>Save important explanations to review later</li>
+            </ul>
           </Card>
         </div>
       </div>
