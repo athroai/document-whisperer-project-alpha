@@ -27,13 +27,27 @@ interface StudentTrendsProps {
 }
 
 const StudentTrends = ({ student, classAveragesData, subjectComparisonData }: StudentTrendsProps) => {
+  // Transform the data to include both class average and student data in the same array
+  const combinedData = classAveragesData.map(classItem => {
+    // Find the matching student data
+    const studentItem = subjectComparisonData.find(
+      item => item.subject === classItem.subject
+    );
+    
+    return {
+      subject: classItem.subject,
+      classAverage: classItem.confidence,
+      studentConfidence: studentItem ? studentItem.confidence : 0
+    };
+  });
+
   return (
     <div>
       <h3 className="text-lg font-medium mb-4">Confidence vs. Class Average</h3>
       <div className="h-[250px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={classAveragesData}
+            data={combinedData}
             margin={{
               top: 5,
               right: 30,
@@ -46,18 +60,16 @@ const StudentTrends = ({ student, classAveragesData, subjectComparisonData }: St
             <YAxis domain={[0, 10]} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="confidence" name="Class Average" fill="#8884d8" />
-            
-            {/* Render individual student bars */}
-            {subjectComparisonData.map((entry, index) => (
-              <Bar 
-                key={`student-bar-${index}`}
-                dataKey="confidence" 
-                name={`${student.name}'s Confidence`} 
-                data={[{ x: entry.subject, confidence: entry.confidence }]}
-                fill="#82ca9d" 
-              />
-            ))}
+            <Bar 
+              dataKey="classAverage" 
+              name="Class Average" 
+              fill="#8884d8" 
+            />
+            <Bar 
+              dataKey="studentConfidence" 
+              name={`${student.name}'s Confidence`} 
+              fill="#82ca9d" 
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
