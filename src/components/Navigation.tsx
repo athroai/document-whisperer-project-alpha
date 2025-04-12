@@ -1,7 +1,16 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Calendar, GraduationCap, Settings, LogOut, Users, ChalkboardTeacher } from 'lucide-react';
+import { 
+  Home, 
+  BookOpen, 
+  Calendar, 
+  GraduationCap, 
+  Settings, 
+  LogOut, 
+  Users, 
+  Presentation  // Replacing ChalkboardTeacher with Presentation icon
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,7 +31,7 @@ const Navigation: React.FC = () => {
 
   // Add teacher dashboard for teacher role
   const navItems = user?.role === 'teacher' 
-    ? [...baseNavItems, { name: 'Teacher Dashboard', path: '/teacher-dashboard', icon: ChalkboardTeacher }] 
+    ? [...baseNavItems, { name: 'Teacher Dashboard', path: '/teacher-dashboard', icon: Presentation }] 
     : baseNavItems;
 
   return (
