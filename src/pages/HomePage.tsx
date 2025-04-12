@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,10 +9,9 @@ const HomePage: React.FC = () => {
   const { state } = useAuth();
   const { user } = state;
 
-  // Mock data for UI display
   const subjects = [
     { name: 'Mathematics', mentor: 'AthroMaths', image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png', progress: 65 },
-    { name: 'Science', mentor: 'AthroScience', image: '/lovable-uploads/a2640d0a-113f-4f37-9120-5533af965b5d.png', progress: 42 },
+    { name: 'Core Studies', mentor: 'Athro AI', image: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png', progress: 42 },
     { name: 'History', mentor: 'AthroHistory', image: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png', progress: 78 },
     { name: 'English', mentor: 'AthroEnglish', image: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png', progress: 54 },
   ];
@@ -27,7 +25,6 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-12 md:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Welcome Section */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-xl p-6 mb-8 text-white">
           <div className="flex flex-col md:flex-row items-center md:items-start">
             <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
@@ -53,9 +50,7 @@ const HomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Subjects Column */}
           <div className="md:col-span-2 space-y-6">
             <h2 className="text-xl font-bold text-gray-800">Your Subjects</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -142,7 +137,6 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -176,7 +170,6 @@ const HomePage: React.FC = () => {
               </CardFooter>
             </Card>
 
-            {/* Quick Actions */}
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
@@ -203,7 +196,6 @@ const HomePage: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Study Streak */}
             <Card className="bg-gradient-to-r from-amber-100 to-amber-50 border-amber-200">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">

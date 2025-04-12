@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -85,17 +84,17 @@ const WelcomePage: React.FC = () => {
               <h3 className="mt-2 font-semibold text-lg">AthroMaths</h3>
               <p className="text-sm text-gray-600">Your friendly mathematics mentor</p>
             </div>
-            
-            <div className="flex flex-col items-center text-center">
-              <img 
-                src="/lovable-uploads/a2640d0a-113f-4f37-9120-5533af965b5d.png" 
-                alt="AthroScience" 
-                className="w-24 h-24 object-cover rounded-full" 
-              />
-              <h3 className="mt-2 font-semibold text-lg">AthroScience</h3>
-              <p className="text-sm text-gray-600">Your brilliant science guide</p>
-            </div>
-            
+          
+          <div className="flex flex-col items-center text-center">
+            <img 
+              src="/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png" 
+              alt="Athro AI" 
+              className="w-24 h-24 object-cover rounded-full" 
+            />
+            <h3 className="mt-2 font-semibold text-lg">Athro AI</h3>
+            <p className="text-sm text-gray-600">Your comprehensive study companion</p>
+          </div>
+          
             <div className="flex flex-col items-center text-center">
               <img 
                 src="/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png" 

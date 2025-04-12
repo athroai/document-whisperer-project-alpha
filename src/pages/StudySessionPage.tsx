@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -9,9 +8,9 @@ const StudySessionPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([
     { 
-      text: "Hello there! I'm AthroMaths, your GCSE mathematics mentor. How can I help you with your studies today?", 
+      text: "Hello there! I'm Athro AI, your comprehensive GCSE study mentor. How can I help you with your studies today?", 
       sender: 'athro',
-      avatar: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
+      avatar: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png'
     },
   ]);
 
@@ -47,14 +46,14 @@ const StudySessionPage: React.FC = () => {
                 <div className="flex items-center mb-4">
                   <div className="w-16 h-16 mr-3">
                     <img 
-                      src="/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png" 
-                      alt="AthroMaths" 
+                      src="/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png" 
+                      alt="Athro AI" 
                       className="w-full h-full object-cover" 
                     />
                   </div>
                   <div>
-                    <h3 className="font-medium">AthroMaths</h3>
-                    <p className="text-sm text-gray-500">Mathematics Mentor</p>
+                    <h3 className="font-medium">Athro AI</h3>
+                    <p className="text-sm text-gray-500">Study Mentor</p>
                   </div>
                 </div>
                 
@@ -101,14 +100,14 @@ const StudySessionPage: React.FC = () => {
                 <div className="flex items-center">
                   <div className="w-10 h-10 mr-3">
                     <img 
-                      src="/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png" 
-                      alt="AthroMaths" 
+                      src="/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png" 
+                      alt="Athro AI" 
                       className="w-full h-full object-cover rounded-full" 
                     />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Mathematics Study Session</CardTitle>
-                    <p className="text-sm text-gray-500">with AthroMaths</p>
+                    <CardTitle className="text-lg">Study Session</CardTitle>
+                    <p className="text-sm text-gray-500">with Athro AI</p>
                   </div>
                 </div>
               </CardHeader>
@@ -134,7 +133,7 @@ const StudySessionPage: React.FC = () => {
                               className="w-full h-full object-cover rounded-full" 
                             />
                           </div>
-                          <span className="font-medium text-purple-700">AthroMaths</span>
+                          <span className="font-medium text-purple-700">Athro AI</span>
                         </div>
                       )}
                       <p className={`text-sm ${msg.sender === 'user' ? 'text-white' : 'text-gray-800'}`}>
