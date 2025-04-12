@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle, FileText, Calendar } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
@@ -16,7 +16,8 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
+import { assignmentService } from '@/services/assignmentService';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
@@ -29,6 +30,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [markedMessageIds, setMarkedMessageIds] = useState<Set<string>>(new Set());
   const [markingInProgress, setMarkingInProgress] = useState<Set<string>>(new Set());
+  const [pendingAssignments, setPendingAssignments] = useState<any[]>([]);
   
   // Auto-scroll to the latest message
   useEffect(() => {
@@ -36,6 +38,25 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+  
+  // Check for pending assignments
+  useEffect(() => {
+    if (state.user?.id && activeCharacter?.subject) {
+      const fetchPendingAssignments = async () => {
+        try {
+          const assignments = await assignmentService.getAssignmentsForAthro(
+            state.user!.id,
+            activeCharacter.subject.toLowerCase()
+          );
+          setPendingAssignments(assignments);
+        } catch (error) {
+          console.error('Error fetching pending assignments:', error);
+        }
+      };
+      
+      fetchPendingAssignments();
+    }
+  }, [state.user?.id, activeCharacter?.subject]);
 
   const handleSendMessage = () => {
     if (!userMessage.trim() || !activeCharacter) return;
@@ -100,6 +121,15 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         return newSet;
       });
     }
+  };
+
+  const handleStartAssignment = (assignment: any) => {
+    if (!activeCharacter) return;
+    
+    // Send a message to Athro about the assignment
+    const message = `I'd like some help with my assignment on ${assignment.topic || assignment.subject}: "${assignment.title}". The instructions say: "${assignment.description}"`;
+    
+    sendMessage(message);
   };
 
   if (!activeCharacter && messages.length === 0) {
@@ -221,6 +251,40 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
           <div ref={messageEndRef} />
         </div>
       </ScrollArea>
+      
+      {pendingAssignments.length > 0 && (
+        <div className="p-3 border-t bg-amber-50">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center text-amber-800">
+              <FileText className="h-4 w-4 mr-1" />
+              <span className="font-medium">Pending Assignments</span>
+            </div>
+            <Badge variant="outline" className="bg-amber-100 border-amber-200 text-amber-800">
+              {pendingAssignments.length}
+            </Badge>
+          </div>
+          <div className="space-y-1">
+            {pendingAssignments.slice(0, 2).map((assignment) => (
+              <div key={assignment.id} className="flex items-center justify-between rounded-md p-1.5 hover:bg-amber-100">
+                <span className="text-sm truncate">{assignment.title}</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-amber-800 hover:text-amber-900 hover:bg-amber-200"
+                  onClick={() => handleStartAssignment(assignment)}
+                >
+                  Get Help
+                </Button>
+              </div>
+            ))}
+            {pendingAssignments.length > 2 && (
+              <Button variant="link" size="sm" className="text-xs p-0 h-auto text-amber-800">
+                View all {pendingAssignments.length} assignments
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       
       <div className={`p-4 border-t ${isCompactMode ? 'bg-background' : ''}`}>
         <div className="flex space-x-2">

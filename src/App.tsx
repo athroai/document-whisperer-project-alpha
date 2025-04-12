@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -23,6 +22,9 @@ import SettingsPage from "./pages/SettingsPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import FilesPage from "./pages/FilesPage";
 import AthroPage from "./pages/AthroPage";
+import AssignmentsPage from './pages/AssignmentsPage';
+import AssignmentSubmission from './components/assignment/AssignmentSubmission';
+import TeacherAssignPage from './pages/teacher/TeacherAssignPage';
 
 // Lazy-loaded Pages
 const AthroMathsPage = React.lazy(() => import('./pages/athro/AthroMathsPage'));
@@ -39,7 +41,7 @@ import TeacherDashboardLayout from "./components/dashboard/TeacherDashboardLayou
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <StudentRecordProvider>
@@ -163,6 +165,32 @@ const App = () => (
                   
                   {/* Catch-all Route */}
                   <Route path="*" element={<NotFound />} />
+                  
+                  {/* Add these new routes */}
+                  <Route 
+                    path="/assignments" 
+                    element={
+                      <ProtectedRoute>
+                        <AssignmentsPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/assignment/:id" 
+                    element={
+                      <ProtectedRoute>
+                        <AssignmentSubmission />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/teacher/assign" 
+                    element={
+                      <ProtectedRoute requiredRole="teacher">
+                        <TeacherAssignPage />
+                      </ProtectedRoute>
+                    }
+                  />
                 </Routes>
               </div>
             </BrowserRouter>
@@ -174,4 +202,3 @@ const App = () => (
 );
 
 export default App;
-

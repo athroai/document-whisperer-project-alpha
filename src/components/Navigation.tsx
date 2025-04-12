@@ -9,7 +9,8 @@ import {
   Settings, 
   LogOut, 
   Users, 
-  Presentation  // Replacing ChalkboardTeacher with Presentation icon
+  Presentation,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,6 +25,7 @@ const Navigation: React.FC = () => {
   const baseNavItems = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Study', path: '/study', icon: BookOpen },
+    { name: 'Assignments', path: '/assignments', icon: FileText },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     { name: 'Quiz', path: '/quiz', icon: GraduationCap },
     { name: 'Settings', path: '/settings', icon: Settings },
