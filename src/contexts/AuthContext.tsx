@@ -85,9 +85,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Check if the user is from nexastream for license exemption
           if (user.email.endsWith('@nexastream.co.uk') && !user.licenseExempt) {
             user.licenseExempt = true;
-            localStorage.setItem('athro_user', JSON.stringify(user));
           }
           
+          // Ensure user has an examBoard property, defaulting to 'none'
+          if (!user.examBoard) {
+            user.examBoard = 'none';
+          }
+          
+          localStorage.setItem('athro_user', JSON.stringify(user));
           dispatch({ type: 'AUTH_SUCCESS', payload: user });
         } else {
           dispatch({ type: 'AUTH_LOGOUT' });
@@ -111,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         displayName: email.split('@')[0],
         createdAt: new Date(),
         rememberMe,
+        examBoard: 'none', // Default to none instead of undefined
         licenseExempt: email.endsWith('@nexastream.co.uk'),
         confidenceScores: {
           maths: 5,
@@ -144,6 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role,
         displayName: email.split('@')[0],
         createdAt: new Date(),
+        examBoard: 'none', // Default to none instead of undefined
         licenseExempt: email.endsWith('@nexastream.co.uk'),
         rememberMe: true,
         confidenceScores: {
