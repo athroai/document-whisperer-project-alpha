@@ -10,7 +10,7 @@ type AuthAction =
 
 const initialState: AuthState = {
   user: null,
-  loading: true,
+  loading: false,
   error: null
 };
 
@@ -51,6 +51,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         user: null,
+        loading: false,
         error: null
       };
     default:
@@ -116,8 +117,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       localStorage.setItem('athro_user', JSON.stringify(mockUser));
       dispatch({ type: 'AUTH_SUCCESS', payload: mockUser });
+      return Promise.resolve();
     } catch (error) {
       dispatch({ type: 'AUTH_FAIL', payload: 'Signup failed. Please try again.' });
+      return Promise.reject(error);
     }
   };
 
