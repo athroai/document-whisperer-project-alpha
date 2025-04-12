@@ -8,11 +8,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 
+// Define Athro characters with their correct subjects and avatars
+const athroCharacters = {
+  Mathematics: { 
+    name: 'AthroMaths', 
+    avatar: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png',
+    topics: ['Algebra', 'Geometry', 'Trigonometry', 'Calculus', 'Statistics', 'Probability', 'Number Theory', 'Graphs']
+  },
+  Science: { 
+    name: 'AthroScience', 
+    avatar: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png',
+    topics: ['Biology', 'Chemistry', 'Physics', 'Earth Science', 'Ecology', 'Astronomy', 'Genetics', 'Laboratory Skills']
+  },
+  History: { 
+    name: 'AthroHistory', 
+    avatar: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png',
+    topics: ['World Wars', 'Ancient Civilizations', 'Medieval History', 'Industrial Revolution', 'Cold War', 'Political History', 'Cultural History', 'Economic History']
+  },
+  English: { 
+    name: 'AthroEnglish', 
+    avatar: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png',
+    topics: ['Literature', 'Poetry', 'Creative Writing', 'Grammar', 'Essay Writing', 'Text Analysis', 'Shakespeare', 'Modern Fiction']
+  }
+};
+
 const StudySessionPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([
     { 
-      text: "Hello there! I'm Athro AI, your comprehensive GCSE study mentor. How can I help you with your studies today?", 
+      text: "Hello there! I'm your comprehensive GCSE study mentor. How can I help you with your studies today?", 
       sender: 'athro',
       avatar: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png'
     },
@@ -22,6 +46,8 @@ const StudySessionPage: React.FC = () => {
   const [activeSession, setActiveSession] = useState<'ai' | 'manual' | 'past-paper' | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [selectedPaper, setSelectedPaper] = useState<string>('');
+  const [currentSubject, setCurrentSubject] = useState<string>('Mathematics');
+  const [currentAthro, setCurrentAthro] = useState(athroCharacters.Mathematics);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -31,14 +57,34 @@ const StudySessionPage: React.FC = () => {
       // Simulate Athro response
       setTimeout(() => {
         setMessages(prev => [...prev, {
-          text: "I'm here to help with your mathematics questions! Let me know what specific topic you'd like to explore or what problems you're facing.",
+          text: `I'm here to help with your ${currentSubject} questions! Let me know what specific topic you'd like to explore or what problems you're facing.`,
           sender: 'athro',
-          avatar: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
+          avatar: currentAthro.avatar
         }]);
       }, 1000);
       
       setMessage('');
     }
+  };
+
+  const changeSubject = (subject: string) => {
+    setCurrentSubject(subject);
+    setCurrentAthro(athroCharacters[subject as keyof typeof athroCharacters]);
+    
+    // Update the messages to reflect the new Athro
+    setMessages([
+      { 
+        text: `Hello! I'm ${athroCharacters[subject as keyof typeof athroCharacters].name}, your ${subject} mentor. How can I help you today?`, 
+        sender: 'athro',
+        avatar: athroCharacters[subject as keyof typeof athroCharacters].avatar
+      },
+    ]);
+    
+    // Reset session state
+    setShowOptions(true);
+    setActiveSession(null);
+    setSelectedTopic('');
+    setSelectedPaper('');
   };
 
   const startAISession = () => {
@@ -47,9 +93,9 @@ const StudySessionPage: React.FC = () => {
     setMessages([
       ...messages,
       {
-        text: "What would you like help with today? I'm here to answer any questions about your studies.",
+        text: `What would you like help with in ${currentSubject} today? I'm here to answer any questions about your studies.`,
         sender: 'athro',
-        avatar: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
+        avatar: currentAthro.avatar
       }
     ]);
   };
@@ -71,7 +117,7 @@ const StudySessionPage: React.FC = () => {
       {
         text: `Let's review ${topic}. What specific aspect would you like to focus on?`,
         sender: 'athro',
-        avatar: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
+        avatar: currentAthro.avatar
       }
     ]);
   };
@@ -83,7 +129,7 @@ const StudySessionPage: React.FC = () => {
       {
         text: `I've loaded ${paper}. Let's work through it together. Ask me about any question you find challenging.`,
         sender: 'athro',
-        avatar: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
+        avatar: currentAthro.avatar
       }
     ]);
   };
@@ -96,22 +142,21 @@ const StudySessionPage: React.FC = () => {
         {
           text: `I've received your file "${fileName}". Let's work through it together. What question would you like to start with?`,
           sender: 'athro',
-          avatar: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
+          avatar: currentAthro.avatar
         }
       ]);
     }
   };
 
-  const mathsTopics = [
-    'Algebra', 'Geometry', 'Trigonometry', 'Calculus', 
-    'Statistics', 'Probability', 'Number Theory', 'Graphs'
-  ];
+  // Get the current Athro's topics
+  const currentTopics = currentAthro.topics;
 
+  // Generate past paper names based on the current subject
   const pastPapers = [
-    'Maths Unit 1 - Autumn 2022',
-    'Maths Unit 2 - Summer 2022',
-    'Maths Unit 1 - Summer 2021',
-    'Maths Unit 2 - Autumn 2021'
+    `${currentSubject} Unit 1 - Autumn 2022`,
+    `${currentSubject} Unit 2 - Summer 2022`,
+    `${currentSubject} Unit 1 - Summer 2021`,
+    `${currentSubject} Unit 2 - Autumn 2021`
   ];
 
   return (
@@ -128,14 +173,14 @@ const StudySessionPage: React.FC = () => {
                 <div className="flex items-center mb-4">
                   <div className="w-16 h-16 mr-3">
                     <img 
-                      src="/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png" 
-                      alt="Athro AI" 
+                      src={currentAthro.avatar} 
+                      alt={currentAthro.name} 
                       className="w-full h-full object-cover" 
                     />
                   </div>
                   <div>
-                    <h3 className="font-medium">Athro AI</h3>
-                    <p className="text-sm text-gray-500">Study Mentor</p>
+                    <h3 className="font-medium">{currentAthro.name}</h3>
+                    <p className="text-sm text-gray-500">{currentSubject} Mentor</p>
                   </div>
                 </div>
                 
@@ -150,7 +195,7 @@ const StudySessionPage: React.FC = () => {
                     <p className="text-sm text-gray-700">
                       {activeSession === 'manual' ? selectedTopic : 
                        activeSession === 'past-paper' ? selectedPaper : 
-                       'Mathematics'}
+                       currentSubject}
                     </p>
                   </div>
                   
@@ -174,6 +219,23 @@ const StudySessionPage: React.FC = () => {
                       Start Pomodoro Timer
                     </Button>
                   </div>
+
+                  {/* Subject Selector */}
+                  <div className="pt-4">
+                    <h4 className="font-medium mb-2">Change Subject:</h4>
+                    <Select onValueChange={changeSubject} value={currentSubject}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(athroCharacters).map((subject) => (
+                          <SelectItem key={subject} value={subject}>
+                            {subject}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -186,14 +248,14 @@ const StudySessionPage: React.FC = () => {
                 <div className="flex items-center">
                   <div className="w-10 h-10 mr-3">
                     <img 
-                      src="/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png" 
-                      alt="Athro AI" 
+                      src={currentAthro.avatar} 
+                      alt={currentAthro.name} 
                       className="w-full h-full object-cover rounded-full" 
                     />
                   </div>
                   <div>
                     <CardTitle className="text-lg">Study Session</CardTitle>
-                    <p className="text-sm text-gray-500">with Athro AI</p>
+                    <p className="text-sm text-gray-500">with {currentAthro.name}</p>
                   </div>
                 </div>
               </CardHeader>
@@ -249,7 +311,7 @@ const StudySessionPage: React.FC = () => {
                                 className="w-full h-full object-cover rounded-full" 
                               />
                             </div>
-                            <span className="font-medium text-purple-700">Athro AI</span>
+                            <span className="font-medium text-purple-700">{currentAthro.name}</span>
                           </div>
                         )}
                         <p className={`text-sm ${msg.sender === 'user' ? 'text-white' : 'text-gray-800'}`}>
@@ -269,7 +331,7 @@ const StudySessionPage: React.FC = () => {
                       <DialogTitle>Select a Topic to Review</DialogTitle>
                     </DialogHeader>
                     <div className="grid grid-cols-2 gap-2 py-4">
-                      {mathsTopics.map((topic) => (
+                      {currentTopics.map((topic) => (
                         <Button
                           key={topic}
                           variant="outline"

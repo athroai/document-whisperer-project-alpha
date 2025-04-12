@@ -12,6 +12,14 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { toast } from 'sonner';
 
+// Define Athro characters with proper subjects and avatars
+const subjects = [
+  { name: 'Mathematics', mentor: 'AthroMaths', image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png', progress: 65 },
+  { name: 'Science', mentor: 'AthroScience', image: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png', progress: 42 },
+  { name: 'History', mentor: 'AthroHistory', image: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png', progress: 78 },
+  { name: 'English', mentor: 'AthroEnglish', image: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png', progress: 54 },
+];
+
 const HomePage: React.FC = () => {
   const { state } = useAuth();
   const { user } = state;
@@ -20,6 +28,7 @@ const HomePage: React.FC = () => {
   const [confidenceScore, setConfidenceScore] = useState(5);
   const [currentAthro, setCurrentAthro] = useState({
     name: 'AthroMaths',
+    subject: 'Mathematics',
     image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
   });
   
@@ -33,17 +42,10 @@ const HomePage: React.FC = () => {
 
   const handleConfidenceSubmit = () => {
     // In a real implementation, this would store the data in a database
-    console.log(`User confidence score: ${confidenceScore} for ${currentAthro.name}`);
+    console.log(`User confidence score: ${confidenceScore} for ${currentAthro.subject}`);
     toast.success(`Your confidence score of ${confidenceScore}/10 has been recorded!`);
     setIsConfidenceModalOpen(false);
   };
-
-  const subjects = [
-    { name: 'Mathematics', mentor: 'AthroMaths', image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png', progress: 65 },
-    { name: 'Core Studies', mentor: 'Athro AI', image: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png', progress: 42 },
-    { name: 'History', mentor: 'AthroHistory', image: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png', progress: 78 },
-    { name: 'English', mentor: 'AthroEnglish', image: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png', progress: 54 },
-  ];
 
   const upcomingEvents = [
     { id: 1, title: 'Math Quiz Review', date: 'Today, 4:00 PM', mentor: 'AthroMaths' },
@@ -299,6 +301,7 @@ const HomePage: React.FC = () => {
                       onClick={() => {
                         setCurrentAthro({
                           name: subject.mentor,
+                          subject: subject.name,
                           image: subject.image
                         });
                         toast.success(`${subject.mentor} is now your active mentor!`);
@@ -324,7 +327,7 @@ const HomePage: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="text-center">Confidence Check-In</DialogTitle>
             <DialogDescription className="text-center">
-              On a scale of 1 to 10, how confident do you feel in {currentAthro.name.replace('Athro', '')} today?
+              On a scale of 1 to 10, how confident do you feel in {currentAthro.subject} today?
             </DialogDescription>
           </DialogHeader>
           <div className="py-6">
