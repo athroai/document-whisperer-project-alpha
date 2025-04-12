@@ -21,6 +21,10 @@ import SettingsPage from "./pages/SettingsPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import FilesPage from "./pages/FilesPage";
 
+// Teacher dashboard pages
+import TeacherSetsPage from "./pages/teacher/TeacherSetsPage";
+import TeacherMarkingPage from "./pages/teacher/TeacherMarkingPage";
+
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navigation from "./components/Navigation";
@@ -89,12 +93,22 @@ const App = () => (
                 } />
                 <Route path="/teacher-dashboard" element={
                   <ProtectedRoute>
-                    <>
-                      <Navigation />
-                      <TeacherDashboardPage />
-                    </>
+                    <TeacherDashboardPage />
                   </ProtectedRoute>
                 } />
+                
+                {/* Teacher Dashboard Routes */}
+                <Route path="/teacher/sets" element={
+                  <ProtectedRoute>
+                    <TeacherSetsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/teacher/marking" element={
+                  <ProtectedRoute>
+                    <TeacherMarkingPage />
+                  </ProtectedRoute>
+                } />
+                
                 <Route path="/files" element={
                   <ProtectedRoute>
                     <>

@@ -1,234 +1,126 @@
 
-import React, { useState, useEffect } from 'react';
-import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import StatsCards from '@/components/dashboard/StatsCards';
-import StudentsList from '@/components/dashboard/StudentsList';
-import StudentDetail from '@/components/dashboard/StudentDetail';
-import { calculateClassAverages } from '@/utils/dashboardUtils';
-import { QuizResult } from '@/types/quiz';
-import { quizService } from '@/services/quizService';
-import { toast } from '@/hooks/use-toast';
-import { getTeacherPreference } from '@/services/fileService';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { Users, Bell, BarChart3, FileCheck } from 'lucide-react';
+import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
 
-// Mock data
-const mockStudents = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah.j@school.edu',
-    confidenceTrend: [
-      { date: '2025-03-01', confidence: 6 },
-      { date: '2025-03-08', confidence: 7 },
-      { date: '2025-03-15', confidence: 6 },
-      { date: '2025-03-22', confidence: 8 },
-      { date: '2025-04-01', confidence: 9 },
-    ],
-    lastStudy: '2025-04-10',
-    lastQuiz: {
-      date: '2025-04-08',
-      score: 85,
-      subject: 'Mathematics'
-    },
-    subjects: {
-      maths: { confidence: 8, averageScore: 85, sessionsThisWeek: 3 },
-      science: { confidence: 7, averageScore: 78, sessionsThisWeek: 1 },
-      english: { confidence: 9, averageScore: 92, sessionsThisWeek: 2 },
-      history: { confidence: 6, averageScore: 74, sessionsThisWeek: 0 }
-    }
-  },
-  {
-    id: '2',
-    name: 'Michael Chen',
-    email: 'michael.c@school.edu',
-    confidenceTrend: [
-      { date: '2025-03-01', confidence: 4 },
-      { date: '2025-03-08', confidence: 5 },
-      { date: '2025-03-15', confidence: 6 },
-      { date: '2025-03-22', confidence: 7 },
-      { date: '2025-04-01', confidence: 8 },
-    ],
-    lastStudy: '2025-04-11',
-    lastQuiz: {
-      date: '2025-04-09',
-      score: 78,
-      subject: 'Science'
-    },
-    subjects: {
-      maths: { confidence: 9, averageScore: 90, sessionsThisWeek: 2 },
-      science: { confidence: 8, averageScore: 80, sessionsThisWeek: 3 },
-      english: { confidence: 6, averageScore: 72, sessionsThisWeek: 1 },
-      history: { confidence: 5, averageScore: 65, sessionsThisWeek: 0 }
-    }
-  },
-  {
-    id: '3',
-    name: 'Emma Williams',
-    email: 'emma.w@school.edu',
-    confidenceTrend: [
-      { date: '2025-03-01', confidence: 8 },
-      { date: '2025-03-08', confidence: 7 },
-      { date: '2025-03-15', confidence: 9 },
-      { date: '2025-03-22', confidence: 8 },
-      { date: '2025-04-01', confidence: 9 },
-    ],
-    lastStudy: '2025-04-09',
-    lastQuiz: {
-      date: '2025-04-07',
-      score: 92,
-      subject: 'English'
-    },
-    subjects: {
-      maths: { confidence: 7, averageScore: 75, sessionsThisWeek: 1 },
-      science: { confidence: 6, averageScore: 70, sessionsThisWeek: 0 },
-      english: { confidence: 9, averageScore: 95, sessionsThisWeek: 3 },
-      history: { confidence: 8, averageScore: 88, sessionsThisWeek: 2 }
-    }
-  },
-];
-
-const TeacherDashboardPage = () => {
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
-  const [markingStyle, setMarkingStyle] = useState('detailed');
-  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
-  const [students, setStudents] = useState(mockStudents);
-  const [isLoading, setIsLoading] = useState(false);
+const TeacherDashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const { state } = useAuth();
-  const classId = 'default_class'; // In a real app, this would be dynamic
-  
-  // Load quiz results and teacher preferences
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      // Load quiz results
-      const results = await quizService.getQuizResults();
-      setQuizResults(results);
-      
-      // Load teacher preferences if logged in
-      if (state.user?.id && state.user?.role === 'teacher') {
-        const preference = await getTeacherPreference(state.user.id, classId);
-        if (preference) {
-          setMarkingStyle(preference.markingStyle);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast({
-        title: "Error loading data",
-        description: "Could not load all dashboard data. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Load data when the component mounts
-  useEffect(() => {
-    loadData();
-  }, [state.user]);
+  const { user } = state;
 
-  // Update students data with quiz results
-  useEffect(() => {
-    if (quizResults.length === 0) return;
-    
-    const updatedStudents = [...students];
-    
-    // Process each quiz result
-    quizResults.forEach(result => {
-      // Find the student by userId
-      const studentIndex = updatedStudents.findIndex(s => s.id === result.userId);
-      if (studentIndex === -1) return;
-      
-      const student = updatedStudents[studentIndex];
-      
-      // Update last quiz info
-      const quizDate = new Date(result.timestamp);
-      const formattedDate = `${quizDate.getFullYear()}-${String(quizDate.getMonth() + 1).padStart(2, '0')}-${String(quizDate.getDate()).padStart(2, '0')}`;
-      
-      if (!student.lastQuiz || new Date(student.lastQuiz.date) < quizDate) {
-        student.lastQuiz = {
-          date: formattedDate,
-          score: (result.score / result.questionsAsked.length) * 100,
-          subject: result.subject
-        };
-      }
-      
-      // Update subject data
-      const subjectKey = result.subject.toLowerCase();
-      if (student.subjects[subjectKey]) {
-        // Update average score
-        const scorePercent = (result.score / result.questionsAsked.length) * 100;
-        student.subjects[subjectKey].averageScore = 
-          (student.subjects[subjectKey].averageScore + scorePercent) / 2;
-          
-        // Update confidence
-        student.subjects[subjectKey].confidence = result.confidenceAfter;
-        
-        // Update sessions count
-        student.subjects[subjectKey].sessionsThisWeek += 1;
-      }
-      
-      // Update confidence trend
-      const today = new Date();
-      if (quizDate.getTime() > today.getTime() - 7 * 24 * 60 * 60 * 1000) { // If quiz is from the last 7 days
-        student.confidenceTrend.push({
-          date: formattedDate,
-          confidence: result.confidenceAfter
-        });
-        
-        // Sort by date and keep only the most recent 5 entries
-        student.confidenceTrend.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        student.confidenceTrend = student.confidenceTrend.slice(-5);
-      }
-    });
-    
-    setStudents(updatedStudents);
-  }, [quizResults]);
-  
-  // Find the selected student from the updated students list
-  const student = selectedStudent 
-    ? students.find(s => s.id === selectedStudent) 
-    : null;
-    
-  // Calculate class averages for the trends tab
-  const classAveragesData = calculateClassAverages(students);
+  // Quick stats for dashboard overview
+  const stats = [
+    { 
+      title: "Students", 
+      value: "32", 
+      description: "Across 3 sets", 
+      icon: Users,
+      color: "bg-blue-100 text-blue-700" 
+    },
+    { 
+      title: "Notifications", 
+      value: "8", 
+      description: "Requiring attention", 
+      icon: Bell,
+      color: "bg-amber-100 text-amber-700"
+    },
+    { 
+      title: "Assignments", 
+      value: "5", 
+      description: "Pending marking", 
+      icon: FileCheck,
+      color: "bg-green-100 text-green-700"
+    },
+    { 
+      title: "Performance", 
+      value: "+12%", 
+      description: "Average improvement", 
+      icon: BarChart3,
+      color: "bg-purple-100 text-purple-700"
+    }
+  ];
+
+  // Dashboard actions
+  const actions = [
+    { 
+      title: "Mark Assignments", 
+      description: "Review and grade student work", 
+      buttonText: "Open Marking Panel",
+      href: "/teacher/marking" 
+    },
+    { 
+      title: "Create Assignment", 
+      description: "Set new work for your classes", 
+      buttonText: "Assign Work",
+      href: "/teacher/assign" 
+    },
+    { 
+      title: "View Student Profiles", 
+      description: "Check individual progress", 
+      buttonText: "Browse Students",
+      href: "/teacher/profiles" 
+    },
+    { 
+      title: "Insights & Reports", 
+      description: "Analyze class performance", 
+      buttonText: "View Insights",
+      href: "/teacher/insights" 
+    }
+  ];
+
+  if (!user || user.role !== 'teacher') {
+    return <div className="p-8">Access Restricted: Teacher role required</div>;
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Dashboard Header */}
-      <DashboardHeader 
-        markingStyle={markingStyle} 
-        setMarkingStyle={setMarkingStyle}
-        classId={classId}
-      />
-
-      {/* Stats Cards */}
-      <StatsCards 
-        studentCount={students.length}
-        quizCount={quizResults.length}
-        isLoading={isLoading}
-      />
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Students List */}
-        <StudentsList 
-          students={students} 
-          selectedStudent={selectedStudent} 
-          setSelectedStudent={setSelectedStudent}
-          isLoading={isLoading}
-        />
-
-        {/* Student Detail */}
-        <StudentDetail 
-          student={student} 
-          classAveragesData={classAveragesData} 
-          quizResults={quizResults.filter(result => student && result.userId === student.id)}
-          isLoading={isLoading}
-        />
+    <TeacherDashboardLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
+          <p className="text-gray-500">Manage your classes and monitor student progress</p>
+        </div>
+        
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat) => (
+            <Card key={stat.title}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg font-medium">{stat.title}</CardTitle>
+                  <div className={`p-2 rounded-full ${stat.color}`}>
+                    <stat.icon size={20} />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stat.value}</div>
+                <p className="text-sm text-muted-foreground">{stat.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        {/* Actions Cards */}
+        <h2 className="text-xl font-semibold mt-8 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {actions.map((action) => (
+            <Card key={action.title}>
+              <CardHeader>
+                <CardTitle>{action.title}</CardTitle>
+                <CardDescription>{action.description}</CardDescription>
+              </CardHeader>
+              <CardFooter>
+                <Button onClick={() => navigate(action.href)}>{action.buttonText}</Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       </div>
-    </div>
+    </TeacherDashboardLayout>
   );
 };
 

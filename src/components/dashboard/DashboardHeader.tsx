@@ -1,156 +1,79 @@
 
-import React, { useState, useEffect } from 'react';
-import { Upload, Settings } from 'lucide-react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { saveMarkingStyle, uploadFile } from '@/services/fileService';
+import { UploadCloud, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { saveMarkingStyle, TeacherPreference } from '@/services/fileService';
+import { toast } from '@/components/ui/use-toast';
+import ResourceUpload from './ResourceUpload';
 
 interface DashboardHeaderProps {
   markingStyle: string;
-  setMarkingStyle: (style: string) => void;
-  classId?: string;
+  setMarkingStyle: (style: "detailed" | "headline-only" | "encouraging") => void;
+  classId: string;
 }
 
-const DashboardHeader = ({ markingStyle, setMarkingStyle, classId = 'default_class' }: DashboardHeaderProps) => {
-  const { toast } = useToast();
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({
+  markingStyle,
+  setMarkingStyle,
+  classId
+}) => {
   const { state } = useAuth();
-  const [isUploading, setIsUploading] = useState(false);
-  
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    
-    setIsUploading(true);
-    
-    try {
-      // For simplicity, we're only handling one file at a time
-      const file = files[0];
-      
-      // Check file type
-      const validFileTypes = ['.pdf', '.doc', '.docx', '.txt'];
-      const fileExtension = file.name.substring(file.name.lastIndexOf('.'));
-      
-      if (!validFileTypes.some(type => fileExtension.toLowerCase().includes(type))) {
-        toast({
-          title: "Invalid file type",
-          description: "Please upload a PDF, DOC, DOCX or TXT file.",
-          variant: "destructive",
-        });
-        setIsUploading(false);
-        return;
-      }
-      
-      // Determine subject based on file name (could be improved)
-      let subject = 'mathematics';
-      if (file.name.toLowerCase().includes('english')) subject = 'english';
-      if (file.name.toLowerCase().includes('science')) subject = 'science';
-      if (file.name.toLowerCase().includes('history')) subject = 'history';
-      
-      // Upload file
-      await uploadFile(file, {
-        uploadedBy: state.user?.id || 'anonymous',
-        role: state.user?.role || 'teacher',
-        subject,
-        classId,
-        visibility: 'class-only',
-        type: 'notes' // Default to notes, could be improved with additional UI
-      });
-      
-      toast({
-        title: "File uploaded successfully",
-        description: `${file.name} has been uploaded and is now available for study sessions.`,
-      });
-      
-      // Reset the input
-      event.target.value = '';
-      
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      toast({
-        title: "Upload failed",
-        description: "There was an error uploading your file. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  const { user } = state;
 
-  const handleMarkingStyleChange = async (style: string) => {
-    try {
-      // Update local state
-      setMarkingStyle(style);
-      
-      // Save to Firestore (mock)
-      if (state.user?.id) {
-        await saveMarkingStyle(
-          state.user.id,
-          classId,
-          style as 'detailed' | 'headline-only' | 'encouraging'
-        );
-        
+  // Handle marking style change
+  const handleMarkingStyleChange = async (value: string) => {
+    const style = value as "detailed" | "headline-only" | "encouraging";
+    setMarkingStyle(style);
+    
+    if (user?.id) {
+      try {
+        await saveMarkingStyle(user.id, classId, style);
         toast({
           title: "Marking style updated",
-          description: `Marking style has been set to ${style}.`,
+          description: `Your marking style preference has been set to ${style}.`,
+        });
+      } catch (error) {
+        console.error('Error saving marking style:', error);
+        toast({
+          title: "Error saving preference",
+          description: "Could not save your marking style preference.",
+          variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error('Error saving marking style:', error);
-      toast({
-        title: "Failed to update marking style",
-        description: "There was an error saving your preference.",
-        variant: "destructive",
-      });
     }
   };
 
   return (
-    <div className="flex items-center justify-between mb-8">
-      <div>
-        <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
-        <p className="text-muted-foreground">
-          Monitor student progress and manage class resources
-        </p>
-      </div>
-      <div className="flex items-center space-x-4">
-        <Button 
-          variant="outline" 
-          className="flex items-center gap-2" 
-          disabled={isUploading}
-        >
-          <Upload size={18} />
-          <label htmlFor="file-upload" className="cursor-pointer">
-            {isUploading ? 'Uploading...' : 'Upload Resources'}
-          </label>
-          <input
-            id="file-upload"
-            type="file"
-            multiple
-            className="hidden"
-            accept=".pdf,.doc,.docx,.txt"
-            onChange={handleFileUpload}
-            disabled={isUploading}
-          />
-        </Button>
-        <div className="flex items-center">
-          <Settings size={18} className="mr-2" />
-          <div className="space-y-1">
-            <Label htmlFor="marking-style">Marking Style</Label>
-            <Select value={markingStyle} onValueChange={handleMarkingStyleChange}>
-              <SelectTrigger id="marking-style" className="w-[180px]">
-                <SelectValue placeholder="Select style" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="detailed">Detailed</SelectItem>
-                <SelectItem value="headline-only">Headline Only</SelectItem>
-                <SelectItem value="encouraging">Encouraging</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex items-center">
+        <div className="h-10 w-10 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mr-3">
+          <User size={20} />
         </div>
+        <div>
+          <h1 className="text-xl font-semibold">Teacher Dashboard</h1>
+          <p className="text-sm text-gray-500">
+            {user?.displayName || 'Teacher'} • {new Date().toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+      
+      <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full md:w-auto">
+        <div className="w-full md:w-52">
+          <Select value={markingStyle} onValueChange={handleMarkingStyleChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Marking Style" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="detailed">Detailed Marking</SelectItem>
+              <SelectItem value="headline-only">Headline Only</SelectItem>
+              <SelectItem value="encouraging">Encouraging Style</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <ResourceUpload classId={classId} />
       </div>
     </div>
   );
