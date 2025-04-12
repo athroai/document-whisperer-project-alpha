@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -7,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 
@@ -17,6 +17,7 @@ const SettingsPage: React.FC = () => {
   // Profile settings state
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [examBoard, setExamBoard] = useState(user?.examBoard || 'none');
   
   // Notification settings state
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -35,6 +36,17 @@ const SettingsPage: React.FC = () => {
   
   const handleSaveProfile = () => {
     // Would update the user profile in a real implementation
+    // Save exam board preference to local storage for the mock implementation
+    if (user) {
+      const savedUser = localStorage.getItem('athro_user');
+      if (savedUser) {
+        const updatedUser = JSON.parse(savedUser);
+        updatedUser.examBoard = examBoard;
+        updatedUser.displayName = displayName;
+        localStorage.setItem('athro_user', JSON.stringify(updatedUser));
+      }
+    }
+    
     toast({
       title: "Profile updated",
       description: "Your profile information has been saved.",
@@ -121,6 +133,27 @@ const SettingsPage: React.FC = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                       />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="examBoard">Exam Board</Label>
+                      <Select 
+                        value={examBoard} 
+                        onValueChange={setExamBoard}
+                      >
+                        <SelectTrigger id="examBoard">
+                          <SelectValue placeholder="Select exam board" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="wjec">WJEC</SelectItem>
+                          <SelectItem value="aqa">AQA</SelectItem>
+                          <SelectItem value="ocr">OCR</SelectItem>
+                          <SelectItem value="none">None / Not specified</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">
+                        Your preferred exam board for study materials and quizzes
+                      </p>
                     </div>
                     
                     <div className="space-y-2">
