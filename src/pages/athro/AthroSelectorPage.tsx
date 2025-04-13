@@ -49,26 +49,25 @@ const AthroSelectorPage: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Not enrolled in any subjects</AlertTitle>
+          <AlertTitle>Not assigned to any classes</AlertTitle>
           <AlertDescription>
-            You need to join a class to access study mentors. Please use a class join code provided by your teacher.
+            You are not currently assigned to any classes. Please ask your teacher to add you.
           </AlertDescription>
         </Alert>
         
         <Card>
           <CardHeader>
-            <CardTitle>Join a Class</CardTitle>
-            <CardDescription>Enter the join code provided by your teacher</CardDescription>
+            <CardTitle>Teacher Assignment Required</CardTitle>
+            <CardDescription>Your teacher will need to add you to their class</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="Enter class code (e.g. MATH10X)" 
-                className="flex-1 px-3 py-2 border rounded-md"
-              />
-              <Button>Join Class</Button>
-            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Students can only be added to classes by teachers through the teacher dashboard. 
+              Once you've been added to a class, you'll be able to access your study mentors here.
+            </p>
+            <Button onClick={() => navigate('/home')}>
+              Return to Home
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -153,7 +152,7 @@ const AthroSelectorPage: React.FC = () => {
       </div>
       
       <div className="mt-8">
-        <h2 className="text-xl font-medium mb-4">Your Enrolled Classes</h2>
+        <h2 className="text-xl font-medium mb-4">Your Classes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {enrolledSubjects.map((subject) => (
             <Card key={subject.subject + subject.classId}>
@@ -163,7 +162,6 @@ const AthroSelectorPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm">Teacher: {subject.teacherName}</p>
-                <p className="text-sm">Join Code: {subject.joinCode}</p>
               </CardContent>
             </Card>
           ))}

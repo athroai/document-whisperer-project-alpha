@@ -1,283 +1,108 @@
-import { AthroSubject, AthroMessage, ExamBoard } from '@/types/athro';
-import { modelAnswers as mathsModelAnswers } from '@/data/athro-maths/model-answers';
-import { pastPapers as mathsPastPapers } from '@/data/athro-maths/past-papers';
-import { englishModelAnswers } from '@/data/athro-english/model-answers';
-import { englishPastPapers } from '@/data/athro-english/past-papers';
-import { welshModelAnswers } from '@/data/athro-welsh/model-answers';
-import { welshPastPapers } from '@/data/athro-welsh/past-papers';
-import { biologyModelAnswers } from '@/data/athro-science/model-answers-biology';
-import { biologyPastPapers } from '@/data/athro-science/past-papers-biology';
-import { chemistryModelAnswers } from '@/data/athro-science/model-answers-chemistry';
-import { chemistryPastPapers } from '@/data/athro-science/past-papers-chemistry';
-import { physicsModelAnswers } from '@/data/athro-science/model-answers-physics';
-import { physicsPastPapers } from '@/data/athro-science/past-papers-physics';
-import { historyModelAnswers } from '@/data/athro-history/model-answers';
-import { historyPastPapers } from '@/data/athro-history/past-papers';
-import { geographyModelAnswers } from '@/data/athro-geography/model-answers';
-import { geographyPastPapers } from '@/data/athro-geography/past-papers';
-import { frenchModelAnswers } from '@/data/athro-languages/model-answers/french';
-import { germanModelAnswers } from '@/data/athro-languages/model-answers/german';
-import { spanishModelAnswers } from '@/data/athro-languages/model-answers/spanish';
+import { AthroMessage, ExamBoard } from '@/types/athro';
 import { frenchPastPapers } from '@/data/athro-languages/past-papers/french';
 import { germanPastPapers } from '@/data/athro-languages/past-papers/german';
 import { spanishPastPapers } from '@/data/athro-languages/past-papers/spanish';
-import { reModelAnswers } from '@/data/athro-re/model-answers';
-import { rePastPapers } from '@/data/athro-re/past-papers';
 
-// Utility to generate unique IDs for messages
-const generateId = () => {
-  return Date.now().toString() + Math.random().toString(36).substring(2, 9);
-};
+class AthroService {
+  async generateResponse(
+    message: string,
+    subject: string,
+    examBoard: ExamBoard,
+    context?: any
+  ): Promise<AthroMessage> {
+    // Simulate a delay to mimic an API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-// Mock history of chat sessions
-const chatHistory: Record<string, AthroMessage[]> = {};
+    // Basic subject-specific responses
+    let content = `Athro AI says: I received your message about ${subject}. `;
 
-// Get language-specific resources
-const getLanguageResources = (language: string) => {
-  switch (language?.toLowerCase()) {
-    case 'french':
-      return { pastPapers: frenchPastPapers, modelAnswers: frenchModelAnswers };
-    case 'german':
-      return { pastPapers: germanPastPapers, modelAnswers: germanModelAnswers };
-    case 'spanish':
-      return { pastPapers: spanishPastPapers, modelAnswers: spanishModelAnswers };
-    default:
-      // Default to French if no language specified
-      return { pastPapers: frenchPastPapers, modelAnswers: frenchModelAnswers };
+    if (subject === 'Mathematics') {
+      content += 'I can help you with algebra, calculus, and more!';
+    } else if (subject === 'Science') {
+      content += 'I can explain biology, chemistry, and physics concepts.';
+    } else if (subject === 'English') {
+      content += 'I can assist with grammar, literature analysis, and essay writing.';
+    } else if (subject === 'Languages') {
+      content += 'I can help you with vocabulary, grammar, and pronunciation.';
+    } else {
+      content += 'I am here to help you with your studies.';
+    }
+
+    // Exam board specific help
+    if (examBoard === 'wjec') {
+      content += ' I am trained to help with WJEC specific questions.';
+    } else if (examBoard === 'aqa') {
+      content += ' I am trained to help with AQA specific questions.';
+    } else if (examBoard === 'ocr') {
+      content += ' I am trained to help with OCR specific questions.';
+    }
+
+    // Add context-aware responses
+    if (context?.topic) {
+      content += ` I see you are interested in the topic: ${context.topic}.`;
+    }
+
+    const aiMessage: AthroMessage = {
+      id: Date.now().toString(),
+      senderId: 'ai',
+      content: content,
+      timestamp: new Date().toISOString(),
+    };
+
+    return aiMessage;
   }
-};
 
-// Get past papers based on subject
-export const getPastPapersBySubject = (subject: AthroSubject, examBoard: ExamBoard = 'wjec', subjectSection?: string) => {
-  switch (subject) {
-    case 'Mathematics':
-      return mathsPastPapers;
-    case 'English':
-      return englishPastPapers;
-    case 'Science':
-      if (subjectSection === 'biology') return biologyPastPapers;
-      if (subjectSection === 'chemistry') return chemistryPastPapers;
-      if (subjectSection === 'physics') return physicsPastPapers;
-      return [...biologyPastPapers, ...chemistryPastPapers, ...physicsPastPapers];
-    case 'Welsh':
-      return welshPastPapers;
-    case 'History':
-      return historyPastPapers;
-    case 'Geography':
-      return geographyPastPapers;
-    case 'Languages':
-      if (subjectSection) {
-        return getLanguageResources(subjectSection).pastPapers;
-      }
-      // Combine all language papers if no specific language
-      return [...frenchPastPapers, ...germanPastPapers, ...spanishPastPapers];
-    case 'Religious Education':
-      return rePastPapers;
-    default:
+  // Method to fetch past papers based on subject and keywords
+  async getPastPapers(subject: string, keywords: string[]): Promise<any[]> {
+    // Simulate fetching past papers from a database or external source
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Filter past papers based on subject and keywords
+    let filteredPapers = [];
+
+    if (subject === 'French') {
+      filteredPapers = frenchPastPapers.filter((paper) =>
+        keywords.every((keyword) =>
+          paper.title.toLowerCase().includes(keyword.toLowerCase())
+        )
+      );
+    } else if (subject === 'German') {
+      filteredPapers = germanPastPapers.filter((paper) =>
+        keywords.every((keyword) =>
+          paper.title.toLowerCase().includes(keyword.toLowerCase())
+        )
+      );
+    } else if (subject === 'Spanish') {
+      filteredPapers = spanishPastPapers.filter((paper) =>
+        keywords.every((keyword) =>
+          paper.title.toLowerCase().includes(keyword.toLowerCase())
+        )
+      );
+    } else {
+      // Return an empty array if the subject is not supported
       return [];
-  }
-};
-
-// Get model answers based on subject
-export const getModelAnswersBySubject = (subject: AthroSubject, subjectSection?: string) => {
-  switch (subject) {
-    case 'Mathematics':
-      return mathsModelAnswers;
-    case 'English':
-      return englishModelAnswers;
-    case 'Science':
-      if (subjectSection === 'biology') return biologyModelAnswers;
-      if (subjectSection === 'chemistry') return chemistryModelAnswers;
-      if (subjectSection === 'physics') return physicsModelAnswers;
-      return [...biologyModelAnswers, ...chemistryModelAnswers, ...physicsModelAnswers];
-    case 'Welsh':
-      return welshModelAnswers;
-    case 'History':
-      return historyModelAnswers;
-    case 'Geography':
-      return geographyModelAnswers;
-    case 'Languages':
-      if (subjectSection) {
-        return getLanguageResources(subjectSection).modelAnswers;
-      }
-      // Combine all language answers if no specific language
-      return [...frenchModelAnswers, ...germanModelAnswers, ...spanishModelAnswers];
-    case 'Religious Education':
-      return reModelAnswers;
-    default:
-      return [];
-  }
-};
-
-// Find a specific past paper question
-export const findPastPaperQuestion = (questionId: string, subject: AthroSubject, subjectSection?: string) => {
-  const pastPapers = getPastPapersBySubject(subject, 'wjec', subjectSection);
-  
-  for (const paper of pastPapers) {
-    for (const question of paper.questions) {
-      if (question.id === questionId) {
-        return {
-          question,
-          paper
-        };
-      }
     }
+
+    return filteredPapers;
   }
-  
-  return null;
-};
 
-// Find a model answer for a specific question
-export const findModelAnswer = (questionId: string, subject: AthroSubject, subjectSection?: string) => {
-  const modelAnswers = getModelAnswersBySubject(subject, subjectSection);
-  return modelAnswers.find(answer => answer.questionId === questionId) || null;
-};
+  // Method to generate language-specific responses
+  generateLanguageResponse(message: string, language: string): string {
+    const languageGreetings: Record<string, string> = {
+      french: "Bonjour! Comment puis-je vous aider aujourd'hui?",
+      german: "Guten Tag! Wie kann ich Ihnen heute helfen?",
+      spanish: "¡Hola! ¿Cómo puedo ayudarte hoy?"
+    };
 
-// Generate a response based on the student's message
-export const mockAthroResponse = async (
-  message: string,
-  subject: AthroSubject,
-  examBoard: ExamBoard = 'wjec',
-  context?: any
-): Promise<AthroMessage> => {
-  // Create a message ID
-  const messageId = generateId();
-  
-  // Check if message appears to be asking about a past paper
-  const isPastPaperQuery = /past paper|exam question|mark scheme/i.test(message);
-  
-  // Check if message appears to be a math query
-  const isMathQuery = subject === 'Mathematics' && /solve|calculate|equation|formula|graph|triangle|circle|algebra/i.test(message);
-  
-  // Generate a response based on the context
-  let response: string;
-  let markScheme: string | undefined;
-  let referencedResources: string[] | undefined;
-  
-  // If we need to respond with subject-specific content
-  if (subject === 'Science' && context?.subjectSection) {
-    response = generateScienceResponse(message, context.subjectSection);
-  } else if (subject === 'Languages' && context?.subjectSection) {
-    response = generateLanguageResponse(message, context.subjectSection);
-  } else if (isPastPaperQuery) {
-    const pastPaperResponse = generatePastPaperResponse(message, subject, examBoard);
-    response = pastPaperResponse.response;
-    markScheme = pastPaperResponse.markScheme;
-    referencedResources = pastPaperResponse.referencedResources;
-  } else if (isMathQuery) {
-    response = generateMathResponse(message);
-  } else {
-    response = generateGenericResponse(message, subject);
+    // Add some basic language-specific responses
+    if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi')) {
+      return languageGreetings[language] || "Hello! How can I help you today?";
+    }
+
+    // For more complex interactions, we'll need to implement proper language-specific logic
+    return `I'm processing your query in ${language}. This feature is still being developed.`;
   }
-  
-  // Return the message
-  return {
-    id: messageId,
-    senderId: `athro-${subject.toLowerCase()}`,
-    content: response,
-    timestamp: new Date().toISOString(),
-    markScheme,
-    referencedResources
-  };
-};
+}
 
-// Helper functions to generate responses based on context
-const generateScienceResponse = (message: string, subjectSection: string): string => {
-  switch (subjectSection.toLowerCase()) {
-    case 'biology':
-      return `As a biology specialist, I'd explain that ${message.includes('cell') ? 'cells are the fundamental units of life, containing organelles like the nucleus, mitochondria, and ribosomes' : 'biological processes are regulated by complex interactions between molecules, cells, and systems'}. Would you like me to go into more specific detail about this topic?`;
-    case 'chemistry':
-      return `From a chemistry perspective, ${message.includes('element') ? 'elements are arranged in the periodic table according to their atomic properties' : 'chemical reactions involve the breaking and forming of bonds between atoms'}. Let me know if you'd like me to elaborate on any specific concept.`;
-    case 'physics':
-      return `In physics, ${message.includes('force') ? 'forces cause objects to accelerate according to Newton's Second Law, F=ma' : 'energy is conserved in a closed system, but can be transformed between different forms'}. Would you like me to provide a specific example or calculation?`;
-    default:
-      return `As your Science Athro, I can help with biology, chemistry, or physics questions. ${message}`;
-  }
-};
-
-const generateLanguageResponse = (message: string, language: string): string => {
-  const languageGreetings = {
-    french: "Bonjour! ",
-    german: "Hallo! ",
-    spanish: "¡Hola! "
-  };
-
-  const greeting = language && languageGreetings[language as keyof typeof languageGreetings] 
-    ? languageGreetings[language as keyof typeof languageGreetings] 
-    : "";
-
-  const isGrammarQuestion = /grammar|conjugation|tense|verb|noun|adjective|adverb|preposition/i.test(message);
-  const isVocabQuestion = /vocabulary|word|phrase|expression|idiom|saying|mean/i.test(message);
-  const isTranslationRequest = /translate|translation|how do you say|how to say/i.test(message);
-
-  if (isTranslationRequest) {
-    switch (language) {
-      case 'french':
-        return `${greeting}Here's how I'd translate that in French:\n\n"${message.replace(/translate/i, '').trim()}" would be "Je peux vous aider avec votre apprentissage du français."\n\nWould you like me to break down this translation and explain the grammar?`;
-      case 'german':
-        return `${greeting}Here's how I'd translate that in German:\n\n"${message.replace(/translate/i, '').trim()}" would be "Ich kann Ihnen bei Ihrem Deutschlernen helfen."\n\nWould you like me to explain the grammar used in this translation?`;
-      case 'spanish':
-        return `${greeting}Here's how I'd translate that in Spanish:\n\n"${message.replace(/translate/i, '').trim()}" would be "Puedo ayudarte con tu aprendizaje de español."\n\nWould you like me to explain the grammar used in this translation?`;
-      default:
-        return `I'd be happy to translate that for you. Which language would you like me to use - French, German, or Spanish?`;
-    }
-  } else if (isGrammarQuestion) {
-    switch (language) {
-      case 'french':
-        return `${greeting}Let's explore French grammar together. French grammar includes elements like gender (masculine/feminine), verb conjugation patterns, and specific rules for articles and adjectives.\n\nWhat specific aspect of French grammar would you like to learn about today?`;
-      case 'german':
-        return `${greeting}German grammar has some unique features including three genders (masculine, feminine, and neuter), four cases (nominative, accusative, dative, and genitive), and specific word order rules.\n\nWhich aspect of German grammar would you like me to explain?`;
-      case 'spanish':
-        return `${greeting}Spanish grammar includes concepts like gender agreement, verb conjugation across different tenses, and the distinction between ser and estar.\n\nWhat specific aspect of Spanish grammar are you working on?`;
-      default:
-        return `I'd be happy to help with grammar. Would you like to focus on French, German, or Spanish grammar rules?`;
-    }
-  } else if (isVocabQuestion) {
-    switch (language) {
-      case 'french':
-        return `${greeting}Building vocabulary is essential for learning French. I can help you with topic-based vocabulary lists, common phrases, or expressions.\n\nWhat type of vocabulary would you like to learn today?`;
-      case 'german':
-        return `${greeting}German vocabulary often features compound words that combine multiple concepts. I can help you learn everyday German words, expressions, or topic-specific vocabulary.\n\nWhat vocabulary area interests you?`;
-      case 'spanish':
-        return `${greeting}Spanish vocabulary varies across different Spanish-speaking countries but shares common roots. I can help you with everyday Spanish words, expressions, or regional variations.\n\nWhat vocabulary topic would you like to explore?`;
-      default:
-        return `I can help you build vocabulary in French, German, or Spanish. Which language would you like to focus on?`;
-    }
-  } else {
-    switch (language) {
-      case 'french':
-        return `${greeting}As your French language guide, I can help with vocabulary, grammar, conversation practice, translations, and exam preparation. What aspect of French would you like to work on today?`;
-      case 'german':
-        return `${greeting}As your German language guide, I can help with vocabulary, grammar, conversation practice, translations, and exam preparation. What aspect of German would you like to work on today?`;
-      case 'spanish':
-        return `${greeting}As your Spanish language guide, I can help with vocabulary, grammar, conversation practice, translations, and exam preparation. What aspect of Spanish would you like to work on today?`;
-      default:
-        return `I can help you learn French, German, or Spanish through vocabulary building, grammar explanations, conversation practice, and exam preparation. Which language would you like to focus on?`;
-    }
-  }
-};
-
-const generatePastPaperResponse = (message: string, subject: AthroSubject, examBoard: ExamBoard) => {
-  return {
-    response: `For this past paper question, I would approach it methodically. First, identify what the question is asking for. Make sure to address all parts of the question in your response. Use subject-specific terminology and provide relevant examples to support your points. Structure your answer clearly with an introduction, main body with key points, and a conclusion.`,
-    markScheme: `A full mark answer would: \n- Demonstrate detailed understanding of key concepts\n- Use relevant terminology accurately\n- Provide specific examples to support points\n- Present a balanced argument where required\n- Draw clear conclusions based on evidence`,
-    referencedResources: [`${examBoard.toUpperCase()} ${subject} Past Paper 2022`]
-  };
-};
-
-const generateMathResponse = (message: string): string => {
-  return `To solve this mathematics problem, I would identify the key information and determine which formula or method to apply. Let me work through this step by step:\n\n1. First, I understand what the question is asking\n2. I'll identify the relevant formula: [appropriate formula]\n3. Then substitute the values\n4. Solve the equation systematically\n5. Check the answer makes sense in the context of the problem\n\nIs there a specific part you'd like me to explain in more detail?`;
-};
-
-const generateGenericResponse = (message: string, subject: AthroSubject): string => {
-  return `As your ${subject} Athro, I'm here to help you understand key concepts and improve your skills in this subject. Let's explore this topic together. Would you like me to provide some practice questions, explain a concept, or review past paper techniques?`;
-};
-
-export default {
-  mockAthroResponse,
-  findPastPaperQuestion,
-  findModelAnswer,
-  getPastPapersBySubject,
-  getModelAnswersBySubject,
-  generateLanguageResponse
-};
+const athroService = new AthroService();
+export default athroService;

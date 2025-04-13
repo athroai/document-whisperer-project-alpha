@@ -29,7 +29,6 @@ export class StudentClassService {
       teacherId: link.teacherId,
       teacherName: "Mr. Smith", // Mock teacher name
       className: `${link.yearGroup} ${link.subject}`, // Mock class name
-      joinCode: `${link.classId}`, // Mock join code
       yearGroup: link.yearGroup
     }));
   }

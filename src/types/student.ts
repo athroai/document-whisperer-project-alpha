@@ -16,6 +16,5 @@ export interface EnrolledSubject {
   teacherId: string;
   teacherName: string;
   className: string;
-  joinCode: string;
   yearGroup: string;
 }

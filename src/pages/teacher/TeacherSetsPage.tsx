@@ -13,7 +13,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Class, StudentDetail, Subject } from '@/types/teacher';
 import StudentClassService from '@/services/StudentClassService';
 
-// Mock data for development - will be replaced with Firestore in production
 const subjects: Subject[] = [
   { id: "maths", name: "Mathematics" },
   { id: "science", name: "Science" },
@@ -24,7 +23,6 @@ const subjects: Subject[] = [
 
 const yearGroups = ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11"];
 
-// Mock classes that would be fetched from Firestore
 const mockClasses: Class[] = [
   { 
     id: "maths-y10-s1", 
@@ -64,7 +62,6 @@ const mockClasses: Class[] = [
   }
 ];
 
-// Mock students that would be fetched from Firestore
 const mockStudents: StudentDetail[] = [
   { 
     id: "1", 
@@ -138,10 +135,7 @@ const TeacherSetsPage: React.FC = () => {
   const { user } = state;
 
   useEffect(() => {
-    // In production, this would fetch from Firestore
-    // where teacher_id = user.id
     if (user) {
-      // Simulating fetch from Firestore
       setTimeout(() => {
         setClasses(mockClasses);
         setStudents(mockStudents);
@@ -153,7 +147,6 @@ const TeacherSetsPage: React.FC = () => {
     set => set.subject === selectedSubject && set.yearGroup === selectedYearGroup
   );
 
-  // Get students for the selected set using the StudentClassService and regular student details
   const fetchSetStudents = async (setId: string) => {
     try {
       const studentIds = await StudentClassService.getClassStudents(setId);
@@ -168,7 +161,6 @@ const TeacherSetsPage: React.FC = () => {
 
   useEffect(() => {
     if (selectedSet) {
-      // Using the new StudentClassService to get students for this set
       fetchSetStudents(selectedSet).then(setSetStudentsList);
     } else {
       setSetStudentsList([]);
@@ -203,8 +195,6 @@ const TeacherSetsPage: React.FC = () => {
   };
 
   const handleApproveStudent = (studentId: string) => {
-    // In production, this would update Firestore
-    // Update local state for now
     const updatedStudents = students.map(student => 
       student.id === studentId ? { ...student, status: "approved" as const } : student
     );
@@ -217,8 +207,6 @@ const TeacherSetsPage: React.FC = () => {
   };
 
   const handleRemoveStudent = (studentId: string) => {
-    // In a real implementation, we would use StudentClassService to unenroll
-    // For now, just update local state
     const updatedStudents = students.map(student => 
       student.id === studentId ? { ...student, status: "removed" as const } : student
     );
@@ -234,7 +222,6 @@ const TeacherSetsPage: React.FC = () => {
     setSelectedStudent(null);
   };
 
-  // Add temporary type safety check
   console.log("Student shape:", students);
 
   const setsPageContent = (
@@ -390,7 +377,6 @@ const TeacherSetsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Student Profile Dialog */}
       <Dialog open={!!selectedStudent} onOpenChange={handleCloseStudentProfile}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -461,7 +447,6 @@ const TeacherSetsPage: React.FC = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Create New Set Dialog */}
       <Dialog open={showNewSetDialog} onOpenChange={setShowNewSetDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -529,43 +514,36 @@ const TeacherSetsPage: React.FC = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Add Student Dialog */}
       <Dialog open={showAddStudentDialog} onOpenChange={setShowAddStudentDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Student to Set</DialogTitle>
             <DialogDescription>
-              Generate a join code or invite students directly
+              Add a student directly to this class
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <label htmlFor="join-code" className="text-sm font-medium">
-                Class Join Code
-              </label>
-              <div className="flex gap-2">
-                <input
-                  id="join-code"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={joinCodeInput || "CLASS123"}
-                  onChange={(e) => setJoinCodeInput(e.target.value)}
-                  placeholder="e.g. CLASS123"
-                />
-                <Button size="sm" variant="outline">
-                  Generate New
-                </Button>
-              </div>
-            </div>
-            
-            <div className="grid gap-2">
               <label htmlFor="student-email" className="text-sm font-medium">
-                Student Email (Optional)
+                Student Email
               </label>
               <input
                 id="student-email"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 type="email"
                 placeholder="student@school.edu"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <label htmlFor="student-name" className="text-sm font-medium">
+                Student Name (Optional)
+              </label>
+              <input
+                id="student-name"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                type="text"
+                placeholder="John Smith"
               />
             </div>
           </div>
