@@ -9,9 +9,10 @@ import ExitConfirmationModal from './ExitConfirmationModal';
 
 interface AthroBaseProps {
   subject: string;
+  allowScience?: boolean; // Added optional property for Science subject
 }
 
-const AthroBase: React.FC<AthroBaseProps> = ({ subject }) => {
+const AthroBase: React.FC<AthroBaseProps> = ({ subject, allowScience }) => {
   const { activeCharacter, setActiveCharacter } = useAthro();
   const navigate = useNavigate();
   const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
