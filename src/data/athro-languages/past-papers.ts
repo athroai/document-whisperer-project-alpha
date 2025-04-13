@@ -17,21 +17,24 @@ export const languagesPastPapers: PastPaper[] = [
         number: 1,
         text: 'Présentez-vous et parlez de votre famille. (Introduce yourself and talk about your family.)',
         marks: 10,
-        topic: 'Speaking'
+        topic: 'Speaking',
+        difficulty: 2
       },
       {
         id: 's22-3800u10-1-q2',
         number: 2,
         text: 'Décrivez vos passe-temps préférés. (Describe your favorite hobbies.)',
         marks: 10,
-        topic: 'Speaking'
+        topic: 'Speaking',
+        difficulty: 2
       },
       {
         id: 's22-3800u10-1-q3',
         number: 3,
         text: 'Parlez de vos projets pour l\'avenir. (Talk about your plans for the future.)',
         marks: 10,
-        topic: 'Speaking'
+        topic: 'Speaking',
+        difficulty: 3
       }
     ]
   },
@@ -49,14 +52,16 @@ export const languagesPastPapers: PastPaper[] = [
         number: 1,
         text: 'Lee el texto y contesta las preguntas. (Read the text and answer the questions.)',
         marks: 15,
-        topic: 'Reading'
+        topic: 'Reading',
+        difficulty: 3
       },
       {
         id: 's22-3810u10-1-q2',
         number: 2,
         text: 'Traduce el siguiente párrafo al inglés. (Translate the following paragraph into English.)',
         marks: 10,
-        topic: 'Translation'
+        topic: 'Translation',
+        difficulty: 4
       }
     ]
   },
@@ -74,14 +79,16 @@ export const languagesPastPapers: PastPaper[] = [
         number: 1,
         text: 'Schreiben Sie einen Brief an Ihren Freund über Ihre letzte Reise. (Write a letter to your friend about your last trip.)',
         marks: 15,
-        topic: 'Writing'
+        topic: 'Writing',
+        difficulty: 4
       },
       {
         id: 's22-3820u10-1-q2',
         number: 2,
         text: 'Schreiben Sie einen Aufsatz zum Thema "Umweltschutz". (Write an essay on the topic of "Environmental Protection".)',
         marks: 20,
-        topic: 'Writing'
+        topic: 'Writing',
+        difficulty: 5
       }
     ]
   }

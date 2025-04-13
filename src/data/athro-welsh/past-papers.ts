@@ -17,21 +17,24 @@ export const welshPastPapers: PastPaper[] = [
         number: 1,
         text: 'Darllenwch y darn ac atebwch y cwestiynau yn Gymraeg. (Read the passage and answer the questions in Welsh.)',
         marks: 10,
-        topic: 'Reading Comprehension'
+        topic: 'Reading Comprehension',
+        difficulty: 3
       },
       {
         id: 's22-3020u10-1-q2',
         number: 2,
         text: 'Ysgrifennwch e-bost at eich ffrind yn disgrifio eich gwyliau. (Write an email to your friend describing your holiday.)',
         marks: 15,
-        topic: 'Writing'
+        topic: 'Writing',
+        difficulty: 4
       },
       {
         id: 's22-3020u10-1-q3',
         number: 3,
         text: 'Cyfieithwch y brawddegau canlynol o\'r Saesneg i\'r Gymraeg. (Translate the following sentences from English to Welsh.)',
         marks: 10,
-        topic: 'Translation'
+        topic: 'Translation',
+        difficulty: 3
       }
     ]
   },
@@ -49,14 +52,16 @@ export const welshPastPapers: PastPaper[] = [
         number: 1,
         text: 'Gwrandewch ar y sgwrs ac atebwch y cwestiynau yn Gymraeg. (Listen to the conversation and answer the questions in Welsh.)',
         marks: 10,
-        topic: 'Listening'
+        topic: 'Listening',
+        difficulty: 3
       },
       {
         id: 's21-3020u20-1-q2',
         number: 2,
         text: 'Ysgrifennwch erthygl am yr amgylchedd ar gyfer cylchgrawn ysgol. (Write an article about the environment for a school magazine.)',
         marks: 15,
-        topic: 'Writing'
+        topic: 'Writing',
+        difficulty: 4
       }
     ]
   }

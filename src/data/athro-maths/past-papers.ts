@@ -1,31 +1,31 @@
-
-export interface PastPaper {
-  id: string;
-  examBoard: 'wjec' | 'aqa' | 'ocr';
-  year: number;
-  season: 'summer' | 'winter' | 'autumn';
-  paper: number;
-  title: string;
-  questions: PastPaperQuestion[];
-}
-
 export interface PastPaperQuestion {
   id: string;
   number: number;
   text: string;
-  topic: string;
-  difficulty: 'easy' | 'medium' | 'hard';
   marks: number;
-  imageUrl?: string;
+  topic: string;
+  difficulty: number;
+}
+
+export interface PastPaper {
+  id: string;
+  subject: string;
+  examBoard: string;
+  year: number;
+  season: string;
+  unit: number;
+  title: string;
+  questions: PastPaperQuestion[];
 }
 
 export const pastPapers: PastPaper[] = [
   {
     id: "wjec-2022-summer-1",
+    subject: "Mathematics",
     examBoard: "wjec",
     year: 2022,
     season: "summer",
-    paper: 1,
+    unit: 1,
     title: "WJEC GCSE Mathematics Unit 1 (Summer 2022)",
     questions: [
       {
@@ -33,7 +33,7 @@ export const pastPapers: PastPaper[] = [
         number: 1,
         text: "Simplify 3x² + 2x - 5x² + 4x - 7",
         topic: "Algebra",
-        difficulty: "easy",
+        difficulty: 3,
         marks: 3
       },
       {
@@ -41,7 +41,7 @@ export const pastPapers: PastPaper[] = [
         number: 2,
         text: "Solve the equation 2(x + 3) = 5x - 4",
         topic: "Algebra",
-        difficulty: "medium",
+        difficulty: 4,
         marks: 4
       },
       {
@@ -49,7 +49,7 @@ export const pastPapers: PastPaper[] = [
         number: 3,
         text: "Calculate the area of a circle with radius 7cm. Give your answer to 1 decimal place.",
         topic: "Geometry",
-        difficulty: "easy",
+        difficulty: 3,
         marks: 3
       },
       {
@@ -57,7 +57,7 @@ export const pastPapers: PastPaper[] = [
         number: 4,
         text: "The angles in a triangle are in the ratio 2:3:4. Find the size of each angle.",
         topic: "Geometry",
-        difficulty: "medium",
+        difficulty: 4,
         marks: 4
       },
       {
@@ -65,17 +65,18 @@ export const pastPapers: PastPaper[] = [
         number: 5,
         text: "Factorise completely x² - 16",
         topic: "Algebra",
-        difficulty: "medium",
+        difficulty: 2,
         marks: 2
       }
     ]
   },
   {
     id: "aqa-2022-summer-1",
+    subject: "Mathematics",
     examBoard: "aqa",
     year: 2022,
     season: "summer",
-    paper: 1,
+    unit: 1,
     title: "AQA GCSE Mathematics Paper 1 (Summer 2022)",
     questions: [
       {
@@ -83,7 +84,7 @@ export const pastPapers: PastPaper[] = [
         number: 1,
         text: "Work out the value of 3/4 of 480",
         topic: "Number Theory",
-        difficulty: "easy",
+        difficulty: 2,
         marks: 2
       },
       {
@@ -91,7 +92,7 @@ export const pastPapers: PastPaper[] = [
         number: 2,
         text: "Solve the simultaneous equations: 3x + 2y = 7 and 5x - 2y = 13",
         topic: "Algebra",
-        difficulty: "hard",
+        difficulty: 5,
         marks: 5
       },
       {
@@ -99,9 +100,11 @@ export const pastPapers: PastPaper[] = [
         number: 3,
         text: "Find the equation of the straight line that passes through the points (2, 3) and (4, 7)",
         topic: "Algebra",
-        difficulty: "medium",
+        difficulty: 4,
         marks: 4
       }
     ]
   }
 ];
+
+export default pastPapers;

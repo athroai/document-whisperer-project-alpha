@@ -17,21 +17,24 @@ export const englishPastPapers: PastPaper[] = [
         number: 1,
         text: 'Read lines 1-10 of the extract. How does the writer engage the reader\'s interest in these lines?',
         marks: 5,
-        topic: 'Reading Comprehension'
+        topic: 'Reading Comprehension',
+        difficulty: 2
       },
       {
         id: 's22-3700u10-1-q2',
         number: 2,
         text: 'How does the writer present their thoughts and feelings about travel in the extract as a whole?',
         marks: 10,
-        topic: 'Language Analysis'
+        topic: 'Language Analysis',
+        difficulty: 3
       },
       {
         id: 's22-3700u10-1-q3',
         number: 3,
         text: '"Travel broadens the mind." Write an essay discussing this statement.',
         marks: 20,
-        topic: 'Creative Writing'
+        topic: 'Creative Writing',
+        difficulty: 4
       }
     ]
   },
@@ -49,21 +52,24 @@ export const englishPastPapers: PastPaper[] = [
         number: 1,
         text: 'How does Shakespeare present the character of Macbeth in Act 1 Scene 7?',
         marks: 15,
-        topic: 'Shakespeare'
+        topic: 'Shakespeare',
+        difficulty: 4
       },
       {
         id: 's21-3720u10-1-q2',
         number: 2,
         text: 'Explore how the writer presents the theme of isolation in the poem "The Prelude".',
         marks: 15,
-        topic: 'Poetry'
+        topic: 'Poetry',
+        difficulty: 4
       },
       {
         id: 's21-3720u10-1-q3',
         number: 3,
         text: 'How does the writer use language and structure to build tension in the extract from "Jane Eyre"?',
         marks: 20,
-        topic: 'Modern Texts'
+        topic: 'Modern Texts',
+        difficulty: 5
       }
     ]
   }

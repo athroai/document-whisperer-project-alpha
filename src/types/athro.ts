@@ -1,6 +1,6 @@
 // Existing types file - append or modify as needed
 
-export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Computer Science';
+export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Computer Science' | 'Welsh' | 'Languages' | 'Religious Education';
 export type AthroLanguage = 'English' | 'Welsh' | 'French' | 'Spanish' | 'German';
 export type ExamBoard = 'wjec' | 'aqa' | 'ocr' | 'none';
 

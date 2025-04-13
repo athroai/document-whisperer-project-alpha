@@ -17,21 +17,24 @@ export const rePastPapers: PastPaper[] = [
         number: 1,
         text: 'Explain the importance of the Five Pillars in Islam.',
         marks: 8,
-        topic: 'Islam'
+        topic: 'Islam',
+        difficulty: 3
       },
       {
         id: 's22-3120u10-1-q2',
         number: 2,
         text: 'Describe the role of Jesus as the Son of God in Christian belief.',
         marks: 10,
-        topic: 'Christianity'
+        topic: 'Christianity',
+        difficulty: 3
       },
       {
         id: 's22-3120u10-1-q3',
         number: 3,
         text: '"Religious believers should not eat meat." Evaluate this statement with reference to religious teachings.',
         marks: 15,
-        topic: 'Ethics'
+        topic: 'Ethics',
+        difficulty: 4
       }
     ]
   },
@@ -49,21 +52,24 @@ export const rePastPapers: PastPaper[] = [
         number: 1,
         text: 'Explain religious teachings about the sanctity of life.',
         marks: 10,
-        topic: 'Ethics'
+        topic: 'Ethics',
+        difficulty: 3
       },
       {
         id: 's22-3120u20-1-q2',
         number: 2,
         text: 'Outline Buddhist teachings on suffering (dukkha).',
         marks: 8,
-        topic: 'Buddhism'
+        topic: 'Buddhism',
+        difficulty: 3
       },
       {
         id: 's22-3120u20-1-q3',
         number: 3,
         text: '"Religious teachings on wealth and poverty are no longer relevant in the modern world." Discuss this statement.',
         marks: 15,
-        topic: 'Ethics'
+        topic: 'Ethics',
+        difficulty: 5
       }
     ]
   }

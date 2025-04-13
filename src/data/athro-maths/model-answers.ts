@@ -1,83 +1,91 @@
-
-import { PastPaper } from './past-papers';
-
+// Define the type for model answers
 export interface ModelAnswer {
   questionId: string;
-  markScheme: string;
   workingSteps: string[];
-  commonMistakes?: string[];
-  latexNotation?: string;
+  markScheme: string;
+  marks: number;
 }
 
+// Keep the existing modelAnswers data
 export const modelAnswers: ModelAnswer[] = [
   {
-    questionId: "wjec-2022-summer-1-q1",
-    markScheme: "3x² + 2x - 5x² + 4x - 7 = -2x² + 6x - 7",
+    questionId: 'm22-c300u10-1-q1',
     workingSteps: [
-      "Collect like terms: 3x² - 5x² = -2x²",
-      "Collect like terms: 2x + 4x = 6x",
-      "Final answer: -2x² + 6x - 7"
+      'Identify the quadratic equation: 2x² - 5x - 3 = 0',
+      'Use the quadratic formula: x = (-b ± √(b² - 4ac)) / 2a',
+      'Substitute a=2, b=-5, c=-3',
+      'Calculate the discriminant: b² - 4ac = (-5)² - 4(2)(-3) = 25 + 24 = 49',
+      'Calculate the solutions: x = (5 ± √49) / 4 = (5 ± 7) / 4'
     ],
-    latexNotation: "3x^2 + 2x - 5x^2 + 4x - 7 = -2x^2 + 6x - 7"
+    markScheme: 'x = 3 or x = -1/2',
+    marks: 4
   },
   {
-    questionId: "wjec-2022-summer-1-q2",
-    markScheme: "x = 2",
+    questionId: 'm22-c300u10-1-q2',
     workingSteps: [
-      "Expand the bracket: 2(x + 3) = 2x + 6",
-      "Full equation: 2x + 6 = 5x - 4",
-      "Rearrange: 2x - 5x = -4 - 6",
-      "Simplify: -3x = -10",
-      "Divide both sides by -3: x = 10/3 = 3.33..."
+      'Recall the formula for the area of a circle: A = πr²',
+      'Given area = 50cm², so 50 = πr²',
+      'Rearrange to find r: r² = 50/π',
+      'Take the square root: r = √(50/π)',
+      'Calculate the circumference using C = 2πr',
+      'Substitute the radius: C = 2π × √(50/π)'
     ],
-    commonMistakes: [
-      "Forgetting to distribute the 2 to both terms in the bracket",
-      "Errors when collecting like terms",
-      "Sign errors when rearranging"
-    ],
-    latexNotation: "\\begin{align} 2(x + 3) &= 5x - 4 \\\\ 2x + 6 &= 5x - 4 \\\\ 2x - 5x &= -4 - 6 \\\\ -3x &= -10 \\\\ x &= \\frac{10}{3} \\approx 3.33 \\end{align}"
+    markScheme: 'C = 2π√(50/π) = 2√(50π) ≈ 25.1 cm',
+    marks: 3
   },
   {
-    questionId: "wjec-2022-summer-1-q3",
-    markScheme: "Area = 153.9 cm²",
+    questionId: 'm22-c300u10-1-q3',
     workingSteps: [
-      "Use the formula for the area of a circle: A = πr²",
-      "Substitute r = 7: A = π × 7²",
-      "Calculate: A = π × 49 = 153.93...",
-      "Round to 1 decimal place: A = 153.9 cm²"
+      'Identify the sequence: 3, 7, 11, 15, ...',
+      'Calculate the common difference: d = 7 - 3 = 4',
+      'Use the formula for the nth term of an arithmetic sequence: Un = a + (n-1)d',
+      'Substitute a=3, d=4: Un = 3 + (n-1)4 = 3 + 4n - 4 = 4n - 1',
+      'To find the 50th term, substitute n=50: U50 = 4(50) - 1 = 200 - 1 = 199'
     ],
-    latexNotation: "\\begin{align} A &= \\pi r^2 \\\\ A &= \\pi \\times 7^2 \\\\ A &= \\pi \\times 49 \\\\ A &= 153.9\\text{ cm}^2 \\end{align}"
+    markScheme: 'The 50th term is 199',
+    marks: 3
   },
   {
-    questionId: "aqa-2022-summer-1-q1",
-    markScheme: "360",
+    questionId: 'm21-c300u20-1-q1',
     workingSteps: [
-      "To find 3/4 of 480, multiply 480 by 3/4",
-      "480 × 3/4 = (480 × 3) ÷ 4",
-      "= 1440 ÷ 4",
-      "= 360"
+      'Identify the function: f(x) = 2x² - 3x + 1',
+      'To find f(4), substitute x=4 into the function',
+      'f(4) = 2(4)² - 3(4) + 1',
+      'f(4) = 2(16) - 12 + 1',
+      'f(4) = 32 - 12 + 1'
     ],
-    latexNotation: "\\begin{align} \\frac{3}{4} \\times 480 &= \\frac{3 \\times 480}{4} \\\\ &= \\frac{1440}{4} \\\\ &= 360 \\end{align}"
+    markScheme: 'f(4) = 21',
+    marks: 2
   },
   {
-    questionId: "aqa-2022-summer-1-q2",
-    markScheme: "x = 3, y = -1",
+    questionId: 'm21-c300u20-1-q2',
     workingSteps: [
-      "From equation 1: 3x + 2y = 7",
-      "Rearrange to make y the subject: 2y = 7 - 3x, so y = (7 - 3x)/2",
-      "Substitute into equation 2: 5x - 2((7 - 3x)/2) = 13",
-      "Simplify: 5x - (7 - 3x) = 13",
-      "Expand: 5x - 7 + 3x = 13",
-      "Collect like terms: 8x - 7 = 13",
-      "Add 7 to both sides: 8x = 20",
-      "Divide both sides by 8: x = 2.5",
-      "Substitute back to find y: y = (7 - 3(2.5))/2 = (7 - 7.5)/2 = -0.5/2 = -0.25"
+      'Identify the simultaneous equations: 3x + 2y = 7 and 5x - y = 8',
+      'Rearrange the second equation to make y the subject: y = 5x - 8',
+      'Substitute this into the first equation: 3x + 2(5x - 8) = 7',
+      'Expand: 3x + 10x - 16 = 7',
+      'Simplify: 13x - 16 = 7',
+      'Add 16 to both sides: 13x = 23',
+      'Divide both sides by 13: x = 23/13',
+      'Substitute back to find y: y = 5(23/13) - 8 = 115/13 - 8 = 115/13 - 104/13 = 11/13'
     ],
-    commonMistakes: [
-      "Errors in rearranging to find y",
-      "Calculation errors when substituting",
-      "Sign errors when collecting like terms"
+    markScheme: 'x = 23/13, y = 11/13',
+    marks: 5
+  },
+  {
+    questionId: 'm21-c300u20-1-q3',
+    workingSteps: [
+      'Identify the expression to be factorized: 6x² - 13x - 5',
+      'Look for two numbers that multiply to give 6 × (-5) = -30 and add to give -13',
+      'The numbers are -15 and 2, since (-15) × 2 = -30 and (-15) + 2 = -13',
+      'Rewrite the middle term: 6x² - 15x + 2x - 5',
+      'Group the terms: (6x² - 15x) + (2x - 5)',
+      'Factor out common factors from each group: 3x(2x - 5) + 1(2x - 5)',
+      'Factor out the common binomial: (3x + 1)(2x - 5)'
     ],
-    latexNotation: "\\begin{align} 3x + 2y &= 7 \\quad \\text{(1)}\\\\ 5x - 2y &= 13 \\quad \\text{(2)}\\\\ \\text{From (1)}: y &= \\frac{7 - 3x}{2} \\\\ \\text{Substitute into (2)}: 5x - 2\\left(\\frac{7 - 3x}{2}\\right) &= 13 \\\\ 5x - (7 - 3x) &= 13 \\\\ 5x - 7 + 3x &= 13 \\\\ 8x - 7 &= 13 \\\\ 8x &= 20 \\\\ x &= 2.5 \\\\ \\text{Substitute back}: y &= \\frac{7 - 3(2.5)}{2} = \\frac{7 - 7.5}{2} = -\\frac{0.5}{2} = -0.25 \\end{align}"
+    markScheme: '6x² - 13x - 5 = (3x + 1)(2x - 5)',
+    marks: 3
   }
 ];
+
+export default modelAnswers;
