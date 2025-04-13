@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import GoalsService from '@/services/goalsService';
+import { StudyGoal } from '@/types/goals';
 
 // Define types for subject data
 export interface SubjectData {
@@ -19,12 +21,14 @@ export interface StudentRecord {
 
 interface StudentRecordContextType {
   studentRecord: StudentRecord;
+  activeGoals: StudyGoal[];
   updateSubjectConfidence: (subject: string, confidence: number) => void;
   updateSubjectQuizScore: (subject: string, score: number) => void;
   recordStudySession: (subject: string) => void;
   getRecommendedSubject: () => string | null;
   recordSuggestionDismissal: (subject: string) => void;
   recordSuggestionAction: (subject: string, actionType: 'study' | 'quiz' | 'review' | 'info') => void;
+  refreshGoals: () => void;
 }
 
 const defaultSubjectData: SubjectData = {
@@ -53,6 +57,8 @@ const StudentRecordContext = createContext<StudentRecordContextType | null>(null
 
 export const StudentRecordProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [studentRecord, setStudentRecord] = useState<StudentRecord>(initializeRecord());
+  const [activeGoals, setActiveGoals] = useState<StudyGoal[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const { state } = useAuth();
   const { user } = state;
 
@@ -65,6 +71,32 @@ export const StudentRecordProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
   }, [user]);
+
+  // Load active goals whenever the user or refresh trigger changes
+  useEffect(() => {
+    const loadActiveGoals = async () => {
+      if (user) {
+        try {
+          // Try to get goals from Firestore
+          let userGoals = await GoalsService.getGoalsForUser(user.id);
+          
+          // If no goals from Firestore or offline, use mock data
+          if (userGoals.length === 0) {
+            userGoals = GoalsService.getLocalMockGoals(user.id);
+          }
+          
+          // Filter to active goals and update progress
+          const active = userGoals.filter(goal => goal.status === 'active');
+          setActiveGoals(active);
+        } catch (error) {
+          console.error("Error loading goals:", error);
+          setActiveGoals([]);
+        }
+      }
+    };
+    
+    loadActiveGoals();
+  }, [user, refreshTrigger]);
 
   // Save to localStorage when record changes
   useEffect(() => {
@@ -85,6 +117,23 @@ export const StudentRecordProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       };
     });
+    
+    // Update goal progress for related goals
+    if (user) {
+      const relatedGoals = activeGoals.filter(goal => 
+        goal.subject.toLowerCase().includes(subject.toLowerCase())
+      );
+      
+      relatedGoals.forEach(goal => {
+        const currentProgress = goal.completionRate || 0;
+        // Increase progress based on confidence change
+        // This is a simplified approach - in a real system you might have more complex logic
+        if (confidence > 7) {
+          const newProgress = Math.min(95, currentProgress + 5);
+          GoalsService.updateGoal(goal.id, { completionRate: newProgress });
+        }
+      });
+    }
   };
 
   // Add a quiz score and update average
@@ -103,6 +152,25 @@ export const StudentRecordProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       };
     });
+    
+    // Update goal progress for related goals
+    if (user) {
+      const relatedGoals = activeGoals.filter(goal => 
+        goal.subject.toLowerCase().includes(subject.toLowerCase())
+      );
+      
+      relatedGoals.forEach(goal => {
+        const currentProgress = goal.completionRate || 0;
+        // Increase progress based on quiz score
+        if (score > 70) {
+          const newProgress = Math.min(95, currentProgress + 10);
+          GoalsService.updateGoal(goal.id, { completionRate: newProgress });
+        } else if (score > 50) {
+          const newProgress = Math.min(95, currentProgress + 5);
+          GoalsService.updateGoal(goal.id, { completionRate: newProgress });
+        }
+      });
+    }
   };
 
   // Record a study session
@@ -120,6 +188,20 @@ export const StudentRecordProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       };
     });
+    
+    // Update goal progress for related goals
+    if (user) {
+      const relatedGoals = activeGoals.filter(goal => 
+        goal.subject.toLowerCase().includes(subject.toLowerCase())
+      );
+      
+      relatedGoals.forEach(goal => {
+        const currentProgress = goal.completionRate || 0;
+        // Increase progress based on study session
+        const newProgress = Math.min(95, currentProgress + 3);
+        GoalsService.updateGoal(goal.id, { completionRate: newProgress });
+      });
+    }
   };
 
   // Record suggestion dismissal for analytics
@@ -193,15 +275,22 @@ export const StudentRecordProvider: React.FC<{ children: React.ReactNode }> = ({
     return subjectScores[0]?.subject || null;
   };
 
+  // Refresh goals data
+  const refreshGoals = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <StudentRecordContext.Provider value={{
       studentRecord,
+      activeGoals,
       updateSubjectConfidence,
       updateSubjectQuizScore,
       recordStudySession,
       getRecommendedSubject,
       recordSuggestionDismissal,
-      recordSuggestionAction
+      recordSuggestionAction,
+      refreshGoals
     }}>
       {children}
     </StudentRecordContext.Provider>
