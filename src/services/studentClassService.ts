@@ -1,111 +1,38 @@
 
 import { StudentClassLink, EnrolledSubject } from '@/types/student';
 import { mockStudentClassLinks } from '@/data/mock/student-links';
-import { Class } from '@/types/teacher';
-
-// Mock class data
-const mockClasses: Record<string, { name: string, joinCode: string }> = {
-  'class-1a': { name: 'Set 1', joinCode: 'MATH7X1' },
-  'class-2b': { name: 'Set 1', joinCode: 'SCI8X1' },
-  'class-3c': { name: 'Set 1', joinCode: 'ENG9X1' }
-};
-
-// Mock teacher data
-const mockTeachers: Record<string, string> = {
-  'teacher1': 'Ms. Jenkins',
-  'teacher2': 'Mr. Williams'
-};
 
 export class StudentClassService {
-  /**
-   * Get all classes a student is enrolled in
-   */
-  static async getStudentClasses(studentId: string): Promise<StudentClassLink[]> {
-    // In a real app, we would fetch from Firestore here
-    // For now, return mock data
-    return Promise.resolve(mockStudentClassLinks.filter(link => link.studentId === studentId && link.active));
+  // Get all class links for a student
+  static async getStudentClassLinks(studentId: string): Promise<StudentClassLink[]> {
+    // In a real app, this would fetch from Firestore
+    // For now, we're using mock data
+    return mockStudentClassLinks.filter(link => link.studentId === studentId && link.active);
   }
-  
-  /**
-   * Get all students in a specific class
-   */
-  static async getClassStudents(classId: string): Promise<string[]> {
-    // In a real app, we would fetch from Firestore here
-    const links = mockStudentClassLinks.filter(link => link.classId === classId && link.active);
-    return Promise.resolve(links.map(link => link.studentId));
+
+  // Check if a student is enrolled in a specific subject
+  static async isEnrolledInSubject(studentId: string, subject: string): Promise<boolean> {
+    const links = await this.getStudentClassLinks(studentId);
+    return links.some(link => 
+      link.subject.toLowerCase() === subject.toLowerCase() && link.active
+    );
   }
-  
-  /**
-   * Get all enrolled subjects for a student with additional metadata
-   */
+
+  // Get all subjects a student is enrolled in
   static async getEnrolledSubjects(studentId: string): Promise<EnrolledSubject[]> {
-    // Get student class links
-    const links = mockStudentClassLinks.filter(link => link.studentId === studentId && link.active);
+    const links = await this.getStudentClassLinks(studentId);
     
-    // Transform to include additional class and teacher info
-    return Promise.resolve(links.map(link => ({
+    // In a real implementation, we would fetch teacher names and class details
+    return links.map(link => ({
       subject: link.subject,
       classId: link.classId,
       teacherId: link.teacherId,
-      teacherName: mockTeachers[link.teacherId] || 'Unknown Teacher',
-      className: mockClasses[link.classId]?.name || 'Unknown Class',
-      joinCode: mockClasses[link.classId]?.joinCode || 'UNKNOWN',
+      teacherName: "Mr. Smith", // Mock teacher name
+      className: `${link.yearGroup} ${link.subject}`, // Mock class name
+      joinCode: `${link.classId}`, // Mock join code
       yearGroup: link.yearGroup
-    })));
-  }
-  
-  /**
-   * Check if student is enrolled in a specific subject
-   */
-  static async isEnrolledInSubject(studentId: string, subject: string): Promise<boolean> {
-    const links = mockStudentClassLinks.filter(link => 
-      link.studentId === studentId && 
-      link.subject.toLowerCase() === subject.toLowerCase() && 
-      link.active
-    );
-    return Promise.resolve(links.length > 0);
-  }
-  
-  /**
-   * Enroll a student in a class
-   */
-  static async enrollStudent(studentId: string, classId: string, teacherId: string, subject: string, yearGroup: string): Promise<StudentClassLink> {
-    // In a real app, we would add to Firestore here
-    const newLink: StudentClassLink = {
-      id: `scl-${Date.now()}`,
-      studentId,
-      classId,
-      subject,
-      teacherId,
-      yearGroup,
-      joinedAt: new Date().toISOString(),
-      active: true
-    };
-    
-    // Here we would add to Firestore
-    console.log(`Enrolled student ${studentId} in class ${classId} for subject ${subject}`);
-    
-    return Promise.resolve(newLink);
-  }
-  
-  /**
-   * Remove a student from a class
-   */
-  static async unenrollStudent(linkId: string): Promise<void> {
-    // In a real app, we would update Firestore to set active = false
-    console.log(`Unenrolled student with link ID ${linkId}`);
-    return Promise.resolve();
-  }
-  
-  /**
-   * Get all students by subject for a teacher
-   */
-  static async getStudentsBySubject(teacherId: string, subject: string): Promise<string[]> {
-    const links = mockStudentClassLinks.filter(link => 
-      link.teacherId === teacherId && 
-      link.subject.toLowerCase() === subject.toLowerCase() && 
-      link.active
-    );
-    return Promise.resolve(links.map(link => link.studentId));
+    }));
   }
 }
+
+export default StudentClassService;

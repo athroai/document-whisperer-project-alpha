@@ -9,7 +9,7 @@ export const languagesPastPapers: PastPaper[] = [
     examBoard: 'wjec',
     year: 2022,
     season: 'summer',
-    unit: '1',
+    unit: 1, // Changed back to number
     title: 'French Unit 1: Speaking',
     questions: [
       {
@@ -47,7 +47,7 @@ export const languagesPastPapers: PastPaper[] = [
     examBoard: 'wjec',
     year: 2022,
     season: 'summer',
-    unit: '1',
+    unit: 1, // Changed back to number
     title: 'Spanish Unit 1: Reading',
     questions: [
       {
@@ -76,7 +76,7 @@ export const languagesPastPapers: PastPaper[] = [
     examBoard: 'wjec',
     year: 2022,
     season: 'summer',
-    unit: '1',
+    unit: 1, // Changed back to number
     title: 'German Unit 1: Writing',
     questions: [
       {
