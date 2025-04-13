@@ -51,7 +51,7 @@ const AthroSelectorPage: React.FC = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Not assigned to any classes</AlertTitle>
           <AlertDescription>
-            You are not currently assigned to any classes. Please ask your teacher to add you.
+            You're not currently assigned to any classes. Please ask your teacher to add you.
           </AlertDescription>
         </Alert>
         

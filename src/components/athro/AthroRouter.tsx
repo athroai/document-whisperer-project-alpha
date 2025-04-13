@@ -1,8 +1,6 @@
 
 import React, { useEffect } from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
-import { AthroCharacterConfig } from '@/types/athroCharacter';
-import { mockAthroResponse } from '@/services/athroService';
 import athroService from '@/services/athroService';
 
 interface AthroRouterProps {
@@ -52,8 +50,8 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
           subjectContext = { subjectSection: context.subjectSection };
         }
         
-        // Use the athroService instead of the mock implementation
-        const response = await mockAthroResponse(
+        // Use the athroService directly instead of mockAthroResponse
+        const response = await athroService.generateResponse(
           message,
           character.subject,
           character.examBoards[0],

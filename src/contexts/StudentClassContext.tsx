@@ -3,6 +3,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useAuth } from './AuthContext';
 import { EnrolledSubject } from '@/types/student';
 import StudentClassService from '@/services/StudentClassService';
+import { featureFlags } from '@/config/featureFlags';
 
 interface StudentClassContextType {
   enrolledSubjects: EnrolledSubject[];
