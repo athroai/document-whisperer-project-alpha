@@ -4,31 +4,52 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Bell, BarChart3, FileCheck, BookOpen } from 'lucide-react';
+import { Users, Bell, BarChart3, FileCheck, BookOpen, Loader2 } from 'lucide-react';
 import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
 import { Class } from '@/types/teacher';
 
 const TeacherDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { state } = useAuth();
-  const { user } = state;
+  const { user, loading: authLoading } = state;
   const [classStats, setClassStats] = useState({
     total: 0,
     subjects: 0,
     students: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real implementation, fetch stats from Firestore
-    // For now, just mocking the data
-    if (user && user.role === 'teacher') {
-      setClassStats({
-        total: 4,
-        subjects: 3, // Math, Science, English
-        students: 32
-      });
-    }
-  }, [user]);
+    const loadTeacherData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Wait for auth to complete first
+        if (!authLoading && user && user.role === 'teacher') {
+          // In a real implementation, fetch stats from Firestore
+          // For now, just mocking the data with a slight delay to simulate API call
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
+          setClassStats({
+            total: 4,
+            subjects: 3, // Math, Science, English
+            students: 32
+          });
+        } else if (!authLoading && (!user || user.role !== 'teacher')) {
+          setError('Access restricted: Teacher role required');
+        }
+      } catch (err) {
+        console.error('Failed to load teacher dashboard data:', err);
+        setError('Failed to load teacher data. Please try refreshing.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTeacherData();
+  }, [user, authLoading]);
 
   // Quick stats for dashboard overview
   const stats = [
@@ -90,8 +111,44 @@ const TeacherDashboardPage: React.FC = () => {
     }
   ];
 
-  if (!user || user.role !== 'teacher') {
-    return <div className="p-8">Access Restricted: Teacher role required</div>;
+  // Loading state
+  if (authLoading || isLoading) {
+    return (
+      <TeacherDashboardLayout>
+        <div className="flex flex-col items-center justify-center h-[60vh]">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+          <h2 className="text-xl font-semibold">Loading Dashboard</h2>
+          <p className="text-gray-500 mt-2">Preparing your teacher dashboard...</p>
+        </div>
+      </TeacherDashboardLayout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <TeacherDashboardLayout>
+        <div className="p-8 bg-red-50 border border-red-200 rounded-lg">
+          <h2 className="text-xl font-semibold text-red-700 mb-2">Error</h2>
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => navigate('/login')}>Return to Login</Button>
+        </div>
+      </TeacherDashboardLayout>
+    );
+  }
+
+  // Empty state (no classes)
+  if (!isLoading && classStats.total === 0) {
+    return (
+      <TeacherDashboardLayout>
+        <div className="p-8 text-center">
+          <BookOpen className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+          <h2 className="text-2xl font-semibold mb-2">No Classes Available</h2>
+          <p className="text-gray-600 mb-6">You don't have any active classes at the moment.</p>
+          <Button onClick={() => navigate('/teacher/sets')}>Create Your First Class</Button>
+        </div>
+      </TeacherDashboardLayout>
+    );
   }
 
   const dashboardContent = (
@@ -136,6 +193,19 @@ const TeacherDashboardPage: React.FC = () => {
           </Card>
         ))}
       </div>
+      
+      {/* Debug information */}
+      {import.meta.env.DEV && (
+        <div className="mt-8 p-4 border border-dashed rounded-md bg-slate-50">
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">Debug Information:</h3>
+          <div className="text-xs text-slate-600 space-y-1">
+            <div><strong>User:</strong> {user?.email || 'Not logged in'}</div>
+            <div><strong>Role:</strong> {user?.role || 'Unknown'}</div>
+            <div><strong>Class Count:</strong> {classStats.total}</div>
+            <div><strong>Loading State:</strong> {isLoading ? 'Loading' : 'Loaded'}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

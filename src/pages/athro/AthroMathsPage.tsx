@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import AthroBase from '@/components/athro/AthroBase';
 import { Card } from '@/components/ui/card';
@@ -9,16 +9,38 @@ import { useNavigate } from 'react-router-dom';
 const AthroMathsPage: React.FC = () => {
   const { setActiveCharacter } = useAthro();
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    const mathsCharacter = getAthroBySubject('Mathematics');
-    if (mathsCharacter) {
-      setActiveCharacter(mathsCharacter);
-    } else {
-      // If character not found, redirect to subject selector
-      navigate('/athro');
-    }
+    const initializeCharacter = async () => {
+      setIsLoading(true);
+      const mathsCharacter = getAthroBySubject('Mathematics');
+      if (mathsCharacter) {
+        setActiveCharacter(mathsCharacter);
+      } else {
+        // If character not found, redirect to subject selector
+        console.warn("Mathematics Athro character not found");
+        navigate('/athro');
+      }
+      setIsLoading(false);
+    };
+
+    initializeCharacter();
   }, [setActiveCharacter, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">AthroMaths</h1>
+          <p className="text-muted-foreground">Preparing your Mathematics mentor...</p>
+        </div>
+        <div className="flex justify-center items-center h-[50vh]">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -73,6 +95,18 @@ const AthroMathsPage: React.FC = () => {
           </Card>
         </div>
       </div>
+      
+      {/* Debug info for development */}
+      {import.meta.env.DEV && (
+        <div className="mt-8 p-4 border border-dashed rounded-md bg-slate-50">
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">Debug Information:</h3>
+          <div className="text-xs text-slate-600 space-y-1">
+            <div><strong>Page:</strong> AthroMathsPage</div>
+            <div><strong>Subject:</strong> Mathematics</div>
+            <div><strong>Loading State:</strong> {isLoading ? 'Loading' : 'Loaded'}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

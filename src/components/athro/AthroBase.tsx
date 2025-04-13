@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AthroChat from './AthroChat';
 import AthroProfile from './AthroProfile';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import LanguageSelector from './LanguageSelector';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -33,6 +33,8 @@ const AthroBase: React.FC<AthroBaseProps> = ({
     
     if (character) {
       setActiveCharacter(character);
+    } else {
+      console.warn(`No character found for subject: ${subject}`);
     }
   }, [subject, characters, setActiveCharacter]);
   
@@ -40,8 +42,47 @@ const AthroBase: React.FC<AthroBaseProps> = ({
     navigate('/athro/select');
   };
   
+  // Show a loading state if activeCharacter is not available yet
+  if (!activeCharacter && characters?.length > 0) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="mb-4 flex items-center">
+          <Button variant="ghost" size="sm" onClick={handleBackClick} className="mr-2">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">Loading Athro...</h1>
+        </div>
+        <div className="flex flex-col items-center justify-center p-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-lg text-muted-foreground">Preparing your study session...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If there's no character at all (not even loading), show an error state
   if (!activeCharacter) {
-    return <div>Loading...</div>;
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="mb-4 flex items-center">
+          <Button variant="ghost" size="sm" onClick={handleBackClick} className="mr-2">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">Subject Not Available</h1>
+        </div>
+        <Alert className="mt-4" variant="destructive">
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          <AlertDescription>
+            We couldn't find an Athro for {subject}. Please try selecting a different subject.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={handleBackClick} className="mt-4">
+          Return to Subject Selection
+        </Button>
+      </div>
+    );
   }
   
   return (
@@ -95,6 +136,19 @@ const AthroBase: React.FC<AthroBaseProps> = ({
           <AthroProfile />
         </TabsContent>
       </Tabs>
+      
+      {/* Debug information - only visible during development */}
+      {import.meta.env.DEV && (
+        <div className="mt-8 p-4 border border-dashed rounded-md bg-slate-50">
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">Debug Information:</h3>
+          <div className="text-xs text-slate-600 space-y-1">
+            <div><strong>Subject:</strong> {subject}</div>
+            <div><strong>Character Name:</strong> {activeCharacter?.name}</div>
+            <div><strong>Current Tab:</strong> {activeTab}</div>
+            <div><strong>Allow Science Selection:</strong> {allowScience ? 'Yes' : 'No'}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
