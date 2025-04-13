@@ -1,4 +1,3 @@
-
 import { Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -18,6 +17,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AthroMathsPage from "./pages/athro/AthroMathsPage";
 import AthroSelectorPage from "./pages/athro/AthroSelectorPage";
 import AthroSciencePage from "./pages/athro/AthroSciencePage";
+import AthroEnglishPage from "./pages/athro/AthroEnglishPage";
+import AthroWelshPage from "./pages/athro/AthroWelshPage";
+import AthroLanguagesPage from "./pages/athro/AthroLanguagesPage";
+import AthroHistoryPage from "./pages/athro/AthroHistoryPage";
+import AthroGeographyPage from "./pages/athro/AthroGeographyPage";
+import AthroREPage from "./pages/athro/AthroREPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import TeacherStudentProfilesPage from "./pages/teacher/TeacherStudentProfilesPage";
 import TeacherSetsPage from "./pages/teacher/TeacherSetsPage";
@@ -32,7 +37,6 @@ import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
 import StudentFeedbackPage from "./pages/student/StudentFeedbackPage";
 import StudentAssignmentViewPage from "./pages/student/StudentAssignmentViewPage";
 import StudentResourcesPage from "./pages/student/StudentResourcesPage";
-import { UserRole } from "./types/auth";
 
 function App() {
   return (
@@ -114,6 +118,12 @@ function App() {
       <Route path="/athro/select" element={<AthroSelectorPage />} />
       <Route path="/athro/maths" element={<AthroMathsPage />} />
       <Route path="/athro/science" element={<AthroSciencePage />} />
+      <Route path="/athro/english" element={<AthroEnglishPage />} />
+      <Route path="/athro/welsh" element={<AthroWelshPage />} />
+      <Route path="/athro/languages" element={<AthroLanguagesPage />} />
+      <Route path="/athro/history" element={<AthroHistoryPage />} />
+      <Route path="/athro/geography" element={<AthroGeographyPage />} />
+      <Route path="/athro/re" element={<AthroREPage />} />
 
       {/* Teacher Dashboard Routes */}
       <Route

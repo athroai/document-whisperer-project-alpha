@@ -5,6 +5,12 @@ import Navigation from '@/components/Navigation';
 import AthroSelectorPage from './athro/AthroSelectorPage';
 import AthroMathsPage from './athro/AthroMathsPage';
 import AthroSciencePage from './athro/AthroSciencePage';
+import AthroEnglishPage from './athro/AthroEnglishPage';
+import AthroWelshPage from './athro/AthroWelshPage';
+import AthroLanguagesPage from './athro/AthroLanguagesPage';
+import AthroHistoryPage from './athro/AthroHistoryPage';
+import AthroGeographyPage from './athro/AthroGeographyPage';
+import AthroREPage from './athro/AthroREPage';
 import AthroSystem from '@/components/AthroSystem';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -44,6 +50,12 @@ const AthroPage: React.FC = () => {
         <Route path="/maths" element={<AthroMathsPage />} />
         <Route path="/mathematics" element={<AthroMathsPage />} />
         <Route path="/science" element={<AthroSciencePage />} />
+        <Route path="/english" element={<AthroEnglishPage />} />
+        <Route path="/welsh" element={<AthroWelshPage />} />
+        <Route path="/languages" element={<AthroLanguagesPage />} />
+        <Route path="/history" element={<AthroHistoryPage />} />
+        <Route path="/geography" element={<AthroGeographyPage />} />
+        <Route path="/re" element={<AthroREPage />} />
         <Route path="*" element={<Navigate to="/athro/select" replace />} />
       </Routes>
       <AthroSystem />

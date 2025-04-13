@@ -22,11 +22,22 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
       try {
         console.log(`[AthroRouter] Processing message for ${character.name}: "${message}"`);
         
+        // Get subject-specific context if available
+        let subjectContext = {};
+        if (character.subject === 'Languages' && context?.subjectSection) {
+          subjectContext = { subjectSection: context.subjectSection };
+        }
+        
+        if (character.subject === 'Science' && context?.subjectSection) {
+          subjectContext = { subjectSection: context.subjectSection };
+        }
+        
         // Use the athroService instead of the mock implementation
         const response = await mockAthroResponse(
           message,
           character.subject,
-          character.examBoards[0]
+          character.examBoards[0],
+          subjectContext
         );
         
         onResponse(response);
@@ -43,7 +54,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
     };
     
     processMessage();
-  }, [character, message, onResponse]);
+  }, [character, message, context, onResponse]);
   
   return null; // This is a logic component, not a UI component
 };
