@@ -6,14 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { BookOpen, AlertCircle } from 'lucide-react';
+import { BookOpen, AlertCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 const AthroSelectorPage: React.FC = () => {
   const { characters } = useAthro();
   const { state } = useAuth();
   const { user, loading } = state;
-  const { enrolledSubjects, loading: loadingClasses } = useStudentClass();
+  const { enrolledSubjects, loading: loadingClasses, isMockEnrollment } = useStudentClass();
   const navigate = useNavigate();
   
   if (loading || loadingClasses) {
@@ -100,6 +101,16 @@ const AthroSelectorPage: React.FC = () => {
   
   return (
     <div className="container mx-auto px-4 py-8">
+      {isMockEnrollment && (
+        <Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Mock Enrollment Active</AlertTitle>
+          <AlertDescription>
+            You're viewing mock classes for testing purposes. These are not real class assignments.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold">Choose Your Athro Mentor</h1>
         <p className="text-muted-foreground">Select a subject-specific AI mentor to help with your studies</p>
@@ -120,6 +131,11 @@ const AthroSelectorPage: React.FC = () => {
                 <div>
                   <CardTitle>{character.name}</CardTitle>
                   <CardDescription>{character.shortDescription}</CardDescription>
+                  {isMockEnrollment && (
+                    <Badge className="mt-2 bg-blue-50 text-blue-700 border-blue-200">
+                      Mock Character
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -158,7 +174,12 @@ const AthroSelectorPage: React.FC = () => {
             <Card key={subject.subject + subject.classId}>
               <CardHeader>
                 <CardTitle>{subject.subject}</CardTitle>
-                <CardDescription>{subject.className} - {subject.yearGroup}</CardDescription>
+                <CardDescription>
+                  {subject.className} - {subject.yearGroup}
+                  {isMockEnrollment && (
+                    <Badge className="ml-2 bg-blue-50 text-blue-700 border-blue-200">Mock</Badge>
+                  )}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-sm">Teacher: {subject.teacherName}</p>

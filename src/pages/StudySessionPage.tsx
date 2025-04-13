@@ -5,13 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StudentFeedbackPanel from '@/components/dashboard/StudentFeedbackPanel';
 import { useStudentClass } from '@/contexts/StudentClassContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { featureFlags } from '@/config/featureFlags';
+import { Badge } from '@/components/ui/badge';
 
 const StudySessionPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('session');
-  const { enrolledSubjects, loading } = useStudentClass();
+  const { enrolledSubjects, loading, isMockEnrollment } = useStudentClass();
   const navigate = useNavigate();
 
   // Check if the student is enrolled in any subjects
@@ -20,6 +21,16 @@ const StudySessionPage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold mb-6">Study Dashboard</h1>
+      
+      {isMockEnrollment && (
+        <Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Mock Enrollment Active</AlertTitle>
+          <AlertDescription>
+            You're using mock class data for testing purposes. No actual class assignments exist.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {hasNoClasses ? (
         <Alert className="mb-6">
@@ -47,23 +58,32 @@ const StudySessionPage: React.FC = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Subject cards would go here */}
-                <div className="bg-purple-50 p-6 rounded-lg border border-purple-100 cursor-pointer hover:bg-purple-100 transition-colors"
-                     onClick={() => navigate('/athro/maths')}>
-                  <h3 className="font-medium text-lg mb-2">Mathematics</h3>
-                  <p className="text-sm text-gray-600">Study with AthroMaths</p>
-                </div>
+                {enrolledSubjects.some(subject => subject.subject.toLowerCase() === 'mathematics') && (
+                  <div className="bg-purple-50 p-6 rounded-lg border border-purple-100 cursor-pointer hover:bg-purple-100 transition-colors"
+                      onClick={() => navigate('/athro/maths')}>
+                    <h3 className="font-medium text-lg mb-2">Mathematics</h3>
+                    <p className="text-sm text-gray-600">Study with AthroMaths</p>
+                    {isMockEnrollment && <Badge variant="outline" className="mt-2 bg-blue-50 border-blue-200 text-blue-700">Mock Session</Badge>}
+                  </div>
+                )}
                 
-                <div className="bg-green-50 p-6 rounded-lg border border-green-100 cursor-pointer hover:bg-green-100 transition-colors"
-                     onClick={() => navigate('/athro/science')}>
-                  <h3 className="font-medium text-lg mb-2">Science</h3>
-                  <p className="text-sm text-gray-600">Study with AthroScience</p>
-                </div>
+                {enrolledSubjects.some(subject => subject.subject.toLowerCase() === 'science') && (
+                  <div className="bg-green-50 p-6 rounded-lg border border-green-100 cursor-pointer hover:bg-green-100 transition-colors"
+                      onClick={() => navigate('/athro/science')}>
+                    <h3 className="font-medium text-lg mb-2">Science</h3>
+                    <p className="text-sm text-gray-600">Study with AthroScience</p>
+                    {isMockEnrollment && <Badge variant="outline" className="mt-2 bg-blue-50 border-blue-200 text-blue-700">Mock Session</Badge>}
+                  </div>
+                )}
                 
-                <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors"
-                     onClick={() => navigate('/athro/english')}>
-                  <h3 className="font-medium text-lg mb-2">English</h3>
-                  <p className="text-sm text-gray-600">Study with AthroEnglish</p>
-                </div>
+                {enrolledSubjects.some(subject => subject.subject.toLowerCase() === 'english') && (
+                  <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors"
+                      onClick={() => navigate('/athro/english')}>
+                    <h3 className="font-medium text-lg mb-2">English</h3>
+                    <p className="text-sm text-gray-600">Study with AthroEnglish</p>
+                    {isMockEnrollment && <Badge variant="outline" className="mt-2 bg-blue-50 border-blue-200 text-blue-700">Mock Session</Badge>}
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
