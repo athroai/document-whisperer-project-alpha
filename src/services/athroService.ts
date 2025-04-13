@@ -23,6 +23,7 @@ import chemistryPastPapers from '@/data/athro-science/past-papers-chemistry';
 import chemistryModelAnswers from '@/data/athro-science/model-answers-chemistry';
 import physicsPastPapers from '@/data/athro-science/past-papers-physics';
 import physicsModelAnswers from '@/data/athro-science/model-answers-physics';
+import { StudentClassService } from './studentClassService';
 
 export async function mockAthroResponse(
   message: string, 
@@ -184,6 +185,18 @@ function findModelAnswer(questionId: string, modelAnswers: ModelAnswer[]): Model
 
 function formatWorkingSteps(steps: string[]): string {
   return steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
+}
+
+export async function checkSubjectAccess(studentId: string | undefined, subject: string): Promise<boolean> {
+  if (!studentId) return true; // If no student ID, allow access (teacher/admin)
+  
+  try {
+    const hasAccess = await StudentClassService.isEnrolledInSubject(studentId, subject);
+    return hasAccess;
+  } catch (error) {
+    console.error("Error checking subject access:", error);
+    return true; // Default to allowing access on error
+  }
 }
 
 function generateSubjectResponse(message: string, subject: string, context: any = {}): string {

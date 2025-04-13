@@ -1,18 +1,22 @@
 
 import React from 'react';
 import { useAthro } from '@/contexts/AthroContext';
+import { useStudentClass } from '@/contexts/StudentClassContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { BookOpen, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const AthroSelectorPage: React.FC = () => {
   const { characters } = useAthro();
   const { state } = useAuth();
   const { user, loading } = state;
+  const { enrolledSubjects, loading: loadingClasses } = useStudentClass();
   const navigate = useNavigate();
   
-  if (loading) {
+  if (loading || loadingClasses) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -32,6 +36,69 @@ const AthroSelectorPage: React.FC = () => {
     return <Navigate to="/teacher-dashboard" replace />;
   }
   
+  // Filter characters based on student's enrolled subjects
+  const filteredCharacters = characters.filter(character => 
+    enrolledSubjects.some(subject => 
+      subject.subject.toLowerCase() === character.subject.toLowerCase()
+    )
+  );
+  
+  // If student is not enrolled in any subjects, show enrollment message
+  if (enrolledSubjects.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Not enrolled in any subjects</AlertTitle>
+          <AlertDescription>
+            You need to join a class to access study mentors. Please use a class join code provided by your teacher.
+          </AlertDescription>
+        </Alert>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Join a Class</CardTitle>
+            <CardDescription>Enter the join code provided by your teacher</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                placeholder="Enter class code (e.g. MATH10X)" 
+                className="flex-1 px-3 py-2 border rounded-md"
+              />
+              <Button>Join Class</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // If no characters are available for enrolled subjects
+  if (filteredCharacters.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold">No Study Mentors Available</h1>
+          <p className="text-muted-foreground">There are no study mentors available for your enrolled subjects</p>
+        </div>
+        
+        <Alert>
+          <BookOpen className="h-4 w-4" />
+          <AlertTitle>Enrolled Subjects</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc list-inside mt-2">
+              {enrolledSubjects.map((subject) => (
+                <li key={subject.subject}>{subject.subject} with {subject.teacherName} ({subject.className})</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6 text-center">
@@ -40,7 +107,7 @@ const AthroSelectorPage: React.FC = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {characters.map((character) => (
+        {filteredCharacters.map((character) => (
           <Card key={character.id} className="transition-all hover:shadow-md">
             <CardHeader>
               <div className="flex items-center space-x-4">
@@ -83,6 +150,24 @@ const AthroSelectorPage: React.FC = () => {
             </CardContent>
           </Card>
         ))}
+      </div>
+      
+      <div className="mt-8">
+        <h2 className="text-xl font-medium mb-4">Your Enrolled Classes</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {enrolledSubjects.map((subject) => (
+            <Card key={subject.subject + subject.classId}>
+              <CardHeader>
+                <CardTitle>{subject.subject}</CardTitle>
+                <CardDescription>{subject.className} - {subject.yearGroup}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">Teacher: {subject.teacherName}</p>
+                <p className="text-sm">Join Code: {subject.joinCode}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

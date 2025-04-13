@@ -18,7 +18,7 @@ export const rePastPapers: PastPaper[] = [
         text: 'Explain the importance of the Five Pillars in Islam.',
         marks: 8,
         topic: 'Islam',
-        subtopic: 'Five Pillars',  // Added subtopic
+        subtopic: 'Five Pillars',
         difficulty: 3
       },
       {
@@ -27,7 +27,7 @@ export const rePastPapers: PastPaper[] = [
         text: 'Describe the role of Jesus as the Son of God in Christian belief.',
         marks: 10,
         topic: 'Christianity',
-        subtopic: 'Jesus Christ',  // Added subtopic
+        subtopic: 'Jesus Christ',
         difficulty: 3
       },
       {
@@ -36,7 +36,7 @@ export const rePastPapers: PastPaper[] = [
         text: '"Religious believers should not eat meat." Evaluate this statement with reference to religious teachings.',
         marks: 15,
         topic: 'Ethics',
-        subtopic: 'Diet and Food',  // Added subtopic
+        subtopic: 'Diet and Food',
         difficulty: 4
       }
     ]
@@ -56,7 +56,7 @@ export const rePastPapers: PastPaper[] = [
         text: 'Explain religious teachings about the sanctity of life.',
         marks: 10,
         topic: 'Ethics',
-        subtopic: 'Sanctity of Life',  // Added subtopic
+        subtopic: 'Sanctity of Life',
         difficulty: 3
       },
       {
@@ -65,7 +65,7 @@ export const rePastPapers: PastPaper[] = [
         text: 'Outline Buddhist teachings on suffering (dukkha).',
         marks: 8,
         topic: 'Buddhism',
-        subtopic: 'Four Noble Truths',  // Added subtopic
+        subtopic: 'Four Noble Truths',
         difficulty: 3
       },
       {
@@ -74,7 +74,7 @@ export const rePastPapers: PastPaper[] = [
         text: '"Religious teachings on wealth and poverty are no longer relevant in the modern world." Discuss this statement.',
         marks: 15,
         topic: 'Ethics',
-        subtopic: 'Wealth and Poverty',  // Added subtopic
+        subtopic: 'Wealth and Poverty',
         difficulty: 5
       }
     ]

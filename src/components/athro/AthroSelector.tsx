@@ -1,15 +1,24 @@
 
 import React from 'react';
 import { useAthro } from '@/contexts/AthroContext';
+import { useStudentClass } from '@/contexts/StudentClassContext';
 import { AthroCharacter, AthroSubject } from '@/types/athro';
 import AthroCharacterCard from './AthroCharacterCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { BookOpen } from 'lucide-react';
 
 const AthroSelector: React.FC = () => {
   const { characters, activeCharacter, setActiveCharacter } = useAthro();
+  const { enrolledSubjects, isEnrolledInSubject, loading } = useStudentClass();
 
+  // Filter characters based on student's enrolled subjects
+  const filteredCharacters = characters.filter(character => 
+    isEnrolledInSubject(character.subject)
+  );
+  
   // Group characters by subject
-  const charactersBySubject = characters.reduce<Record<AthroSubject, AthroCharacter[]>>(
+  const charactersBySubject = filteredCharacters.reduce<Record<AthroSubject, AthroCharacter[]>>(
     (acc, character) => {
       if (!acc[character.subject]) {
         acc[character.subject] = [];
@@ -22,13 +31,28 @@ const AthroSelector: React.FC = () => {
 
   const subjects = Object.keys(charactersBySubject) as AthroSubject[];
 
-  if (characters.length === 0) {
+  if (loading) {
     return (
       <div className="flex h-40 items-center justify-center rounded-lg border border-dashed p-8 text-center">
         <div>
-          <p className="text-lg font-medium">No Athro characters available</p>
-          <p className="text-sm text-muted-foreground">Check back soon for new study mentors</p>
+          <p className="text-lg font-medium">Loading your study mentors...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (filteredCharacters.length === 0) {
+    return (
+      <div className="space-y-4">
+        <Alert>
+          <BookOpen className="h-4 w-4" />
+          <AlertTitle>No study mentors available</AlertTitle>
+          <AlertDescription>
+            {enrolledSubjects.length === 0 
+              ? "You're not enrolled in any subjects yet. Please join a class to access study mentors."
+              : "No study mentors are available for your enrolled subjects at the moment."}
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }

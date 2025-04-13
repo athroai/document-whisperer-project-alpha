@@ -1,23 +1,41 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Bell, BarChart3, FileCheck } from 'lucide-react';
+import { Users, Bell, BarChart3, FileCheck, BookOpen } from 'lucide-react';
 import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
+import { Class } from '@/types/teacher';
 
 const TeacherDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { state } = useAuth();
   const { user } = state;
+  const [classStats, setClassStats] = useState({
+    total: 0,
+    subjects: 0,
+    students: 0
+  });
+
+  useEffect(() => {
+    // In a real implementation, fetch stats from Firestore
+    // For now, just mocking the data
+    if (user && user.role === 'teacher') {
+      setClassStats({
+        total: 4,
+        subjects: 3, // Math, Science, English
+        students: 32
+      });
+    }
+  }, [user]);
 
   // Quick stats for dashboard overview
   const stats = [
     { 
       title: "Students", 
-      value: "32", 
-      description: "Across 3 sets", 
+      value: classStats.students.toString(), 
+      description: `Across ${classStats.subjects} subjects`, 
       icon: Users,
       color: "bg-blue-100 text-blue-700" 
     },
@@ -36,10 +54,10 @@ const TeacherDashboardPage: React.FC = () => {
       color: "bg-green-100 text-green-700"
     },
     { 
-      title: "Performance", 
-      value: "+12%", 
-      description: "Average improvement", 
-      icon: BarChart3,
+      title: "Classes", 
+      value: classStats.total.toString(), 
+      description: `${classStats.subjects} subjects`, 
+      icon: BookOpen,
       color: "bg-purple-100 text-purple-700"
     }
   ];
@@ -47,19 +65,19 @@ const TeacherDashboardPage: React.FC = () => {
   // Dashboard actions
   const actions = [
     { 
+      title: "Manage Sets", 
+      description: "View and manage your class sets", 
+      buttonText: "Open Sets",
+      href: "/teacher/sets" 
+    },
+    { 
       title: "Mark Assignments", 
       description: "Review and grade student work", 
       buttonText: "Open Marking Panel",
       href: "/teacher/marking" 
     },
     { 
-      title: "Create Assignment", 
-      description: "Set new work for your classes", 
-      buttonText: "Assign Work",
-      href: "/teacher/assign" 
-    },
-    { 
-      title: "View Student Profiles", 
+      title: "Student Profiles", 
       description: "Check individual progress", 
       buttonText: "Browse Students",
       href: "/teacher/profiles" 
