@@ -3,6 +3,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import TeacherMarkingPanel from './TeacherMarkingPanel';
 import TeacherMarkingPage from './TeacherMarkingPage';
+import TeacherInsightsPage from './TeacherInsightsPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 const TeacherMarkingRoute: React.FC = () => {
@@ -21,6 +22,14 @@ const TeacherMarkingRoute: React.FC = () => {
         element={
           <ProtectedRoute requiredRole="teacher">
             <TeacherMarkingPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/insights" 
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherInsightsPage />
           </ProtectedRoute>
         } 
       />
