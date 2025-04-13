@@ -13,7 +13,8 @@ import {
   Home,
   Upload,
   ActivitySquare,
-  ChartBar
+  ChartBar,
+  Database
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -80,6 +81,16 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
     { icon: Settings, label: 'System Tools', href: '/teacher/system', isDisabled: false },
   ];
 
+  // Add admin-specific items if user is an admin
+  if (user?.role === 'admin') {
+    sidebarItems.push({
+      icon: Database,
+      label: 'Knowledge Base',
+      href: '/admin/knowledge-base',
+      isDisabled: false
+    });
+  }
+
   // Only show sidebar for teachers and admins
   if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
     return null;
@@ -91,6 +102,11 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
         <h2 className="text-lg font-semibold text-purple-700">Teacher Dashboard</h2>
         <p className="text-sm text-gray-500">
           {user?.displayName || 'Teacher'}
+          {user?.role === 'admin' && (
+            <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+              Admin
+            </span>
+          )}
         </p>
       </div>
       <div className="p-4 flex-1 flex flex-col gap-1">

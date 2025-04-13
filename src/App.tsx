@@ -1,318 +1,158 @@
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import './App.css';
 
-import { Route, Routes } from "react-router-dom";
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
-import WelcomePage from "./pages/WelcomePage";
-import Index from "./pages/Index";
-import AthroPage from "./pages/AthroPage";
-import AssignmentsPage from "./pages/AssignmentsPage";
-import FilesPage from "./pages/FilesPage";
-import SettingsPage from "./pages/SettingsPage";
-import NotFound from "./pages/NotFound";
-import CalendarPage from "./pages/CalendarPage";
-import QuizPage from "./pages/QuizPage";
-import StudySessionPage from "./pages/StudySessionPage";
-import StudySessionRouter from "./pages/study/StudySessionRouter";
-import StudyAssignedPage from "./pages/study/StudyAssignedPage";
-import StudyStartPage from "./pages/study/StudyStartPage";
-import LicenseRequiredPage from "./pages/LicenseRequiredPage";
-import ProtectedRoute from "./components/ProtectedRoute";
-import AthroMathsPage from "./pages/athro/AthroMathsPage";
-import AthroSelectorPage from "./pages/athro/AthroSelectorPage";
-import AthroSciencePage from "./pages/athro/AthroSciencePage";
-import AthroEnglishPage from "./pages/athro/AthroEnglishPage";
-import AthroWelshPage from "./pages/athro/AthroWelshPage";
-import AthroLanguagesPage from "./pages/athro/AthroLanguagesPage";
-import AthroHistoryPage from "./pages/athro/AthroHistoryPage";
-import AthroGeographyPage from "./pages/athro/AthroGeographyPage";
-import AthroREPage from "./pages/athro/AthroREPage";
-import TeacherDashboardPage from "./pages/TeacherDashboardPage";
-import TeacherStudentProfilesPage from "./pages/teacher/TeacherStudentProfilesPage";
-import TeacherSetsPage from "./pages/teacher/TeacherSetsPage";
-import TeacherInsightsPage from "./pages/teacher/TeacherInsightsPage";
-import TeacherAssignPage from "./pages/teacher/TeacherAssignPage";
-import TeacherMarkingPanel from "./pages/teacher/TeacherMarkingPanel"; 
-import TeacherResourceDeployPage from "./pages/teacher/TeacherResourceDeployPage"; 
-import TeacherParentInquiriesPage from "./pages/teacher/TeacherParentInquiriesPage";
-import TeacherSystemToolsPage from "./pages/teacher/TeacherSystemToolsPage";
-import TeacherAnalyticsPage from "./pages/teacher/TeacherAnalyticsPage";
-import LiveMonitoringPage from "./pages/teacher/LiveMonitoringPage";
-import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
-import StudentFeedbackPage from "./pages/student/StudentFeedbackPage";
-import StudentAssignmentViewPage from "./pages/student/StudentAssignmentViewPage";
-import StudentResourcesPage from "./pages/student/StudentResourcesPage";
-import StudentProgressPage from "./pages/student/StudentProgressPage";
-import StudentHistoryPage from "./pages/student/StudentHistoryPage";
-import { AuthProvider } from '@/contexts/AuthContext';
-import { AthroProvider } from '@/contexts/AthroContext';
-import { StudentRecordProvider } from '@/contexts/StudentRecordContext';
-import { StudentClassProvider } from '@/contexts/StudentClassContext';
+// Pages
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import NotFound from './pages/NotFound';
+import FilesPage from './pages/FilesPage';
+import AssignmentsPage from './pages/AssignmentsPage';
+import QuizPage from './pages/QuizPage';
+import SettingsPage from './pages/SettingsPage';
+import CalendarPage from './pages/CalendarPage';
+import StudySessionPage from './pages/StudySessionPage';
+import WelcomePage from './pages/WelcomePage';
+
+// Athro Subject Pages
+import AthroSelectorPage from './pages/athro/AthroSelectorPage';
+import AthroMathsPage from './pages/athro/AthroMathsPage';
+import AthroEnglishPage from './pages/athro/AthroEnglishPage';
+import AthroSciencePage from './pages/athro/AthroSciencePage';
+import AthroWelshPage from './pages/athro/AthroWelshPage';
+import AthroLanguagesPage from './pages/athro/AthroLanguagesPage';
+import AthroHistoryPage from './pages/athro/AthroHistoryPage';
+import AthroGeographyPage from './pages/athro/AthroGeographyPage';
+import AthroREPage from './pages/athro/AthroREPage';
+
+// Student Pages
+import StudentHistoryPage from './pages/student/StudentHistoryPage';
+import StudentAssignmentsPage from './pages/student/StudentAssignmentsPage';
+import StudentAssignmentViewPage from './pages/student/StudentAssignmentViewPage';
+import StudentFeedbackPage from './pages/student/StudentFeedbackPage';
+import StudentProgressPage from './pages/student/StudentProgressPage';
+import StudentResourcesPage from './pages/student/StudentResourcesPage';
+
+// Study Pages
+import StudyStartPage from './pages/study/StudyStartPage';
+import StudyAssignedPage from './pages/study/StudyAssignedPage';
+import StudySessionRouter from './pages/study/StudySessionRouter';
+
+// Teacher Pages
+import TeacherDashboardPage from './pages/TeacherDashboardPage';
+import TeacherSetsPage from './pages/teacher/TeacherSetsPage';
+import TeacherMarkingRoute from './pages/teacher/TeacherMarkingRoute';
+import TeacherMarkingPanel from './pages/teacher/TeacherMarkingPanel';
+import TeacherMarkingPage from './pages/teacher/TeacherMarkingPage';
+import TeacherResourceDeployPage from './pages/teacher/TeacherResourceDeployPage';
+import TeacherAssignPage from './pages/teacher/TeacherAssignPage';
+import TeacherStudentProfilesPage from './pages/teacher/TeacherStudentProfilesPage';
+import TeacherParentInquiriesPage from './pages/teacher/TeacherParentInquiriesPage';
+import LiveMonitoringPage from './pages/teacher/LiveMonitoringPage';
+import TeacherInsightsPage from './pages/teacher/TeacherInsightsPage';
+import TeacherAnalyticsPage from './pages/teacher/TeacherAnalyticsPage';
+import TeacherSystemToolsPage from './pages/teacher/TeacherSystemToolsPage';
+
+// Admin Pages
+import KnowledgeBasePage from './pages/admin/KnowledgeBasePage';
+
+// Components
+import Navigation from './components/Navigation';
+import ProtectedRoute from './components/ProtectedRoute';
+import AthroSystem from './components/AthroSystem';
+import { Toaster } from '@/components/ui/toaster';
+
+// Contexts
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
+  const { state, dispatch, initializeAuth } = useAuth();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const initialize = async () => {
+      await initializeAuth();
+      setLoading(false);
+    };
+
+    initialize();
+  }, [initializeAuth]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <AuthProvider>
-      <StudentClassProvider>
-        <AthroProvider>
-          <StudentRecordProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/welcome" element={<WelcomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/required-license" element={<LicenseRequiredPage />} />
+    <Router>
+      <div className="app">
+        <Navigation />
 
-              {/* Protected Routes */}
-              <Route
-                path="/home"
-                element={
-                  <ProtectedRoute>
-                    <HomePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/assignments"
-                element={
-                  <ProtectedRoute>
-                    <AssignmentsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/files"
-                element={
-                  <ProtectedRoute>
-                    <FilesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/calendar"
-                element={
-                  <ProtectedRoute>
-                    <CalendarPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <SettingsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/quiz"
-                element={
-                  <ProtectedRoute>
-                    <QuizPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/quiz/:id"
-                element={
-                  <ProtectedRoute>
-                    <QuizPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/study"
-                element={
-                  <ProtectedRoute>
-                    <StudySessionRouter />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/study/assigned"
-                element={
-                  <ProtectedRoute>
-                    <StudyAssignedPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/study/start"
-                element={
-                  <ProtectedRoute>
-                    <StudyStartPage />
-                  </ProtectedRoute>
-                }
-              />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="*" element={<NotFound />} />
+          <Route path="/welcome" element={<WelcomePage />} />
 
-              {/* Legacy study route for backwards compatibility */}
-              <Route
-                path="/study/legacy"
-                element={
-                  <ProtectedRoute>
-                    <StudySessionPage />
-                  </ProtectedRoute>
-                }
-              />
+          {/* Athro Routes */}
+          <Route path="/athro" element={<AthroSelectorPage />} />
+          <Route path="/athro/maths" element={<AthroMathsPage />} />
+          <Route path="/athro/english" element={<AthroEnglishPage />} />
+          <Route path="/athro/science" element={<AthroSciencePage />} />
+          <Route path="/athro/welsh" element={<AthroWelshPage />} />
+          <Route path="/athro/languages" element={<AthroLanguagesPage />} />
+          <Route path="/athro/history" element={<AthroHistoryPage />} />
+          <Route path="/athro/geography" element={<AthroGeographyPage />} />
+          <Route path="/athro/re" element={<AthroREPage />} />
 
-              {/* Athro Chat Routes - Ensure these are properly nested and accessible */}
-              <Route path="/athro/*" element={<AthroPage />} />
-              <Route path="/athro/select" element={<AthroSelectorPage />} />
-              <Route path="/athro/maths" element={<AthroMathsPage />} />
-              <Route path="/athro/science" element={<AthroSciencePage />} />
-              <Route path="/athro/english" element={<AthroEnglishPage />} />
-              <Route path="/athro/welsh" element={<AthroWelshPage />} />
-              <Route path="/athro/languages" element={<AthroLanguagesPage />} />
-              <Route path="/athro/history" element={<AthroHistoryPage />} />
-              <Route path="/athro/geography" element={<AthroGeographyPage />} />
-              <Route path="/athro/re" element={<AthroREPage />} />
+          {/* Student Routes */}
+          <Route path="/student" element={<ProtectedRoute requiredRole="student"><StudentHistoryPage /></ProtectedRoute>} />
+          <Route path="/student/assignments" element={<ProtectedRoute requiredRole="student"><StudentAssignmentsPage /></ProtectedRoute>} />
+          <Route path="/student/assignments/:assignmentId" element={<ProtectedRoute requiredRole="student"><StudentAssignmentViewPage /></ProtectedRoute>} />
+          <Route path="/student/feedback" element={<ProtectedRoute requiredRole="student"><StudentFeedbackPage /></ProtectedRoute>} />
+          <Route path="/student/progress" element={<ProtectedRoute requiredRole="student"><StudentProgressPage /></ProtectedRoute>} />
+          <Route path="/student/resources" element={<ProtectedRoute requiredRole="student"><StudentResourcesPage /></ProtectedRoute>} />
 
-              {/* Teacher Dashboard Routes */}
-              <Route
-                path="/teacher"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <TeacherDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/profiles"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <TeacherStudentProfilesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/sets"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <TeacherSetsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/insights"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <TeacherInsightsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/analytics"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <TeacherAnalyticsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/assign"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <TeacherAssignPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/deploy"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <TeacherResourceDeployPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/marking"
-                element={
-                  <ProtectedRoute requiredRole="teacher" requireLicense={true}>
-                    <TeacherMarkingPanel />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/inquiries"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <TeacherParentInquiriesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/system"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <TeacherSystemToolsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/teacher/live-monitoring"
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <LiveMonitoringPage />
-                  </ProtectedRoute>
-                }
-              />
+          {/* Study Routes */}
+          <Route path="/study" element={<ProtectedRoute><StudyStartPage /></ProtectedRoute>} />
+          <Route path="/study/assigned/:classId" element={<ProtectedRoute><StudyAssignedPage /></ProtectedRoute>} />
+          <Route path="/study/session/:sessionId" element={<ProtectedRoute><StudySessionRouter /></ProtectedRoute>} />
 
-              {/* Student Assignment Routes */}
-              <Route
-                path="/student/assignments"
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <StudentAssignmentsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/assignments/:assignmentId"
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <StudentAssignmentViewPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/feedback"
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <StudentFeedbackPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/my-resources"
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <StudentResourcesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/progress"
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <StudentProgressPage />
-                  </ProtectedRoute>
-                }
-              />
-              {/* New History Route */}
-              <Route
-                path="/student/history"
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <StudentHistoryPage />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </StudentRecordProvider>
-        </AthroProvider>
-      </StudentClassProvider>
-    </AuthProvider>
+          <Route path="/files" element={<ProtectedRoute><FilesPage /></ProtectedRoute>} />
+          <Route path="/assignments" element={<ProtectedRoute><AssignmentsPage /></ProtectedRoute>} />
+          <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+          <Route path="/study-session" element={<ProtectedRoute><StudySessionPage /></ProtectedRoute>} />
+
+          {/* Teacher Routes */}
+          <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboardPage /></ProtectedRoute>} />
+          <Route path="/teacher/sets" element={<ProtectedRoute requiredRole="teacher"><TeacherSetsPage /></ProtectedRoute>} />
+          <Route path="/teacher/marking" element={<ProtectedRoute requiredRole="teacher"><TeacherMarkingRoute /></ProtectedRoute>} />
+          <Route path="/teacher/marking/panel/:classId" element={<ProtectedRoute requiredRole="teacher"><TeacherMarkingPanel /></ProtectedRoute>} />
+          <Route path="/teacher/marking/:studentId" element={<ProtectedRoute requiredRole="teacher"><TeacherMarkingPage /></ProtectedRoute>} />
+          <Route path="/teacher/deploy" element={<ProtectedRoute requiredRole="teacher"><TeacherResourceDeployPage /></ProtectedRoute>} />
+          <Route path="/teacher/assign" element={<ProtectedRoute requiredRole="teacher"><TeacherAssignPage /></ProtectedRoute>} />
+          <Route path="/teacher/profiles" element={<ProtectedRoute requiredRole="teacher"><TeacherStudentProfilesPage /></ProtectedRoute>} />
+          <Route path="/teacher/inquiries" element={<ProtectedRoute requiredRole="teacher"><TeacherParentInquiriesPage /></ProtectedRoute>} />
+          <Route path="/teacher/live-monitoring" element={<ProtectedRoute requiredRole="teacher"><LiveMonitoringPage /></ProtectedRoute>} />
+          <Route path="/teacher/insights" element={<ProtectedRoute requiredRole="teacher"><TeacherInsightsPage /></ProtectedRoute>} />
+          <Route path="/teacher/analytics" element={<ProtectedRoute requiredRole="teacher"><TeacherAnalyticsPage /></ProtectedRoute>} />
+          <Route path="/teacher/system" element={<ProtectedRoute requiredRole="teacher"><TeacherSystemToolsPage /></ProtectedRoute>} />
+
+          {/* Add Admin Routes */}
+          <Route path="/admin/knowledge-base" element={
+            <ProtectedRoute requiredRole="admin">
+              <KnowledgeBasePage />
+            </ProtectedRoute>
+          } />
+        </Routes>
+
+        <AthroSystem />
+        <Toaster />
+      </div>
+    </Router>
   );
 }
 

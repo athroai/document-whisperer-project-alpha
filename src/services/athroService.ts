@@ -3,6 +3,7 @@ import { frenchPastPapers } from '@/data/athro-languages/past-papers/french';
 import { germanPastPapers } from '@/data/athro-languages/past-papers/german';
 import { spanishPastPapers } from '@/data/athro-languages/past-papers/spanish';
 import { getAthroBySubject } from '@/config/athrosConfig';
+import { enhanceResponseWithKnowledge, shouldEnhanceWithKnowledge } from './athroServiceExtension';
 
 class AthroService {
   async generateResponse(
@@ -26,6 +27,22 @@ class AthroService {
       return this.generateOutOfScopeResponse(subject, isOutOfScope.detectedSubject);
     }
 
+    // Check if the query would benefit from knowledge base enhancement
+    let enhancedContent = '';
+    let hasKnowledgeResults = false;
+    
+    if (shouldEnhanceWithKnowledge(message)) {
+      // Convert subject to lowercase to match knowledge base subject format
+      const knowledgeSubject = subject.toLowerCase();
+      
+      // Enhance with knowledge
+      const { enhancedContext, hasKnowledgeResults: hasResults } = 
+        await enhanceResponseWithKnowledge(message, knowledgeSubject);
+      
+      enhancedContent = enhancedContext;
+      hasKnowledgeResults = hasResults;
+    }
+
     // Basic subject-specific responses, now informed by promptPersona
     let content = '';
     
@@ -33,6 +50,8 @@ class AthroService {
     const systemPrompt = `${promptPersona}
     
 The student has asked: "${message}"
+
+${enhancedContent ? `\n\n${enhancedContent}\n\n` : ''}
 
 Please provide a helpful response that stays in character, addresses the student's question, and provides subject-specific assistance.
 `;
@@ -66,6 +85,11 @@ Please provide a helpful response that stays in character, addresses the student
     }
     else {
       content = `I'm here to help with your ${subject} studies. Let me guide you through this question step by step.`;
+    }
+
+    // Add knowledge base attribution if results were found
+    if (hasKnowledgeResults) {
+      content += '\n\nMy answer includes information from our trusted knowledge base.';
     }
 
     // Exam board specific help
