@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, MessageSquare, BookOpen, Star, Download } from 'lucide-react';
+import { FileText, MessageSquare, BookOpen, Star, Download, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,7 @@ import { Submission, Assignment } from '@/types/assignment';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const StudentFeedbackPage: React.FC = () => {
   const { state } = useAuth();
@@ -21,6 +22,11 @@ const StudentFeedbackPage: React.FC = () => {
     assignment: Assignment;
   }>>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFeedback, setSelectedFeedback] = useState<{
+    submission: Submission;
+    assignment: Assignment;
+  } | null>(null);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
 
   useEffect(() => {
     const loadFeedback = async () => {
@@ -60,6 +66,11 @@ const StudentFeedbackPage: React.FC = () => {
     
     loadFeedback();
   }, [user?.id]);
+
+  const viewFeedbackDetails = (item: { submission: Submission; assignment: Assignment }) => {
+    setSelectedFeedback(item);
+    setFeedbackDialogOpen(true);
+  };
 
   if (loading) {
     return (
@@ -108,7 +119,7 @@ const StudentFeedbackPage: React.FC = () => {
           const scorePercentage = Math.round((score / outOf) * 100);
           
           return (
-            <Card key={submission.id} className="mb-6">
+            <Card key={submission.id} className="mb-6 hover:border-blue-200 transition-colors cursor-pointer" onClick={() => viewFeedbackDetails({ submission, assignment })}>
               <CardHeader>
                 <div className="flex flex-wrap justify-between items-start gap-2">
                   <div>
@@ -121,14 +132,23 @@ const StudentFeedbackPage: React.FC = () => {
                     </CardDescription>
                   </div>
                   
-                  <Badge className={`${
-                    scorePercentage >= 80 ? 'bg-green-100 text-green-800' :
-                    scorePercentage >= 65 ? 'bg-blue-100 text-blue-800' :
-                    scorePercentage >= 50 ? 'bg-amber-100 text-amber-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    Score: {score}/{outOf}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge className={`${
+                      scorePercentage >= 80 ? 'bg-green-100 text-green-800' :
+                      scorePercentage >= 65 ? 'bg-blue-100 text-blue-800' :
+                      scorePercentage >= 50 ? 'bg-amber-100 text-amber-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      Score: {score}/{outOf}
+                    </Badge>
+
+                    {submission.status === 'returned' && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Feedback Available</span>
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               
@@ -144,53 +164,117 @@ const StudentFeedbackPage: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-medium mb-1 flex items-center">
                     <Star className="h-4 w-4 mr-1 text-amber-500" />
-                    Submission Date
+                    Feedback Date
                   </h3>
                   <p className="text-sm text-gray-700">
-                    {format(new Date(submission.submittedAt), 'MMMM d, yyyy')}
+                    {submission.teacherFeedback?.markedAt ? 
+                      format(new Date(submission.teacherFeedback.markedAt), 'MMMM d, yyyy') : 
+                      'Pending'}
                   </p>
                 </div>
                 
-                {submission.teacherFeedback && (
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <h3 className="text-sm font-medium mb-2">Teacher Feedback</h3>
-                    <p className="text-sm">{submission.teacherFeedback.comment}</p>
-                  </div>
-                )}
-                
-                {submission.aiFeedback && (
-                  <div className="bg-blue-50 p-4 rounded-md">
-                    <h3 className="text-sm font-medium mb-2">AI Feedback</h3>
-                    <p className="text-sm">{submission.aiFeedback.comment}</p>
-                  </div>
-                )}
-                
-                <div className="flex justify-between pt-2">
-                  {(submission.answers as any).fileUrls && (
-                    <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download My Submission
-                    </Button>
-                  )}
-                  
+                <div className="flex justify-end pt-2">
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => {
-                      toast({
-                        title: "Ask for clarification",
-                        description: "Your teacher will be notified about your question"
-                      });
-                    }}
+                    className="flex items-center gap-2"
                   >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Ask for Clarification
+                    <MessageSquare className="h-4 w-4" />
+                    View Feedback Details
                   </Button>
                 </div>
               </CardContent>
             </Card>
           )
         })
+      )}
+
+      {/* Feedback Details Dialog */}
+      {selectedFeedback && (
+        <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{selectedFeedback.assignment.title} - Feedback</DialogTitle>
+              <DialogDescription>
+                Feedback for your submission on {format(new Date(selectedFeedback.submission.submittedAt), 'MMMM d, yyyy')}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="text-sm">
+                  <span className="font-medium">Subject:</span> {selectedFeedback.assignment.subject}
+                  {selectedFeedback.assignment.topic && ` - ${selectedFeedback.assignment.topic}`}
+                </div>
+                
+                <Badge className={`${
+                  (selectedFeedback.submission.teacherFeedback?.rating === 'excellent') ? 'bg-green-100 text-green-800' :
+                  (selectedFeedback.submission.teacherFeedback?.rating === 'good') ? 'bg-blue-100 text-blue-800' :
+                  'bg-amber-100 text-amber-800'
+                }`}>
+                  {selectedFeedback.submission.teacherFeedback?.rating?.replace('_', ' ') || 'Unrated'}
+                </Badge>
+              </div>
+              
+              <div>
+                <div className="text-sm font-medium mb-1">Score</div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>{selectedFeedback.submission.teacherFeedback?.score || 0} out of {selectedFeedback.submission.teacherFeedback?.outOf || 10}</span>
+                  <span>{Math.round(((selectedFeedback.submission.teacherFeedback?.score || 0) / 
+                    (selectedFeedback.submission.teacherFeedback?.outOf || 10)) * 100)}%</span>
+                </div>
+                <Progress 
+                  value={Math.round(((selectedFeedback.submission.teacherFeedback?.score || 0) / 
+                    (selectedFeedback.submission.teacherFeedback?.outOf || 10)) * 100)} 
+                  className="h-2" 
+                />
+              </div>
+              
+              <div>
+                <div className="text-sm font-medium mb-1">Teacher Feedback</div>
+                <div className="p-4 bg-gray-50 rounded-md whitespace-pre-wrap text-sm">
+                  {selectedFeedback.submission.teacherFeedback?.comment || 'No written feedback provided.'}
+                </div>
+              </div>
+              
+              {selectedFeedback.submission.aiFeedback && (
+                <div className="border-t pt-4">
+                  <div className="text-sm font-medium mb-1 flex items-center">
+                    <Badge variant="outline" className="bg-purple-50 text-purple-800 border-purple-200 mr-2">AI</Badge>
+                    Additional AI Feedback
+                  </div>
+                  <div className="p-4 bg-purple-50 rounded-md whitespace-pre-wrap text-sm">
+                    {selectedFeedback.submission.aiFeedback.comment}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-between pt-4">
+                {/* File download if available */}
+                {'fileUrls' in selectedFeedback.submission.answers && (
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download My Submission
+                  </Button>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    toast({
+                      title: "Ask for clarification",
+                      description: "Your teacher will be notified about your question"
+                    });
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Ask for Clarification
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

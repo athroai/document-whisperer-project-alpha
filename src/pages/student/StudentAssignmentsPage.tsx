@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Clock, FileDown, Upload, CheckCircle, AlertCircle, FileCheck, Eye, Play } from 'lucide-react';
+import { Calendar, Clock, FileDown, Upload, CheckCircle, AlertCircle, FileCheck, Eye, Play, MessageSquare } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { assignmentService } from '@/services/assignmentService';
@@ -83,6 +83,7 @@ const StudentAssignmentsPage: React.FC = () => {
   const renderAssignmentStatus = (assignment: StudentAssignmentView) => {
     if (assignment.hasSubmitted) {
       if (assignment.hasFeedback) {
+        // Enhanced badge for feedback available
         return (
           <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
             <CheckCircle className="h-3 w-3 mr-1" />
@@ -90,6 +91,16 @@ const StudentAssignmentsPage: React.FC = () => {
           </Badge>
         );
       }
+      
+      if (assignment.submission?.status === "returned") {
+        return (
+          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+            <MessageSquare className="h-3 w-3 mr-1" />
+            <span>Feedback available</span>
+          </Badge>
+        );
+      }
+      
       return (
         <Badge variant="secondary">
           <FileCheck className="h-3 w-3 mr-1" />
@@ -213,10 +224,10 @@ const StudentAssignmentsPage: React.FC = () => {
           
           <div className="flex gap-2">
             {assignment.hasSubmitted ? (
-              assignment.hasFeedback ? (
+              assignment.hasFeedback || assignment.submission?.status === "returned" ? (
                 <Link to={`/student/feedback`}>
-                  <Button variant="outline" size="sm">
-                    <Eye className="mr-2 h-4 w-4" />
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
                     View Feedback
                   </Button>
                 </Link>

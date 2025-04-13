@@ -11,10 +11,19 @@ import { toast } from '@/components/ui/use-toast';
 import { Submission, FeedbackData, Assignment } from '@/types/assignment';
 import { assignmentService } from '@/services/assignmentService';
 import { useAuth } from '@/contexts/AuthContext';
-import { ClipboardCheck, Search, Clock, AlertTriangle } from 'lucide-react';
+import { ClipboardCheck, Search, Clock, AlertTriangle, CheckCircle, Filter } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import MarkingDetailsView from '@/components/marking/MarkingDetailsView';
 import { AssignmentStatusBadge } from '@/components/assignment/AssignmentStatusBadge';
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 
 const TeacherMarkingPanel: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -29,6 +38,7 @@ const TeacherMarkingPanel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(assignmentIdFromUrl);
+  const [statusFilter, setStatusFilter] = useState<"submitted" | "marked" | "returned" | "all">("all");
   
   // Mock student data (would come from API in real app)
   const studentsMock = {
@@ -69,6 +79,11 @@ const TeacherMarkingPanel: React.FC = () => {
           submissionFilter.status = "returned";
         }
         
+        // Apply additional status filter if not 'all'
+        if (statusFilter !== "all" && !submissionFilter.status) {
+          submissionFilter.status = statusFilter;
+        }
+        
         const fetchedSubmissions = await assignmentService.getSubmissions(submissionFilter);
         setSubmissions(fetchedSubmissions);
         
@@ -89,33 +104,11 @@ const TeacherMarkingPanel: React.FC = () => {
     };
     
     loadData();
-  }, [user?.id, activeTab, selectedAssignmentId, selectedSubmission]);
+  }, [user?.id, activeTab, selectedAssignmentId, selectedSubmission, statusFilter]);
   
   const handleSubmitFeedback = () => {
     // Reset selected submission to trigger reload
     setSelectedSubmission(null);
-  };
-  
-  const handleReturnToStudents = async () => {
-    if (!selectedSubmission) return;
-    
-    try {
-      await assignmentService.returnSubmission(selectedSubmission.id);
-      toast({
-        title: "Submission returned",
-        description: "Feedback has been returned to the student."
-      });
-      
-      // Refresh submissions
-      setSelectedSubmission(null);
-    } catch (error) {
-      console.error('Error returning submission:', error);
-      toast({
-        title: "Error",
-        description: "Failed to return submission. Please try again.",
-        variant: "destructive"
-      });
-    }
   };
   
   const filteredSubmissions = submissions.filter(submission => {
@@ -136,6 +129,29 @@ const TeacherMarkingPanel: React.FC = () => {
   
   const getStudentName = (id: string) => {
     return studentsMock[id] || 'Unknown Student';
+  };
+  
+  const getStatusBadge = (status: "submitted" | "marked" | "returned") => {
+    switch(status) {
+      case "submitted":
+        return (
+          <Badge className="bg-amber-100 text-amber-800 flex items-center gap-1">
+            <AlertTriangle size={12} /> Under Review
+          </Badge>
+        );
+      case "marked":
+        return (
+          <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+            <ClipboardCheck size={12} /> Marked
+          </Badge>
+        );
+      case "returned":
+        return (
+          <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+            <CheckCircle size={12} /> Returned
+          </Badge>
+        );
+    }
   };
   
   const renderSubmissionsList = () => {
@@ -183,7 +199,7 @@ const TeacherMarkingPanel: React.FC = () => {
               <h4 className="text-base font-medium">{getStudentName(submission.submittedBy)}</h4>
               <p className="text-sm text-gray-500">{getAssignmentTitle(submission.assignmentId)}</p>
             </div>
-            <AssignmentStatusBadge status={submission.status} />
+            {getStatusBadge(submission.status)}
           </div>
         </CardContent>
       </Card>
@@ -212,30 +228,49 @@ const TeacherMarkingPanel: React.FC = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                {selectedSubmission && activeTab === "marked" && (
-                  <Button onClick={handleReturnToStudents}>
-                    Return to Student
-                  </Button>
-                )}
               </div>
               
-              <div className="mb-4">
-                <label htmlFor="assignment-filter" className="block text-sm font-medium text-gray-700 mb-1">
-                  Filter by Assignment
-                </label>
-                <select
-                  id="assignment-filter"
-                  className="w-full p-2 border rounded-md"
-                  value={selectedAssignmentId || ""}
-                  onChange={(e) => setSelectedAssignmentId(e.target.value || null)}
-                >
-                  <option value="">All Assignments</option>
-                  {assignments.map(assignment => (
-                    <option key={assignment.id} value={assignment.id}>
-                      {assignment.title}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label htmlFor="assignment-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Assignment
+                  </label>
+                  <Select 
+                    value={selectedAssignmentId || ""} 
+                    onValueChange={(value) => setSelectedAssignmentId(value || null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Assignments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Assignments</SelectItem>
+                      {assignments.map(assignment => (
+                        <SelectItem key={assignment.id} value={assignment.id}>
+                          {assignment.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <Select 
+                    value={statusFilter} 
+                    onValueChange={(value) => setStatusFilter(value as any)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="submitted">Under Review</SelectItem>
+                      <SelectItem value="marked">Marked</SelectItem>
+                      <SelectItem value="returned">Returned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
@@ -249,14 +284,14 @@ const TeacherMarkingPanel: React.FC = () => {
                     Marked
                   </TabsTrigger>
                   <TabsTrigger value="returned" className="flex-1">
-                    <Clock className="mr-2 h-4 w-4" />
+                    <CheckCircle className="mr-2 h-4 w-4" />
                     Returned
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
             
-            <div className="space-y-3 h-[calc(100vh-370px)] overflow-y-auto pr-2">
+            <div className="space-y-3 h-[calc(100vh-430px)] overflow-y-auto pr-2">
               {renderSubmissionsList()}
             </div>
           </div>

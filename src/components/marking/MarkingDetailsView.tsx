@@ -10,6 +10,8 @@ import { assignmentService } from '@/services/assignmentService';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Send } from 'lucide-react';
 
 interface MarkingDetailsViewProps {
   submission: Submission;
@@ -31,6 +33,7 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
   const [feedback, setFeedback] = useState<string>(submission.teacherFeedback?.comment || "");
   const [score, setScore] = useState<number>(submission.teacherFeedback?.score || 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   const handleSubmitFeedback = async () => {
     if (!user?.id) return;
@@ -49,7 +52,7 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
       await assignmentService.markSubmission(submission.id, feedbackData);
       toast({
         title: "Feedback submitted",
-        description: "The student will be notified of your feedback."
+        description: "The feedback has been saved. You can return it to the student when ready."
       });
       onSubmitFeedback();
     } catch (error) {
@@ -57,6 +60,28 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
       toast({
         title: "Error",
         description: "Failed to submit feedback. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReturnToStudent = async () => {
+    setIsSubmitting(true);
+    try {
+      await assignmentService.returnSubmission(submission.id);
+      toast({
+        title: "Feedback returned",
+        description: "The feedback has been returned to the student."
+      });
+      onSubmitFeedback();
+      setConfirmDialogOpen(false);
+    } catch (error) {
+      console.error('Error returning feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to return feedback. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -81,7 +106,7 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
       'fileUrls' in submission.answers && 
       'fileNames' in submission.answers
     ) {
-      // Now TypeScript knows this is a FileUploadAnswer
+      // Cast to FileUploadAnswer to avoid TypeScript errors
       const fileAnswer = submission.answers;
       return (
         <div>
@@ -140,9 +165,22 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
           <h2 className="text-xl font-bold">{assignmentTitle}</h2>
           <p className="text-gray-500">Submitted by: {studentName}</p>
         </div>
-        <p className="text-sm text-gray-500">
-          Submitted on: {new Date(submission.submittedAt).toLocaleDateString()}
-        </p>
+        <div className="flex flex-col items-end">
+          <p className="text-sm text-gray-500 mb-1">
+            Submitted on: {new Date(submission.submittedAt).toLocaleDateString()}
+          </p>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">Status:</span>
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+              submission.status === 'submitted' ? 'bg-amber-100 text-amber-800' :
+              submission.status === 'marked' ? 'bg-blue-100 text-blue-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {submission.status === 'submitted' ? 'Under Review' : 
+               submission.status === 'marked' ? 'Marked' : 'Returned'}
+            </span>
+          </div>
+        </div>
       </div>
 
       <Card>
@@ -158,7 +196,7 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
         <Card className="border-purple-200">
           <CardHeader className="bg-purple-50 border-b border-purple-200">
             <div className="flex justify-between items-center">
-              <CardTitle className="text-lg text-purple-800">AI Feedback</CardTitle>
+              <CardTitle className="text-lg text-purple-800">AI Feedback Suggestions</CardTitle>
               <div className="flex items-center space-x-2">
                 <Switch 
                   id="use-ai-feedback" 
@@ -171,7 +209,7 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
           </CardHeader>
           <CardContent className="pt-4">
             <div>
-              <p className="mb-2"><strong>Score:</strong> {submission.aiFeedback.score}/10</p>
+              <p className="mb-2"><strong>Suggested Score:</strong> {submission.aiFeedback.score}/10</p>
               <p className="whitespace-pre-wrap">{submission.aiFeedback.comment}</p>
             </div>
           </CardContent>
@@ -232,12 +270,42 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
             />
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end border-t pt-4">
+        <CardFooter className="flex justify-between border-t pt-4">
+          <div>
+            {submission.status === 'marked' && (
+              <Button 
+                variant="outline" 
+                onClick={() => setConfirmDialogOpen(true)}
+                disabled={isSubmitting}
+                className="flex items-center gap-2"
+              >
+                <Send size={16} />
+                Return to Student
+              </Button>
+            )}
+          </div>
           <Button onClick={handleSubmitFeedback} disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Send Feedback"}
+            {isSubmitting ? "Submitting..." : "Save Feedback"}
           </Button>
         </CardFooter>
       </Card>
+
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Return Feedback to Student?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will make your feedback visible to the student. Are you sure you want to return this feedback now?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReturnToStudent} disabled={isSubmitting}>
+              {isSubmitting ? "Returning..." : "Return Feedback"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
