@@ -9,6 +9,7 @@ import TeacherMarkingPage from '@/pages/teacher/TeacherMarkingPage';
 import TeacherStudentProfilesPage from '@/pages/teacher/TeacherStudentProfilesPage';
 import TeacherInsightsPage from '@/pages/teacher/TeacherInsightsPage';
 import TeacherResourceDeployPage from '@/pages/teacher/TeacherResourceDeployPage';
+import TeacherParentInquiriesPage from '@/pages/teacher/TeacherParentInquiriesPage';
 import NotFound from '@/pages/NotFound';
 
 interface TeacherDashboardLayoutProps {
@@ -48,7 +49,7 @@ const TeacherDashboardLayout: React.FC<TeacherDashboardLayoutProps> = ({ childre
       case 'assign':
         return <div className="p-6">Assign Work Panel</div>;
       case 'inquiries':
-        return <div className="p-6">Parent Inquiries Panel</div>;
+        return <TeacherParentInquiriesPage />;
       case 'system':
         return <div className="p-6">System Tools Panel</div>;
       default:

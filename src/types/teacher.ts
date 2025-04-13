@@ -64,12 +64,18 @@ export interface AssignedTask {
 }
 
 export interface ParentMessage {
+  id: string;
+  parentName: string;
   parentEmail: string;
   studentId: string;
-  teacherId: string;
+  teacherId?: string;
   message: string;
   reply?: string;
   timestamp: string;
+  status: 'unread' | 'read' | 'replied';
+  topic: string;  // e.g., "Progress", "Wellbeing", "Homework"
+  assignedTo: string | null;
+  classId: string;
 }
 
 export interface StudentDetail {

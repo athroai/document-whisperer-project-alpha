@@ -25,6 +25,7 @@ import TeacherInsightsPage from "./pages/teacher/TeacherInsightsPage";
 import TeacherAssignPage from "./pages/teacher/TeacherAssignPage";
 import TeacherMarkingPanel from "./pages/teacher/TeacherMarkingPanel"; 
 import TeacherResourceDeployPage from "./pages/teacher/TeacherResourceDeployPage"; 
+import TeacherParentInquiriesPage from "./pages/teacher/TeacherParentInquiriesPage";
 import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
 import StudentFeedbackPage from "./pages/student/StudentFeedbackPage";
 import StudentAssignmentViewPage from "./pages/student/StudentAssignmentViewPage";
@@ -166,6 +167,14 @@ function App() {
         element={
           <ProtectedRoute requiredRole="teacher" requireLicense={true}>
             <TeacherMarkingPanel />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/inquiries"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherParentInquiriesPage />
           </ProtectedRoute>
         }
       />

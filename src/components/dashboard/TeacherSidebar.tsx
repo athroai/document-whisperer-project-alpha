@@ -15,15 +15,17 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { UnreadInquiriesBadge } from '@/components/teacher/UnreadInquiriesBadge';
 
 interface SidebarItemProps {
   icon: React.ElementType;
   label: string;
   href: string;
   isActive: boolean;
+  badge?: React.ReactNode;
 }
 
-const SidebarItem = ({ icon: Icon, label, href, isActive }: SidebarItemProps) => {
+const SidebarItem = ({ icon: Icon, label, href, isActive, badge }: SidebarItemProps) => {
   const location = useLocation();
   
   return (
@@ -36,6 +38,7 @@ const SidebarItem = ({ icon: Icon, label, href, isActive }: SidebarItemProps) =>
     >
       <Icon size={18} className={cn("text-gray-500", isActive && "text-purple-700")} />
       <span>{label}</span>
+      {badge}
     </Link>
   );
 };
@@ -57,7 +60,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
     { icon: Upload, label: 'Resource Deploy', href: '/teacher/deploy' },
     { icon: FileText, label: 'Assign Work', href: '/teacher/assign' },
     { icon: UserCircle, label: 'Student Profiles', href: '/teacher/profiles' },
-    { icon: Mail, label: 'Parent Inquiries', href: '/teacher/inquiries' },
+    { icon: Mail, label: 'Parent Inquiries', href: '/teacher/inquiries', badge: <UnreadInquiriesBadge /> },
     { icon: BarChart3, label: 'Insights', href: '/teacher/insights' },
     { icon: Settings, label: 'System Tools', href: '/teacher/system' },
   ];
@@ -85,6 +88,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
             isActive={location.pathname === item.href || 
                      (item.href !== '/teacher' && 
                       location.pathname.includes(item.href.split('/').pop() || ''))}
+            badge={item.badge}
           />
         ))}
       </div>
