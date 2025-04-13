@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -31,7 +30,7 @@ const Navigation: React.FC = () => {
 
   // Nav items for teachers and admins
   const teacherNavItems = [
-    { name: 'Dashboard', path: '/teacher-dashboard', icon: Presentation }
+    { name: 'Dashboard', path: '/teacher', icon: Presentation }
   ];
 
   // Select the appropriate nav items based on user role
@@ -52,7 +51,7 @@ const Navigation: React.FC = () => {
   return (
     <nav className="bg-white shadow-md py-4 px-6">
       <div className="container mx-auto flex justify-between items-center">
-        <Link to={user ? (user.role === 'teacher' || user.role === 'admin' ? '/teacher-dashboard' : '/athro/select') : '/'} className="flex items-center space-x-2">
+        <Link to={user ? (user.role === 'teacher' || user.role === 'admin' ? '/teacher' : '/athro/select') : '/'} className="flex items-center space-x-2">
           <span className="text-xl font-bold text-purple-700">Athro AI</span>
         </Link>
         

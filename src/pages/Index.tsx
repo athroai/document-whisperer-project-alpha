@@ -15,7 +15,7 @@ const Index = () => {
       if (user) {
         // If user is logged in, redirect based on role
         if (user.role === 'teacher' || user.role === 'admin') {
-          navigate('/teacher-dashboard', { replace: true });
+          navigate('/teacher', { replace: true }); // Changed from '/teacher-dashboard' to '/teacher'
         } else {
           navigate('/athro/select', { replace: true });
         }
@@ -30,7 +30,7 @@ const Index = () => {
   const handleManualRedirect = () => {
     if (user) {
       if (user.role === 'teacher' || user.role === 'admin') {
-        navigate('/teacher-dashboard', { replace: true });
+        navigate('/teacher', { replace: true }); // Changed from '/teacher-dashboard' to '/teacher'
       } else {
         navigate('/athro/select', { replace: true });
       }

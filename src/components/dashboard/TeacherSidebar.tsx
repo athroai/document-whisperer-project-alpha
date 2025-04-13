@@ -50,7 +50,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
   const location = useLocation();
 
   const sidebarItems = [
-    { icon: Home, label: 'Dashboard', href: '/teacher-dashboard' },
+    { icon: Home, label: 'Dashboard', href: '/teacher' }, // Changed from '/teacher-dashboard'
     { icon: Users, label: 'My Sets', href: '/teacher/sets' },
     { icon: Bell, label: 'Notifications', href: '/teacher/notifications' },
     { icon: FileCheck, label: 'Marking Panel', href: '/teacher/marking' },
@@ -83,7 +83,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
             label={item.label}
             href={item.href}
             isActive={location.pathname === item.href || 
-                     (item.href !== '/teacher-dashboard' && 
+                     (item.href !== '/teacher' && 
                       location.pathname.includes(item.href.split('/').pop() || ''))}
           />
         ))}
