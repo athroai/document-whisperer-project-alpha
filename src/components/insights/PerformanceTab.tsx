@@ -47,8 +47,8 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ teacherId, filter, load
           const subjectsData = await insightsService.getSubjectPerformance(teacherId, filter);
           setSubjectPerformance(subjectsData);
           
-          // Fetch student performance data
-          const studentsData = await insightsService.getStudentPerformance(teacherId, filter.classId);
+          // Fetch student performance data - pass the entire filter object instead of just classId
+          const studentsData = await insightsService.getStudentPerformance(teacherId, filter);
           setStudentPerformance(studentsData);
           
         } catch (error) {
