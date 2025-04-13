@@ -30,24 +30,27 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         
         // Get the full character config to access promptPersona
         const characterConfig = getAthroById(character.id);
-        const promptPersona = characterConfig?.promptPersona || 
+        if (!characterConfig) {
+          throw new Error(`Character configuration not found for ID: ${character.id}`);
+        }
+        
+        const promptPersona = characterConfig.promptPersona || 
           `You are ${character.name}, a mentor for GCSE students specializing in ${character.subject}.`;
         
         console.log(`[AthroRouter] Using prompt persona: ${promptPersona.substring(0, 50)}...`);
         
         // Add mock enrollment information to the context if needed
+        let enhancedContext = {
+          ...context,
+          promptPersona
+        };
+        
         if (isMockEnrollment) {
           console.log('[AthroRouter] Using mock enrollment context');
-          context = {
-            ...context,
+          enhancedContext = {
+            ...enhancedContext,
             isMockEnrollment: true,
-            mockClass: `Mock Class: ${character.subject}`,
-            promptPersona
-          };
-        } else {
-          context = {
-            ...context,
-            promptPersona
+            mockClass: `Mock Class: ${character.subject}`
           };
         }
         
@@ -89,15 +92,14 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
           subjectContext = { subjectSection: context.subjectSection };
         }
         
-        // Use the athroService directly instead of mockAthroResponse
+        // Use the athroService to generate a persona-driven response
         const response = await athroService.generateResponse(
           message,
           character.subject,
           character.examBoards[0],
           {
             ...subjectContext,
-            ...(isMockEnrollment ? { isMockSession: true } : {}),
-            promptPersona
+            ...enhancedContext
           }
         );
         

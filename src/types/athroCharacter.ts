@@ -1,3 +1,4 @@
+
 import { AthroSubject, AthroLanguage, ExamBoard } from './athro';
 
 export interface AthroCharacterConfig {
@@ -67,5 +68,17 @@ export interface SubjectData {
     topic: string;
     score: number;
     date: string;
+  }[];
+}
+
+export interface AthroCharacterContext extends AthroCharacterConfig {
+  isActive: boolean;
+  currentTopic?: string;
+  confidenceScore?: number;
+  lastInteraction?: string;
+  sessionHistory?: {
+    date: string;
+    duration: number;
+    topics: string[];
   }[];
 }

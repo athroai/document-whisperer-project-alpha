@@ -1,7 +1,9 @@
+
 import { AthroMessage, ExamBoard } from '@/types/athro';
 import { frenchPastPapers } from '@/data/athro-languages/past-papers/french';
 import { germanPastPapers } from '@/data/athro-languages/past-papers/german';
 import { spanishPastPapers } from '@/data/athro-languages/past-papers/spanish';
+import { getAthroBySubject } from '@/config/athrosConfig';
 
 class AthroService {
   async generateResponse(
@@ -18,6 +20,13 @@ class AthroService {
     
     console.log(`[AthroService] Using prompt persona: ${promptPersona.substring(0, 50)}...`);
 
+    // Check if the question is out of scope for this character
+    const isOutOfScope = this.isOutOfSubjectScope(message, subject);
+    
+    if (isOutOfScope.outOfScope) {
+      return this.generateOutOfScopeResponse(subject, isOutOfScope.detectedSubject);
+    }
+
     // Basic subject-specific responses, now informed by promptPersona
     let content = '';
     
@@ -33,90 +42,28 @@ Please provide a helpful response that stays in character, addresses the student
 
     // For mock purposes, we'll simulate responses based on the subject and prompt persona
     if (subject === 'Mathematics') {
-      content = 'Looking at your mathematics question, I can help break this down step-by-step. ';
-      
-      if (message.toLowerCase().includes('algebra')) {
-        content += 'For algebraic problems, we need to identify the variables and operations. Let me show you how to approach this...';
-      } else if (message.toLowerCase().includes('geometry')) {
-        content += 'This geometry question involves spatial reasoning. Let\'s analyze the shapes and measurements provided...';
-      } else {
-        content += 'Let\'s work through this systematically, making sure we understand what\'s being asked before applying the relevant formulas.';
-      }
+      content = this.generateMathematicsResponse(message, promptPersona);
     } 
     else if (subject === 'Science') {
-      content = 'That\'s an interesting science question. ';
-      
-      if (context?.subjectSection === 'biology') {
-        content += 'From a biological perspective, I can explain how this process works in living organisms...';
-      } else if (context?.subjectSection === 'chemistry') {
-        content += 'Looking at the chemical properties involved, we can analyze this reaction...';
-      } else if (context?.subjectSection === 'physics') {
-        content += 'Applying physics principles, we can calculate the forces and energy involved...';
-      } else {
-        content += 'Let\'s examine the scientific principles at work and how they apply to your question.';
-      }
+      content = this.generateScienceResponse(message, context?.subjectSection, promptPersona);
     }
     else if (subject === 'English') {
-      content = 'Let\'s analyze this text thoughtfully. ';
-      
-      if (message.toLowerCase().includes('shakespeare') || message.toLowerCase().includes('macbeth') || message.toLowerCase().includes('romeo')) {
-        content += 'When interpreting Shakespeare, we need to consider both the language of the time and the dramatic context...';
-      } else if (message.toLowerCase().includes('poetry') || message.toLowerCase().includes('poem')) {
-        content += 'Poetry analysis requires us to look at structure, form, and language. Let\'s break down the key techniques...';
-      } else {
-        content += 'I\'ll guide you through analyzing the author\'s craft and the effect on the reader.';
-      }
+      content = this.generateEnglishResponse(message, promptPersona);
     }
     else if (subject === 'Languages') {
-      if (context?.subjectSection === 'french') {
-        content = 'Pour pratiquer le français, examinons cette question ensemble. ';
-        content += 'En français, nous devons faire attention à la grammaire et au vocabulaire approprié...';
-      } else if (context?.subjectSection === 'german') {
-        content = 'Lassen Sie uns gemeinsam Deutsch üben. ';
-        content += 'In der deutschen Sprache müssen wir auf die Grammatik und den richtigen Wortschatz achten...';
-      } else if (context?.subjectSection === 'spanish') {
-        content = 'Practiquemos español juntos. ';
-        content += 'En español, debemos prestar atención a la gramática y el vocabulario adecuado...';
-      } else {
-        content = 'Let\'s work on your language skills together. It\'s important to practice regularly and immerse yourself in the language.';
-      }
+      content = this.generateLanguagesResponse(message, context?.subjectSection, promptPersona);
     }
     else if (subject === 'Welsh') {
-      content = 'Gadewch i ni edrych ar hyn yn Gymraeg. ';
-      content += 'When working with Welsh language questions, I can help you with vocabulary, grammar, and proper expressions.';
+      content = this.generateWelshResponse(message, promptPersona);
     }
     else if (subject === 'History') {
-      content = 'To understand this historical question, we need to examine the context, causes, and consequences. ';
-      
-      if (message.toLowerCase().includes('world war')) {
-        content += 'World War events require us to consider international relations, military strategy, and social impacts...';
-      } else if (message.toLowerCase().includes('medieval') || message.toLowerCase().includes('tudor')) {
-        content += 'Medieval and Tudor history involves understanding power structures, religious influences, and everyday life...';
-      } else {
-        content += 'Let\'s create a timeline of key events and analyze their significance.';
-      }
+      content = this.generateHistoryResponse(message, promptPersona);
     }
     else if (subject === 'Geography') {
-      content = 'This geography question touches on important processes and systems. ';
-      
-      if (message.toLowerCase().includes('climate') || message.toLowerCase().includes('weather')) {
-        content += 'Climate systems are complex interactions between the atmosphere, oceans, and land. Let\'s analyze the patterns...';
-      } else if (message.toLowerCase().includes('population') || message.toLowerCase().includes('urban')) {
-        content += 'Human geography looks at population patterns, urban development, and cultural regions...';
-      } else {
-        content += 'Let\'s examine the geographical factors and their relationships to understand this topic fully.';
-      }
+      content = this.generateGeographyResponse(message, promptPersona);
     }
     else if (subject === 'Religious Education') {
-      content = 'When examining religious and ethical questions, it\'s important to consider multiple perspectives. ';
-      
-      if (message.toLowerCase().includes('christianity') || message.toLowerCase().includes('jesus')) {
-        content += 'In Christianity, this concept relates to core teachings about faith, love, and community...';
-      } else if (message.toLowerCase().includes('islam') || message.toLowerCase().includes('muslim')) {
-        content += 'Islamic teachings on this subject emphasize the importance of submission to Allah and the five pillars...';
-      } else {
-        content += 'Let\'s explore different religious and non-religious viewpoints to develop a balanced understanding.';
-      }
+      content = this.generateREResponse(message, promptPersona);
     }
     else {
       content = `I'm here to help with your ${subject} studies. Let me guide you through this question step by step.`;
@@ -144,6 +91,227 @@ Please provide a helpful response that stays in character, addresses the student
     };
 
     return aiMessage;
+  }
+
+  // New method to check if a question is outside a character's subject scope
+  isOutOfSubjectScope(message: string, currentSubject: string): { outOfScope: boolean, detectedSubject?: string } {
+    const lowerMessage = message.toLowerCase();
+    
+    // Keywords that strongly indicate subject areas
+    const subjectKeywords: Record<string, string[]> = {
+      'Mathematics': ['algebra', 'equation', 'geometry', 'calculus', 'trigonometry', 'statistics', 'probability', 'quadratic'],
+      'Science': ['biology', 'chemistry', 'physics', 'atom', 'cell', 'molecule', 'element', 'reaction', 'force', 'energy'],
+      'English': ['shakespeare', 'novel', 'poem', 'poetry', 'literature', 'essay', 'grammar', 'creative writing', 'character analysis'],
+      'Languages': ['french', 'german', 'spanish', 'vocabulary', 'conjugation', 'translate', 'verbs'],
+      'Welsh': ['cymraeg', 'welsh language', 'welsh culture'],
+      'History': ['world war', 'middle ages', 'tudor', 'medieval', 'revolution', 'historic', 'empire', 'monarchy', 'timeline'],
+      'Geography': ['climate', 'map', 'countries', 'continent', 'river', 'mountain', 'population', 'erosion', 'tectonic'],
+      'Religious Education': ['religion', 'christianity', 'islam', 'judaism', 'buddhism', 'ethics', 'philosophy', 'moral', 'belief']
+    };
+    
+    // Don't detect out of scope for very short messages or greetings
+    if (message.length < 15 || 
+        lowerMessage.includes('hello') || 
+        lowerMessage.includes('hi') || 
+        lowerMessage.includes('hey')) {
+      return { outOfScope: false };
+    }
+    
+    // Check for strong indicators of other subjects
+    for (const [subject, keywords] of Object.entries(subjectKeywords)) {
+      if (subject !== currentSubject) {
+        // Check if any keywords from another subject appear in the message
+        const matchCount = keywords.filter(keyword => lowerMessage.includes(keyword)).length;
+        
+        // If multiple keywords from another subject are found, suggest it's out of scope
+        if (matchCount >= 2) {
+          return { outOfScope: true, detectedSubject: subject };
+        }
+      }
+    }
+    
+    return { outOfScope: false };
+  }
+
+  // New method to generate responses when a question is out of scope
+  generateOutOfScopeResponse(currentSubject: string, detectedSubject?: string): AthroMessage {
+    let content = '';
+    const redirectAthro = detectedSubject ? `Athro${detectedSubject}` : "another Athro";
+    
+    // Create a friendly, in-character redirection
+    if (currentSubject === 'Mathematics') {
+      content = `I think this question might be outside my mathematical expertise. ${detectedSubject ? `It looks like a ${detectedSubject} question that ${redirectAthro} could help with better.` : "Perhaps another Athro could help you with this?"} Would you like to try asking a maths question instead? I'm here to help you solve equations, work with geometry, analyze data, and much more.`;
+    } 
+    else if (currentSubject === 'Science') {
+      content = `That's an interesting question, but it seems to be outside the realm of scientific inquiry that I specialize in. ${detectedSubject ? `It appears to be more related to ${detectedSubject}, which ${redirectAthro} would be better equipped to address.` : "Another Athro might be better suited to help with this topic."} Is there anything about biology, chemistry, or physics that I can help you explore instead?`;
+    }
+    else if (currentSubject === 'English') {
+      content = `I notice that question isn't quite in the world of literature or language that I focus on. ${detectedSubject ? `It seems more like a ${detectedSubject} question that ${redirectAthro} would be delighted to explore with you.` : "Another Athro might be more helpful with this particular topic."} If you'd like to discuss poetry, prose, creative writing, or language techniques, I'm here to guide you through that!`;
+    }
+    else if (currentSubject === 'Languages') {
+      content = `Pardon, but that question doesn't seem to relate to language learning that I specialize in. ${detectedSubject ? `It appears to be more about ${detectedSubject}, which ${redirectAthro} could help you with.` : "Another Athro might be better positioned to answer your question."} If you'd like help with French, German, or Spanish vocabulary, grammar, or conversation practice, I'm here for you!`;
+    }
+    else if (currentSubject === 'Welsh') {
+      content = `Diolch for your question, but I think it may be outside my area of Welsh language expertise. ${detectedSubject ? `It seems more related to ${detectedSubject}, which ${redirectAthro} could help with.` : "Another Athro might be better suited to help you with this topic."} Would you like to practice Welsh language skills instead?`;
+    }
+    else if (currentSubject === 'History') {
+      content = `That's an interesting question, but it doesn't seem to relate to historical events or analysis that I specialize in. ${detectedSubject ? `It looks more like a ${detectedSubject} question that ${redirectAthro} would be better equipped to explore with you.` : "Another Athro might offer more insight on this topic."} Would you like to discuss a historical period or event instead?`;
+    }
+    else if (currentSubject === 'Geography') {
+      content = `I notice your question might be outside the realm of geographical studies that I focus on. ${detectedSubject ? `It seems more related to ${detectedSubject}, which ${redirectAthro} could help you understand better.` : "Another Athro might be better positioned to address this topic."} If you'd like to explore physical geography, human geography, or environmental systems, I'm here to guide you!`;
+    }
+    else if (currentSubject === 'Religious Education') {
+      content = `Thank you for your question, but I believe it may fall outside the scope of religious studies and ethics that I specialize in. ${detectedSubject ? `It appears to be more related to ${detectedSubject}, which ${redirectAthro} would be better suited to address.` : "Another Athro might offer more valuable insight on this topic."} Would you like to explore religious perspectives, ethical frameworks, or philosophical questions instead?`;
+    }
+    else {
+      content = `I think this question might be outside my area of expertise. ${detectedSubject ? `It seems like ${redirectAthro} might be able to help you better with this ${detectedSubject} question.` : "Perhaps another Athro could help you with this topic."} What would you like to know about ${currentSubject} instead?`;
+    }
+
+    return {
+      id: Date.now().toString(),
+      senderId: 'ai',
+      content: content,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  // Subject-specific response generators
+  generateMathematicsResponse(message: string, promptPersona: string): string {
+    let content = 'Looking at your mathematics question, I can help break this down step-by-step. ';
+    
+    if (message.toLowerCase().includes('algebra')) {
+      content += 'For algebraic problems, we need to identify the variables and operations. Let me show you how to approach this...';
+      content += '\n\nLet\'s square this away by following a logical sequence:';
+    } else if (message.toLowerCase().includes('geometry')) {
+      content += 'This geometry question involves spatial reasoning. Let\'s analyze the shapes and measurements provided...';
+      content += '\n\nI\'ll solve this angle by angle, so you can see each step clearly.';
+    } else {
+      content += 'Let\'s work through this systematically, making sure we understand what\'s being asked before applying the relevant formulas.';
+      content += '\n\nThe key to mathematical success is breaking complex problems into manageable steps.';
+    }
+    
+    return content;
+  }
+  
+  generateScienceResponse(message: string, subjectSection?: string, promptPersona?: string): string {
+    let content = 'That\'s an interesting science question. ';
+    
+    if (subjectSection === 'biology') {
+      content += 'From a biological perspective, I can explain how this process works in living organisms...';
+      content += '\n\nLet\'s break it down atom by atom and explore how these biological systems interact.';
+    } else if (subjectSection === 'chemistry') {
+      content += 'Looking at the chemical properties involved, we can analyze this reaction...';
+      content += '\n\nChemistry is all about transformations - let\'s examine what happens at the molecular level.';
+    } else if (subjectSection === 'physics') {
+      content += 'Applying physics principles, we can calculate the forces and energy involved...';
+      content += '\n\nPhysics helps us understand the fundamental rules of our universe. Let\'s investigate this phenomenon.';
+    } else {
+      content += 'Let\'s examine the scientific principles at work and how they apply to your question.';
+      content += '\n\nScientific inquiry starts with careful observation and analysis. Let\'s approach this methodically.';
+    }
+    
+    return content;
+  }
+  
+  generateEnglishResponse(message: string, promptPersona: string): string {
+    let content = 'Let\'s analyze this text thoughtfully. ';
+    
+    if (message.toLowerCase().includes('shakespeare') || message.toLowerCase().includes('macbeth') || message.toLowerCase().includes('romeo')) {
+      content += 'When interpreting Shakespeare, we need to consider both the language of the time and the dramatic context...';
+      content += '\n\nShakespeare\'s works are layered with meaning. Let\'s explore the themes and character motivations together.';
+    } else if (message.toLowerCase().includes('poetry') || message.toLowerCase().includes('poem')) {
+      content += 'Poetry analysis requires us to look at structure, form, and language. Let\'s break down the key techniques...';
+      content += '\n\nThe poet\'s choice of words creates a tapestry of meaning. Let\'s unravel it line by line.';
+    } else {
+      content += 'I\'ll guide you through analyzing the author\'s craft and the effect on the reader.';
+      content += '\n\nLiterature gives us windows into human experience. Let\'s explore what this text reveals.';
+    }
+    
+    return content;
+  }
+  
+  generateLanguagesResponse(message: string, subjectSection?: string, promptPersona?: string): string {
+    let content = '';
+    
+    if (subjectSection === 'french') {
+      content = 'Pour pratiquer le français, examinons cette question ensemble. ';
+      content += 'En français, nous devons faire attention à la grammaire et au vocabulaire approprié...';
+      content += '\n\nCultural note: In France, language precision is highly valued, which is why verb conjugation is so important.';
+      content += '\n\nGrammar tip: Remember that French adjectives typically come after the noun they modify, unlike in English.';
+    } else if (subjectSection === 'german') {
+      content = 'Lassen Sie uns gemeinsam Deutsch üben. ';
+      content += 'In der deutschen Sprache müssen wir auf die Grammatik und den richtigen Wortschatz achten...';
+      content += '\n\nCultural note: German places great emphasis on precision and structure, which is reflected in both the language and culture.';
+      content += '\n\nGrammar tip: In German sentences, the verb always takes the second position in the main clause.';
+    } else if (subjectSection === 'spanish') {
+      content = 'Practiquemos español juntos. ';
+      content += 'En español, debemos prestar atención a la gramática y el vocabulario adecuado...';
+      content += '\n\nCultural note: Spanish-speaking countries often use different terms for the same objects, reflecting their rich cultural diversity.';
+      content += '\n\nGrammar tip: Unlike English, Spanish uses inverted question marks (¿) at the beginning of questions.';
+    } else {
+      content = 'Let\'s work on your language skills together. It\'s important to practice regularly and immerse yourself in the language.';
+      content += '\n\nLanguage learning is like building a bridge to another culture. Let\'s construct it word by word.';
+    }
+    
+    return content;
+  }
+  
+  generateWelshResponse(message: string, promptPersona: string): string {
+    let content = 'Gadewch i ni edrych ar hyn yn Gymraeg. ';
+    content += 'When working with Welsh language questions, I can help you with vocabulary, grammar, and proper expressions.';
+    content += '\n\nTidy! Welsh is a beautiful language with a rich cultural heritage. Let\'s explore it together.';
+    return content;
+  }
+  
+  generateHistoryResponse(message: string, promptPersona: string): string {
+    let content = 'To understand this historical question, we need to examine the context, causes, and consequences. ';
+    
+    if (message.toLowerCase().includes('world war')) {
+      content += 'World War events require us to consider international relations, military strategy, and social impacts...';
+      content += '\n\nLet\'s create a timeline to see how these events unfolded and influenced each other.';
+    } else if (message.toLowerCase().includes('medieval') || message.toLowerCase().includes('tudor')) {
+      content += 'Medieval and Tudor history involves understanding power structures, religious influences, and everyday life...';
+      content += '\n\nThe past is like a tapestry of interconnected events. Let\'s trace the threads of cause and effect.';
+    } else {
+      content += 'Let\'s create a timeline of key events and analyze their significance.';
+      content += '\n\nHistory helps us understand both where we came from and where we might be heading.';
+    }
+    
+    return content;
+  }
+  
+  generateGeographyResponse(message: string, promptPersona: string): string {
+    let content = 'This geography question touches on important processes and systems. ';
+    
+    if (message.toLowerCase().includes('climate') || message.toLowerCase().includes('weather')) {
+      content += 'Climate systems are complex interactions between the atmosphere, oceans, and land. Let\'s analyze the patterns...';
+      content += '\n\nLet\'s map out these geographical processes to see how they interact with human and natural systems.';
+    } else if (message.toLowerCase().includes('population') || message.toLowerCase().includes('urban')) {
+      content += 'Human geography looks at population patterns, urban development, and cultural regions...';
+      content += '\n\nGeographical patterns help us understand how people interact with their environment.';
+    } else {
+      content += 'Let\'s examine the geographical factors and their relationships to understand this topic fully.';
+      content += '\n\nGeography connects physical systems with human activities. Let\'s explore these connections.';
+    }
+    
+    return content;
+  }
+  
+  generateREResponse(message: string, promptPersona: string): string {
+    let content = 'When examining religious and ethical questions, it\'s important to consider multiple perspectives. ';
+    
+    if (message.toLowerCase().includes('christianity') || message.toLowerCase().includes('jesus')) {
+      content += 'In Christianity, this concept relates to core teachings about faith, love, and community...';
+      content += '\n\nReligious texts often contain layers of meaning that have been interpreted differently throughout history.';
+    } else if (message.toLowerCase().includes('islam') || message.toLowerCase().includes('muslim')) {
+      content += 'Islamic teachings on this subject emphasize the importance of submission to Allah and the five pillars...';
+      content += '\n\nEthical questions invite us to consider different viewpoints and understand why people hold their beliefs.';
+    } else {
+      content += 'Let\'s explore different religious and non-religious viewpoints to develop a balanced understanding.';
+      content += '\n\nPhilosophical inquiry helps us examine the foundations of belief systems and ethical frameworks.';
+    }
+    
+    return content;
   }
 
   // Method to fetch past papers based on subject and keywords
