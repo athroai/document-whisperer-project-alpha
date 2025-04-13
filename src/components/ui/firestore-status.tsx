@@ -2,7 +2,7 @@
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { CloudOff, AlertCircle, CloudCheck } from "lucide-react";
+import { CloudOff, AlertCircle, Cloud } from "lucide-react";
 
 type FirestoreStatusType = "loading" | "connected" | "offline" | "error";
 
@@ -54,7 +54,7 @@ export function FirestoreStatus({
           variant="outline" 
           className="bg-green-50 text-green-800 border-green-200 flex items-center gap-1"
         >
-          <CloudCheck className="h-3 w-3" /> Synced
+          <Cloud className="h-3 w-3" /> Synced
         </Badge>
       );
     }
@@ -102,7 +102,7 @@ export function FirestoreStatus({
   if (status === "connected" && showSuccessStatus) {
     return (
       <Alert className={`mb-4 bg-green-50 border-green-200 ${className}`}>
-        <CloudCheck className="h-4 w-4 text-green-600" />
+        <Cloud className="h-4 w-4 text-green-600" />
         <AlertTitle className="text-green-800">Connected to Firestore</AlertTitle>
         <AlertDescription className="text-green-700">
           Your session data is being synced to the cloud. You can continue your studies on any device.
@@ -125,3 +125,4 @@ export function FirestoreStatus({
   
   return null;
 }
+
