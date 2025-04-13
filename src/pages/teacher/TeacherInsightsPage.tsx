@@ -7,11 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Class } from '@/types/teacher';
-import { InsightsFilter, TimeRange } from '@/types/insights';
+import { InsightsFilter, TimeRange, StudentPerformance } from '@/types/insights';
 import insightsService from '@/services/insightsService';
 import { toast } from '@/components/ui/use-toast';
+import { Download, FileDown } from 'lucide-react';
 
-// Import the individual tab components
+// Import the individual components
+import MetricsGrid from '@/components/insights/MetricsGrid';
+import StudentPerformanceTable from '@/components/insights/StudentPerformanceTable';
+import TaskSubmissionHeatmap from '@/components/insights/TaskSubmissionHeatmap';
+import AIAlertFeed from '@/components/insights/AIAlertFeed';
 import OverviewTab from '@/components/insights/OverviewTab';
 import PerformanceTab from '@/components/insights/PerformanceTab';
 import ConfidenceTab from '@/components/insights/ConfidenceTab';
@@ -25,6 +30,8 @@ const TeacherInsightsPage: React.FC = () => {
   
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
+  const [studentData, setStudentData] = useState<StudentPerformance[]>([]);
+  const [exportLoading, setExportLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
   // Filter state
@@ -82,6 +89,25 @@ const TeacherInsightsPage: React.FC = () => {
     fetchTeacherClasses();
   }, [user]);
 
+  // Fetch student performance data when filter changes
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      if (user?.id) {
+        try {
+          setLoading(true);
+          const data = await insightsService.getStudentPerformance(user.id, filter);
+          setStudentData(data);
+          setLoading(false);
+        } catch (error) {
+          console.error("Failed to fetch student performance data:", error);
+          setLoading(false);
+        }
+      }
+    };
+    
+    fetchStudentData();
+  }, [filter, user?.id]);
+
   // Handle filter changes
   const handleClassChange = (classId: string) => {
     setFilter(prev => ({ ...prev, classId }));
@@ -93,6 +119,51 @@ const TeacherInsightsPage: React.FC = () => {
   
   const handleTimeRangeChange = (timeRange: TimeRange) => {
     setFilter(prev => ({ ...prev, timeRange }));
+  };
+  
+  // Handle data export
+  const handleExport = async (type: 'csv' | 'pdf') => {
+    try {
+      setExportLoading(true);
+      
+      let downloadUrl;
+      if (type === 'csv') {
+        downloadUrl = await insightsService.exportToCsv(
+          user?.id || '', 
+          filter, 
+          'performance'
+        );
+      } else {
+        downloadUrl = await insightsService.exportToPdf(
+          user?.id || '', 
+          filter, 
+          'performance'
+        );
+      }
+      
+      // Create an invisible link and click it to trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `student-performance-${new Date().toISOString().slice(0, 10)}.${type}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setExportLoading(false);
+      
+      toast({
+        title: "Data exported successfully",
+        description: `Your data has been exported as ${type.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error(`Failed to export data as ${type}:`, error);
+      toast({
+        title: "Export failed",
+        description: "There was a problem exporting your data. Please try again.",
+        variant: "destructive"
+      });
+      setExportLoading(false);
+    }
   };
   
   // No access if not a teacher
@@ -188,10 +259,69 @@ const TeacherInsightsPage: React.FC = () => {
                 </Select>
               </div>
             </div>
+            
+            <div className="flex justify-end mt-4 gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleExport('csv')}
+                disabled={exportLoading}
+                className="flex items-center gap-1"
+              >
+                <Download className="h-4 w-4" /> Export CSV
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleExport('pdf')}
+                disabled={exportLoading}
+                className="flex items-center gap-1"
+              >
+                <FileDown className="h-4 w-4" /> Export PDF
+              </Button>
+            </div>
           </CardContent>
         </Card>
         
+        {/* Top stats */}
+        <div>
+          <h2 className="text-lg font-medium mb-3">Key Metrics</h2>
+          <MetricsGrid 
+            data={null}
+            loading={loading}
+          />
+        </div>
+        
+        {/* Main content area */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Student Performance Table - takes 2 columns */}
+          <div className="lg:col-span-2">
+            <StudentPerformanceTable 
+              students={studentData}
+              loading={loading}
+            />
+          </div>
+          
+          {/* AI Alert Feed - takes 1 column */}
+          <div>
+            <AIAlertFeed 
+              alerts={[]}
+              loading={loading}
+            />
+          </div>
+        </div>
+        
+        {/* Task Submission Heatmap */}
+        <div>
+          <h2 className="text-lg font-medium mb-3">Task Submission Activity</h2>
+          <TaskSubmissionHeatmap 
+            data={[]}
+            loading={loading}
+          />
+        </div>
+        
         {/* Tabs */}
+        <h2 className="text-lg font-medium mb-3">Detailed Analysis</h2>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>

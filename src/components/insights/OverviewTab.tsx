@@ -1,261 +1,212 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  Activity, Award, BookOpen, Users, Check, TrendingUp, BarChart3, LineChart, BookIcon
-} from 'lucide-react';
-import { InsightsFilter, InsightSummary, TopicPerformance } from '@/types/insights';
-import insightsService from '@/services/insightsService';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { InsightsFilter, InsightSummary } from '@/types/insights';
+import { BarChart, LineChart, ResponsiveContainer, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  ChartContainer, 
-  ChartTooltip, 
-  ChartTooltipContent 
-} from '@/components/ui/chart';
-import { 
-  Line, 
-  LineChart as RLineChart, 
-  Bar, 
-  BarChart as RBarChart, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
-} from 'recharts';
+import insightsService from '@/services/insightsService';
+import { toast } from '@/components/ui/use-toast';
 
 interface OverviewTabProps {
   teacherId: string;
   filter: InsightsFilter;
-  loading: boolean;
+  loading?: boolean;
 }
 
-const OverviewTab: React.FC<OverviewTabProps> = ({ teacherId, filter, loading }) => {
+const OverviewTab: React.FC<OverviewTabProps> = ({ teacherId, filter, loading: parentLoading }) => {
   const [summary, setSummary] = useState<InsightSummary | null>(null);
-  const [topTopics, setTopTopics] = useState<TopicPerformance[]>([]);
-  const [bottomTopics, setBottomTopics] = useState<TopicPerformance[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [subjectPerformance, setSubjectPerformance] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchSummaryData = async () => {
-      if (teacherId && !loading) {
-        setIsLoading(true);
-        try {
-          // Fetch summary data
-          const summaryData = await insightsService.getInsightsSummary(teacherId, filter);
-          setSummary(summaryData);
-          
-          // Fetch topic performance for top/bottom topics table
-          const topicsData = await insightsService.getTopicPerformance(teacherId, filter);
-          
-          // Sort topics by score
-          const sortedTopics = [...topicsData].sort((a, b) => b.averageScore - a.averageScore);
-          
-          // Get top 5 and bottom 5 topics
-          setTopTopics(sortedTopics.slice(0, 5));
-          setBottomTopics(sortedTopics.slice(-5).reverse());
-          
-        } catch (error) {
-          console.error("Failed to fetch overview data:", error);
-        } finally {
-          setIsLoading(false);
-        }
+    const fetchData = async () => {
+      if (!teacherId) return;
+      
+      setLoading(true);
+      try {
+        // Fetch summary data
+        const summaryData = await insightsService.getInsightsSummary(teacherId, filter);
+        setSummary(summaryData);
+        
+        // Fetch subject performance data
+        const subjectData = await insightsService.getSubjectPerformance(teacherId, filter);
+        
+        // Transform data for visualization
+        const transformedSubjectData = subjectData.map(subject => ({
+          name: subject.subject,
+          score: subject.averageScore,
+          confidence: subject.averageConfidence,
+          students: subject.studentsCount,
+          fill: subject.color
+        }));
+        
+        setSubjectPerformance(transformedSubjectData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch overview data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch overview data. Please try again.',
+          variant: 'destructive',
+        });
+        setLoading(false);
       }
     };
     
-    fetchSummaryData();
-  }, [teacherId, filter, loading]);
+    fetchData();
+  }, [teacherId, filter]);
 
-  // Stat cards to show key metrics
-  const StatCard = ({ title, value, description, icon: Icon, color }: { 
-    title: string; 
-    value: string | number; 
-    description?: string;
-    icon: React.ElementType;
-    color: string;
-  }) => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className={`p-2 rounded-full ${color}`}>
-          <Icon size={18} />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">
-          {isLoading ? <Skeleton className="h-8 w-20" /> : value}
-        </div>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        )}
-      </CardContent>
-    </Card>
+  // Function to render loading skeletons
+  const renderSkeletons = () => (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-72" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-64 w-full" />
+        </CardContent>
+      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-72" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-72" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
+
+  if (loading || parentLoading) {
+    return renderSkeletons();
+  }
 
   return (
     <div className="space-y-6">
-      {/* Key Statistics */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-        <StatCard 
-          title="Quiz Average" 
-          value={summary?.quizAverage || 0}
-          description="Overall quiz score percentage"
-          icon={Activity}
-          color="bg-blue-100 text-blue-700"
-        />
-        <StatCard 
-          title="Assignments Completed" 
-          value={summary?.assignmentsCompleted || 0}
-          description="Total across all classes"
-          icon={Check}
-          color="bg-green-100 text-green-700"
-        />
-        <StatCard 
-          title="Students" 
-          value={summary?.studentsCount || 0}
-          description="Active learners"
-          icon={Users}
-          color="bg-purple-100 text-purple-700"
-        />
-        <StatCard 
-          title="Confidence Average" 
-          value={`${summary?.confidenceAverage || 0}/10`}
-          description="Self-reported confidence"
-          icon={TrendingUp}
-          color="bg-amber-100 text-amber-700"
-        />
-      </div>
-
-      {/* Topic Strength/Weakness Cards */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-        {/* Weakest Topic */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-medium">Weakest Topic</CardTitle>
-              <div className="p-2 rounded-full bg-red-100 text-red-700">
-                <BarChart3 size={16} />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {isLoading ? (
-              <>
-                <Skeleton className="h-6 w-32 mb-1" />
-                <Skeleton className="h-4 w-20" />
-              </>
-            ) : (
-              <>
-                <div className="text-xl font-semibold">{summary?.weakestTopic?.name}</div>
-                <div className="text-sm text-muted-foreground">{summary?.weakestTopic?.subject}</div>
-                <div className="text-sm mt-1">Average Score: <span className="font-medium text-red-600">{summary?.weakestTopic?.averageScore}%</span></div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Strongest Topic */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-medium">Strongest Topic</CardTitle>
-              <div className="p-2 rounded-full bg-green-100 text-green-700">
-                <Award size={16} />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {isLoading ? (
-              <>
-                <Skeleton className="h-6 w-32 mb-1" />
-                <Skeleton className="h-4 w-20" />
-              </>
-            ) : (
-              <>
-                <div className="text-xl font-semibold">{summary?.strongestTopic?.name}</div>
-                <div className="text-sm text-muted-foreground">{summary?.strongestTopic?.subject}</div>
-                <div className="text-sm mt-1">Average Score: <span className="font-medium text-green-600">{summary?.strongestTopic?.averageScore}%</span></div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Performance Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Topic Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Top Topics */}
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Top Performing Topics</h4>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Topic</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead className="text-right">Score</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? 
-                    Array(5).fill(0).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-5 w-12 ml-auto" /></TableCell>
-                      </TableRow>
-                    )) : 
-                    topTopics.map(topic => (
-                      <TableRow key={topic.id}>
-                        <TableCell className="font-medium">{topic.topic}</TableCell>
-                        <TableCell>{topic.subject}</TableCell>
-                        <TableCell className="text-right">{topic.averageScore}%</TableCell>
-                      </TableRow>
-                    ))
-                  }
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Bottom Topics */}
-            <div>
-              <h4 className="mb-3 text-sm font-medium">Topics Needing Attention</h4>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Topic</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead className="text-right">Score</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? 
-                    Array(5).fill(0).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-5 w-12 ml-auto" /></TableCell>
-                      </TableRow>
-                    )) : 
-                    bottomTopics.map(topic => (
-                      <TableRow key={topic.id}>
-                        <TableCell className="font-medium">{topic.topic}</TableCell>
-                        <TableCell>{topic.subject}</TableCell>
-                        <TableCell className="text-right">{topic.averageScore}%</TableCell>
-                      </TableRow>
-                    ))
-                  }
-                </TableBody>
-              </Table>
-            </div>
+      {summary && (
+        <>
+          {/* Key Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{summary.quizAverage}%</div>
+                <p className="text-sm text-muted-foreground">Quiz Average</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{summary.confidenceAverage.toFixed(1)}/10</div>
+                <p className="text-sm text-muted-foreground">Average Confidence</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{summary.studentsCount}</div>
+                <p className="text-sm text-muted-foreground">Total Students</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{summary.assignmentsCompleted}</div>
+                <p className="text-sm text-muted-foreground">Tasks Completed</p>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+          
+          {/* Subject Performance Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Subject Performance</CardTitle>
+              <CardDescription>Average scores and confidence levels by subject</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={subjectPerformance} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end"
+                      height={70}
+                    />
+                    <YAxis yAxisId="left" orientation="left" stroke="#82ca9d" domain={[0, 10]} />
+                    <YAxis yAxisId="right" orientation="right" stroke="#8884d8" domain={[0, 100]} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar yAxisId="right" dataKey="score" name="Average Score %" fill="#8884d8" />
+                    <Bar yAxisId="left" dataKey="confidence" name="Confidence (1-10)" fill="#82ca9d" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Topic Insights */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Strong Topics</CardTitle>
+                <CardDescription>Areas where students excel</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-green-50 p-4 rounded-md">
+                    <h3 className="font-medium text-green-800">
+                      {summary.strongestTopic?.name}
+                    </h3>
+                    <p className="text-sm text-green-600">
+                      Subject: {summary.strongestTopic?.subject}
+                    </p>
+                    <div className="flex items-center mt-2">
+                      <div className="bg-green-100 text-green-800 font-medium px-2 py-1 rounded text-sm">
+                        {summary.strongestTopic?.averageScore}% average score
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Improvement Areas</CardTitle>
+                <CardDescription>Topics needing additional attention</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-red-50 p-4 rounded-md">
+                    <h3 className="font-medium text-red-800">
+                      {summary.weakestTopic?.name}
+                    </h3>
+                    <p className="text-sm text-red-600">
+                      Subject: {summary.weakestTopic?.subject}
+                    </p>
+                    <div className="flex items-center mt-2">
+                      <div className="bg-red-100 text-red-800 font-medium px-2 py-1 rounded text-sm">
+                        {summary.weakestTopic?.averageScore}% average score
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </div>
   );
 };

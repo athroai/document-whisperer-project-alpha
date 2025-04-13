@@ -6,6 +6,17 @@ export interface InsightSummary {
   confidenceAverage: number;
   studentsCount: number;
   topicsCount: number;
+  weeklyTasksCompleted: number;
+  quizPassRate: number;
+  mostStudiedSubject: {
+    name: string;
+    count: number;
+  };
+  mostActiveStudent: {
+    name: string;
+    id: string;
+    activityCount: number;
+  };
   weakestTopic: {
     name: string;
     subject: string;
@@ -43,6 +54,8 @@ export interface StudentPerformance {
   averageConfidence: number;
   completionRate: number;
   lastActive: string;
+  tasksSubmitted: number;
+  aiFeedbackSummary: string;
   subjects: {
     [subject: string]: {
       score: number;
@@ -50,6 +63,10 @@ export interface StudentPerformance {
     };
   };
   weakTopics: string[];
+  confidenceTrend: Array<{
+    date: string;
+    value: number;
+  }>;
 }
 
 export interface ConfidenceTrend {
@@ -72,6 +89,11 @@ export interface ClassHeatmapData {
   };
 }
 
+export interface TaskSubmissionHeatmap {
+  date: string;
+  count: number;
+}
+
 export interface FeedbackTrend {
   id: string;
   type: string;
@@ -81,6 +103,17 @@ export interface FeedbackTrend {
   subject: string;
 }
 
+export interface AIAlert {
+  id: string;
+  studentId: string;
+  studentName: string;
+  message: string;
+  severity: 'low' | 'medium' | 'high';
+  date: string;
+  subject?: string;
+  topic?: string;
+}
+
 export type TimeRange = "7days" | "30days" | "90days" | "year" | "all";
 
 export interface InsightsFilter {
@@ -88,4 +121,6 @@ export interface InsightsFilter {
   subject: string | null;
   timeRange: TimeRange;
   studentIds?: string[];
+  yearGroup?: string;
+  set?: string;
 }

@@ -1,6 +1,7 @@
 
 import { InsightSummary, SubjectPerformance, TopicPerformance, StudentPerformance, 
-  ConfidenceTrend, PerformanceTrend, ClassHeatmapData, FeedbackTrend, InsightsFilter } from '@/types/insights';
+  ConfidenceTrend, PerformanceTrend, ClassHeatmapData, FeedbackTrend, InsightsFilter, 
+  AIAlert, TaskSubmissionHeatmap } from '@/types/insights';
 import { Student } from '@/types/dashboard';
 import { Class } from '@/types/teacher';
 import { QuizResult } from '@/types/quiz';
@@ -50,6 +51,43 @@ const generateMockData = () => {
     "Mia Rodriguez", "Ethan Martinez", "Charlotte Smith", "Michael Johnson", "Amelia Taylor"
   ];
 
+  // Feedback summaries
+  const feedbackSummaries = [
+    "Shows strong understanding of core concepts but struggles with application in complex problems.",
+    "Very consistent performance across all topics. Excellent comprehension of the material.",
+    "Needs additional support with mathematical concepts, particularly in algebra and calculus.",
+    "Great progress in recent assignments, showing improved confidence in problem-solving.",
+    "Strong in theoretical concepts but needs more practice with practical applications.",
+    "Excellent critical thinking but could improve on showing workings clearly.",
+    "Frequently submits incomplete assignments. Needs support with time management.",
+    "Shows promise but inconsistent performance suggests knowledge gaps that should be addressed.",
+    "Exceptional problem-solver who can tackle complex scenarios with minimal guidance.",
+    "Often makes careless errors despite good understanding of the subject material."
+  ];
+
+  // Generate confidence trends
+  const generateConfidenceTrend = () => {
+    const trend = [];
+    const now = new Date();
+    let baseValue = 5 + Math.random() * 2;
+    
+    for (let i = 0; i < 10; i++) {
+      const date = new Date();
+      date.setDate(now.getDate() - (10 - i) * 3);
+      
+      // Add some realistic variation
+      baseValue += (Math.random() - 0.5) * 1.2;
+      baseValue = Math.max(1, Math.min(10, baseValue));
+      
+      trend.push({
+        date: date.toISOString().split('T')[0],
+        value: parseFloat(baseValue.toFixed(1))
+      });
+    }
+    
+    return trend;
+  };
+
   // Mock student performance
   const mockStudentPerformance: StudentPerformance[] = studentNames.map((name, index) => {
     const studentSubjects: Record<string, { score: number; confidence: number }> = {};
@@ -72,9 +110,12 @@ const generateMockData = () => {
       averageScore: Math.round(60 + Math.random() * 35),
       averageConfidence: Math.round(5 + Math.random() * 4),
       completionRate: Math.round(70 + Math.random() * 30),
+      tasksSubmitted: Math.round(3 + Math.random() * 12),
+      aiFeedbackSummary: feedbackSummaries[index % feedbackSummaries.length],
       lastActive: new Date(Date.now() - Math.floor(Math.random() * 14 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
       subjects: studentSubjects,
-      weakTopics
+      weakTopics,
+      confidenceTrend: generateConfidenceTrend()
     };
   });
 
@@ -133,6 +174,24 @@ const generateMockData = () => {
     };
   });
 
+  // Generate task submission heatmap data
+  const mockTaskSubmissionHeatmap: TaskSubmissionHeatmap[] = [];
+  for (let i = 0; i < 35; i++) {
+    const date = new Date();
+    date.setDate(now.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    // Make weekends lower, and add some randomness
+    const dayOfWeek = date.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const baseCount = isWeekend ? Math.round(Math.random() * 3) : Math.round(Math.random() * 10);
+    
+    mockTaskSubmissionHeatmap.push({
+      date: dateStr,
+      count: baseCount
+    });
+  }
+
   // Generate feedback trends
   const feedbackTypes = [
     "Misunderstanding of concept",
@@ -163,6 +222,63 @@ const generateMockData = () => {
     };
   }).sort((a, b) => b.count - a.count);
 
+  // Generate AI alerts
+  const alertMessages = [
+    { 
+      message: "Confidence in Mathematics dropped 3 points this week", 
+      subject: "Mathematics", 
+      severity: "high" as const
+    },
+    { 
+      message: "Has missed 3 consecutive task submissions", 
+      severity: "high" as const
+    },
+    { 
+      message: "Shows consistent improvement in Science quiz scores", 
+      subject: "Science", 
+      severity: "low" as const
+    },
+    { 
+      message: "Struggling with Trigonometry concepts based on quiz answers", 
+      subject: "Mathematics", 
+      topic: "Trigonometry", 
+      severity: "medium" as const
+    },
+    { 
+      message: "Has not accessed study materials in 2 weeks", 
+      severity: "medium" as const
+    },
+    { 
+      message: "Performance declining in English literature topics", 
+      subject: "English", 
+      topic: "Literature", 
+      severity: "medium" as const
+    },
+    { 
+      message: "Showing significant improvement in confidence levels across all subjects", 
+      severity: "low" as const
+    }
+  ];
+  
+  const mockAIAlerts: AIAlert[] = [];
+  for (let i = 0; i < Math.min(7, mockStudentPerformance.length); i++) {
+    const student = mockStudentPerformance[i];
+    const alert = alertMessages[i];
+    const alertDate = new Date();
+    alertDate.setDate(alertDate.getDate() - Math.floor(Math.random() * 7));
+    
+    mockAIAlerts.push({
+      id: `alert-${i + 1}`,
+      studentId: student.id,
+      studentName: student.name,
+      message: alert.message,
+      severity: alert.severity,
+      date: alertDate.toISOString().split('T')[0],
+      subject: alert.subject,
+      topic: alert.topic
+    });
+  }
+
   // Create overall summary
   const subjectsSum = mockSubjectPerformance.reduce((acc, subject) => acc + subject.averageScore, 0);
   const subjectsAvg = subjectsSum / mockSubjectPerformance.length;
@@ -175,6 +291,26 @@ const generateMockData = () => {
   const weakestTopic = sortedTopics[0];
   const strongestTopic = sortedTopics[sortedTopics.length - 1];
 
+  // Calculate most active student
+  const mockMostActiveStudent = [...mockStudentPerformance].sort((a, b) => b.tasksSubmitted - a.tasksSubmitted)[0];
+
+  // Calculate most studied subject
+  const subjectCountMap: Record<string, number> = {};
+  mockSubjectPerformance.forEach(subject => {
+    subjectCountMap[subject.subject] = subject.studentsCount;
+  });
+  
+  const sortedSubjects = Object.entries(subjectCountMap).sort((a, b) => b[1] - a[1]);
+  const mostStudiedSubject = sortedSubjects.length > 0 ? {
+    name: sortedSubjects[0][0],
+    count: sortedSubjects[0][1]
+  } : { name: "None", count: 0 };
+
+  // Calculate quiz pass rate
+  const passRate = Math.round(
+    (mockStudentPerformance.filter(s => s.averageScore >= 60).length / mockStudentPerformance.length) * 100
+  );
+
   const mockSummary: InsightSummary = {
     quizAverage: Math.round(subjectsAvg),
     assignmentsCompleted: Math.round(mockStudentPerformance.length * 3.5),
@@ -182,6 +318,14 @@ const generateMockData = () => {
     confidenceAverage: parseFloat(confidenceAvg.toFixed(1)),
     studentsCount: mockStudentPerformance.length,
     topicsCount: mockTopicPerformance.length,
+    weeklyTasksCompleted: mockTaskSubmissionHeatmap.slice(0, 7).reduce((sum, day) => sum + day.count, 0),
+    quizPassRate: passRate,
+    mostStudiedSubject,
+    mostActiveStudent: {
+      name: mockMostActiveStudent.name,
+      id: mockMostActiveStudent.id,
+      activityCount: mockMostActiveStudent.tasksSubmitted
+    },
     weakestTopic: {
       name: weakestTopic.topic,
       subject: weakestTopic.subject,
@@ -202,7 +346,9 @@ const generateMockData = () => {
     confidenceTrends: mockConfidenceTrends,
     performanceTrends: mockPerformanceTrends,
     heatmapData: mockHeatmapData,
-    feedbackTrends: mockFeedbackTrends
+    feedbackTrends: mockFeedbackTrends,
+    aiAlerts: mockAIAlerts,
+    taskSubmissionHeatmap: mockTaskSubmissionHeatmap
   };
 };
 
@@ -244,9 +390,25 @@ const insightsService = {
   },
   
   // Get performance data by student
-  getStudentPerformance: async (teacherId: string, classId: string): Promise<StudentPerformance[]> => {
-    console.log(`Fetching student performance for teacher ${teacherId} in class ${classId}`);
-    return getMockData().studentPerformance;
+  getStudentPerformance: async (teacherId: string, filter: InsightsFilter): Promise<StudentPerformance[]> => {
+    console.log(`Fetching student performance for teacher ${teacherId} with filter:`, filter);
+    let students = getMockData().studentPerformance;
+    
+    // Apply class filter if specified
+    if (filter.classId && filter.classId !== 'all') {
+      // In a real app, we would filter by class ID
+      students = students.slice(0, 8); // Just returning a subset for mock data
+    }
+    
+    // Apply subject filter
+    if (filter.subject) {
+      students = students.filter(student => {
+        const subjectData = student.subjects[filter.subject!.toLowerCase()];
+        return subjectData && subjectData.score > 0;
+      });
+    }
+    
+    return students;
   },
   
   // Get confidence trends over time
@@ -333,6 +495,49 @@ const insightsService = {
   getClassHeatmapData: async (teacherId: string, classId: string): Promise<ClassHeatmapData[]> => {
     console.log(`Fetching class heatmap data for teacher ${teacherId} in class ${classId}`);
     return getMockData().heatmapData;
+  },
+  
+  // Get task submission heatmap data
+  getTaskSubmissionHeatmap: async (teacherId: string, filter: InsightsFilter): Promise<TaskSubmissionHeatmap[]> => {
+    console.log(`Fetching task submission heatmap data for teacher ${teacherId}`);
+    let data = getMockData().taskSubmissionHeatmap;
+    
+    // Apply time range filter
+    const now = new Date();
+    let daysToInclude = 30; // default
+    
+    switch(filter.timeRange) {
+      case "7days":
+        daysToInclude = 7;
+        break;
+      case "30days":
+        daysToInclude = 30;
+        break;
+      default:
+        daysToInclude = 30;
+    }
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(now.getDate() - daysToInclude);
+    
+    data = data.filter(item => new Date(item.date) >= cutoffDate);
+    
+    return data;
+  },
+  
+  // Get AI alerts
+  getAIAlerts: async (teacherId: string, filter: InsightsFilter): Promise<AIAlert[]> => {
+    console.log(`Fetching AI alerts for teacher ${teacherId}`);
+    let alerts = getMockData().aiAlerts;
+    
+    // Apply subject filter if specified
+    if (filter.subject) {
+      alerts = alerts.filter(alert => 
+        !alert.subject || alert.subject.toLowerCase() === filter.subject?.toLowerCase()
+      );
+    }
+    
+    return alerts;
   },
   
   // Get feedback trends
