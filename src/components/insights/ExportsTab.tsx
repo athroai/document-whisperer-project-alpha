@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { InsightsFilter } from '@/types/insights';
 import insightsService from '@/services/insightsService';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, FilePdf, Download, Calendar, Users, BarChart, LineChart } from 'lucide-react';
+import { FileSpreadsheet, FileText, Download, Calendar, Users, BarChart, LineChart } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 interface ExportsTabProps {
@@ -38,7 +37,7 @@ const ExportsTab: React.FC<ExportsTabProps> = ({ teacherId, filter, loading }) =
       icon: BarChart,
       formats: [
         { id: 'perf-csv', name: 'CSV Spreadsheet', extension: 'csv', icon: FileSpreadsheet, type: 'performance' },
-        { id: 'perf-pdf', name: 'PDF Document', extension: 'pdf', icon: FilePdf, type: 'performance' }
+        { id: 'perf-pdf', name: 'PDF Document', extension: 'pdf', icon: FileText, type: 'performance' }
       ]
     },
     {
@@ -48,7 +47,7 @@ const ExportsTab: React.FC<ExportsTabProps> = ({ teacherId, filter, loading }) =
       icon: LineChart,
       formats: [
         { id: 'conf-csv', name: 'CSV Spreadsheet', extension: 'csv', icon: FileSpreadsheet, type: 'confidence' },
-        { id: 'conf-pdf', name: 'PDF Document', extension: 'pdf', icon: FilePdf, type: 'confidence' }
+        { id: 'conf-pdf', name: 'PDF Document', extension: 'pdf', icon: FileText, type: 'confidence' }
       ]
     },
     {
@@ -58,7 +57,7 @@ const ExportsTab: React.FC<ExportsTabProps> = ({ teacherId, filter, loading }) =
       icon: Users,
       formats: [
         { id: 'topic-csv', name: 'CSV Spreadsheet', extension: 'csv', icon: FileSpreadsheet, type: 'topics' },
-        { id: 'topic-pdf', name: 'PDF Document', extension: 'pdf', icon: FilePdf, type: 'topics' }
+        { id: 'topic-pdf', name: 'PDF Document', extension: 'pdf', icon: FileText, type: 'topics' }
       ]
     },
   ];
