@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,18 +79,18 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
       typeof submission.answers === 'object' && 
       !Array.isArray(submission.answers) &&
       'fileUrls' in submission.answers && 
-      'fileNames' in submission.answers &&
-      Array.isArray(submission.answers.fileUrls) && 
-      Array.isArray(submission.answers.fileNames)
+      'fileNames' in submission.answers
     ) {
+      // Now TypeScript knows this is a FileUploadAnswer
+      const fileAnswer = submission.answers;
       return (
         <div>
           <p className="text-sm text-muted-foreground mb-2">Files submitted:</p>
           <ul className="list-disc pl-5">
-            {submission.answers.fileNames.map((name, index) => (
+            {fileAnswer.fileNames.map((name, index) => (
               <li key={index}>
                 <a 
-                  href={submission.answers.fileUrls[index]} 
+                  href={fileAnswer.fileUrls[index]} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
