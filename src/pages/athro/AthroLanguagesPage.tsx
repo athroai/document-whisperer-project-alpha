@@ -88,7 +88,7 @@ const AthroLanguagesPage: React.FC = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 h-[calc(100vh-12rem)]">
-          <AthroBase showTopicSelector={true} />
+          <AthroBase subject="Languages" />
         </div>
         
         <div className="lg:col-span-1 space-y-6">

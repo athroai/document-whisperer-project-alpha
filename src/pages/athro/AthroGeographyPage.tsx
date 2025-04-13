@@ -18,7 +18,7 @@ const AthroGeographyPage: React.FC = () => {
       // If character not found, redirect to subject selector
       navigate('/athro');
     }
-  }, [setActiveCharacter, navigate]); // Added both dependencies to prevent infinite rendering
+  }, [setActiveCharacter, navigate]);
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -29,7 +29,7 @@ const AthroGeographyPage: React.FC = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 h-[calc(100vh-12rem)]">
-          <AthroBase showTopicSelector={true} />
+          <AthroBase subject="Geography" />
         </div>
         
         <div className="lg:col-span-1 space-y-6">

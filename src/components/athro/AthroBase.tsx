@@ -1,5 +1,4 @@
 
-// Fix translation function call by removing the second parameter
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAthro } from '@/contexts/AthroContext';
@@ -15,24 +14,29 @@ import { useTranslation } from '@/hooks/useTranslation';
 interface AthroBaseProps {
   subject: string;
   allowScience?: boolean;
+  showTopicSelector?: boolean;
 }
 
-const AthroBase: React.FC<AthroBaseProps> = ({ subject, allowScience = false }) => {
+const AthroBase: React.FC<AthroBaseProps> = ({ 
+  subject, 
+  allowScience = false,
+  showTopicSelector = false
+}) => {
   const [activeTab, setActiveTab] = useState<string>('chat');
-  const { athroCharacters, setActiveCharacter, activeCharacter } = useAthro();
+  const { characters, setActiveCharacter, activeCharacter } = useAthro();
   const navigate = useNavigate();
   const { t } = useTranslation();
   
   useEffect(() => {
     // Find the character for this subject
-    const character = athroCharacters?.find(
+    const character = characters?.find(
       (char) => char.subject.toLowerCase() === subject.toLowerCase()
     );
     
     if (character) {
       setActiveCharacter(character);
     }
-  }, [subject, athroCharacters, setActiveCharacter]);
+  }, [subject, characters, setActiveCharacter]);
   
   const handleBackClick = () => {
     navigate('/athro/select');
@@ -90,7 +94,7 @@ const AthroBase: React.FC<AthroBaseProps> = ({ subject, allowScience = false }) 
         </TabsContent>
         
         <TabsContent value="about" className="mt-0">
-          <AthroProfile character={activeCharacter} />
+          <AthroProfile />
         </TabsContent>
       </Tabs>
     </div>

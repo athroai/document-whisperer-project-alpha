@@ -1,5 +1,4 @@
 
-// Fix translation function call by removing the second parameter
 import React from 'react';
 import AthroBase from '@/components/athro/AthroBase';
 import { useAthro } from '@/contexts/AthroContext';

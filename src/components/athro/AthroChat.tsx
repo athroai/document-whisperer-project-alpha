@@ -261,12 +261,12 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
                           onClick={() => toggleGrammarTip(msg.id)}
                         >
                           <BookOpen className="h-3 w-3 mr-1" />
-                          {expandedGrammarTips.has(msg.id) ? "Hide Grammar Tip" : "View Grammar Tip"}
+                          {expandedGrammarTips.has(msg.id) ? t('athro.hideGrammarTip') : t('athro.viewGrammarTip')}
                         </Button>
                         
                         {expandedGrammarTips.has(msg.id) && (
                           <div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded text-sm">
-                            <h5 className="font-medium mb-1">Grammar Tip</h5>
+                            <h5 className="font-medium mb-1">{t('athro.grammarTip')}</h5>
                             <p>{grammarTip}</p>
                           </div>
                         )}
@@ -282,12 +282,12 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
                           onClick={() => toggleCulturalNote(msg.id)}
                         >
                           <Globe className="h-3 w-3 mr-1" />
-                          {expandedCulturalNotes.has(msg.id) ? "Hide Cultural Note" : "View Cultural Note"}
+                          {expandedCulturalNotes.has(msg.id) ? t('athro.hideCulturalNote') : t('athro.viewCulturalNote')}
                         </Button>
                         
                         {expandedCulturalNotes.has(msg.id) && (
                           <div className="mt-2 p-3 bg-amber-50 text-amber-800 rounded text-sm">
-                            <h5 className="font-medium mb-1">Cultural Note</h5>
+                            <h5 className="font-medium mb-1">{t('athro.culturalNote')}</h5>
                             <p>{culturalNote}</p>
                           </div>
                         )}

@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import AthroBase from '@/components/athro/AthroBase';
@@ -17,7 +18,7 @@ const AthroMathsPage: React.FC = () => {
       // If character not found, redirect to subject selector
       navigate('/athro');
     }
-  }, [setActiveCharacter, navigate]); // Added both dependencies
+  }, [setActiveCharacter, navigate]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -28,7 +29,7 @@ const AthroMathsPage: React.FC = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 h-[calc(100vh-12rem)]">
-          <AthroBase showTopicSelector={true} />
+          <AthroBase subject="Mathematics" />
         </div>
         
         <div className="lg:col-span-1 space-y-6">
