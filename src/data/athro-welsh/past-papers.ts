@@ -10,57 +10,62 @@ export const welshPastPapers: PastPaper[] = [
     year: 2022,
     season: 'summer',
     unit: 1,
-    title: 'Cymraeg Ail Iaith Uned 1',
+    title: 'Welsh Second Language Unit 1: Oral',
     questions: [
       {
         id: 's22-3020u10-1-q1',
         number: 1,
-        text: 'Darllenwch y darn ac atebwch y cwestiynau yn Gymraeg. (Read the passage and answer the questions in Welsh.)',
+        text: 'Siaradwch am eich teulu a\'ch ffrindiau. (Talk about your family and friends.)',
         marks: 10,
-        topic: 'Reading Comprehension',
-        difficulty: 3
+        topic: 'Oral Expression',
+        subtopic: 'Personal Relationships',
+        difficulty: 2
       },
       {
         id: 's22-3020u10-1-q2',
         number: 2,
-        text: 'Ysgrifennwch e-bost at eich ffrind yn disgrifio eich gwyliau. (Write an email to your friend describing your holiday.)',
-        marks: 15,
-        topic: 'Writing',
-        difficulty: 4
+        text: 'Beth ydych chi\'n hoffi gwneud yn eich amser hamdden? (What do you like to do in your free time?)',
+        marks: 10,
+        topic: 'Oral Expression',
+        subtopic: 'Leisure Activities',
+        difficulty: 2
       },
       {
         id: 's22-3020u10-1-q3',
         number: 3,
-        text: 'Cyfieithwch y brawddegau canlynol o\'r Saesneg i\'r Gymraeg. (Translate the following sentences from English to Welsh.)',
-        marks: 10,
-        topic: 'Translation',
+        text: 'Disgrifiwch eich ardal leol. Beth yw\'r pethau da a drwg am fyw yno? (Describe your local area. What are the good and bad things about living there?)',
+        marks: 15,
+        topic: 'Oral Expression',
+        subtopic: 'Local Area',
         difficulty: 3
       }
     ]
   },
   {
-    id: 's21-3020u20-1',
+    id: 's22-3020u20-1',
     subject: 'Welsh',
     examBoard: 'wjec',
-    year: 2021,
+    year: 2022,
     season: 'summer',
     unit: 2,
-    title: 'Cymraeg Ail Iaith Uned 2',
+    title: 'Welsh Second Language Unit 2: Reading and Writing',
     questions: [
       {
-        id: 's21-3020u20-1-q1',
+        id: 's22-3020u20-1-q1',
         number: 1,
-        text: 'Gwrandewch ar y sgwrs ac atebwch y cwestiynau yn Gymraeg. (Listen to the conversation and answer the questions in Welsh.)',
-        marks: 10,
-        topic: 'Listening',
+        text: 'Darllenwch y testun am yr amgylchedd a atebwch y cwestiynau. (Read the text about the environment and answer the questions.)',
+        marks: 15,
+        topic: 'Reading Comprehension',
+        subtopic: 'Environment',
         difficulty: 3
       },
       {
-        id: 's21-3020u20-1-q2',
+        id: 's22-3020u20-1-q2',
         number: 2,
-        text: 'Ysgrifennwch erthygl am yr amgylchedd ar gyfer cylchgrawn ysgol. (Write an article about the environment for a school magazine.)',
-        marks: 15,
+        text: 'Ysgrifennwch erthygl am bwysigrwydd dysgu ieithoedd tramor. (Write an article about the importance of learning foreign languages.)',
+        marks: 20,
         topic: 'Writing',
+        subtopic: 'Languages',
         difficulty: 4
       }
     ]

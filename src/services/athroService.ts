@@ -1,3 +1,4 @@
+
 import { AthroMessage } from '@/types/athro';
 import { pastPapers, PastPaper, PastPaperQuestion } from '@/data/athro-maths/past-papers';
 import { modelAnswers, ModelAnswer } from '@/data/athro-maths/model-answers';
@@ -95,14 +96,14 @@ function getSubjectPastPapers(subject: string, context: any = {}): PastPaper[] {
     case 'science':
       // For Science, we can filter based on the subjectSection (biology, chemistry, physics)
       if (context.subjectSection === 'biology') {
-        return biologyPastPapers as PastPaper[];
+        return biologyPastPapers;
       } else if (context.subjectSection === 'chemistry') {
-        return chemistryPastPapers as PastPaper[];
+        return chemistryPastPapers;
       } else if (context.subjectSection === 'physics') {
-        return physicsPastPapers as PastPaper[];
+        return physicsPastPapers;
       }
       // Default to biology if no specific section
-      return biologyPastPapers as PastPaper[];
+      return biologyPastPapers;
     default:
       return [];
   }
@@ -142,14 +143,14 @@ function getSubjectModelAnswers(subject: string, context: any = {}): ModelAnswer
     case 'science':
       // For Science, we can filter based on the subjectSection
       if (context.subjectSection === 'biology') {
-        return biologyModelAnswers as ModelAnswer[];
+        return biologyModelAnswers;
       } else if (context.subjectSection === 'chemistry') {
-        return chemistryModelAnswers as ModelAnswer[];
+        return chemistryModelAnswers;
       } else if (context.subjectSection === 'physics') {
-        return physicsModelAnswers as ModelAnswer[];
+        return physicsModelAnswers;
       }
       // Default to biology if no specific section
-      return biologyModelAnswers as ModelAnswer[];
+      return biologyModelAnswers;
     default:
       return [];
   }

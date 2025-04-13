@@ -1,8 +1,10 @@
+
 // Define the type for model answers
 export interface ModelAnswer {
   questionId: string;
   workingSteps: string[];
   markScheme: string;
+  latexNotation: string;
   marks: number;
 }
 
@@ -18,6 +20,7 @@ export const modelAnswers: ModelAnswer[] = [
       'Calculate the solutions: x = (5 ± √49) / 4 = (5 ± 7) / 4'
     ],
     markScheme: 'x = 3 or x = -1/2',
+    latexNotation: '2x^2 - 5x - 3 = 0 \\\\x = \\frac{5 \\pm \\sqrt{49}}{4} \\\\x = \\frac{5 \\pm 7}{4} \\\\x = 3 \\text{ or } x = -\\frac{1}{2}',
     marks: 4
   },
   {
@@ -31,6 +34,7 @@ export const modelAnswers: ModelAnswer[] = [
       'Substitute the radius: C = 2π × √(50/π)'
     ],
     markScheme: 'C = 2π√(50/π) = 2√(50π) ≈ 25.1 cm',
+    latexNotation: 'A = \\pi r^2 \\\\50 = \\pi r^2 \\\\r^2 = \\frac{50}{\\pi} \\\\r = \\sqrt{\\frac{50}{\\pi}} \\\\C = 2\\pi r \\\\C = 2\\pi \\sqrt{\\frac{50}{\\pi}} = 2\\sqrt{50\\pi} \\approx 25.1 \\text{ cm}',
     marks: 3
   },
   {
@@ -43,6 +47,7 @@ export const modelAnswers: ModelAnswer[] = [
       'To find the 50th term, substitute n=50: U50 = 4(50) - 1 = 200 - 1 = 199'
     ],
     markScheme: 'The 50th term is 199',
+    latexNotation: 'U_n = a + (n-1)d \\\\U_n = 3 + (n-1)4 \\\\U_n = 3 + 4n - 4 \\\\U_n = 4n - 1 \\\\U_{50} = 4(50) - 1 = 200 - 1 = 199',
     marks: 3
   },
   {
@@ -55,6 +60,7 @@ export const modelAnswers: ModelAnswer[] = [
       'f(4) = 32 - 12 + 1'
     ],
     markScheme: 'f(4) = 21',
+    latexNotation: 'f(x) = 2x^2 - 3x + 1 \\\\f(4) = 2(4)^2 - 3(4) + 1 \\\\f(4) = 2(16) - 12 + 1 \\\\f(4) = 32 - 12 + 1 \\\\f(4) = 21',
     marks: 2
   },
   {
@@ -70,6 +76,7 @@ export const modelAnswers: ModelAnswer[] = [
       'Substitute back to find y: y = 5(23/13) - 8 = 115/13 - 8 = 115/13 - 104/13 = 11/13'
     ],
     markScheme: 'x = 23/13, y = 11/13',
+    latexNotation: '3x + 2y = 7 \\\\5x - y = 8 \\\\y = 5x - 8 \\\\3x + 2(5x - 8) = 7 \\\\3x + 10x - 16 = 7 \\\\13x - 16 = 7 \\\\13x = 23 \\\\x = \\frac{23}{13} \\\\y = 5(\\frac{23}{13}) - 8 = \\frac{115}{13} - 8 = \\frac{115}{13} - \\frac{104}{13} = \\frac{11}{13}',
     marks: 5
   },
   {
@@ -84,6 +91,7 @@ export const modelAnswers: ModelAnswer[] = [
       'Factor out the common binomial: (3x + 1)(2x - 5)'
     ],
     markScheme: '6x² - 13x - 5 = (3x + 1)(2x - 5)',
+    latexNotation: '6x^2 - 13x - 5 \\\\6x^2 - 15x + 2x - 5 \\\\(6x^2 - 15x) + (2x - 5) \\\\3x(2x - 5) + 1(2x - 5) \\\\(3x + 1)(2x - 5)',
     marks: 3
   }
 ];

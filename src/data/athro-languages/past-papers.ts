@@ -18,6 +18,7 @@ export const languagesPastPapers: PastPaper[] = [
         text: 'Présentez-vous et parlez de votre famille. (Introduce yourself and talk about your family.)',
         marks: 10,
         topic: 'Speaking',
+        subtopic: 'Personal Information',
         difficulty: 2
       },
       {
@@ -26,6 +27,7 @@ export const languagesPastPapers: PastPaper[] = [
         text: 'Décrivez vos passe-temps préférés. (Describe your favorite hobbies.)',
         marks: 10,
         topic: 'Speaking',
+        subtopic: 'Leisure Activities',
         difficulty: 2
       },
       {
@@ -34,6 +36,7 @@ export const languagesPastPapers: PastPaper[] = [
         text: 'Parlez de vos projets pour l\'avenir. (Talk about your plans for the future.)',
         marks: 10,
         topic: 'Speaking',
+        subtopic: 'Future Plans',
         difficulty: 3
       }
     ]
@@ -53,6 +56,7 @@ export const languagesPastPapers: PastPaper[] = [
         text: 'Lee el texto y contesta las preguntas. (Read the text and answer the questions.)',
         marks: 15,
         topic: 'Reading',
+        subtopic: 'Comprehension',
         difficulty: 3
       },
       {
@@ -61,6 +65,7 @@ export const languagesPastPapers: PastPaper[] = [
         text: 'Traduce el siguiente párrafo al inglés. (Translate the following paragraph into English.)',
         marks: 10,
         topic: 'Translation',
+        subtopic: 'Spanish to English',
         difficulty: 4
       }
     ]
@@ -80,6 +85,7 @@ export const languagesPastPapers: PastPaper[] = [
         text: 'Schreiben Sie einen Brief an Ihren Freund über Ihre letzte Reise. (Write a letter to your friend about your last trip.)',
         marks: 15,
         topic: 'Writing',
+        subtopic: 'Letter Writing',
         difficulty: 4
       },
       {
@@ -88,6 +94,7 @@ export const languagesPastPapers: PastPaper[] = [
         text: 'Schreiben Sie einen Aufsatz zum Thema "Umweltschutz". (Write an essay on the topic of "Environmental Protection".)',
         marks: 20,
         topic: 'Writing',
+        subtopic: 'Essay Writing',
         difficulty: 5
       }
     ]

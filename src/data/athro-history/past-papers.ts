@@ -18,6 +18,7 @@ export const historyPastPapers: PastPaper[] = [
         text: 'What can be learned from Source A about Elizabeth I\'s relationship with Parliament?',
         marks: 5,
         topic: 'Source Analysis',
+        subtopic: 'Tudor England',
         difficulty: 3
       },
       {
@@ -26,6 +27,7 @@ export const historyPastPapers: PastPaper[] = [
         text: 'How useful are Sources B and C to an historian studying the Spanish Armada?',
         marks: 10,
         topic: 'Source Analysis',
+        subtopic: 'Foreign Policy',
         difficulty: 4
       },
       {
@@ -34,6 +36,7 @@ export const historyPastPapers: PastPaper[] = [
         text: '"The main reason for Elizabeth I\'s problems with Spain was religious differences." How far do you agree with this statement?',
         marks: 20,
         topic: 'Tudor England',
+        subtopic: 'Foreign Relations',
         difficulty: 5
       }
     ]
@@ -53,6 +56,7 @@ export const historyPastPapers: PastPaper[] = [
         text: 'Describe the key features of the economic boom in the USA during the 1920s.',
         marks: 10,
         topic: 'USA 1910-1929',
+        subtopic: 'Economic History',
         difficulty: 3
       },
       {
@@ -61,6 +65,7 @@ export const historyPastPapers: PastPaper[] = [
         text: 'Explain why Prohibition was introduced in the USA in 1919.',
         marks: 15,
         topic: 'USA 1910-1929',
+        subtopic: 'Social Reform',
         difficulty: 4
       },
       {
@@ -69,6 +74,7 @@ export const historyPastPapers: PastPaper[] = [
         text: '"The main reason for increased racial tensions in the USA during the 1920s was the rise of the Ku Klux Klan." How far do you agree with this statement?',
         marks: 20,
         topic: 'USA 1910-1929',
+        subtopic: 'Social Conflict',
         difficulty: 5
       }
     ]
