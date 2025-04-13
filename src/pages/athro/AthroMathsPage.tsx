@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import AthroBase from '@/components/athro/AthroBase';
@@ -18,7 +17,7 @@ const AthroMathsPage: React.FC = () => {
       // If character not found, redirect to subject selector
       navigate('/athro');
     }
-  }, [setActiveCharacter, navigate]);
+  }, [setActiveCharacter, navigate]); // Added both dependencies
 
   return (
     <div className="container mx-auto px-4 py-8">
