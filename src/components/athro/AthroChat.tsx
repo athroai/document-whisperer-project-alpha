@@ -62,6 +62,9 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const handleSendMessage = () => {
     if (!userMessage.trim() || !activeCharacter) return;
     
+    // Log to debug
+    console.log('Sending message to Athro:', userMessage);
+    
     sendMessage(userMessage);
     setUserMessage('');
   };
@@ -104,7 +107,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         description: `Your answer has been marked with a score of ${result.aiMark.score}/${result.aiMark.outOf}.`,
       });
       
-      // Send feedback as a new message - Fixed to match function signature
+      // Send feedback as a new message
       sendMessage(`[Marking feedback: ${result.aiMark.comment}]`);
       
     } catch (error) {
@@ -144,99 +147,120 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     );
   }
   
+  // Debug logs
+  console.log('AthroChat render - messages:', messages);
+  console.log('AthroChat render - activeCharacter:', activeCharacter);
+  
   return (
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-grow p-4">
         <div className="space-y-4">
-          {messages.map((msg: AthroMessage, index) => {
-            const previousMessage = index > 0 ? messages[index - 1] : undefined;
-            
-            return (
-              <div 
-                key={msg.id} 
-                className={`flex ${msg.senderId === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+          {messages.length > 0 ? (
+            messages.map((msg: AthroMessage, index) => {
+              const previousMessage = index > 0 ? messages[index - 1] : undefined;
+              
+              return (
                 <div 
-                  className={`max-w-[80%] rounded-lg p-4 ${
-                    msg.senderId === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted'
-                  }`}
+                  key={msg.id} 
+                  className={`flex ${msg.senderId === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {msg.senderId !== 'user' && (
-                    <div className="flex items-center mb-2">
-                      <Avatar className="h-6 w-6 mr-2">
-                        <AvatarImage src={activeCharacter?.avatarUrl} alt={activeCharacter?.name} />
-                        <AvatarFallback>{activeCharacter?.name?.charAt(0) || 'A'}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium">{activeCharacter?.name || 'Athro AI'}</span>
-                    </div>
-                  )}
-                  
-                  {/* Use math renderer for responses if needed */}
-                  {msg.senderId !== 'user' && activeCharacter?.supportsMathNotation ? (
-                    <AthroMathsRenderer content={msg.content} />
-                  ) : (
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
-                  )}
-                  
-                  {msg.senderId === 'user' && state.user && !msg.content.startsWith('[') && (
-                    <div className="mt-2 flex justify-end">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button 
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-xs"
-                            disabled={markingInProgress.has(msg.id)}
-                          >
-                            {markedMessageIds.has(msg.id) ? (
-                              <>
-                                <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                                Marked
-                              </>
-                            ) : markingInProgress.has(msg.id) ? (
-                              <>
-                                <div className="h-3 w-3 border-2 border-t-transparent rounded-full animate-spin mr-1" />
-                                Marking...
-                              </>
-                            ) : (
-                              "Send for marking"
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80">
-                          <div className="space-y-2">
-                            <h4 className="font-medium">Mark this answer?</h4>
-                            <p className="text-sm text-muted-foreground">
-                              This will send your answer for AI marking and feedback. The results will appear in your feedback section.
-                            </p>
-                            <div className="flex justify-end gap-2 mt-4">
-                              <Button 
-                                variant="default" 
-                                size="sm"
-                                onClick={() => handleMarkMessage(msg, previousMessage)}
-                              >
-                                Send for marking
-                              </Button>
+                  <div 
+                    className={`max-w-[80%] rounded-lg p-4 ${
+                      msg.senderId === 'user' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted'
+                    }`}
+                  >
+                    {msg.senderId !== 'user' && (
+                      <div className="flex items-center mb-2">
+                        <Avatar className="h-6 w-6 mr-2">
+                          <AvatarImage src={activeCharacter?.avatarUrl} alt={activeCharacter?.name} />
+                          <AvatarFallback>{activeCharacter?.name?.charAt(0) || 'A'}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{activeCharacter?.name || 'Athro AI'}</span>
+                      </div>
+                    )}
+                    
+                    {/* Use math renderer for responses if needed */}
+                    {msg.senderId !== 'user' && activeCharacter?.supportsMathNotation ? (
+                      <AthroMathsRenderer content={msg.content} />
+                    ) : (
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                    )}
+                    
+                    {msg.senderId === 'user' && state.user && !msg.content.startsWith('[') && (
+                      <div className="mt-2 flex justify-end">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-xs"
+                              disabled={markingInProgress.has(msg.id)}
+                            >
+                              {markedMessageIds.has(msg.id) ? (
+                                <>
+                                  <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+                                  Marked
+                                </>
+                              ) : markingInProgress.has(msg.id) ? (
+                                <>
+                                  <div className="h-3 w-3 border-2 border-t-transparent rounded-full animate-spin mr-1" />
+                                  Marking...
+                                </>
+                              ) : (
+                                "Send for marking"
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium">Mark this answer?</h4>
+                              <p className="text-sm text-muted-foreground">
+                                This will send your answer for AI marking and feedback. The results will appear in your feedback section.
+                              </p>
+                              <div className="flex justify-end gap-2 mt-4">
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  onClick={() => handleMarkMessage(msg, previousMessage)}
+                                >
+                                  Send for marking
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  )}
-                  
-                  {msg.senderId !== 'user' && msg.referencedResources && msg.referencedResources.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-gray-200">
-                      <Button variant="link" size="sm" className="p-0 h-auto text-xs">
-                        View referenced materials
-                      </Button>
-                    </div>
-                  )}
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    )}
+                    
+                    {msg.senderId !== 'user' && msg.referencedResources && msg.referencedResources.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <Button variant="link" size="sm" className="p-0 h-auto text-xs">
+                          View referenced materials
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          ) : activeCharacter && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] rounded-lg p-4 bg-muted">
+                <div className="flex items-center mb-2">
+                  <Avatar className="h-6 w-6 mr-2">
+                    <AvatarImage src={activeCharacter.avatarUrl} alt={activeCharacter.name} />
+                    <AvatarFallback>{activeCharacter.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium">{activeCharacter.name}</span>
+                </div>
+                <div className="whitespace-pre-wrap">
+                  Hello! I'm {activeCharacter.name}, your {activeCharacter.subject} mentor. How can I help you today?
                 </div>
               </div>
-            );
-          })}
+            </div>
+          )}
           
           {isTyping && (
             <div className="flex justify-start">

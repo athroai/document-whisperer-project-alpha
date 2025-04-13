@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,7 +72,12 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
           {submission.answers.text}
         </div>
       );
-    } else if ('fileUrls' in submission.answers && 'fileNames' in submission.answers) {
+    } else if (
+      'fileUrls' in submission.answers && 
+      'fileNames' in submission.answers &&
+      Array.isArray(submission.answers.fileUrls) && 
+      Array.isArray(submission.answers.fileNames)
+    ) {
       return (
         <div>
           <p className="text-sm text-muted-foreground mb-2">Files submitted:</p>
@@ -97,7 +103,7 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
         <div>
           <p className="text-sm text-muted-foreground mb-2">Quiz Responses:</p>
           <ul className="space-y-2">
-            {(submission.answers as any[]).map((answer, index) => (
+            {Array.isArray(submission.answers) && submission.answers.map((answer, index) => (
               <li key={index} className="p-2 border rounded-md">
                 <p className="font-medium">Question {index + 1}</p>
                 <p>Answer: {answer.userAnswer}</p>
