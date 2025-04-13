@@ -7,11 +7,13 @@ import { UserRole } from '../types/auth';
 interface ProtectedRouteProps {
   children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
   requiredRole?: UserRole;
+  requireLicense?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requiredRole
+  requiredRole,
+  requireLicense = false
 }) => {
   const { state } = useAuth();
   const { user, loading } = state;
@@ -50,7 +52,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   // Check license status (skip for Nexastream users)
-  if (!user.licenseExempt && user.role === 'teacher' && !user.schoolId) {
+  if (requireLicense && !user.licenseExempt && user.role === 'teacher' && !user.schoolId) {
     return <Navigate to="/required-license" replace />;
   }
   
