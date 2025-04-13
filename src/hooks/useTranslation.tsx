@@ -6,7 +6,7 @@ type Language = 'en' | 'cy' | 'es' | 'fr' | 'de';
 
 interface TranslationContextType {
   language: Language;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   changeLanguage: (lang: Language) => void;
 }
 
@@ -31,7 +31,7 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, []);
   
-  const t = (key: string): string => {
+  const t = (key: string, params?: Record<string, string | number>): string => {
     const keys = key.split('.');
     let result = translations[language] || translations.en;
     
@@ -52,7 +52,17 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     
-    return typeof result === 'string' ? result : key;
+    let translated = typeof result === 'string' ? result : key;
+    
+    // Replace parameters if provided
+    if (params && typeof translated === 'string') {
+      Object.entries(params).forEach(([paramKey, paramValue]) => {
+        const regex = new RegExp(`{${paramKey}}`, 'g');
+        translated = translated.replace(regex, String(paramValue));
+      });
+    }
+    
+    return translated;
   };
   
   const changeLanguage = (lang: Language) => {
