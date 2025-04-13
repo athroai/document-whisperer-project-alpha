@@ -8,7 +8,7 @@ const mockInquiries: ParentMessage[] = [
     studentId: 'stu123',
     parentName: 'Llinos Evans',
     parentEmail: 'llinos@example.com',
-    message: 'I'm worried about Ceri's confidence in maths.',
+    message: 'I\'m worried about Ceri\'s confidence in maths.',
     topic: 'Wellbeing',
     timestamp: '2025-04-20T12:00:00Z',
     status: 'unread',
@@ -103,3 +103,4 @@ export class ParentInquiriesService {
     return inquiries.filter(inquiry => inquiry.status === 'unread').length;
   }
 }
+
