@@ -1,7 +1,7 @@
 
 import { AthroSubject, AthroMessage, ExamBoard } from '@/types/athro';
-import { mathsModelAnswers } from '@/data/athro-maths/model-answers';
-import { mathsPastPapers } from '@/data/athro-maths/past-papers';
+import { modelAnswers as mathsModelAnswers } from '@/data/athro-maths/model-answers';
+import { pastPapers as mathsPastPapers } from '@/data/athro-maths/past-papers';
 import { englishModelAnswers } from '@/data/athro-english/model-answers';
 import { englishPastPapers } from '@/data/athro-english/past-papers';
 import { welshModelAnswers } from '@/data/athro-welsh/model-answers';

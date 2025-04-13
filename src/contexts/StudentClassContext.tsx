@@ -9,6 +9,7 @@ interface StudentClassContextType {
   loading: boolean;
   error: string | null;
   refreshSubjects: () => Promise<void>;
+  isEnrolledInSubject: (subject: string) => boolean;
 }
 
 const StudentClassContext = createContext<StudentClassContextType>({
@@ -16,6 +17,7 @@ const StudentClassContext = createContext<StudentClassContextType>({
   loading: true,
   error: null,
   refreshSubjects: async () => {},
+  isEnrolledInSubject: () => false
 });
 
 export const useStudentClass = () => useContext(StudentClassContext);
@@ -55,8 +57,14 @@ export const StudentClassProvider: React.FC<{ children: React.ReactNode }> = ({ 
     await fetchEnrolledSubjects();
   };
 
+  const isEnrolledInSubject = (subject: string): boolean => {
+    return enrolledSubjects.some(
+      enrolledSubject => enrolledSubject.subject.toLowerCase() === subject.toLowerCase()
+    );
+  };
+
   return (
-    <StudentClassContext.Provider value={{ enrolledSubjects, loading, error, refreshSubjects }}>
+    <StudentClassContext.Provider value={{ enrolledSubjects, loading, error, refreshSubjects, isEnrolledInSubject }}>
       {children}
     </StudentClassContext.Provider>
   );

@@ -11,7 +11,7 @@ import { toast } from '@/components/ui/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { Class, StudentDetail, Subject } from '@/types/teacher';
-import { StudentClassService } from '@/services/studentClassService';
+import StudentClassService from '@/services/StudentClassService';
 
 // Mock data for development - will be replaced with Firestore in production
 const subjects: Subject[] = [
