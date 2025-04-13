@@ -11,7 +11,8 @@ import {
   BarChart3, 
   Settings,
   Home,
-  Upload
+  Upload,
+  ActivitySquare
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -60,6 +61,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
     { icon: Upload, label: 'Resource Deploy', href: '/teacher/deploy' },
     { icon: FileText, label: 'Assign Work', href: '/teacher/assign' },
     { icon: UserCircle, label: 'Student Profiles', href: '/teacher/profiles' },
+    { icon: ActivitySquare, label: 'Live Monitor', href: '/teacher/live-monitoring' },
     { icon: Mail, label: 'Parent Inquiries', href: '/teacher/inquiries', badge: <UnreadInquiriesBadge /> },
     { icon: BarChart3, label: 'Insights', href: '/teacher/insights' },
     { icon: Settings, label: 'System Tools', href: '/teacher/system' },

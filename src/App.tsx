@@ -27,6 +27,7 @@ import TeacherMarkingPanel from "./pages/teacher/TeacherMarkingPanel";
 import TeacherResourceDeployPage from "./pages/teacher/TeacherResourceDeployPage"; 
 import TeacherParentInquiriesPage from "./pages/teacher/TeacherParentInquiriesPage";
 import TeacherSystemToolsPage from "./pages/teacher/TeacherSystemToolsPage";
+import LiveMonitoringPage from "./pages/teacher/LiveMonitoringPage";
 import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
 import StudentFeedbackPage from "./pages/student/StudentFeedbackPage";
 import StudentAssignmentViewPage from "./pages/student/StudentAssignmentViewPage";
@@ -184,6 +185,14 @@ function App() {
         element={
           <ProtectedRoute requiredRole="teacher">
             <TeacherSystemToolsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/live-monitoring"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <LiveMonitoringPage />
           </ProtectedRoute>
         }
       />
