@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,7 +71,7 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
           {submission.answers.text}
         </div>
       );
-    } else if ('fileUrls' in submission.answers) {
+    } else if ('fileUrls' in submission.answers && 'fileNames' in submission.answers) {
       return (
         <div>
           <p className="text-sm text-muted-foreground mb-2">Files submitted:</p>
