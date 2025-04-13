@@ -3,6 +3,7 @@
 export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Computer Science' | 'Welsh' | 'Languages' | 'Religious Education';
 export type AthroLanguage = 'English' | 'Welsh' | 'French' | 'Spanish' | 'German';
 export type ExamBoard = 'wjec' | 'aqa' | 'ocr' | 'none';
+export type ModernLanguage = 'french' | 'german' | 'spanish';
 
 export interface AthroCharacter {
   id: string;
@@ -26,6 +27,9 @@ export interface AthroMessage {
   timestamp: string;
   markScheme?: string;
   referencedResources?: string[];
+  grammarTip?: string;
+  culturalNote?: string;
+  translation?: string;
 }
 
 export interface AthroSession {
@@ -35,6 +39,37 @@ export interface AthroSession {
   messages: AthroMessage[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PastPaper {
+  id: string;
+  subject: string;
+  unit: string;
+  title: string;
+  examBoard: ExamBoard;
+  year: string;
+  season: string;
+  questions: PastPaperQuestion[];
+}
+
+export interface PastPaperQuestion {
+  id: string;
+  topic: string;
+  subtopic: string;
+  text: string;
+  marks: number;
+  difficulty: number;
+}
+
+export interface ModelAnswer {
+  questionId: string;
+  workingSteps: string[];
+  markScheme: string;
+  marks: number;
+  latexNotation: string;
+  translation?: string;
+  grammarExplanation?: string;
+  culturalNote?: string;
 }
 
 export interface AthroFileReference {

@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { AthroCharacterConfig } from '@/types/athroCharacter';
 import { mockAthroResponse } from '@/services/athroService';
+import athroService from '@/services/athroService';
 
 interface AthroRouterProps {
   character: AthroCharacter;
@@ -26,6 +27,25 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         let subjectContext = {};
         if (character.subject === 'Languages' && context?.subjectSection) {
           subjectContext = { subjectSection: context.subjectSection };
+          console.log(`[AthroRouter] Language context detected:`, context.subjectSection);
+          
+          // For languages, we want to use special language-specific responses
+          if (['french', 'german', 'spanish'].includes(context.subjectSection)) {
+            // Check if we should use language-specific generation
+            if (!message.includes('past paper') && !message.match(/exam|test|quiz/i)) {
+              const languageResponse = athroService.generateLanguageResponse(message, context.subjectSection);
+              
+              const aiMessage = {
+                id: Date.now().toString(),
+                senderId: character.id,
+                content: languageResponse,
+                timestamp: new Date().toISOString(),
+              };
+              
+              onResponse(aiMessage);
+              return;
+            }
+          }
         }
         
         if (character.subject === 'Science' && context?.subjectSection) {

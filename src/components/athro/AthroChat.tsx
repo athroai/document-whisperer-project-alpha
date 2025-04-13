@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Send, CheckCircle, AlertCircle, FileText, Calendar } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle, FileText, Calendar, BookOpen, Globe } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
@@ -25,13 +25,15 @@ interface AthroChatProps {
 }
 
 const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
-  const { activeCharacter, messages, sendMessage, isTyping } = useAthro();
+  const { activeCharacter, messages, sendMessage, isTyping, currentScienceSubject } = useAthro();
   const { state } = useAuth();
   const [userMessage, setUserMessage] = useState<string>('');
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [markedMessageIds, setMarkedMessageIds] = useState<Set<string>>(new Set());
   const [markingInProgress, setMarkingInProgress] = useState<Set<string>>(new Set());
   const [pendingAssignments, setPendingAssignments] = useState<any[]>([]);
+  const [expandedCulturalNotes, setExpandedCulturalNotes] = useState<Set<string>>(new Set());
+  const [expandedGrammarTips, setExpandedGrammarTips] = useState<Set<string>>(new Set());
   
   // Auto-scroll to the latest message
   useEffect(() => {
@@ -136,6 +138,58 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     sendMessage(message);
   };
 
+  const toggleCulturalNote = (messageId: string) => {
+    setExpandedCulturalNotes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleGrammarTip = (messageId: string) => {
+    setExpandedGrammarTips(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+
+  // Helper to extract and create grammar tips from messages
+  const extractGrammarTip = (content: string) => {
+    const grammarMatch = content.match(/Grammar (?:tip|note):\s*(.*?)(?:\n\n|\n$|$)/is);
+    return grammarMatch ? grammarMatch[1] : null;
+  };
+
+  // Helper to extract and create cultural notes from messages
+  const extractCulturalNote = (content: string) => {
+    const culturalMatch = content.match(/Cultural note:\s*(.*?)(?:\n\n|\n$|$)/is);
+    return culturalMatch ? culturalMatch[1] : null;
+  };
+
+  const getLanguageLabel = () => {
+    if (activeCharacter?.subject === 'Languages' && currentScienceSubject) {
+      switch (currentScienceSubject) {
+        case 'french':
+          return <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">French 🇫🇷</Badge>;
+        case 'german':
+          return <Badge className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-200">German 🇩🇪</Badge>;
+        case 'spanish':
+          return <Badge className="ml-2 bg-red-100 text-red-800 border-red-200">Spanish 🇪🇸</Badge>;
+        default:
+          return null;
+      }
+    }
+    return null;
+  };
+
   if (!activeCharacter && messages.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -147,17 +201,22 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     );
   }
   
-  // Debug logs
-  console.log('AthroChat render - messages:', messages);
-  console.log('AthroChat render - activeCharacter:', activeCharacter);
-  
   return (
     <div className="flex flex-col h-full">
+      <div className="p-2 bg-background border-b flex items-center justify-between">
+        <div className="flex items-center">
+          <span className="text-sm font-medium">AthroChat</span>
+          {getLanguageLabel()}
+        </div>
+      </div>
+      
       <ScrollArea className="flex-grow p-4">
         <div className="space-y-4">
           {messages.length > 0 ? (
             messages.map((msg: AthroMessage, index) => {
               const previousMessage = index > 0 ? messages[index - 1] : undefined;
+              const grammarTip = extractGrammarTip(msg.content);
+              const culturalNote = extractCulturalNote(msg.content);
               
               return (
                 <div 
@@ -186,6 +245,50 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
                       <AthroMathsRenderer content={msg.content} />
                     ) : (
                       <div className="whitespace-pre-wrap">{msg.content}</div>
+                    )}
+                    
+                    {/* Grammar Tips for Languages */}
+                    {msg.senderId !== 'user' && activeCharacter?.subject === 'Languages' && grammarTip && (
+                      <div className="mt-4 pt-2 border-t border-gray-200">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex items-center text-xs" 
+                          onClick={() => toggleGrammarTip(msg.id)}
+                        >
+                          <BookOpen className="h-3 w-3 mr-1" />
+                          {expandedGrammarTips.has(msg.id) ? "Hide Grammar Tip" : "View Grammar Tip"}
+                        </Button>
+                        
+                        {expandedGrammarTips.has(msg.id) && (
+                          <div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded text-sm">
+                            <h5 className="font-medium mb-1">Grammar Tip</h5>
+                            <p>{grammarTip}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Cultural Notes for Languages */}
+                    {msg.senderId !== 'user' && activeCharacter?.subject === 'Languages' && culturalNote && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex items-center text-xs" 
+                          onClick={() => toggleCulturalNote(msg.id)}
+                        >
+                          <Globe className="h-3 w-3 mr-1" />
+                          {expandedCulturalNotes.has(msg.id) ? "Hide Cultural Note" : "View Cultural Note"}
+                        </Button>
+                        
+                        {expandedCulturalNotes.has(msg.id) && (
+                          <div className="mt-2 p-3 bg-amber-50 text-amber-800 rounded text-sm">
+                            <h5 className="font-medium mb-1">Cultural Note</h5>
+                            <p>{culturalNote}</p>
+                          </div>
+                        )}
+                      </div>
                     )}
                     
                     {msg.senderId === 'user' && state.user && !msg.content.startsWith('[') && (

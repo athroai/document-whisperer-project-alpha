@@ -1,4 +1,3 @@
-
 import { AthroSubject, AthroMessage, ExamBoard } from '@/types/athro';
 import { modelAnswers as mathsModelAnswers } from '@/data/athro-maths/model-answers';
 import { pastPapers as mathsPastPapers } from '@/data/athro-maths/past-papers';
@@ -16,8 +15,12 @@ import { historyModelAnswers } from '@/data/athro-history/model-answers';
 import { historyPastPapers } from '@/data/athro-history/past-papers';
 import { geographyModelAnswers } from '@/data/athro-geography/model-answers';
 import { geographyPastPapers } from '@/data/athro-geography/past-papers';
-import { languagesModelAnswers } from '@/data/athro-languages/model-answers';
-import { languagesPastPapers } from '@/data/athro-languages/past-papers';
+import { frenchModelAnswers } from '@/data/athro-languages/model-answers/french';
+import { germanModelAnswers } from '@/data/athro-languages/model-answers/german';
+import { spanishModelAnswers } from '@/data/athro-languages/model-answers/spanish';
+import { frenchPastPapers } from '@/data/athro-languages/past-papers/french';
+import { germanPastPapers } from '@/data/athro-languages/past-papers/german';
+import { spanishPastPapers } from '@/data/athro-languages/past-papers/spanish';
 import { reModelAnswers } from '@/data/athro-re/model-answers';
 import { rePastPapers } from '@/data/athro-re/past-papers';
 
@@ -29,14 +32,32 @@ const generateId = () => {
 // Mock history of chat sessions
 const chatHistory: Record<string, AthroMessage[]> = {};
 
+// Get language-specific resources
+const getLanguageResources = (language: string) => {
+  switch (language?.toLowerCase()) {
+    case 'french':
+      return { pastPapers: frenchPastPapers, modelAnswers: frenchModelAnswers };
+    case 'german':
+      return { pastPapers: germanPastPapers, modelAnswers: germanModelAnswers };
+    case 'spanish':
+      return { pastPapers: spanishPastPapers, modelAnswers: spanishModelAnswers };
+    default:
+      // Default to French if no language specified
+      return { pastPapers: frenchPastPapers, modelAnswers: frenchModelAnswers };
+  }
+};
+
 // Get past papers based on subject
-export const getPastPapersBySubject = (subject: AthroSubject, examBoard: ExamBoard = 'wjec') => {
+export const getPastPapersBySubject = (subject: AthroSubject, examBoard: ExamBoard = 'wjec', subjectSection?: string) => {
   switch (subject) {
     case 'Mathematics':
       return mathsPastPapers;
     case 'English':
       return englishPastPapers;
     case 'Science':
+      if (subjectSection === 'biology') return biologyPastPapers;
+      if (subjectSection === 'chemistry') return chemistryPastPapers;
+      if (subjectSection === 'physics') return physicsPastPapers;
       return [...biologyPastPapers, ...chemistryPastPapers, ...physicsPastPapers];
     case 'Welsh':
       return welshPastPapers;
@@ -45,7 +66,11 @@ export const getPastPapersBySubject = (subject: AthroSubject, examBoard: ExamBoa
     case 'Geography':
       return geographyPastPapers;
     case 'Languages':
-      return languagesPastPapers;
+      if (subjectSection) {
+        return getLanguageResources(subjectSection).pastPapers;
+      }
+      // Combine all language papers if no specific language
+      return [...frenchPastPapers, ...germanPastPapers, ...spanishPastPapers];
     case 'Religious Education':
       return rePastPapers;
     default:
@@ -54,13 +79,16 @@ export const getPastPapersBySubject = (subject: AthroSubject, examBoard: ExamBoa
 };
 
 // Get model answers based on subject
-export const getModelAnswersBySubject = (subject: AthroSubject) => {
+export const getModelAnswersBySubject = (subject: AthroSubject, subjectSection?: string) => {
   switch (subject) {
     case 'Mathematics':
       return mathsModelAnswers;
     case 'English':
       return englishModelAnswers;
     case 'Science':
+      if (subjectSection === 'biology') return biologyModelAnswers;
+      if (subjectSection === 'chemistry') return chemistryModelAnswers;
+      if (subjectSection === 'physics') return physicsModelAnswers;
       return [...biologyModelAnswers, ...chemistryModelAnswers, ...physicsModelAnswers];
     case 'Welsh':
       return welshModelAnswers;
@@ -69,7 +97,11 @@ export const getModelAnswersBySubject = (subject: AthroSubject) => {
     case 'Geography':
       return geographyModelAnswers;
     case 'Languages':
-      return languagesModelAnswers;
+      if (subjectSection) {
+        return getLanguageResources(subjectSection).modelAnswers;
+      }
+      // Combine all language answers if no specific language
+      return [...frenchModelAnswers, ...germanModelAnswers, ...spanishModelAnswers];
     case 'Religious Education':
       return reModelAnswers;
     default:
@@ -78,8 +110,8 @@ export const getModelAnswersBySubject = (subject: AthroSubject) => {
 };
 
 // Find a specific past paper question
-export const findPastPaperQuestion = (questionId: string, subject: AthroSubject) => {
-  const pastPapers = getPastPapersBySubject(subject);
+export const findPastPaperQuestion = (questionId: string, subject: AthroSubject, subjectSection?: string) => {
+  const pastPapers = getPastPapersBySubject(subject, 'wjec', subjectSection);
   
   for (const paper of pastPapers) {
     for (const question of paper.questions) {
@@ -96,8 +128,8 @@ export const findPastPaperQuestion = (questionId: string, subject: AthroSubject)
 };
 
 // Find a model answer for a specific question
-export const findModelAnswer = (questionId: string, subject: AthroSubject) => {
-  const modelAnswers = getModelAnswersBySubject(subject);
+export const findModelAnswer = (questionId: string, subject: AthroSubject, subjectSection?: string) => {
+  const modelAnswers = getModelAnswersBySubject(subject, subjectSection);
   return modelAnswers.find(answer => answer.questionId === questionId) || null;
 };
 
@@ -157,22 +189,71 @@ const generateScienceResponse = (message: string, subjectSection: string): strin
     case 'chemistry':
       return `From a chemistry perspective, ${message.includes('element') ? 'elements are arranged in the periodic table according to their atomic properties' : 'chemical reactions involve the breaking and forming of bonds between atoms'}. Let me know if you'd like me to elaborate on any specific concept.`;
     case 'physics':
-      return `In physics, ${message.includes('force') ? 'forces cause objects to accelerate according to Newton\'s Second Law, F=ma' : 'energy is conserved in a closed system, but can be transformed between different forms'}. Would you like me to provide a specific example or calculation?`;
+      return `In physics, ${message.includes('force') ? 'forces cause objects to accelerate according to Newton's Second Law, F=ma' : 'energy is conserved in a closed system, but can be transformed between different forms'}. Would you like me to provide a specific example or calculation?`;
     default:
       return `As your Science Athro, I can help with biology, chemistry, or physics questions. ${message}`;
   }
 };
 
 const generateLanguageResponse = (message: string, language: string): string => {
-  switch (language.toLowerCase()) {
-    case 'french':
-      return `Bonjour! In French, ${message.includes('verb') ? 'verbs are conjugated differently depending on the subject pronoun and tense' : 'pronunciation is critical, and many letters are silent at the end of words'}. Voulez-vous que j'explique davantage?`;
-    case 'spanish':
-      return `¡Hola! In Spanish, ${message.includes('verb') ? 'verb conjugation follows patterns based on -ar, -er, and -ir endings' : 'the use of gender for nouns and adjective agreement is essential'}. ¿Quieres que te explique más?`;
-    case 'german':
-      return `Guten Tag! In German, ${message.includes('case') ? 'there are four cases: nominative, accusative, dative, and genitive' : 'word order is flexible but follows specific rules'}. Möchten Sie, dass ich mehr erkläre?`;
-    default:
-      return `As your Languages Athro, I can help with French, Spanish, or German. ${message}`;
+  const languageGreetings = {
+    french: "Bonjour! ",
+    german: "Hallo! ",
+    spanish: "¡Hola! "
+  };
+
+  const greeting = language && languageGreetings[language as keyof typeof languageGreetings] 
+    ? languageGreetings[language as keyof typeof languageGreetings] 
+    : "";
+
+  const isGrammarQuestion = /grammar|conjugation|tense|verb|noun|adjective|adverb|preposition/i.test(message);
+  const isVocabQuestion = /vocabulary|word|phrase|expression|idiom|saying|mean/i.test(message);
+  const isTranslationRequest = /translate|translation|how do you say|how to say/i.test(message);
+
+  if (isTranslationRequest) {
+    switch (language) {
+      case 'french':
+        return `${greeting}Here's how I'd translate that in French:\n\n"${message.replace(/translate/i, '').trim()}" would be "Je peux vous aider avec votre apprentissage du français."\n\nWould you like me to break down this translation and explain the grammar?`;
+      case 'german':
+        return `${greeting}Here's how I'd translate that in German:\n\n"${message.replace(/translate/i, '').trim()}" would be "Ich kann Ihnen bei Ihrem Deutschlernen helfen."\n\nWould you like me to explain the grammar used in this translation?`;
+      case 'spanish':
+        return `${greeting}Here's how I'd translate that in Spanish:\n\n"${message.replace(/translate/i, '').trim()}" would be "Puedo ayudarte con tu aprendizaje de español."\n\nWould you like me to explain the grammar used in this translation?`;
+      default:
+        return `I'd be happy to translate that for you. Which language would you like me to use - French, German, or Spanish?`;
+    }
+  } else if (isGrammarQuestion) {
+    switch (language) {
+      case 'french':
+        return `${greeting}Let's explore French grammar together. French grammar includes elements like gender (masculine/feminine), verb conjugation patterns, and specific rules for articles and adjectives.\n\nWhat specific aspect of French grammar would you like to learn about today?`;
+      case 'german':
+        return `${greeting}German grammar has some unique features including three genders (masculine, feminine, and neuter), four cases (nominative, accusative, dative, and genitive), and specific word order rules.\n\nWhich aspect of German grammar would you like me to explain?`;
+      case 'spanish':
+        return `${greeting}Spanish grammar includes concepts like gender agreement, verb conjugation across different tenses, and the distinction between ser and estar.\n\nWhat specific aspect of Spanish grammar are you working on?`;
+      default:
+        return `I'd be happy to help with grammar. Would you like to focus on French, German, or Spanish grammar rules?`;
+    }
+  } else if (isVocabQuestion) {
+    switch (language) {
+      case 'french':
+        return `${greeting}Building vocabulary is essential for learning French. I can help you with topic-based vocabulary lists, common phrases, or expressions.\n\nWhat type of vocabulary would you like to learn today?`;
+      case 'german':
+        return `${greeting}German vocabulary often features compound words that combine multiple concepts. I can help you learn everyday German words, expressions, or topic-specific vocabulary.\n\nWhat vocabulary area interests you?`;
+      case 'spanish':
+        return `${greeting}Spanish vocabulary varies across different Spanish-speaking countries but shares common roots. I can help you with everyday Spanish words, expressions, or regional variations.\n\nWhat vocabulary topic would you like to explore?`;
+      default:
+        return `I can help you build vocabulary in French, German, or Spanish. Which language would you like to focus on?`;
+    }
+  } else {
+    switch (language) {
+      case 'french':
+        return `${greeting}As your French language guide, I can help with vocabulary, grammar, conversation practice, translations, and exam preparation. What aspect of French would you like to work on today?`;
+      case 'german':
+        return `${greeting}As your German language guide, I can help with vocabulary, grammar, conversation practice, translations, and exam preparation. What aspect of German would you like to work on today?`;
+      case 'spanish':
+        return `${greeting}As your Spanish language guide, I can help with vocabulary, grammar, conversation practice, translations, and exam preparation. What aspect of Spanish would you like to work on today?`;
+      default:
+        return `I can help you learn French, German, or Spanish through vocabulary building, grammar explanations, conversation practice, and exam preparation. Which language would you like to focus on?`;
+    }
   }
 };
 
@@ -197,5 +278,6 @@ export default {
   findPastPaperQuestion,
   findModelAnswer,
   getPastPapersBySubject,
-  getModelAnswersBySubject
+  getModelAnswersBySubject,
+  generateLanguageResponse
 };
