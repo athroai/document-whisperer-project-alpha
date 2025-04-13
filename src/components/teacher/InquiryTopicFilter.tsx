@@ -22,6 +22,8 @@ export const InquiryTopicFilter: React.FC<InquiryTopicFilterProps> = ({ value, o
     'Wellbeing',
     'Attendance',
     'Technical',
+    'Assignments', // Added assignments topic
+    'Study Sessions'  // Added study sessions topic
   ];
 
   return (

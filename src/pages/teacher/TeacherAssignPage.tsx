@@ -14,7 +14,9 @@ import {
   Clock, 
   Edit,
   Trash,
-  Archive
+  Archive,
+  FileCheck,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +25,7 @@ import { assignmentService } from '@/services/assignmentService';
 import { formatDistanceToNow, isAfter } from 'date-fns';
 import CreateAssignmentForm from '@/components/dashboard/CreateAssignmentForm';
 import { Skeleton } from '@/components/ui/skeleton';
+import AssignmentFilters from '@/components/teacher/AssignmentFilters';
 
 const TeacherAssignPage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +35,12 @@ const TeacherAssignPage: React.FC = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  
+  // Filters
   const [classId, setClassId] = useState<string>("all");
+  const [subject, setSubject] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [dueDateFrom, setDueDateFrom] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     const loadAssignments = async () => {
@@ -49,7 +57,28 @@ const TeacherAssignPage: React.FC = () => {
           classId: classFilter
         });
         
-        setAssignments(fetchedAssignments);
+        // Apply client-side filters
+        let filtered = fetchedAssignments;
+        
+        if (subject !== "all") {
+          filtered = filtered.filter(a => a.subject === subject);
+        }
+        
+        if (searchTerm.trim()) {
+          const term = searchTerm.toLowerCase();
+          filtered = filtered.filter(a => 
+            a.title.toLowerCase().includes(term) || 
+            a.description.toLowerCase().includes(term)
+          );
+        }
+        
+        if (dueDateFrom) {
+          filtered = filtered.filter(a => 
+            new Date(a.dueDate) >= dueDateFrom
+          );
+        }
+        
+        setAssignments(filtered);
       } catch (error) {
         console.error('Error fetching assignments:', error);
         toast({
@@ -63,7 +92,7 @@ const TeacherAssignPage: React.FC = () => {
     };
     
     loadAssignments();
-  }, [user?.id, activeTab, classId]);
+  }, [user?.id, activeTab, classId, subject, searchTerm, dueDateFrom]);
 
   const handleCreateAssignment = async (newAssignment: Omit<Assignment, "id">) => {
     try {
@@ -222,6 +251,11 @@ const TeacherAssignPage: React.FC = () => {
               <Badge variant={assignment.status === "published" ? "default" : "outline"}>
                 {assignment.status === "published" ? "Published" : "Draft"}
               </Badge>
+              {assignment.aiSupportEnabled && (
+                <Badge variant="outline" className="bg-purple-50 text-purple-800 border-purple-200">
+                  Athro Support
+                </Badge>
+              )}
               <Badge variant="outline" className="bg-gray-50">
                 {getAssignmentTypeLabel(assignment.assignmentType)}
               </Badge>
@@ -258,6 +292,7 @@ const TeacherAssignPage: React.FC = () => {
               variant="outline"
               onClick={() => navigate(`/teacher/marking?assignmentId=${assignment.id}`)}
             >
+              <FileCheck className="mr-2 h-4 w-4" />
               View Submissions
             </Button>
             {activeTab === "active" && (
@@ -273,6 +308,13 @@ const TeacherAssignPage: React.FC = () => {
         </CardFooter>
       </Card>
     ));
+  };
+
+  const clearFilters = () => {
+    setClassId("all");
+    setSubject("all");
+    setSearchTerm("");
+    setDueDateFrom(undefined);
   };
 
   return (
@@ -294,6 +336,27 @@ const TeacherAssignPage: React.FC = () => {
             <TabsTrigger value="active">Active Assignments</TabsTrigger>
             <TabsTrigger value="archived">Archived Assignments</TabsTrigger>
           </TabsList>
+          
+          <div className="mt-6 mb-4">
+            <AssignmentFilters 
+              classId={classId}
+              setClassId={setClassId}
+              subject={subject}
+              setSubject={setSubject}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              dueDateFrom={dueDateFrom}
+              setDueDateFrom={setDueDateFrom}
+            />
+            
+            {(classId !== "all" || subject !== "all" || searchTerm !== "" || dueDateFrom) && (
+              <div className="mt-2 flex justify-end">
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </div>
           
           <TabsContent value="active" className="space-y-4 mt-4">
             {renderAssignmentList()}

@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Clock, FileDown, Upload, CheckCircle, AlertCircle, FileCheck, Eye } from 'lucide-react';
+import { Calendar, Clock, FileDown, Upload, CheckCircle, AlertCircle, FileCheck, Eye, Play } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { assignmentService } from '@/services/assignmentService';
 import { StudentAssignmentView } from '@/types/assignment';
 import { format } from 'date-fns';
+import StudySessionCard from '@/components/student/StudySessionCard';
 
 const StudentAssignmentsPage: React.FC = () => {
   const { state } = useAuth();
@@ -106,9 +107,18 @@ const StudentAssignmentsPage: React.FC = () => {
       );
     }
     
+    if (assignment.inProgress) {
+      return (
+        <Badge variant="outline" className="bg-blue-50 text-blue-800 hover:bg-blue-100 border-blue-200">
+          <Clock className="h-3 w-3 mr-1" />
+          <span>In progress</span>
+        </Badge>
+      );
+    }
+    
     return (
-      <Badge variant="outline" className="bg-blue-50 text-blue-800 hover:bg-blue-100 border-blue-200">
-        <Clock className="h-3 w-3 mr-1" />
+      <Badge variant="outline" className="bg-gray-50 text-gray-800 hover:bg-gray-100">
+        <AlertCircle className="h-3 w-3 mr-1" />
         <span>Not started</span>
       </Badge>
     );
@@ -178,6 +188,11 @@ const StudentAssignmentsPage: React.FC = () => {
             <div className="flex flex-col gap-2 items-end">
               {renderDueDate(assignment)}
               {renderAssignmentStatus(assignment)}
+              {assignment.assignment.aiSupportEnabled && (
+                <Badge variant="outline" className="bg-purple-50 text-purple-800 border-purple-200">
+                  Athro Support
+                </Badge>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -196,7 +211,7 @@ const StudentAssignmentsPage: React.FC = () => {
             )}
           </div>
           
-          <div>
+          <div className="flex gap-2">
             {assignment.hasSubmitted ? (
               assignment.hasFeedback ? (
                 <Link to={`/student/feedback`}>
@@ -214,26 +229,65 @@ const StudentAssignmentsPage: React.FC = () => {
                 </Link>
               )
             ) : (
-              <Link to={`/student/assignments/${assignment.assignment.id}`}>
-                <Button size="sm">
-                  {assignment.isPastDue ? (
-                    <>
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Assignment
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Submit Work
-                    </>
-                  )}
-                </Button>
-              </Link>
+              <>
+                {!assignment.isPastDue && assignment.assignment.aiSupportEnabled && (
+                  <Link to={`/athro/${assignment.assignment.subject.toLowerCase()}`} state={{ assignmentId: assignment.assignment.id }}>
+                    <Button variant="outline" size="sm">
+                      <Play className="mr-2 h-4 w-4" />
+                      Study Session
+                    </Button>
+                  </Link>
+                )}
+                <Link to={`/student/assignments/${assignment.assignment.id}`}>
+                  <Button size="sm">
+                    {assignment.isPastDue ? (
+                      <>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Assignment
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Submit Work
+                      </>
+                    )}
+                  </Button>
+                </Link>
+              </>
             )}
           </div>
         </CardFooter>
       </Card>
     ));
+  };
+
+  const renderStudySessions = () => {
+    const sessionsAvailable = upcomingAssignments.filter(a => a.assignment.aiSupportEnabled);
+    
+    if (sessionsAvailable.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Play className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+          <h3 className="text-lg font-medium text-gray-900 mb-1">No study sessions available</h3>
+          <p className="text-gray-500">Complete your assignments to unlock Athro study sessions</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        {sessionsAvailable.map(assignment => (
+          <StudySessionCard
+            key={assignment.assignment.id}
+            assignmentId={assignment.assignment.id}
+            title={assignment.assignment.title}
+            subject={assignment.assignment.subject}
+            dueDate={assignment.assignment.dueDate}
+            hasAiSupport={!!assignment.assignment.aiSupportEnabled}
+          />
+        ))}
+      </div>
+    );
   };
 
   if (!user) {
@@ -255,6 +309,9 @@ const StudentAssignmentsPage: React.FC = () => {
           <TabsTrigger value="past-due">
             Past Due ({pastDueAssignments.length})
           </TabsTrigger>
+          <TabsTrigger value="study-sessions">
+            Study Sessions
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="upcoming" className="space-y-4">
@@ -267,6 +324,10 @@ const StudentAssignmentsPage: React.FC = () => {
         
         <TabsContent value="past-due" className="space-y-4">
           {renderAssignmentsList(pastDueAssignments)}
+        </TabsContent>
+        
+        <TabsContent value="study-sessions" className="space-y-4">
+          {renderStudySessions()}
         </TabsContent>
       </Tabs>
     </div>

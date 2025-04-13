@@ -15,6 +15,7 @@ export interface Assignment {
   linkedResources: string[]; // array of resource ids
   instructions?: string;
   filesAttached?: string[];
+  aiSupportEnabled?: boolean; // New field to indicate if AI support is enabled
 }
 
 export interface Submission {
@@ -38,6 +39,7 @@ export interface FeedbackData {
   comment: string;
   markedBy: string; // teacher id
   markedAt: string; // ISO date string
+  rating?: "needs_improvement" | "good" | "excellent"; // New field to store teacher rating
 }
 
 export interface AIFeedback {
@@ -68,4 +70,15 @@ export interface StudentAssignmentView {
   isPastDue: boolean;
   daysUntilDue: number;
   hasFeedback: boolean;
+  inProgress?: boolean; // New field to indicate if the assignment is in progress
+}
+
+// New type for assignment statistics
+export interface AssignmentStats {
+  totalStudents: number;
+  submitted: number;
+  notStarted: number;
+  inProgress: number;
+  marked: number;
+  averageScore?: number;
 }

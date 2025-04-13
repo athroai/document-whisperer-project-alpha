@@ -30,6 +30,7 @@ import { Assignment } from '@/types/assignment';
 import { useAuth } from '@/contexts/AuthContext';
 import ResourceUpload from './ResourceUpload';
 import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 
 // Schema for form validation
 const formSchema = z.object({
@@ -43,7 +44,8 @@ const formSchema = z.object({
   status: z.enum(["draft", "published"]),
   linkedResources: z.array(z.string()).default([]),
   instructions: z.string().optional(),
-  filesAttached: z.array(z.string()).default([])
+  filesAttached: z.array(z.string()).default([]),
+  aiSupportEnabled: z.boolean().default(false), // Added AI support field
 });
 
 interface CreateAssignmentFormProps {
@@ -94,7 +96,8 @@ const CreateAssignmentForm: React.FC<CreateAssignmentFormProps> = ({
       status: "draft",
       linkedResources: [],
       instructions: "",
-      filesAttached: []
+      filesAttached: [],
+      aiSupportEnabled: true, // Default to enabled
     },
   });
 
@@ -117,7 +120,8 @@ const CreateAssignmentForm: React.FC<CreateAssignmentFormProps> = ({
       status: values.status,
       linkedResources: values.linkedResources,
       instructions: values.instructions || values.description,
-      filesAttached: uploadedFiles.length > 0 ? uploadedFiles : undefined
+      filesAttached: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+      aiSupportEnabled: values.aiSupportEnabled,
     };
     
     onSubmit(assignmentData);
@@ -321,6 +325,7 @@ const CreateAssignmentForm: React.FC<CreateAssignmentFormProps> = ({
                       selected={field.value}
                       onSelect={field.onChange}
                       disabled={(date) => date < new Date()}
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -356,6 +361,28 @@ const CreateAssignmentForm: React.FC<CreateAssignmentFormProps> = ({
             )}
           </CardContent>
         </Card>
+
+        <FormField
+          control={form.control}
+          name="aiSupportEnabled"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Enable Athro AI Support</FormLabel>
+                <FormDescription>
+                  Allow students to access Athro AI assistance during their study session
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         <FormField
           control={form.control}

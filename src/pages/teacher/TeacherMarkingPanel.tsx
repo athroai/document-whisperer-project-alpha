@@ -1,556 +1,289 @@
+
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { assignmentService } from '@/services/assignmentService';
-import { Submission, Assignment } from '@/types/assignment';
+import { useSearchParams } from 'react-router-dom';
 import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
-import { Tabs, TabsContent, TabsTrigger, TabsList } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Submission, FeedbackData, Assignment } from '@/types/assignment';
+import { assignmentService } from '@/services/assignmentService';
+import { useAuth } from '@/contexts/AuthContext';
+import { ClipboardCheck, Search, Clock, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileDown, Eye, CheckCircle, Pencil, Filter, Search, DownloadCloud } from 'lucide-react';
-import { format } from 'date-fns';
-import AIFeedbackCard from '@/components/marking/AIFeedbackCard';
-
-interface StudentSubmissionTableProps {
-  submissions: (Submission & { assignment: Assignment })[];
-  onMarkSubmission: (submission: Submission) => void;
-}
-
-const StudentSubmissionTable: React.FC<StudentSubmissionTableProps> = ({ 
-  submissions, 
-  onMarkSubmission 
-}) => {
-  if (submissions.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">No submissions found matching your criteria.</p>
-      </div>
-    );
-  }
-
-  return (
-    <Table>
-      <TableCaption>List of student submissions</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Student</TableHead>
-          <TableHead>Assignment</TableHead>
-          <TableHead>Subject</TableHead>
-          <TableHead>Submitted</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Action</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {submissions.map((item) => (
-          <TableRow key={item.id}>
-            <TableCell className="font-medium">{item.submittedBy}</TableCell>
-            <TableCell>{item.assignment.title}</TableCell>
-            <TableCell>{item.assignment.subject}</TableCell>
-            <TableCell>{format(new Date(item.submittedAt), 'MMM d, yyyy')}</TableCell>
-            <TableCell>
-              <span className={`px-2 py-1 rounded-full text-xs ${
-                item.status === 'submitted' 
-                  ? 'bg-yellow-100 text-yellow-800' 
-                  : item.status === 'marked' 
-                  ? 'bg-blue-100 text-blue-800' 
-                  : 'bg-green-100 text-green-800'
-              }`}>
-                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-              </span>
-            </TableCell>
-            <TableCell className="text-right">
-              <Button 
-                variant={item.status === "submitted" ? "default" : "outline"} 
-                size="sm" 
-                onClick={() => onMarkSubmission(item)}
-              >
-                {item.status === "submitted" ? (
-                  <>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    View & Mark
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Feedback
-                  </>
-                )}
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-};
-
-interface SubmissionDetailProps {
-  submission: Submission | null;
-  assignment: Assignment | null;
-  onClose: () => void;
-  onSaveFeedback: (submissionId: string, feedback: { score: number, comment: string }) => void;
-}
-
-const SubmissionDetail: React.FC<SubmissionDetailProps> = ({
-  submission,
-  assignment,
-  onClose,
-  onSaveFeedback
-}) => {
-  const [score, setScore] = useState<string>("0");
-  const [feedback, setFeedback] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [useAiFeedback, setUseAiFeedback] = useState(true);
-
-  useEffect(() => {
-    if (submission?.teacherFeedback) {
-      setScore(submission.teacherFeedback.score?.toString() || "0");
-      setFeedback(submission.teacherFeedback.comment || "");
-    } else if (submission?.aiFeedback && useAiFeedback) {
-      setScore(submission.aiFeedback.score?.toString() || "0");
-      setFeedback(submission.aiFeedback.comment || "");
-    } else {
-      setScore("0");
-      setFeedback("");
-    }
-  }, [submission, useAiFeedback]);
-
-  if (!submission || !assignment) return null;
-
-  const handleSaveFeedback = () => {
-    if (!submission) return;
-    
-    setIsSaving(true);
-    
-    const scoreNum = parseInt(score) || 0;
-    
-    onSaveFeedback(submission.id, {
-      score: scoreNum,
-      comment: feedback
-    });
-    
-    setIsSaving(false);
-  };
-
-  const handleUseAIFeedback = () => {
-    if (submission?.aiFeedback) {
-      setFeedback(submission.aiFeedback.comment || "");
-      if (submission.aiFeedback.score !== undefined) {
-        setScore(submission.aiFeedback.score.toString());
-      }
-    }
-  };
-
-  // Determine what type of answers we have
-  const hasTextAnswer = (submission.answers as any).text;
-  const hasFileAnswers = (submission.answers as any).fileUrls && (submission.answers as any).fileUrls.length > 0;
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Assignment Details</h3>
-        <div className="mt-2 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Title:</span>
-            <span className="font-medium">{assignment.title}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Subject:</span>
-            <span>{assignment.subject}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Due Date:</span>
-            <span>{format(new Date(assignment.dueDate), 'MMMM d, yyyy')}</span>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-medium">Student Submission</h3>
-        <div className="mt-2 space-y-4">
-          {hasTextAnswer && (
-            <div className="mt-2">
-              <h4 className="text-sm font-medium mb-1">Written Response:</h4>
-              <div className="bg-gray-50 p-4 rounded-md whitespace-pre-wrap text-sm">
-                {(submission.answers as any).text}
-              </div>
-            </div>
-          )}
-          
-          {hasFileAnswers && (
-            <div className="mt-2">
-              <h4 className="text-sm font-medium mb-1">Uploaded Files:</h4>
-              <div className="space-y-2">
-                {(submission.answers as any).fileUrls.map((url: string, index: number) => (
-                  <a 
-                    key={index}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center p-2 bg-gray-50 rounded-md hover:bg-gray-100"
-                  >
-                    <FileDown className="w-4 h-4 mr-2 text-blue-600" />
-                    <span className="text-sm">
-                      {(submission.answers as any).fileNames?.[index] || `File ${index + 1}`}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {submission.aiFeedback && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">AI Feedback</h3>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="use-ai-feedback"
-                checked={useAiFeedback}
-                onCheckedChange={setUseAiFeedback}
-              />
-              <Label htmlFor="use-ai-feedback" className="text-sm">
-                Use AI feedback
-              </Label>
-            </div>
-          </div>
-          
-          <div className="mt-2">
-            <AIFeedbackCard
-              comment={submission.aiFeedback.comment}
-              score={submission.aiFeedback.score}
-              outOf={10}
-              onEdit={handleUseAIFeedback}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="border-t pt-4">
-        <h3 className="text-lg font-medium mb-3">Teacher Feedback</h3>
-        
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-4 items-center">
-            <Label htmlFor="score">Score:</Label>
-            <Input
-              id="score"
-              type="number"
-              min="0"
-              max="10"
-              value={score}
-              onChange={(e) => setScore(e.target.value)}
-              className="col-span-2"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="feedback">Feedback:</Label>
-            <Textarea
-              id="feedback"
-              placeholder="Provide your feedback here..."
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              rows={6}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleSaveFeedback} 
-          disabled={isSaving || !feedback.trim()}
-        >
-          {isSaving ? "Saving..." : "Save & Mark as Complete"}
-        </Button>
-      </div>
-    </div>
-  );
-};
+import MarkingDetailsView from '@/components/marking/MarkingDetailsView';
+import { AssignmentStatusBadge } from '@/components/assignment/AssignmentStatusBadge';
 
 const TeacherMarkingPanel: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const assignmentIdFromUrl = searchParams.get('assignmentId');
+  
   const { state } = useAuth();
   const { user } = state;
-
-  const [loading, setLoading] = useState(true);
-  const [submissions, setSubmissions] = useState<(Submission & { assignment: Assignment })[]>([]);
-  const [filteredSubmissions, setFilteredSubmissions] = useState<(Submission & { assignment: Assignment })[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [classes, setClasses] = useState<{ id: string, name: string }[]>([]);
-  const [subjects, setSubjects] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('pending');
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(assignmentIdFromUrl);
   
-  const [selectedClass, setSelectedClass] = useState<string>("all");
-  const [selectedSubject, setSelectedSubject] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-
+  // Mock student data (would come from API in real app)
+  const studentsMock = {
+    "student1": "Alex Johnson",
+    "student2": "Jamie Smith",
+    "student3": "Pat Nguyen",
+    // Add more as needed
+  };
+  
   useEffect(() => {
-    if (!user?.id) return;
-
     const loadData = async () => {
+      if (!user?.id) return;
+      
       setLoading(true);
       try {
-        const allSubmissions = await assignmentService.getSubmissions();
-        const allAssignments = await assignmentService.getAssignments();
-        
-        const submissionsWithAssignments = allSubmissions.map(submission => {
-          const matchingAssignment = allAssignments.find(a => a.id === submission.assignmentId);
-          return {
-            ...submission,
-            assignment: matchingAssignment || {
-              id: 'unknown',
-              title: 'Unknown Assignment',
-              subject: 'Unknown',
-              assignedBy: '',
-              classId: '',
-              creationDate: '',
-              description: '',
-              dueDate: '',
-              status: 'published' as const,
-              visibility: 'active' as const,
-              assignmentType: 'quiz' as const,
-              linkedResources: [],
-              topic: null,
-            }
-          };
+        // Fetch assignments
+        const teacherAssignments = await assignmentService.getAssignments({
+          teacherId: user.id,
+          status: "published"
         });
+        setAssignments(teacherAssignments);
         
-        setSubmissions(submissionsWithAssignments);
-        setFilteredSubmissions(submissionsWithAssignments);
+        // Fetch submissions
+        let submissionFilter: {
+          assignmentId?: string;
+          status?: "submitted" | "marked" | "returned";
+        } = {};
         
-        const uniqueClasses = Array.from(new Set(allAssignments.map(a => a.classId)))
-          .map(id => ({ id, name: `Class ${id}` }));
+        if (selectedAssignmentId) {
+          submissionFilter.assignmentId = selectedAssignmentId;
+        }
         
-        const uniqueSubjects = Array.from(new Set(allAssignments.map(a => a.subject)));
+        if (activeTab === 'pending') {
+          submissionFilter.status = "submitted";
+        } else if (activeTab === 'marked') {
+          submissionFilter.status = "marked";
+        } else if (activeTab === 'returned') {
+          submissionFilter.status = "returned";
+        }
         
-        setClasses(uniqueClasses);
-        setSubjects(uniqueSubjects);
+        const fetchedSubmissions = await assignmentService.getSubmissions(submissionFilter);
+        setSubmissions(fetchedSubmissions);
+        
+        // Select the first submission to display details
+        if (fetchedSubmissions.length > 0 && !selectedSubmission) {
+          setSelectedSubmission(fetchedSubmissions[0]);
+        }
       } catch (error) {
-        console.error('Error loading submissions:', error);
+        console.error('Error loading data:', error);
         toast({
-          title: "Failed to load submissions",
-          description: "There was an error loading the submissions data.",
-          variant: "destructive"
+          title: "Error loading data",
+          description: "Could not fetch submissions. Please try again.",
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
       }
     };
-
+    
     loadData();
-  }, [user?.id]);
-
-  useEffect(() => {
-    let filtered = [...submissions];
-    
-    if (selectedClass !== "all") {
-      filtered = filtered.filter(sub => sub.assignment.classId === selectedClass);
-    }
-    
-    if (selectedSubject !== "all") {
-      filtered = filtered.filter(sub => sub.assignment.subject === selectedSubject);
-    }
-    
-    if (selectedStatus !== "all") {
-      filtered = filtered.filter(sub => sub.status === selectedStatus);
-    }
-    
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        sub => sub.submittedBy.toLowerCase().includes(query) || 
-               sub.assignment.title.toLowerCase().includes(query)
-      );
-    }
-    
-    setFilteredSubmissions(filtered);
-  }, [selectedClass, selectedSubject, selectedStatus, searchQuery, submissions]);
-
-  const handleMarkSubmission = (submission: Submission) => {
-    setSelectedSubmission(submission);
-    
-    const assignment = submissions.find(s => s.id === submission.id)?.assignment || null;
-    setSelectedAssignment(assignment);
-    
-    setIsModalOpen(true);
+  }, [user?.id, activeTab, selectedAssignmentId, selectedSubmission]);
+  
+  const handleSubmitFeedback = () => {
+    // Reset selected submission to trigger reload
+    setSelectedSubmission(null);
   };
-
-  const handleSaveFeedback = async (submissionId: string, feedbackData: { score: number, comment: string }) => {
+  
+  const handleReturnToStudents = async () => {
+    if (!selectedSubmission) return;
+    
     try {
-      const updatedSubmission = await assignmentService.markSubmission(
-        submissionId,
-        {
-          score: feedbackData.score,
-          outOf: 10,
-          comment: feedbackData.comment,
-          markedBy: user?.id || 'unknown',
-          markedAt: new Date().toISOString()
-        }
-      );
-      
-      if (updatedSubmission) {
-        await assignmentService.returnSubmission(submissionId);
-      }
-      
-      setSubmissions(prev => prev.map(sub => 
-        sub.id === submissionId ? { ...sub, status: 'returned' as const, teacherFeedback: {
-          score: feedbackData.score,
-          outOf: 10,
-          comment: feedbackData.comment,
-          markedBy: user?.id || 'unknown',
-          markedAt: new Date().toISOString()
-        }} : sub
-      ));
-      
-      setIsModalOpen(false);
-      
+      await assignmentService.returnSubmission(selectedSubmission.id);
       toast({
-        title: "Feedback saved",
-        description: "Feedback saved and student notified.",
+        title: "Submission returned",
+        description: "Feedback has been returned to the student."
       });
+      
+      // Refresh submissions
+      setSelectedSubmission(null);
     } catch (error) {
-      console.error('Error saving feedback:', error);
+      console.error('Error returning submission:', error);
       toast({
-        title: "Failed to save feedback",
-        description: "There was an error saving your feedback.",
+        title: "Error",
+        description: "Failed to return submission. Please try again.",
         variant: "destructive"
       });
     }
   };
-
-  return (
-    <TeacherDashboardLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Student Marking Panel</h1>
-          <Button variant="outline" size="sm">
-            <DownloadCloud className="w-4 h-4 mr-2" />
-            Export Marking Log
-          </Button>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Submissions</CardTitle>
-            <CardDescription>View and mark student submissions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-4">
-                <div className="w-full sm:w-auto">
-                  <Select value={selectedClass} onValueChange={setSelectedClass}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Filter by Class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Classes</SelectItem>
-                      {classes.map((cls) => (
-                        <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="w-full sm:w-auto">
-                  <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Filter by Subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Subjects</SelectItem>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="w-full sm:w-auto">
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Filter by Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="submitted">Submitted</SelectItem>
-                      <SelectItem value="marked">Marked</SelectItem>
-                      <SelectItem value="returned">Returned</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                    <Input
-                      placeholder="Search by student name or assignment title"
-                      className="pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
+  
+  const filteredSubmissions = submissions.filter(submission => {
+    const assignmentMatch = selectedAssignmentId ? submission.assignmentId === selectedAssignmentId : true;
+    
+    if (!searchTerm.trim()) return assignmentMatch;
+    
+    const termLower = searchTerm.toLowerCase();
+    const studentName = studentsMock[submission.submittedBy]?.toLowerCase() || '';
+    
+    return assignmentMatch && studentName.includes(termLower);
+  });
+  
+  const getAssignmentTitle = (id: string) => {
+    const assignment = assignments.find(a => a.id === id);
+    return assignment?.title || 'Untitled Assignment';
+  };
+  
+  const getStudentName = (id: string) => {
+    return studentsMock[id] || 'Unknown Student';
+  };
+  
+  const renderSubmissionsList = () => {
+    if (loading) {
+      return Array(3).fill(0).map((_, i) => (
+        <Card key={i} className="mb-3 cursor-pointer">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <Skeleton className="h-5 w-40 mb-2" />
+                <Skeleton className="h-4 w-32" />
               </div>
-
-              {loading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              ) : (
-                <StudentSubmissionTable 
-                  submissions={filteredSubmissions} 
-                  onMarkSubmission={handleMarkSubmission}
-                />
-              )}
+              <Skeleton className="h-6 w-24" />
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Submission Review</DialogTitle>
-            <DialogDescription>
-              Review the student's submission and provide feedback.
-            </DialogDescription>
-          </DialogHeader>
+      ));
+    }
+    
+    if (filteredSubmissions.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <ClipboardCheck className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+          <h3 className="text-lg font-medium text-gray-900 mb-1">No submissions found</h3>
+          <p className="text-gray-500">
+            {activeTab === 'pending' 
+              ? "There are no pending submissions to mark" 
+              : activeTab === 'marked'
+                ? "You haven't marked any submissions yet"
+                : "No submissions have been returned to students"}
+          </p>
+        </div>
+      );
+    }
+    
+    return filteredSubmissions.map(submission => (
+      <Card 
+        key={submission.id} 
+        className={`mb-3 cursor-pointer ${selectedSubmission?.id === submission.id ? 'border-blue-500' : ''}`}
+        onClick={() => setSelectedSubmission(submission)}
+      >
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h4 className="text-base font-medium">{getStudentName(submission.submittedBy)}</h4>
+              <p className="text-sm text-gray-500">{getAssignmentTitle(submission.assignmentId)}</p>
+            </div>
+            <AssignmentStatusBadge status={submission.status} />
+          </div>
+        </CardContent>
+      </Card>
+    ));
+  };
+  
+  return (
+    <TeacherDashboardLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Marking Panel</h1>
+          <p className="text-gray-500">Review and provide feedback on student work</p>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Submissions List Panel */}
+          <div className="lg:col-span-1">
+            <div className="mb-4">
+              <div className="flex space-x-2 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by student name"
+                    className="pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                {selectedSubmission && activeTab === "marked" && (
+                  <Button onClick={handleReturnToStudents}>
+                    Return to Student
+                  </Button>
+                )}
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="assignment-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                  Filter by Assignment
+                </label>
+                <select
+                  id="assignment-filter"
+                  className="w-full p-2 border rounded-md"
+                  value={selectedAssignmentId || ""}
+                  onChange={(e) => setSelectedAssignmentId(e.target.value || null)}
+                >
+                  <option value="">All Assignments</option>
+                  {assignments.map(assignment => (
+                    <option key={assignment.id} value={assignment.id}>
+                      {assignment.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
+                <TabsList className="w-full">
+                  <TabsTrigger value="pending" className="flex-1">
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Pending
+                  </TabsTrigger>
+                  <TabsTrigger value="marked" className="flex-1">
+                    <ClipboardCheck className="mr-2 h-4 w-4" />
+                    Marked
+                  </TabsTrigger>
+                  <TabsTrigger value="returned" className="flex-1">
+                    <Clock className="mr-2 h-4 w-4" />
+                    Returned
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            <div className="space-y-3 h-[calc(100vh-370px)] overflow-y-auto pr-2">
+              {renderSubmissionsList()}
+            </div>
+          </div>
           
-          <SubmissionDetail
-            submission={selectedSubmission}
-            assignment={selectedAssignment}
-            onClose={() => setIsModalOpen(false)}
-            onSaveFeedback={handleSaveFeedback}
-          />
-        </DialogContent>
-      </Dialog>
+          {/* Submission Details Panel */}
+          <div className="lg:col-span-2">
+            {selectedSubmission ? (
+              <MarkingDetailsView
+                submission={selectedSubmission}
+                assignmentTitle={getAssignmentTitle(selectedSubmission.assignmentId)}
+                studentName={getStudentName(selectedSubmission.submittedBy)}
+                onSubmitFeedback={handleSubmitFeedback}
+              />
+            ) : (
+              <Card className="h-full flex items-center justify-center">
+                <CardContent className="text-center py-12">
+                  <ClipboardCheck className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Select a submission to mark</h3>
+                  <p className="text-gray-500">
+                    Click on a submission from the list to view details and provide feedback
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
     </TeacherDashboardLayout>
   );
 };
