@@ -3,6 +3,8 @@ import React, { useEffect } from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
 import athroService from '@/services/athroService';
 import { useStudentClass } from '@/contexts/StudentClassContext';
+import { useAuth } from '@/contexts/AuthContext';
+import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
 
 interface AthroRouterProps {
   character: AthroCharacter;
@@ -18,6 +20,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
   onResponse
 }) => {
   const { isMockEnrollment } = useStudentClass();
+  const { state } = useAuth();
   
   useEffect(() => {
     const processMessage = async () => {
@@ -53,6 +56,15 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
                 timestamp: new Date().toISOString(),
               };
               
+              // If logged in, try to save the message to Firestore
+              if (state.user?.id) {
+                try {
+                  AthroSessionFirestoreService.addMessage(state.user.id, character.subject, aiMessage);
+                } catch (err) {
+                  console.error('[AthroRouter] Error saving message to Firestore:', err);
+                }
+              }
+              
               onResponse(aiMessage);
               return;
             }
@@ -79,21 +91,49 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
           response.content = `[Mock Session] ${response.content}`;
         }
         
+        // If logged in, try to save the message to Firestore
+        if (state.user?.id) {
+          try {
+            // Save the user's message first
+            await AthroSessionFirestoreService.addMessage(
+              state.user.id, 
+              character.subject,
+              {
+                id: Date.now().toString(),
+                senderId: 'user',
+                content: message,
+                timestamp: new Date().toISOString()
+              }
+            );
+            
+            // Then save the AI's response
+            await AthroSessionFirestoreService.addMessage(
+              state.user.id, 
+              character.subject, 
+              response
+            );
+          } catch (err) {
+            console.error('[AthroRouter] Error saving session to Firestore:', err);
+          }
+        }
+        
         onResponse(response);
       } catch (error) {
         console.error('[AthroRouter] Error processing message:', error);
         
-        onResponse({
+        const errorResponse = {
           id: Date.now().toString(),
           senderId: character.id,
           content: "I'm having trouble processing that right now. Could you try again?",
           timestamp: new Date().toISOString()
-        });
+        };
+        
+        onResponse(errorResponse);
       }
     };
     
     processMessage();
-  }, [character, message, context, onResponse, isMockEnrollment]);
+  }, [character, message, context, onResponse, isMockEnrollment, state.user]);
   
   return null; // This is a logic component, not a UI component
 };

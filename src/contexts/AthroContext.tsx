@@ -6,6 +6,10 @@ import { pastPapers } from '@/data/athro-maths/past-papers';
 import { modelAnswers } from '@/data/athro-maths/model-answers';
 import biologyPastPapers from '@/data/athro-science/past-papers-biology';
 import biologyModelAnswers from '@/data/athro-science/model-answers-biology';
+import { useAuth } from '@/contexts/AuthContext';
+import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 // Mock data for student progress in different subjects
 const mockStudentProgress: Record<string, SubjectData> = {
@@ -72,6 +76,7 @@ interface AthroContextProps {
   getSuggestedTopics: (subject: string) => string[];
   currentScienceSubject?: string;
   setCurrentScienceSubject?: (subject: string) => void;
+  firestoreStatus: 'loading' | 'connected' | 'offline' | 'error';
 }
 
 const AthroContext = createContext<AthroContextProps | undefined>(undefined);
@@ -79,6 +84,8 @@ const AthroContext = createContext<AthroContextProps | undefined>(undefined);
 const MAX_CONVERSATION_MEMORY = 5;
 
 export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { state: authState } = useAuth();
+  
   const convertedCharacters: AthroCharacter[] = athroCharacters.map(config => ({
     id: config.id,
     name: config.name,
@@ -101,6 +108,7 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [studentProgress] = useState<Record<string, SubjectData>>(mockStudentProgress);
   const [conversationContext, setConversationContext] = useState<string[]>([]);
   const [currentScienceSubject, setCurrentScienceSubject] = useState<string>('biology');
+  const [firestoreStatus, setFirestoreStatus] = useState<'loading' | 'connected' | 'offline' | 'error'>('loading');
   
   useEffect(() => {
     if (messages.length > 0) {
@@ -118,6 +126,45 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setActiveCharacterState(characters[0]);
     }
   }, [characters, activeCharacter]);
+
+  useEffect(() => {
+    const loadFirestoreSession = async () => {
+      if (!activeCharacter || !authState.user?.id) return;
+      
+      try {
+        setFirestoreStatus('loading');
+        
+        const historical = await AthroSessionFirestoreService.getSession(
+          authState.user.id,
+          activeCharacter.subject
+        );
+        
+        if (historical && historical.length > 0) {
+          console.log('[AthroContext] Loaded historical session from Firestore:', historical.length, 'messages');
+          
+          if (messages.length <= 1) {
+            setMessages(historical);
+            setFirestoreStatus('connected');
+          }
+        } else {
+          if (messages.length === 0) {
+            addWelcomeMessage(activeCharacter);
+          }
+          setFirestoreStatus('connected');
+        }
+      } catch (error) {
+        console.error('[AthroContext] Error loading historical session:', error);
+        
+        setFirestoreStatus('error');
+        
+        if (messages.length === 0) {
+          addWelcomeMessage(activeCharacter);
+        }
+      }
+    };
+    
+    loadFirestoreSession();
+  }, [activeCharacter, authState.user?.id]);
 
   const setActiveCharacter = (character: AthroCharacter | AthroCharacterConfig) => {
     setMessages([]);
@@ -138,12 +185,8 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         examBoards: character.examBoards,
       };
       setActiveCharacterState(convertedChar);
-      
-      addWelcomeMessage(convertedChar);
     } else {
       setActiveCharacterState(character);
-      
-      addWelcomeMessage(character);
     }
   };
   
@@ -395,6 +438,18 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         timestamp: new Date().toISOString(),
       };
       setMessages([welcomeMessage]);
+      
+      if (authState.user?.id) {
+        try {
+          AthroSessionFirestoreService.saveSession(
+            authState.user.id,
+            activeCharacter.subject,
+            [welcomeMessage]
+          );
+        } catch (error) {
+          console.error('[AthroContext] Error clearing Firestore session:', error);
+        }
+      }
     } else {
       setMessages([]);
     }
@@ -436,6 +491,21 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         referencedResources
       };
       
+      const updatedMessages = [...messages, userMessage, aiMessage];
+      
+      if (authState.user?.id) {
+        try {
+          AthroSessionFirestoreService.saveSession(
+            authState.user.id,
+            activeCharacter.subject,
+            updatedMessages,
+            match?.question?.topic
+          ).catch(err => console.error('[AthroContext] Error saving session to Firestore:', err));
+        } catch (error) {
+          console.error('[AthroContext] Error saving session to Firestore:', error);
+        }
+      }
+      
       setTimeout(() => {
         setMessages(prev => [...prev, aiMessage]);
         setIsTyping(false);
@@ -456,6 +526,23 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const FirestoreStatusAlert = () => {
+    if (firestoreStatus === 'error' || firestoreStatus === 'offline') {
+      return (
+        <Alert className="mb-4 bg-yellow-50 border-yellow-200">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800">Firestore {firestoreStatus === 'error' ? 'Error' : 'Offline'}</AlertTitle>
+          <AlertDescription className="text-yellow-700">
+            {firestoreStatus === 'error' 
+              ? "We're having trouble connecting to the database. Your session is running in local mode only."
+              : "You're currently working offline. Your changes will be synced when connectivity is restored."}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return null;
+  };
+
   return (
     <AthroContext.Provider value={{
       characters,
@@ -469,8 +556,10 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       getTopicConfidence,
       getSuggestedTopics,
       currentScienceSubject,
-      setCurrentScienceSubject
+      setCurrentScienceSubject,
+      firestoreStatus
     }}>
+      {firestoreStatus === 'error' || firestoreStatus === 'offline' ? <FirestoreStatusAlert /> : null}
       {children}
     </AthroContext.Provider>
   );

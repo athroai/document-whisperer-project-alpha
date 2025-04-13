@@ -1,0 +1,165 @@
+
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
+import { FirestoreStatus } from '@/components/ui/firestore-status';
+import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
+import { getAthroBySubject } from '@/config/athrosConfig';
+import { Button } from '@/components/ui/button';
+import { Clock, User, BookOpen, History } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+interface SessionHistoryItem {
+  subject: string;
+  lastUsed: Date;
+  avatarUrl?: string;
+}
+
+const AthroProfile = () => {
+  const { state } = useAuth();
+  const navigate = useNavigate();
+  const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>([]);
+  const [firestoreStatus, setFirestoreStatus] = useState<'loading' | 'connected' | 'offline' | 'error'>('loading');
+  
+  useEffect(() => {
+    const fetchSessionHistory = async () => {
+      if (!state.user?.id) return;
+      
+      try {
+        setFirestoreStatus('loading');
+        const sessions = await AthroSessionFirestoreService.getUserSessions(state.user.id);
+        
+        // Enhance with Avatar URLs
+        const enhancedSessions = sessions.map(session => {
+          const athroCharacter = getAthroBySubject(session.subject);
+          return {
+            ...session,
+            avatarUrl: athroCharacter?.avatarUrl
+          };
+        });
+        
+        setSessionHistory(enhancedSessions);
+        setFirestoreStatus('connected');
+      } catch (error) {
+        console.error("Error fetching session history:", error);
+        setFirestoreStatus('error');
+      }
+    };
+    
+    fetchSessionHistory();
+  }, [state.user?.id]);
+  
+  const handleNavigateToSubject = (subject: string) => {
+    const lowerSubject = subject.toLowerCase();
+    navigate(`/athro/${lowerSubject}`);
+  };
+  
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 30) return `${diffDays} days ago`;
+    
+    return date.toLocaleDateString();
+  };
+  
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Student Profile</span>
+            {state.user?.examBoard && state.user.examBoard !== 'none' && (
+              <Badge variant="outline">{state.user.examBoard.toUpperCase()}</Badge>
+            )}
+          </CardTitle>
+          <CardDescription>Your AthroAI study profile</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={null} alt={state.user?.displayName} />
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {state.user?.displayName?.charAt(0) || 'S'}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="font-medium">{state.user?.displayName || 'Student'}</h3>
+              <p className="text-sm text-muted-foreground">{state.user?.role || 'Student'}</p>
+            </div>
+          </div>
+          
+          <div className="mt-4">
+            <FirestoreStatus status={firestoreStatus} />
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <History className="h-5 w-5 mr-2" />
+            <span>Recent Study Sessions</span>
+          </CardTitle>
+          <CardDescription>Continue your study journey</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {firestoreStatus === 'loading' ? (
+            <div className="py-4 text-center">
+              <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+              <p className="mt-2 text-sm text-muted-foreground">Loading your sessions...</p>
+            </div>
+          ) : sessionHistory.length > 0 ? (
+            <div className="space-y-3">
+              {sessionHistory.map((session, idx) => (
+                <div key={idx} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={session.avatarUrl} alt={session.subject} />
+                      <AvatarFallback>{session.subject.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h4 className="font-medium">{session.subject}</h4>
+                      <p className="text-xs text-muted-foreground flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {formatTimeAgo(session.lastUsed)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleNavigateToSubject(session.subject)}
+                  >
+                    <BookOpen className="h-4 w-4 mr-1" />
+                    Continue
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <User className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+              <h3 className="font-medium">No Study History Yet</h3>
+              <p className="text-sm text-muted-foreground mb-4">Start studying with any Athro to begin recording your progress</p>
+              <Button onClick={() => navigate('/athro')}>
+                Choose a Subject
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default AthroProfile;

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Send, CheckCircle, AlertCircle, FileText, Calendar, BookOpen, Globe } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle, FileText, Calendar, BookOpen, Globe, CloudOff } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
@@ -25,7 +24,14 @@ interface AthroChatProps {
 }
 
 const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
-  const { activeCharacter, messages, sendMessage, isTyping, currentScienceSubject } = useAthro();
+  const { 
+    activeCharacter, 
+    messages, 
+    sendMessage, 
+    isTyping, 
+    currentScienceSubject,
+    firestoreStatus 
+  } = useAthro();
   const { state } = useAuth();
   const [userMessage, setUserMessage] = useState<string>('');
   const messageEndRef = useRef<HTMLDivElement>(null);
@@ -208,6 +214,16 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
           <span className="text-sm font-medium">AthroChat</span>
           {getLanguageLabel()}
         </div>
+        {firestoreStatus === 'offline' && (
+          <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200 flex items-center gap-1">
+            <CloudOff className="h-3 w-3" /> Offline Mode
+          </Badge>
+        )}
+        {firestoreStatus === 'error' && (
+          <Badge variant="outline" className="bg-red-50 text-red-800 border-red-200 flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" /> Sync Error
+          </Badge>
+        )}
       </div>
       
       <ScrollArea className="flex-grow p-4">

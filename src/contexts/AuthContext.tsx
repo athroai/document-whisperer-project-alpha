@@ -1,7 +1,7 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AuthState, User } from '../types/auth';
 import { toast } from 'sonner';
+import UserFirestoreService from '@/services/firestore/userService';
 
 type AuthAction = 
   | { type: 'AUTH_START' }
@@ -73,19 +73,16 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Check for existing auth session on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
         dispatch({ type: 'AUTH_START' });
         
-        // Check for existing user session in localStorage or sessionStorage
         const savedUser = localStorage.getItem('athro_user') || sessionStorage.getItem('athro_user');
         
         if (savedUser) {
           const user = JSON.parse(savedUser);
           
-          // Apply Nexastream privilege rules
           if (user.email && user.email.endsWith('@nexastream.co.uk')) {
             user.licenseExempt = true;
             if (user.role !== 'admin') {
@@ -93,17 +90,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
           
-          // Ensure user has an examBoard property, defaulting to 'none'
           if (!user.examBoard) {
             user.examBoard = 'none';
           }
           
-          // Store back to storage based on rememberMe setting
-          if (user.rememberMe) {
-            localStorage.setItem('athro_user', JSON.stringify(user));
+          try {
+            const firestoreUser = await UserFirestoreService.getUser(user.id);
+            if (firestoreUser) {
+              const mergedUser = {
+                ...firestoreUser,
+                rememberMe: user.rememberMe
+              };
+              
+              if (mergedUser.rememberMe) {
+                localStorage.setItem('athro_user', JSON.stringify(mergedUser));
+              }
+              
+              dispatch({ type: 'AUTH_SUCCESS', payload: mergedUser });
+            } else {
+              await UserFirestoreService.saveUser(user);
+              
+              if (user.rememberMe) {
+                localStorage.setItem('athro_user', JSON.stringify(user));
+              }
+              
+              dispatch({ type: 'AUTH_SUCCESS', payload: user });
+            }
+          } catch (firestoreError) {
+            console.warn("Failed to sync with Firestore, using local user data:", firestoreError);
+            
+            if (user.rememberMe) {
+              localStorage.setItem('athro_user', JSON.stringify(user));
+            }
+            
+            dispatch({ type: 'AUTH_SUCCESS', payload: user });
           }
-          
-          dispatch({ type: 'AUTH_SUCCESS', payload: user });
         } else {
           dispatch({ type: 'AUTH_LOGOUT' });
         }
@@ -120,7 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     dispatch({ type: 'AUTH_START' });
     try {
-      // Mock login - would use Firebase auth in actual implementation
       const isNexastream = email.endsWith('@nexastream.co.uk');
       const mockUser: User = {
         id: '123456789',
@@ -129,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         displayName: email.split('@')[0],
         createdAt: new Date(),
         rememberMe,
-        examBoard: 'none', // Default to none
+        examBoard: 'none',
         licenseExempt: isNexastream,
         confidenceScores: {
           maths: 5,
@@ -138,7 +158,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       };
       
-      // Store auth info based on remember me setting
+      try {
+        await UserFirestoreService.saveUser(mockUser);
+      } catch (firestoreError) {
+        console.warn("Failed to save user to Firestore during login:", firestoreError);
+      }
+      
       if (rememberMe) {
         localStorage.setItem('athro_user', JSON.stringify(mockUser));
       } else {
@@ -156,7 +181,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, role: 'student' | 'teacher' | 'parent') => {
     dispatch({ type: 'AUTH_START' });
     try {
-      // Check if Nexastream user and apply special privileges
       const isNexastream = email.endsWith('@nexastream.co.uk');
       
       const mockUser: User = {
@@ -165,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: isNexastream ? 'admin' : role,
         displayName: email.split('@')[0],
         createdAt: new Date(),
-        examBoard: 'none', // Default to none
+        examBoard: 'none',
         licenseExempt: isNexastream,
         rememberMe: true,
         confidenceScores: {
@@ -174,6 +198,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           english: 5
         }
       };
+      
+      try {
+        await UserFirestoreService.saveUser(mockUser);
+      } catch (firestoreError) {
+        console.warn("Failed to save user to Firestore during signup:", firestoreError);
+      }
       
       localStorage.setItem('athro_user', JSON.stringify(mockUser));
       
@@ -189,7 +219,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      // Clear all storage
       localStorage.removeItem('athro_user');
       sessionStorage.removeItem('athro_user');
       
@@ -205,7 +234,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (state.user) {
       const updatedUser = { ...state.user, ...userData };
       
-      // Update local storage if user exists
+      try {
+        UserFirestoreService.saveUser(updatedUser);
+      } catch (firestoreError) {
+        console.warn("Failed to update user in Firestore:", firestoreError);
+      }
+      
       if (updatedUser.rememberMe) {
         localStorage.setItem('athro_user', JSON.stringify(updatedUser));
       } else {
@@ -217,7 +251,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   const resetAuthState = () => {
-    // Clear any stale state and restart the auth flow
     localStorage.removeItem('athro_user');
     sessionStorage.removeItem('athro_user');
     
