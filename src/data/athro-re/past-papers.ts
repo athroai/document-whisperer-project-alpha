@@ -9,7 +9,7 @@ export const rePastPapers: PastPaper[] = [
     examBoard: 'wjec',
     year: 2022,
     season: 'summer',
-    unit: 1,
+    unit: '1',
     title: 'RE Unit 1: Religion and Philosophical Themes',
     questions: [
       {
@@ -47,7 +47,7 @@ export const rePastPapers: PastPaper[] = [
     examBoard: 'wjec',
     year: 2022,
     season: 'summer',
-    unit: 2,
+    unit: '2',
     title: 'RE Unit 2: Religion and Ethical Themes',
     questions: [
       {
