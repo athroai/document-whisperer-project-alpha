@@ -1,10 +1,12 @@
 
-import { ModelAnswer } from '@/data/athro-maths/model-answers';
+import { ModelAnswer } from '@/types/athro';
 
 // Sample Languages model answers
 export const languagesModelAnswers: ModelAnswer[] = [
   {
+    id: 's22-3800u10-1-q1',
     questionId: 's22-3800u10-1-q1',
+    answer: "Je vais décrire ma famille et mes relations avec les différents membres.",
     workingSteps: [
       'Start with a greeting: "Bonjour, je m\'appelle..."',
       'Mention your age: "J\'ai ... ans."',
@@ -17,7 +19,9 @@ export const languagesModelAnswers: ModelAnswer[] = [
     latexNotation: '' // Added empty string for latex notation
   },
   {
+    id: 's22-3810u10-1-q1',
     questionId: 's22-3810u10-1-q1',
+    answer: "Voy a leer el texto detenidamente y responder a las preguntas.",
     workingSteps: [
       'First read the entire text to understand the main idea',
       'Look for key vocabulary and cognates',

@@ -8,8 +8,8 @@ export const germanPastPapers: PastPaper[] = [
     unit: '1',
     title: 'Speaking and Writing',
     examBoard: 'wjec',
-    year: '2022',
-    season: 'Summer',
+    year: 2022, // Changed from string to number
+    season: 'summer', // Changed to lowercase
     questions: [
       {
         id: 'g22-3850u10-1-q1',
@@ -17,7 +17,7 @@ export const germanPastPapers: PastPaper[] = [
         subtopic: 'Family',
         text: 'Beschreiben Sie Ihre Familie und was Sie zusammen machen.',
         marks: 10,
-        difficulty: 2
+        difficulty: 'easy' // Changed from number to string
       },
       {
         id: 'g22-3850u10-1-q2',
@@ -25,7 +25,7 @@ export const germanPastPapers: PastPaper[] = [
         subtopic: 'Holiday',
         text: 'Schreiben Sie über Ihren letzten Urlaub. Wohin sind Sie gefahren und was haben Sie dort gemacht?',
         marks: 15,
-        difficulty: 3
+        difficulty: 'medium' // Changed from number to string
       },
       {
         id: 'g22-3850u10-1-q3',
@@ -33,7 +33,7 @@ export const germanPastPapers: PastPaper[] = [
         subtopic: 'Climate Change',
         text: 'Was können wir tun, um die Umwelt zu schützen? Geben Sie Ihre Meinung.',
         marks: 15,
-        difficulty: 4
+        difficulty: 'hard' // Changed from number to string
       }
     ]
   },
@@ -43,8 +43,8 @@ export const germanPastPapers: PastPaper[] = [
     unit: '2',
     title: 'Reading and Listening',
     examBoard: 'wjec',
-    year: '2021',
-    season: 'Summer',
+    year: 2021, // Changed from string to number
+    season: 'summer', // Changed to lowercase
     questions: [
       {
         id: 'g21-3850u20-1-q1',
@@ -52,7 +52,7 @@ export const germanPastPapers: PastPaper[] = [
         subtopic: 'Daily Life',
         text: 'Lesen Sie den Text über das tägliche Leben in Deutschland und beantworten Sie die folgenden Fragen.',
         marks: 15,
-        difficulty: 3
+        difficulty: 'medium' // Changed from number to string
       },
       {
         id: 'g21-3850u20-1-q2',
@@ -60,7 +60,7 @@ export const germanPastPapers: PastPaper[] = [
         subtopic: 'Cases',
         text: 'Ergänzen Sie den Text mit den richtigen Artikeln im Dativ oder Akkusativ.',
         marks: 10,
-        difficulty: 4
+        difficulty: 'hard' // Changed from number to string
       }
     ]
   }

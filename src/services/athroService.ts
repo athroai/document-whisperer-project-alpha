@@ -412,7 +412,23 @@ Please provide a helpful response that stays in character, addresses the student
       activityName: submission.title || `${subject} Activity`,
       subject,
       submittedAt: submission.submittedAt || new Date().toISOString(),
-      teacherComments: submission.teacherComments || undefined
+      teacherComments: submission.teacherComments || undefined,
+      strengths: [
+        "Good understanding of key concepts",
+        "Clear explanation of ideas",
+        "Effective use of terminology"
+      ],
+      improvements: [
+        "Could provide more detailed examples",
+        "Need to work on time management",
+        "Consider alternative approaches to problems"
+      ],
+      nextSteps: [
+        "Review chapter materials",
+        "Practice similar questions",
+        "Schedule a follow-up session"
+      ],
+      confidence: Math.min(Math.floor(score / 10), 10) // Scale score to confidence level 1-10
     };
   }
 }

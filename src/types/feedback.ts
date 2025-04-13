@@ -9,4 +9,9 @@ export interface FeedbackSummary {
   activityId: string;
   activityName: string;
   subject: string;
+  // Optional fields from the athro.ts FeedbackSummary
+  strengths?: string[];
+  improvements?: string[];
+  nextSteps?: string[];
+  confidence?: number;
 }

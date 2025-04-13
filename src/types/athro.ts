@@ -117,6 +117,10 @@ export interface ModelAnswer {
   workingSteps: string[];
   markScheme: string;
   latexNotation?: string;
+  marks?: number; // Added marks field to match existing data
+  translation?: string; // Added for language model answers
+  grammarExplanation?: string; // Added for language model answers
+  culturalNote?: string; // Added for language model answers
 }
 
 export interface FeedbackSummary {
@@ -124,4 +128,13 @@ export interface FeedbackSummary {
   improvements: string[];
   nextSteps: string[];
   confidence: number;
+  score: number; // Added for compatibility with feedback.ts
+  feedback: string; // Added for compatibility with feedback.ts
+  encouragement: string; // Added for compatibility with feedback.ts
+  activityType: 'goal' | 'assignment' | 'quiz' | 'exam'; // Added for compatibility with feedback.ts
+  activityId: string; // Added for compatibility with feedback.ts
+  activityName: string; // Added for compatibility with feedback.ts
+  subject: string; // Added for compatibility with feedback.ts
+  submittedAt?: string; // Added for compatibility with feedback.ts
+  teacherComments?: string; // Added for compatibility with feedback.ts
 }
