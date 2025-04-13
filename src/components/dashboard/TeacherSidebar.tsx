@@ -26,12 +26,12 @@ interface SidebarItemProps {
 const SidebarItem = ({ icon: Icon, label, href, isActive }: SidebarItemProps) => {
   const location = useLocation();
   
-  // Prevent unnecessary navigation if already on the page
+  // Prevent navigation if already on the page
   if (location.pathname === href) {
     return (
       <div
         className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer",
+          "flex items-center gap-3 px-3 py-2 rounded-md cursor-default",
           isActive && "bg-purple-100 text-purple-700 font-medium"
         )}
       >
@@ -80,7 +80,6 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
 
   if (!user || user.role !== 'teacher') {
     // Use replace:true to avoid adding to history stack
-    setTimeout(() => navigate('/home', { replace: true }), 0);
     return null;
   }
 
@@ -99,7 +98,9 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
             icon={item.icon}
             label={item.label}
             href={item.href}
-            isActive={location.pathname.includes(activePage) && item.href.includes(activePage)}
+            isActive={location.pathname === item.href || 
+                     (item.href !== '/teacher-dashboard' && 
+                      location.pathname.includes(item.href.split('/').pop() || ''))}
           />
         ))}
       </div>

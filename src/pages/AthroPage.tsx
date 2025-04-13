@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate, Route, Routes, useNavigate, useLocation } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import AthroSelectorPage from './athro/AthroSelectorPage';
@@ -7,24 +7,32 @@ import AthroMathsPage from './athro/AthroMathsPage';
 import AthroSciencePage from './athro/AthroSciencePage';
 import AthroSystem from '@/components/AthroSystem';
 import { useAuth } from '@/contexts/AuthContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const AthroPage: React.FC = () => {
   const { state } = useAuth();
-  const { user } = state;
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { user, loading } = state;
   
-  // Redirect to the selector if we're at the root /athro path
-  useEffect(() => {
-    if (location.pathname === '/athro' || location.pathname === '/athro/') {
-      navigate('/athro/select', { replace: true });
-    }
-  }, [location.pathname, navigate]);
+  // If we're still loading, show a loading indicator
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">Loading...</h2>
+          <p className="text-gray-600">Setting up your Athro experience</p>
+        </div>
+      </div>
+    );
+  }
   
-  // Fail-safe - if we somehow get here without being logged in
+  // If no user, redirect to login
   if (!user) {
-    console.log("No user found in AthroPage, redirecting to login");
     return <Navigate to="/login" replace />;
+  }
+  
+  // For teachers, redirect to teacher dashboard
+  if (user.role === 'teacher') {
+    return <Navigate to="/teacher-dashboard" replace />;
   }
   
   return (

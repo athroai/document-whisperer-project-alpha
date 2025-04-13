@@ -90,22 +90,24 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   // Check role-based access
-  if (!hasAccess) {
+  if (requiredRole && !hasAccess) {
     console.log(`Access denied: Required role: ${requiredRole}, User role: ${user.role}`);
-    // Avoid repeat redirects by checking current path
-    const redirectPath = user.role === 'teacher' ? '/teacher-dashboard' : '/athro/select';
-    if (location.pathname !== redirectPath) {
-      return <Navigate to={redirectPath} replace />;
+    
+    // Redirect based on user role
+    if (user.role === 'teacher') {
+      return <Navigate to="/teacher-dashboard" replace />;
+    } else {
+      return <Navigate to="/athro/select" replace />;
     }
   }
   
-  // Redirect teachers to dashboard if trying to access student routes
+  // Role-specific redirects
   if (user.role === 'teacher' && location.pathname === '/home') {
     return <Navigate to="/teacher-dashboard" replace />;
   }
   
   // Redirect students to athro selector if trying to access teacher routes
-  if (user.role === 'student' && location.pathname.startsWith('/teacher') && location.pathname !== '/athro/select') {
+  if (user.role === 'student' && location.pathname.includes('/teacher')) {
     return <Navigate to="/athro/select" replace />;
   }
   
@@ -118,4 +120,3 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 };
 
 export default ProtectedRoute;
-

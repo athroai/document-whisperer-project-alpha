@@ -1,9 +1,9 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation';
 
@@ -12,13 +12,6 @@ const AthroSelectorPage: React.FC = () => {
   const { state } = useAuth();
   const { user, loading } = state;
   const navigate = useNavigate();
-  
-  useEffect(() => {
-    // Redirect teachers to the teacher dashboard
-    if (!loading && user?.role === 'teacher') {
-      navigate('/teacher', { replace: true });
-    }
-  }, [user, loading, navigate]);
   
   if (loading) {
     return (
@@ -32,15 +25,12 @@ const AthroSelectorPage: React.FC = () => {
   }
   
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4">Please log in</h2>
-          <p className="text-gray-600 mb-4">You need to be logged in to access this page</p>
-          <Button onClick={() => navigate('/login')}>Log In</Button>
-        </div>
-      </div>
-    );
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Redirect teachers to the teacher dashboard
+  if (user.role === 'teacher') {
+    return <Navigate to="/teacher-dashboard" replace />;
   }
   
   return (
