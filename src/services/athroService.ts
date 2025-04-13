@@ -1,4 +1,3 @@
-
 import { AthroMessage } from '@/types/athro';
 import { pastPapers, PastPaper, PastPaperQuestion } from '@/data/athro-maths/past-papers';
 import { modelAnswers, ModelAnswer } from '@/data/athro-maths/model-answers';
@@ -71,14 +70,14 @@ export async function mockAthroResponse(
 }
 
 function getSubjectPastPapers(subject: string, context: any = {}): PastPaper[] {
-  switch (subject) {
-    case 'Mathematics':
+  switch (subject.toLowerCase()) {
+    case 'mathematics':
       return pastPapers;
-    case 'English':
+    case 'english':
       return englishPastPapers;
-    case 'Welsh':
+    case 'welsh':
       return welshPastPapers;
-    case 'Languages':
+    case 'languages':
       // For Languages, we can filter based on the subjectSection (french, spanish, german)
       if (context.subjectSection) {
         return languagesPastPapers.filter(
@@ -86,37 +85,38 @@ function getSubjectPastPapers(subject: string, context: any = {}): PastPaper[] {
         );
       }
       return languagesPastPapers;
-    case 'History':
+    case 'history':
       return historyPastPapers;
-    case 'Geography':
+    case 'geography':
       return geographyPastPapers;
-    case 'Religious Education':
+    case 'religious education':
+    case 're':
       return rePastPapers;
-    case 'Science':
+    case 'science':
       // For Science, we can filter based on the subjectSection (biology, chemistry, physics)
       if (context.subjectSection === 'biology') {
-        return biologyPastPapers;
+        return biologyPastPapers as PastPaper[];
       } else if (context.subjectSection === 'chemistry') {
-        return chemistryPastPapers;
+        return chemistryPastPapers as PastPaper[];
       } else if (context.subjectSection === 'physics') {
-        return physicsPastPapers;
+        return physicsPastPapers as PastPaper[];
       }
       // Default to biology if no specific section
-      return biologyPastPapers;
+      return biologyPastPapers as PastPaper[];
     default:
       return [];
   }
 }
 
 function getSubjectModelAnswers(subject: string, context: any = {}): ModelAnswer[] {
-  switch (subject) {
-    case 'Mathematics':
+  switch (subject.toLowerCase()) {
+    case 'mathematics':
       return modelAnswers;
-    case 'English':
+    case 'english':
       return englishModelAnswers;
-    case 'Welsh':
+    case 'welsh':
       return welshModelAnswers;
-    case 'Languages':
+    case 'languages':
       // For Languages, we can filter based on the subjectSection (french, spanish, german)
       if (context.subjectSection) {
         return languagesModelAnswers.filter(
@@ -132,23 +132,24 @@ function getSubjectModelAnswers(subject: string, context: any = {}): ModelAnswer
         );
       }
       return languagesModelAnswers;
-    case 'History':
+    case 'history':
       return historyModelAnswers;
-    case 'Geography':
+    case 'geography':
       return geographyModelAnswers;
-    case 'Religious Education':
+    case 'religious education':
+    case 're':
       return reModelAnswers;
-    case 'Science':
+    case 'science':
       // For Science, we can filter based on the subjectSection
       if (context.subjectSection === 'biology') {
-        return biologyModelAnswers;
+        return biologyModelAnswers as ModelAnswer[];
       } else if (context.subjectSection === 'chemistry') {
-        return chemistryModelAnswers;
+        return chemistryModelAnswers as ModelAnswer[];
       } else if (context.subjectSection === 'physics') {
-        return physicsModelAnswers;
+        return physicsModelAnswers as ModelAnswer[];
       }
       // Default to biology if no specific section
-      return biologyModelAnswers;
+      return biologyModelAnswers as ModelAnswer[];
     default:
       return [];
   }
@@ -188,8 +189,8 @@ function formatWorkingSteps(steps: string[]): string {
 function generateSubjectResponse(message: string, subject: string, context: any = {}): string {
   const lowerMessage = message.toLowerCase();
   
-  switch (subject) {
-    case 'Mathematics':
+  switch (subject.toLowerCase()) {
+    case 'mathematics':
       if (lowerMessage.includes('algebra') || lowerMessage.includes('equation') || lowerMessage.includes('solve')) {
         return "Algebra is all about finding unknown values. Let's tackle this step-by-step. Could you share the specific equation you're working on?";
       }
@@ -204,7 +205,7 @@ function generateSubjectResponse(message: string, subject: string, context: any 
       
       return "I'm your mathematics mentor. Could you provide more details about your maths question? It helps me to see the specific problem you're working on.";
       
-    case 'Science':
+    case 'science':
       const subSection = context.subjectSection || 'general';
       
       if (subSection === 'biology') {
@@ -245,7 +246,7 @@ function generateSubjectResponse(message: string, subject: string, context: any 
       
       return "I'm your science mentor covering biology, chemistry, and physics. Which specific area would you like to focus on?";
       
-    case 'English':
+    case 'english':
       if (lowerMessage.includes('shakespeare') || lowerMessage.includes('macbeth') || lowerMessage.includes('romeo')) {
         return "Shakespeare's works are rich with themes and literary devices. Let's analyze the specific aspects you're interested in exploring.";
       }
@@ -260,7 +261,7 @@ function generateSubjectResponse(message: string, subject: string, context: any 
       
       return "I'm your English mentor. Are you working on literature analysis, creative writing, or language techniques today?";
       
-    case 'Welsh':
+    case 'welsh':
       if (lowerMessage.includes('grammar') || lowerMessage.includes('mutation')) {
         return "Welsh grammar has unique features like mutations that change the first letter of words in certain contexts. Let's practice these rules together.";
       }
@@ -276,7 +277,7 @@ function generateSubjectResponse(message: string, subject: string, context: any 
       
       return "I'm your Welsh language mentor. Would you like to practice conversation, grammar, or reading comprehension today?";
       
-    case 'Languages':
+    case 'languages':
       const languageSection = context.subjectSection || 'general';
       
       if (languageSection === 'french') {
@@ -320,7 +321,7 @@ function generateSubjectResponse(message: string, subject: string, context: any 
       
       return "I'm your languages mentor covering French, Spanish, and German. Which language would you like to focus on today?";
       
-    case 'History':
+    case 'history':
       if (lowerMessage.includes('tudor') || lowerMessage.includes('elizabeth') || lowerMessage.includes('henry viii')) {
         return "The Tudor period was a fascinating time in British history. Let's explore the specific aspects of this era that you're studying.";
       }
@@ -335,7 +336,7 @@ function generateSubjectResponse(message: string, subject: string, context: any 
       
       return "I'm your history mentor. Which historical period or skill would you like to focus on today?";
       
-    case 'Geography':
+    case 'geography':
       if (lowerMessage.includes('river') || lowerMessage.includes('coast') || lowerMessage.includes('erosion')) {
         return "Physical geography processes like erosion shape our landscape. Let's examine how these processes work in rivers and coastal areas.";
       }
@@ -350,7 +351,8 @@ function generateSubjectResponse(message: string, subject: string, context: any 
       
       return "I'm your geography mentor covering both physical and human geography. Which area would you like to explore today?";
       
-    case 'Religious Education':
+    case 'religious education':
+    case 're':
       if (lowerMessage.includes('christianity') || lowerMessage.includes('jesus') || lowerMessage.includes('bible')) {
         return "Christianity has diverse beliefs and practices across different denominations. Let's explore the specific aspects you're studying.";
       }
