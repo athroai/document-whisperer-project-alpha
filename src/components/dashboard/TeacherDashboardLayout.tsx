@@ -8,6 +8,7 @@ import TeacherSetsPage from '@/pages/teacher/TeacherSetsPage';
 import TeacherMarkingPage from '@/pages/teacher/TeacherMarkingPage';
 import TeacherStudentProfilesPage from '@/pages/teacher/TeacherStudentProfilesPage';
 import TeacherInsightsPage from '@/pages/teacher/TeacherInsightsPage';
+import TeacherAnalyticsPage from '@/pages/teacher/TeacherAnalyticsPage';
 import TeacherResourceDeployPage from '@/pages/teacher/TeacherResourceDeployPage';
 import TeacherParentInquiriesPage from '@/pages/teacher/TeacherParentInquiriesPage';
 import TeacherSystemToolsPage from '@/pages/teacher/TeacherSystemToolsPage';
@@ -43,6 +44,8 @@ const TeacherDashboardLayout: React.FC<TeacherDashboardLayoutProps> = ({ childre
         return <TeacherStudentProfilesPage />;
       case 'insights':
         return <TeacherInsightsPage />;
+      case 'analytics':
+        return <TeacherAnalyticsPage />;
       case 'deploy':
         return <TeacherResourceDeployPage />;
       case 'notifications':

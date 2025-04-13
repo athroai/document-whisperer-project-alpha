@@ -12,7 +12,8 @@ import {
   Settings,
   Home,
   Upload,
-  ActivitySquare
+  ActivitySquare,
+  ChartBar
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -54,7 +55,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
   const location = useLocation();
 
   const sidebarItems = [
-    { icon: Home, label: 'Dashboard', href: '/teacher' }, // Changed from '/teacher-dashboard'
+    { icon: Home, label: 'Dashboard', href: '/teacher' },
     { icon: Users, label: 'My Sets', href: '/teacher/sets' },
     { icon: Bell, label: 'Notifications', href: '/teacher/notifications' },
     { icon: FileCheck, label: 'Marking Panel', href: '/teacher/marking' },
@@ -64,6 +65,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
     { icon: ActivitySquare, label: 'Live Monitor', href: '/teacher/live-monitoring' },
     { icon: Mail, label: 'Parent Inquiries', href: '/teacher/inquiries', badge: <UnreadInquiriesBadge /> },
     { icon: BarChart3, label: 'Insights', href: '/teacher/insights' },
+    { icon: ChartBar, label: 'Analytics', href: '/teacher/analytics' },
     { icon: Settings, label: 'System Tools', href: '/teacher/system' },
   ];
 
