@@ -8,6 +8,7 @@ import TeacherSetsPage from '@/pages/teacher/TeacherSetsPage';
 import TeacherMarkingPage from '@/pages/teacher/TeacherMarkingPage';
 import TeacherStudentProfilesPage from '@/pages/teacher/TeacherStudentProfilesPage';
 import TeacherInsightsPage from '@/pages/teacher/TeacherInsightsPage';
+import TeacherResourceDeployPage from '@/pages/teacher/TeacherResourceDeployPage';
 import NotFound from '@/pages/NotFound';
 
 interface TeacherDashboardLayoutProps {
@@ -40,6 +41,8 @@ const TeacherDashboardLayout: React.FC<TeacherDashboardLayoutProps> = ({ childre
         return <TeacherStudentProfilesPage />;
       case 'insights':
         return <TeacherInsightsPage />;
+      case 'deploy':
+        return <TeacherResourceDeployPage />;
       case 'notifications':
         return <div className="p-6">Notifications Panel</div>;
       case 'assign':

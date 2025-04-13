@@ -10,7 +10,8 @@ import {
   Mail, 
   BarChart3, 
   Settings,
-  Home
+  Home,
+  Upload
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -51,6 +52,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
     { icon: Users, label: 'My Sets', href: '/teacher/sets' },
     { icon: Bell, label: 'Notifications', href: '/teacher/notifications' },
     { icon: FileCheck, label: 'Marking Panel', href: '/teacher/marking' },
+    { icon: Upload, label: 'Resource Deploy', href: '/teacher/deploy' },
     { icon: FileText, label: 'Assign Work', href: '/teacher/assign' },
     { icon: UserCircle, label: 'Student Profiles', href: '/teacher/profiles' },
     { icon: Mail, label: 'Parent Inquiries', href: '/teacher/inquiries' },

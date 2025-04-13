@@ -24,9 +24,11 @@ import TeacherSetsPage from "./pages/teacher/TeacherSetsPage";
 import TeacherInsightsPage from "./pages/teacher/TeacherInsightsPage";
 import TeacherAssignPage from "./pages/teacher/TeacherAssignPage";
 import TeacherMarkingPanel from "./pages/teacher/TeacherMarkingPanel"; 
+import TeacherResourceDeployPage from "./pages/teacher/TeacherResourceDeployPage"; 
 import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
 import StudentFeedbackPage from "./pages/student/StudentFeedbackPage";
 import StudentAssignmentViewPage from "./pages/student/StudentAssignmentViewPage";
+import StudentResourcesPage from "./pages/student/StudentResourcesPage";
 import { UserRole } from "./types/auth";
 
 function App() {
@@ -152,6 +154,14 @@ function App() {
         }
       />
       <Route
+        path="/teacher/deploy"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherResourceDeployPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/teacher/marking"
         element={
           <ProtectedRoute requiredRole="teacher" requireLicense={true}>
@@ -182,6 +192,14 @@ function App() {
         element={
           <ProtectedRoute requiredRole="student">
             <StudentFeedbackPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/my-resources"
+        element={
+          <ProtectedRoute requiredRole="student">
+            <StudentResourcesPage />
           </ProtectedRoute>
         }
       />
