@@ -13,23 +13,28 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ParentMessage } from '@/types/teacher';
 import { ReplyDialog } from './ReplyDialog';
-import { AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, MessageSquare } from 'lucide-react';
 
 interface ParentInquiriesListProps {
   inquiries: ParentMessage[];
   loading: boolean;
   onReplySubmitted: (inquiryId: string, replyText: string) => void;
+  onMarkAsRead?: (inquiryId: string) => void;
 }
 
 export const ParentInquiriesList: React.FC<ParentInquiriesListProps> = ({ 
   inquiries, 
   loading,
-  onReplySubmitted 
+  onReplySubmitted,
+  onMarkAsRead 
 }) => {
   const [selectedInquiry, setSelectedInquiry] = useState<ParentMessage | null>(null);
   const [isReplyOpen, setIsReplyOpen] = useState(false);
 
   const handleReply = (inquiry: ParentMessage) => {
+    if (inquiry.status === 'unread' && onMarkAsRead) {
+      onMarkAsRead(inquiry.id);
+    }
     setSelectedInquiry(inquiry);
     setIsReplyOpen(true);
   };
@@ -142,6 +147,3 @@ export const ParentInquiriesList: React.FC<ParentInquiriesListProps> = ({
     </>
   );
 };
-
-// Missing import for MessageSquare
-import { MessageSquare } from 'lucide-react';

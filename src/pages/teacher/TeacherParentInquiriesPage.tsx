@@ -20,6 +20,7 @@ import { InquiryClassFilter } from '@/components/teacher/InquiryClassFilter';
 import { ParentMessage } from '@/types/teacher';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Mail } from 'lucide-react';
+import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
 
 const TeacherParentInquiriesPage: React.FC = () => {
   const { state } = useAuth();
@@ -105,6 +106,28 @@ const TeacherParentInquiriesPage: React.FC = () => {
     }
   };
   
+  const handleMarkAsRead = async (inquiryId: string) => {
+    try {
+      await ParentInquiriesService.markAsRead(inquiryId);
+      
+      // Update the local inquiries
+      setInquiries(prevInquiries => 
+        prevInquiries.map(inquiry => 
+          inquiry.id === inquiryId 
+            ? { ...inquiry, status: 'read' }
+            : inquiry
+        )
+      );
+    } catch (error) {
+      console.error('Error marking inquiry as read:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark as read.",
+        variant: "destructive"
+      });
+    }
+  };
+  
   const getUnreadCount = () => {
     return inquiries.filter(inquiry => inquiry.status === 'unread').length;
   };
@@ -148,6 +171,7 @@ const TeacherParentInquiriesPage: React.FC = () => {
             inquiries={filteredInquiries} 
             loading={loading} 
             onReplySubmitted={handleReplySubmitted}
+            onMarkAsRead={handleMarkAsRead}
           />
         </CardContent>
       </Card>

@@ -15,13 +15,13 @@ interface InquiryTopicFilterProps {
 }
 
 export const InquiryTopicFilter: React.FC<InquiryTopicFilterProps> = ({ value, onChange }) => {
+  // Topics for parent inquiries
   const topics = [
+    'Homework',
     'Progress',
     'Wellbeing',
-    'Homework',
     'Attendance',
-    'Behavior',
-    'Other'
+    'Technical',
   ];
 
   return (
@@ -34,7 +34,9 @@ export const InquiryTopicFilter: React.FC<InquiryTopicFilterProps> = ({ value, o
         <SelectContent>
           <SelectItem value="all">All Topics</SelectItem>
           {topics.map((topic) => (
-            <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+            <SelectItem key={topic} value={topic}>
+              {topic}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
