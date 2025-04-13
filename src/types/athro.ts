@@ -1,92 +1,62 @@
-// Existing types file - append or modify as needed
-
-export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Computer Science' | 'Welsh' | 'Languages' | 'Religious Education';
-export type AthroLanguage = 'English' | 'Welsh' | 'French' | 'Spanish' | 'German';
-export type ExamBoard = 'wjec' | 'aqa' | 'ocr' | 'none';
-export type ModernLanguage = 'french' | 'german' | 'spanish';
-
-export interface AthroCharacter {
-  id: string;
-  name: string;
-  subject: AthroSubject;
-  avatarUrl: string;
-  shortDescription: string;
-  fullDescription: string;
-  tone: string;
-  supportsMathNotation?: boolean;
-  supportsSpecialCharacters?: boolean;
-  supportedLanguages?: AthroLanguage[];
-  topics: string[];
-  examBoards: ExamBoard[];
-}
+import { FeedbackSummary } from './feedback';
 
 export interface AthroMessage {
   id: string;
-  senderId: string;
+  senderId: 'user' | 'ai';
   content: string;
   timestamp: string;
-  markScheme?: string;
-  referencedResources?: string[];
-  grammarTip?: string;
-  culturalNote?: string;
-  translation?: string;
+  attachments?: AttachmentType[];
+  isTyping?: boolean;
 }
 
-export interface AthroSession {
-  id: string;
-  userId: string;
-  characterId: string;
-  messages: AthroMessage[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PastPaper {
-  id: string;
-  subject: string;
-  unit: string;
-  title: string;
-  examBoard: ExamBoard;
-  year: string;
-  season: string;
-  questions: PastPaperQuestion[];
-}
-
-export interface PastPaperQuestion {
-  id: string;
+export interface TopicScore {
   topic: string;
-  subtopic: string;
-  text: string;
-  marks: number;
-  difficulty: number;
+  avgScore: number;
 }
 
-export interface ModelAnswer {
-  questionId: string;
-  workingSteps: string[];
-  markScheme: string;
-  marks: number;
-  latexNotation: string;
-  translation?: string;
-  grammarExplanation?: string;
-  culturalNote?: string;
+export interface SubmissionOverTime {
+  date: string;
+  submitted: number;
 }
 
-export interface AthroFileReference {
-  id: string;
-  fileId: string;
-  fileName: string;
-  fileType: string;
-  subject: AthroSubject;
-  topics: string[];
-  examBoard?: ExamBoard;
-  uploadedAt: string;
+export interface AnalyticsOverview {
+  subject: string;
+  set: string;
+  students: number;
+  avgScore: number;
+  completionRate: number;
+  submissionsOverTime: SubmissionOverTime[];
+  topicScores: TopicScore[];
 }
 
-// Input processor for future API integration
-export interface InputProcessor {
-  name: string;
-  processInput: (input: string, context: any) => Promise<string>;
-  supportedInputTypes: string[];
-  enabled: boolean;
+export interface AnalyticsSummary {
+  totalStudents: number;
+  totalAssignments: number;
+  averageCompletionRate: number;
+  averageScore: number;
 }
+
+export interface AnalyticsFilter {
+  subject: string | null;
+  set: string | null;
+  dateRange: 'week' | 'month' | 'quarter' | 'year' | 'all';
+}
+
+export type SetPerformance = {
+  set: string;
+  avgScore: number;
+  completionRate: number;
+  students: number;
+};
+
+export type SubjectPerformance = {
+  subject: string;
+  avgScore: number;
+  completionRate: number;
+  students: number;
+};
+
+export type ExamBoard = 'wjec' | 'aqa' | 'ocr' | 'edexcel';
+
+// Re-export the FeedbackSummary type
+export type { FeedbackSummary };

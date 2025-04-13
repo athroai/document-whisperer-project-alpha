@@ -1,5 +1,4 @@
-
-import { AthroMessage, ExamBoard } from '@/types/athro';
+import { AthroMessage, ExamBoard, FeedbackSummary } from '@/types/athro';
 import { frenchPastPapers } from '@/data/athro-languages/past-papers/french';
 import { germanPastPapers } from '@/data/athro-languages/past-papers/german';
 import { spanishPastPapers } from '@/data/athro-languages/past-papers/spanish';
@@ -363,6 +362,58 @@ Please provide a helpful response that stays in character, addresses the student
 
     // For more complex interactions, we'll need to implement proper language-specific logic
     return `I'm processing your query in ${language}. This feature is still being developed.`;
+  }
+
+  // New method to get feedback summary for completed activities
+  getFeedbackSummary(submission: any): FeedbackSummary {
+    // In a real implementation, this would analyze the submission and generate appropriate feedback
+    // For now, we'll return mock feedback based on the submission type and score
+    
+    const activityType = submission.activityType || 'assignment';
+    const score = submission.score || Math.floor(Math.random() * 30) + 70; // Random score between 70-100 if not provided
+    const subject = submission.subject || 'Mathematics';
+    
+    let feedback = '';
+    let encouragement = '';
+    
+    // Generate different feedback based on the score
+    if (score >= 90) {
+      feedback = "Excellent work! Your understanding of the concepts is very strong. You've demonstrated mastery in most areas.";
+      encouragement = "Outstanding effort! Keep up this excellent standard of work!";
+    } else if (score >= 80) {
+      feedback = "Very good work! You've shown a solid understanding of the material, with just a few areas to review.";
+      encouragement = "Great job! You're making excellent progress in your studies!";
+    } else if (score >= 70) {
+      feedback = "Good effort! You've grasped many of the key concepts, but there are some areas where you could improve.";
+      encouragement = "You're doing well! With a bit more practice, you'll master these concepts.";
+    } else if (score >= 60) {
+      feedback = "Satisfactory work. You've shown understanding of some key concepts, but there are important areas that need more attention.";
+      encouragement = "Keep going! With focused practice on the challenging areas, you'll see improvement.";
+    } else {
+      feedback = "You've made a start, but there are several concepts that need further study and practice.";
+      encouragement = "Don't be discouraged! Every attempt is a step toward mastery. Let's identify the areas to focus on.";
+    }
+    
+    // Add subject-specific feedback
+    if (subject === 'Mathematics') {
+      feedback += " In mathematics, remember to show all your working clearly and check your calculations.";
+    } else if (subject === 'Science') {
+      feedback += " When answering science questions, ensure you're using precise terminology and supporting claims with evidence.";
+    } else if (subject === 'English') {
+      feedback += " In your writing, focus on developing your arguments with clear evidence and maintaining a consistent analytical approach.";
+    }
+    
+    return {
+      score,
+      feedback,
+      encouragement,
+      activityType: activityType as 'goal' | 'assignment' | 'quiz' | 'exam',
+      activityId: submission.id || 'unknown',
+      activityName: submission.title || `${subject} Activity`,
+      subject,
+      submittedAt: submission.submittedAt || new Date().toISOString(),
+      teacherComments: submission.teacherComments || undefined
+    };
   }
 }
 

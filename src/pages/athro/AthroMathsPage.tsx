@@ -5,6 +5,7 @@ import AthroBase from '@/components/athro/AthroBase';
 import { Card } from '@/components/ui/card';
 import { getAthroBySubject } from '@/config/athrosConfig';
 import { useNavigate } from 'react-router-dom';
+import CompletionReviewExample from '@/components/feedback/CompletionReviewExample';
 
 const AthroMathsPage: React.FC = () => {
   const { setActiveCharacter } = useAthro();
@@ -67,6 +68,10 @@ const AthroMathsPage: React.FC = () => {
               <li>Topic-specific review</li>
               <li>Exam board alignment</li>
             </ul>
+            
+            <div className="mt-4">
+              <CompletionReviewExample subject="Mathematics" />
+            </div>
           </Card>
           
           <Card className="p-4">
