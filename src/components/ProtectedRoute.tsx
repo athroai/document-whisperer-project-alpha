@@ -100,7 +100,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   // Redirect teachers to dashboard if trying to access student routes
-  if (user.role === 'teacher' && location.pathname === '/home' && location.pathname !== '/teacher-dashboard') {
+  if (user.role === 'teacher' && location.pathname === '/home') {
     return <Navigate to="/teacher-dashboard" replace />;
   }
   
@@ -118,3 +118,4 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 };
 
 export default ProtectedRoute;
+
