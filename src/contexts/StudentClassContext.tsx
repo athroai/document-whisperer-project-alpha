@@ -1,75 +1,62 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { StudentClassLink, EnrolledSubject } from '@/types/student';
-import { StudentClassService } from '@/services/studentClassService';
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { useAuth } from './AuthContext';
+import { EnrolledSubject } from '@/types/student';
+import StudentClassService from '@/services/StudentClassService';
 
 interface StudentClassContextType {
-  enrolledClasses: StudentClassLink[];
   enrolledSubjects: EnrolledSubject[];
   loading: boolean;
-  isEnrolledInSubject: (subject: string) => boolean;
-  refreshEnrollments: () => Promise<void>;
+  error: string | null;
+  refreshSubjects: () => Promise<void>;
 }
 
 const StudentClassContext = createContext<StudentClassContextType>({
-  enrolledClasses: [],
   enrolledSubjects: [],
   loading: true,
-  isEnrolledInSubject: () => false,
-  refreshEnrollments: async () => {}
+  error: null,
+  refreshSubjects: async () => {},
 });
 
 export const useStudentClass = () => useContext(StudentClassContext);
 
 export const StudentClassProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { state } = useAuth();
-  const [enrolledClasses, setEnrolledClasses] = useState<StudentClassLink[]>([]);
   const [enrolledSubjects, setEnrolledSubjects] = useState<EnrolledSubject[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  
-  const refreshEnrollments = async () => {
-    if (!state.user || state.user.role !== 'student') {
-      setEnrolledClasses([]);
+  const [error, setError] = useState<string | null>(null);
+  const { state } = useAuth();
+
+  const fetchEnrolledSubjects = async () => {
+    if (!state.user) {
       setEnrolledSubjects([]);
       setLoading(false);
       return;
     }
-    
+
     try {
       setLoading(true);
-      const classes = await StudentClassService.getStudentClasses(state.user.id);
-      const subjects = await StudentClassService.getEnrolledSubjects(state.user.id);
-      
-      setEnrolledClasses(classes);
-      setEnrolledSubjects(subjects);
-    } catch (error) {
-      console.error('Error fetching student enrollments:', error);
+      const subjects = await StudentClassService.getStudentClassLinks(state.user.id);
+      const enrolled = await StudentClassService.getEnrolledSubjects(state.user.id);
+      setEnrolledSubjects(enrolled);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching enrolled subjects:', err);
+      setError('Failed to load your enrolled subjects.');
     } finally {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
-    refreshEnrollments();
+    fetchEnrolledSubjects();
   }, [state.user]);
-  
-  const isEnrolledInSubject = (subject: string): boolean => {
-    return enrolledSubjects.some(s => 
-      s.subject.toLowerCase() === subject.toLowerCase()
-    );
+
+  const refreshSubjects = async () => {
+    await fetchEnrolledSubjects();
   };
-  
-  const value = {
-    enrolledClasses,
-    enrolledSubjects,
-    loading,
-    isEnrolledInSubject,
-    refreshEnrollments
-  };
-  
+
   return (
-    <StudentClassContext.Provider value={value}>
+    <StudentClassContext.Provider value={{ enrolledSubjects, loading, error, refreshSubjects }}>
       {children}
     </StudentClassContext.Provider>
   );
