@@ -5,6 +5,7 @@ import athroService from '@/services/athroService';
 import { useStudentClass } from '@/contexts/StudentClassContext';
 import { useAuth } from '@/contexts/AuthContext';
 import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
+import { getAthroById } from '@/config/athrosConfig';
 
 interface AthroRouterProps {
   character: AthroCharacter;
@@ -27,13 +28,26 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
       try {
         console.log(`[AthroRouter] Processing message for ${character.name}: "${message}"`);
         
+        // Get the full character config to access promptPersona
+        const characterConfig = getAthroById(character.id);
+        const promptPersona = characterConfig?.promptPersona || 
+          `You are ${character.name}, a mentor for GCSE students specializing in ${character.subject}.`;
+        
+        console.log(`[AthroRouter] Using prompt persona: ${promptPersona.substring(0, 50)}...`);
+        
         // Add mock enrollment information to the context if needed
         if (isMockEnrollment) {
           console.log('[AthroRouter] Using mock enrollment context');
           context = {
             ...context,
             isMockEnrollment: true,
-            mockClass: `Mock Class: ${character.subject}`
+            mockClass: `Mock Class: ${character.subject}`,
+            promptPersona
+          };
+        } else {
+          context = {
+            ...context,
+            promptPersona
           };
         }
         
@@ -82,7 +96,8 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
           character.examBoards[0],
           {
             ...subjectContext,
-            ...(isMockEnrollment ? { isMockSession: true } : {})
+            ...(isMockEnrollment ? { isMockSession: true } : {}),
+            promptPersona
           }
         );
         

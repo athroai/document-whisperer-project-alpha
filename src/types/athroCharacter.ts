@@ -1,4 +1,3 @@
-
 import { AthroSubject, AthroLanguage, ExamBoard } from './athro';
 
 export interface AthroCharacterConfig {
@@ -10,6 +9,7 @@ export interface AthroCharacterConfig {
   fullDescription: string;
   tone: string;
   promptTemplate: string;
+  promptPersona: string;
   responseStyle: 'maths' | 'essay' | 'language' | 'summary';
   usesMathFont?: boolean;
   supportsImageOCR?: boolean;
