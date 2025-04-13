@@ -8,7 +8,7 @@ import { Info } from 'lucide-react';
 import AthroProfile from '@/components/athro/AthroProfile';
 
 const AthroSelectorPage: React.FC = () => {
-  const { characters } = useAthro();
+  const { characters, setActiveCharacter } = useAthro();
   const { enrolledSubjects, isMockEnrollment } = useStudentClass();
   
   return (
@@ -46,6 +46,7 @@ const AthroSelectorPage: React.FC = () => {
                 <AthroCharacterCard 
                   key={character.id}
                   character={character}
+                  onSelect={setActiveCharacter}
                 />
               );
             })}
