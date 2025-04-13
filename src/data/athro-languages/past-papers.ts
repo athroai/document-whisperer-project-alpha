@@ -4,7 +4,7 @@ export const languagesPastPapers = [
   {
     id: 's22-3800u10-1',
     subject: 'French',
-    unit: 1, // Changed from string to number
+    unit: 1,
     title: 'Speaking',
     examBoard: 'wjec',
     year: '2022',
@@ -39,7 +39,7 @@ export const languagesPastPapers = [
   {
     id: 's22-3810u10-1',
     subject: 'Spanish',
-    unit: 1, // Changed from string to number
+    unit: 1,
     title: 'Reading and Translation',
     examBoard: 'wjec',
     year: '2022',
@@ -74,7 +74,7 @@ export const languagesPastPapers = [
   {
     id: 's22-3820u10-1',
     subject: 'German',
-    unit: 1, // Changed from string to number
+    unit: 1,
     title: 'Writing',
     examBoard: 'wjec',
     year: '2022',
