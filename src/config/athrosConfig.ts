@@ -1,4 +1,5 @@
 import { AthroCharacterConfig } from '@/types/athroCharacter';
+import { AthroSubject, AthroLanguage, ExamBoard } from '@/types/athro';
 
 export const athroCharacters: AthroCharacterConfig[] = [
   {
