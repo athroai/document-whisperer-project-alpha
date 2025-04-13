@@ -42,9 +42,9 @@ const MarkAllPresent: React.FC = () => {
   // Fetch classes on mount
   useEffect(() => {
     const fetchClasses = async () => {
-      if (user && user.uid) {
+      if (user && user.id) {
         try {
-          const teacherClasses = await SystemToolsService.getClassesForTeacher(user.uid);
+          const teacherClasses = await SystemToolsService.getClassesForTeacher(user.id);
           setClasses(teacherClasses);
         } catch (error) {
           console.error('Error fetching classes:', error);

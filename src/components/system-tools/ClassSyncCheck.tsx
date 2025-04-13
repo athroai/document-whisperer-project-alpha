@@ -43,10 +43,10 @@ const ClassSyncCheck: React.FC = () => {
   }, [user]);
   
   const fetchClasses = async () => {
-    if (user && user.uid) {
+    if (user && user.id) {
       setIsLoading(true);
       try {
-        const teacherClasses = await SystemToolsService.getClassesForTeacher(user.uid);
+        const teacherClasses = await SystemToolsService.getClassesForTeacher(user.id);
         setClasses(teacherClasses);
         setLastSyncTime(new Date().toLocaleTimeString());
       } catch (error) {
