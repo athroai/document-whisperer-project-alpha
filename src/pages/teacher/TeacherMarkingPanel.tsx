@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
-import { Tabs, TabsContent, TabsItem, TabsList } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsTrigger, TabsList } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -310,7 +310,8 @@ const TeacherMarkingPanel: React.FC = () => {
               status: 'published' as const,
               visibility: 'active' as const,
               assignmentType: 'quiz' as const,
-              linkedResources: []
+              linkedResources: [],
+              topic: null, // Add the missing topic property
             }
           };
         });
