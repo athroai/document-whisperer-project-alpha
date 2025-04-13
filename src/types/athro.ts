@@ -1,130 +1,74 @@
 
-import { FeedbackSummary } from './feedback';
-
-// Define missing type for attachments
-export type AttachmentType = {
-  id: string;
-  type: 'image' | 'document' | 'audio' | 'video';
-  url: string;
-  name: string;
-};
-
-export interface AthroMessage {
-  id: string;
-  senderId: string; // Changed from 'user' | 'ai' to string to allow character IDs
-  content: string;
-  timestamp: string;
-  attachments?: AttachmentType[];
-  isTyping?: boolean;
-  markScheme?: string; // Add missing property
-  referencedResources?: string[]; // Add missing property
-}
-
-export type AthroLanguage = 'english' | 'welsh' | 'french' | 'german' | 'spanish';
+// If this file doesn't exist yet, we need to create it with the complete type definitions
 
 export type AthroSubject = 
-  'Mathematics' | 
-  'Science' | 
-  'English' | 
-  'Welsh' | 
-  'Languages' | 
-  'History' | 
-  'Geography';
+  | 'Mathematics' 
+  | 'Science' 
+  | 'English' 
+  | 'Welsh' 
+  | 'Languages' 
+  | 'History' 
+  | 'Geography' 
+  | 'Religious Education';
+
+export type AthroExamBoard = 'WJEC' | 'AQA' | 'OCR' | 'Edexcel' | 'CCEA';
 
 export interface AthroCharacter {
   id: string;
   name: string;
   subject: AthroSubject;
-  avatarUrl: string;
-  shortDescription: string;
-  fullDescription: string;
-  tone: string;
-  supportsMathNotation?: boolean;
-  supportsSpecialCharacters?: boolean;
-  supportedLanguages?: AthroLanguage[];
-  topics: string[];
-  examBoards: ExamBoard[];
+  description: string;
+  examBoards: AthroExamBoard[];
+  avatar?: string;
+  promptPersona?: string;
 }
 
-export interface TopicScore {
-  topic: string;
-  avgScore: number;
-}
-
-export interface SubmissionOverTime {
-  date: string;
-  submitted: number;
-}
-
-export interface AnalyticsOverview {
-  subject: string;
-  set: string;
-  students: number;
-  avgScore: number;
-  completionRate: number;
-  submissionsOverTime: SubmissionOverTime[];
-  topicScores: TopicScore[];
-}
-
-export interface AnalyticsSummary {
-  totalStudents: number;
-  totalAssignments: number;
-  averageCompletionRate: number;
-  averageScore: number;
-}
-
-export interface AnalyticsFilter {
-  subject: string | null;
-  set: string | null;
-  dateRange: 'week' | 'month' | 'quarter' | 'year' | 'all';
-}
-
-export type SetPerformance = {
-  set: string;
-  avgScore: number;
-  completionRate: number;
-  students: number;
-};
-
-export type SubjectPerformance = {
-  subject: string;
-  avgScore: number;
-  completionRate: number;
-  students: number;
-};
-
-export type ExamBoard = 'wjec' | 'aqa' | 'ocr' | 'edexcel';
-
-// Adding PastPaper type for the language modules
-export interface PastPaper {
+export interface AthroMessage {
   id: string;
-  subject: string;
-  unit: string;
-  title: string;
-  examBoard: ExamBoard;
-  year: string;
-  season: string;
-  questions: {
-    id: string;
-    topic: string;
-    subtopic: string;
-    text: string;
-    marks: number;
-    difficulty: number;
-  }[];
+  senderId: string;
+  content: string;
+  timestamp: string;
+  attachments?: AthroAttachment[];
 }
 
-// Adding ModelAnswer type for the model answer modules
-export interface ModelAnswer {
-  questionId: string;
-  workingSteps: string[];
-  markScheme: string;
-  marks: number;
-  latexNotation: string;
-  translation?: string;
-  grammarExplanation?: string;
-  culturalNote?: string;
+export interface AthroAttachment {
+  id: string;
+  type: 'image' | 'file' | 'audio';
+  url: string;
+  name: string;
+  contentType?: string;
 }
 
-// Re-export the FeedbackSummary type
-export type { FeedbackSummary };
+export interface AthroSession {
+  id: string;
+  studentId: string;
+  subject: AthroSubject;
+  messages: AthroMessage[];
+  createdAt: string;
+  updatedAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface AthroContextData {
+  activeCharacter: AthroCharacter | null;
+  setActiveCharacter: (character: AthroCharacter) => void;
+  characters: AthroCharacter[];
+  currentScienceSubject?: string;
+  setCurrentScienceSubject?: (subject: string) => void;
+}
+
+// This type can be used for mock data and other character-related functionality
+export interface AthroConfig {
+  id: string;
+  name: string;
+  subject: AthroSubject;
+  description: string;
+  examBoards: AthroExamBoard[];
+  avatar?: string;
+  promptPersona?: string;
+  feedback?: {
+    style?: string;
+    encouragementPhrases?: string[];
+  };
+  specializations?: string[];
+}

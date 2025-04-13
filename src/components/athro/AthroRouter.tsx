@@ -11,7 +11,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 interface AthroRouterProps {
   character: AthroCharacter;
   message: string;
-  context?: any;
+  context?: Record<string, any>;
   onResponse: (message: AthroMessage) => void;
 }
 
@@ -42,7 +42,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         console.log(`[AthroRouter] Using prompt persona: ${promptPersona.substring(0, 50)}...`);
         
         // Add mock enrollment information to the context if needed
-        let enhancedContext = {
+        let enhancedContext: Record<string, any> = {
           ...context,
           promptPersona,
           preferredLanguage: language // Add the user's language preference
@@ -58,7 +58,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         }
         
         // Get subject-specific context if available
-        let subjectContext = {};
+        let subjectContext: Record<string, any> = {};
         if (character.subject === 'Languages' && context?.subjectSection) {
           subjectContext = { subjectSection: context.subjectSection };
           console.log(`[AthroRouter] Language context detected:`, context.subjectSection);
@@ -112,8 +112,9 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         );
         
         // For mock enrollments, add a note to the response
+        let finalResponse = { ...response };
         if (isMockEnrollment && !response.content.includes('mock')) {
-          response.content = `[Mock Session] ${response.content}`;
+          finalResponse.content = `[Mock Session] ${response.content}`;
         }
         
         // If logged in, try to save the message to Firestore
@@ -135,18 +136,18 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
             await AthroSessionFirestoreService.addMessage(
               state.user.id, 
               character.subject, 
-              response
+              finalResponse
             );
           } catch (err) {
             console.error('[AthroRouter] Error saving session to Firestore:', err);
           }
         }
         
-        onResponse(response);
+        onResponse(finalResponse);
       } catch (error) {
         console.error('[AthroRouter] Error processing message:', error);
         
-        const errorResponse = {
+        const errorResponse: AthroMessage = {
           id: Date.now().toString(),
           senderId: character.id,
           content: language === 'cy' 

@@ -25,10 +25,21 @@ interface SidebarItemProps {
   href: string;
   isActive: boolean;
   badge?: React.ReactNode;
+  isDisabled?: boolean;
 }
 
-const SidebarItem = ({ icon: Icon, label, href, isActive, badge }: SidebarItemProps) => {
+const SidebarItem = ({ icon: Icon, label, href, isActive, badge, isDisabled }: SidebarItemProps) => {
   const location = useLocation();
+  
+  if (isDisabled) {
+    return (
+      <div className="flex items-center gap-3 px-3 py-2 rounded-md text-gray-400 cursor-not-allowed">
+        <Icon size={18} className="text-gray-300" />
+        <span>{label}</span>
+        {badge && <div className="opacity-50">{badge}</div>}
+      </div>
+    );
+  }
   
   return (
     <Link
@@ -55,18 +66,18 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
   const location = useLocation();
 
   const sidebarItems = [
-    { icon: Home, label: 'Dashboard', href: '/teacher' },
-    { icon: Users, label: 'My Sets', href: '/teacher/sets' },
-    { icon: Bell, label: 'Notifications', href: '/teacher/notifications' },
-    { icon: FileCheck, label: 'Marking Panel', href: '/teacher/marking' },
-    { icon: Upload, label: 'Resource Deploy', href: '/teacher/deploy' },
-    { icon: FileText, label: 'Assign Work', href: '/teacher/assign' },
-    { icon: UserCircle, label: 'Student Profiles', href: '/teacher/profiles' },
-    { icon: ActivitySquare, label: 'Live Monitor', href: '/teacher/live-monitoring' },
-    { icon: Mail, label: 'Parent Inquiries', href: '/teacher/inquiries', badge: <UnreadInquiriesBadge /> },
-    { icon: BarChart3, label: 'Insights', href: '/teacher/insights' },
-    { icon: ChartBar, label: 'Analytics', href: '/teacher/analytics' },
-    { icon: Settings, label: 'System Tools', href: '/teacher/system' },
+    { icon: Home, label: 'Dashboard', href: '/teacher', isDisabled: false },
+    { icon: Users, label: 'My Sets', href: '/teacher/sets', isDisabled: false },
+    { icon: Bell, label: 'Notifications', href: '/teacher/notifications', isDisabled: false },
+    { icon: FileCheck, label: 'Marking Panel', href: '/teacher/marking', isDisabled: false },
+    { icon: Upload, label: 'Resource Deploy', href: '/teacher/deploy', isDisabled: false },
+    { icon: FileText, label: 'Assign Work', href: '/teacher/assign', isDisabled: false },
+    { icon: UserCircle, label: 'Student Profiles', href: '/teacher/profiles', isDisabled: false },
+    { icon: ActivitySquare, label: 'Live Monitor', href: '/teacher/live-monitoring', isDisabled: false },
+    { icon: Mail, label: 'Parent Inquiries', href: '/teacher/inquiries', badge: <UnreadInquiriesBadge />, isDisabled: false },
+    { icon: BarChart3, label: 'Insights', href: '/teacher/insights', isDisabled: false },
+    { icon: ChartBar, label: 'Analytics', href: '/teacher/analytics', isDisabled: false },
+    { icon: Settings, label: 'System Tools', href: '/teacher/system', isDisabled: false },
   ];
 
   // Only show sidebar for teachers and admins
@@ -89,8 +100,9 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
             icon={item.icon}
             label={item.label}
             href={item.href}
+            isDisabled={item.isDisabled}
             isActive={location.pathname === item.href || 
-                     (item.href !== '/teacher' && 
+                    (item.href !== '/teacher' && 
                       location.pathname.includes(item.href.split('/').pop() || ''))}
             badge={item.badge}
           />

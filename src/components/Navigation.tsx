@@ -10,7 +10,8 @@ import {
   LogOut, 
   Presentation,
   BarChart,
-  Clock
+  Clock,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,9 +26,9 @@ const Navigation: React.FC = () => {
   const studentNavItems = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Study', path: '/study', icon: BookOpen },
-    { name: 'Assignments', path: '/assignments', icon: BookOpen },
+    { name: 'Assignments', path: '/student/assignments', icon: BookOpen },
     { name: 'Progress', path: '/student/progress', icon: BarChart },
-    { name: 'History', path: '/student/history', icon: Clock },
+    { name: 'History', path: '/student/history', icon: History },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     { name: 'Quiz', path: '/quiz', icon: GraduationCap },
     { name: 'Settings', path: '/settings', icon: Settings },
@@ -35,7 +36,11 @@ const Navigation: React.FC = () => {
 
   // Nav items for teachers and admins
   const teacherNavItems = [
-    { name: 'Dashboard', path: '/teacher', icon: Presentation }
+    { name: 'Dashboard', path: '/teacher', icon: Presentation },
+    { name: 'Students', path: '/teacher/profiles', icon: GraduationCap },
+    { name: 'Assignments', path: '/teacher/assign', icon: BookOpen },
+    { name: 'Marking', path: '/teacher/marking', icon: BookOpen },
+    { name: 'Analytics', path: '/teacher/analytics', icon: BarChart }
   ];
 
   // Select the appropriate nav items based on user role
@@ -65,7 +70,7 @@ const Navigation: React.FC = () => {
             <div className="hidden md:flex space-x-4">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+                const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
                 
                 return (
                   <Link
@@ -115,9 +120,9 @@ const Navigation: React.FC = () => {
       {/* Mobile Navigation */}
       {user && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t py-2 px-6 flex justify-around items-center z-50">
-          {navItems.map((item) => {
+          {navItems.slice(0, 5).map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
             
             return (
               <Link

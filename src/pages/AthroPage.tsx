@@ -14,13 +14,22 @@ import AthroREPage from './athro/AthroREPage';
 import AthroSystem from '@/components/AthroSystem';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { useAthro } from '@/contexts/AthroContext';
 
 const AthroPage: React.FC = () => {
   const { state } = useAuth();
   const { user, loading } = state;
+  const { activeCharacter } = useAthro();
   const navigate = useNavigate();
   const location = useLocation();
   const [isPageLoaded, setIsPageLoaded] = useState(false);
+  
+  useEffect(() => {
+    // Handle redirects for the base /athro path
+    if (location.pathname === '/athro' || location.pathname === '/athro/') {
+      navigate('/athro/select', { replace: true });
+    }
+  }, [location.pathname, navigate]);
   
   useEffect(() => {
     // Once auth state is determined, mark the page as loaded
@@ -66,7 +75,7 @@ const AthroPage: React.FC = () => {
         <Route path="/" element={<Navigate to="/athro/select" replace />} />
         <Route path="/select" element={<AthroSelectorPage />} />
         <Route path="/maths" element={<AthroMathsPage />} />
-        <Route path="/mathematics" element={<AthroMathsPage />} />
+        <Route path="/mathematics" element={<Navigate to="/athro/maths" replace />} />
         <Route path="/science" element={<AthroSciencePage />} />
         <Route path="/english" element={<AthroEnglishPage />} />
         <Route path="/welsh" element={<AthroWelshPage />} />
@@ -84,6 +93,7 @@ const AthroPage: React.FC = () => {
           <div><strong>Path:</strong> {location.pathname}</div>
           <div><strong>User:</strong> {user?.email}</div>
           <div><strong>Role:</strong> {user?.role}</div>
+          <div><strong>Character:</strong> {activeCharacter?.name || 'None'}</div>
         </div>
       )}
     </>

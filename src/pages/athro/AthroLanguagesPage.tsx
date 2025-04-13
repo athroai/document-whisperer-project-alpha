@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { getAthroBySubject } from '@/config/athrosConfig';
 import { useNavigate } from 'react-router-dom';
 import { Globe } from 'lucide-react';
-import LanguageSelector from '@/components/athro/LanguageSelector';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type Language = 'french' | 'german' | 'spanish';
 
@@ -40,114 +40,73 @@ const AthroLanguagesPage: React.FC = () => {
       // This is the same pattern used in AthroSciencePage for biology/chemistry/physics
       if (setCurrentScienceSubject && selectedLanguage) {
         setCurrentScienceSubject(selectedLanguage);
+        // Save the preference for future visits
         localStorage.setItem('athroLanguagesLanguage', selectedLanguage);
       }
     } else {
       // If character not found, redirect to subject selector
-      navigate('/athro/select');
+      navigate('/athro');
     }
-  }, [selectedLanguage, setActiveCharacter, navigate, setCurrentScienceSubject]);
+  }, [setActiveCharacter, navigate, selectedLanguage, setCurrentScienceSubject]);
   
-  const handleSelectLanguage = (language: Language) => {
-    setSelectedLanguage(language);
-    setShowLanguageSelector(false);
-    // Save preference
-    localStorage.setItem('athroLanguagesLanguage', language);
-  };
-  
-  const getLanguageLabel = () => {
-    switch (selectedLanguage) {
-      case 'french':
-        return 'French 🇫🇷';
-      case 'german':
-        return 'German 🇩🇪';
-      case 'spanish':
-        return 'Spanish 🇪🇸';
-      default:
-        return 'Select Language';
-    }
+  const handleLanguageChange = (value: string) => {
+    setSelectedLanguage(value as Language);
   };
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">AthroLanguages</h1>
-          <p className="text-muted-foreground">Your personal GCSE Modern Foreign Languages tutor</p>
-        </div>
-        
-        <Button
-          variant="outline"
-          className="gap-2"
-          onClick={() => setShowLanguageSelector(true)}
-        >
-          <Globe className="h-4 w-4" />
-          {getLanguageLabel()}
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">AthroLanguages</h1>
+        <p className="text-muted-foreground">Your personal GCSE Languages mentor</p>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 h-[calc(100vh-12rem)]">
-          <AthroBase subject="Languages" />
+        <div className="lg:col-span-3">
+          <Card className="mb-6 p-4 flex items-center justify-between">
+            <div className="flex items-center">
+              <Globe className="h-5 w-5 text-blue-600 mr-2" />
+              <span className="font-medium">Currently studying: </span>
+              <Badge className="ml-2 capitalize">{selectedLanguage}</Badge>
+            </div>
+            <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="french">French</SelectItem>
+                <SelectItem value="german">German</SelectItem>
+                <SelectItem value="spanish">Spanish</SelectItem>
+              </SelectContent>
+            </Select>
+          </Card>
+          
+          <div className="h-[calc(100vh-16rem)]">
+            <AthroBase subject="Languages" />
+          </div>
         </div>
         
         <div className="lg:col-span-1 space-y-6">
           <Card className="p-4">
             <h2 className="font-medium mb-3">About AthroLanguages</h2>
-            <p className="text-sm text-muted-foreground">AthroLanguages supports your learning of French, Spanish, and German with vocabulary practice, conversation skills, and grammar explanations.</p>
+            <p className="text-sm text-muted-foreground">AthroLanguages helps you develop your speaking, listening, reading, and writing skills in your chosen language for GCSE success.</p>
             
-            <div className="mt-4">
-              <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
-                {getLanguageLabel()}
-              </Badge>
+            <h3 className="font-medium mt-4 mb-2">Supported Languages:</h3>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Badge variant={selectedLanguage === 'french' ? 'default' : 'outline'}>French</Badge>
+              <Badge variant={selectedLanguage === 'german' ? 'default' : 'outline'}>German</Badge>
+              <Badge variant={selectedLanguage === 'spanish' ? 'default' : 'outline'}>Spanish</Badge>
             </div>
             
             <h3 className="font-medium mt-4 mb-2">Supported Features:</h3>
             <ul className="text-sm space-y-1 list-disc pl-4">
-              <li>Multilingual support (French, Spanish, German)</li>
-              <li>Grammar explanations</li>
               <li>Vocabulary practice</li>
-              <li>Conversation exercises</li>
-              <li>Translation help</li>
+              <li>Grammar explanations</li>
+              <li>Conversation practice</li>
+              <li>Reading comprehension</li>
               <li>Past paper practice</li>
+              <li>Topic-specific review</li>
             </ul>
           </Card>
-          
-          {selectedLanguage === 'french' && (
-            <Card className="p-4">
-              <h2 className="font-medium mb-3">French Learning Tips</h2>
-              <ul className="text-sm space-y-2 list-disc pl-4">
-                <li>Practice gender agreement (le/la) with new vocabulary</li>
-                <li>Master the different verb conjugation patterns</li>
-                <li>Listen to French music and podcasts for pronunciation</li>
-                <li>Focus on the different tenses step by step</li>
-              </ul>
-            </Card>
-          )}
-          
-          {selectedLanguage === 'german' && (
-            <Card className="p-4">
-              <h2 className="font-medium mb-3">German Learning Tips</h2>
-              <ul className="text-sm space-y-2 list-disc pl-4">
-                <li>Learn the gender of nouns along with the noun (der/die/das)</li>
-                <li>Practice the four cases (nominative, accusative, dative, genitive)</li>
-                <li>Focus on word order in both main and subordinate clauses</li>
-                <li>Understand separable and inseparable verb prefixes</li>
-              </ul>
-            </Card>
-          )}
-          
-          {selectedLanguage === 'spanish' && (
-            <Card className="p-4">
-              <h2 className="font-medium mb-3">Spanish Learning Tips</h2>
-              <ul className="text-sm space-y-2 list-disc pl-4">
-                <li>Practice the difference between ser and estar</li>
-                <li>Master the irregular verb patterns in the present tense</li>
-                <li>Focus on gender agreement with adjectives</li>
-                <li>Learn the most common phrases for conversation</li>
-              </ul>
-            </Card>
-          )}
           
           <Card className="p-4">
             <h2 className="font-medium mb-3">Exam Boards</h2>
@@ -163,15 +122,18 @@ const AthroLanguagesPage: React.FC = () => {
               </span>
             </div>
           </Card>
+          
+          <Card className="p-4">
+            <h2 className="font-medium mb-3">Study Tips</h2>
+            <ul className="text-sm space-y-2 list-disc pl-4">
+              <li>Ask AthroLanguages to help with vocabulary</li>
+              <li>Practice conversations in your chosen language</li>
+              <li>Request translations and explanations</li>
+              <li>Review past paper questions with guided explanations</li>
+            </ul>
+          </Card>
         </div>
       </div>
-      
-      <LanguageSelector
-        isOpen={showLanguageSelector}
-        onClose={() => setShowLanguageSelector(false)}
-        onSelectLanguage={handleSelectLanguage}
-        selectedLanguage={selectedLanguage}
-      />
     </div>
   );
 };

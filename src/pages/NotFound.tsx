@@ -1,11 +1,15 @@
 
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NotFound = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { state } = useAuth();
+  const { user } = state;
 
   useEffect(() => {
     console.error(
@@ -13,6 +17,17 @@ const NotFound = () => {
       location.pathname
     );
   }, [location.pathname]);
+
+  const goBack = () => {
+    navigate(-1);
+  };
+
+  // Determine the appropriate home page based on user role
+  const getHomePage = () => {
+    if (!user) return "/";
+    if (user.role === "teacher" || user.role === "admin") return "/teacher";
+    return "/athro/select";
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
@@ -27,14 +42,19 @@ const NotFound = () => {
           renamed, or is temporarily unavailable.
         </p>
         <div className="space-y-3">
-          <Link to="/">
-            <Button className="w-full">Return to Home</Button>
+          <Button onClick={goBack} variant="outline" className="w-full">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
+          </Button>
+          <Link to={getHomePage()}>
+            <Button className="w-full">Return to Dashboard</Button>
           </Link>
-          <Link to="/athro/select">
-            <Button variant="outline" className="w-full">
-              Go to Subject Selection
-            </Button>
-          </Link>
+          {user && user.role === "student" && (
+            <Link to="/athro/select">
+              <Button variant="outline" className="w-full">
+                Go to Subject Selection
+              </Button>
+            </Link>
+          )}
         </div>
         
         {/* Debug info only in development mode */}
@@ -43,7 +63,8 @@ const NotFound = () => {
             <h3 className="text-sm font-semibold text-slate-700 mb-2">Debug Information:</h3>
             <div className="text-xs text-slate-600 space-y-1">
               <div><strong>Attempted Path:</strong> {location.pathname}</div>
-              <div><strong>Component:</strong> NotFound</div>
+              <div><strong>User:</strong> {user?.email || 'Not logged in'}</div>
+              <div><strong>Role:</strong> {user?.role || 'Unknown'}</div>
             </div>
           </div>
         )}
