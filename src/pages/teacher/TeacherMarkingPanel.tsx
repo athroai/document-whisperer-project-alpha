@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { assignmentService } from '@/services/assignmentService';
@@ -12,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { Tabs, TabsContent, TabsTrigger, TabsList } from '@/components/ui/tabs';
 import {
@@ -26,6 +26,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileDown, Eye, CheckCircle, Pencil, Filter, Search, DownloadCloud } from 'lucide-react';
 import { format } from 'date-fns';
+import AIFeedbackCard from '@/components/marking/AIFeedbackCard';
 
 interface StudentSubmissionTableProps {
   submissions: (Submission & { assignment: Assignment })[];
@@ -117,16 +118,20 @@ const SubmissionDetail: React.FC<SubmissionDetailProps> = ({
   const [score, setScore] = useState<string>("0");
   const [feedback, setFeedback] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [useAiFeedback, setUseAiFeedback] = useState(true);
 
   useEffect(() => {
     if (submission?.teacherFeedback) {
       setScore(submission.teacherFeedback.score?.toString() || "0");
       setFeedback(submission.teacherFeedback.comment || "");
+    } else if (submission?.aiFeedback && useAiFeedback) {
+      setScore(submission.aiFeedback.score?.toString() || "0");
+      setFeedback(submission.aiFeedback.comment || "");
     } else {
       setScore("0");
       setFeedback("");
     }
-  }, [submission]);
+  }, [submission, useAiFeedback]);
 
   if (!submission || !assignment) return null;
 
@@ -143,6 +148,15 @@ const SubmissionDetail: React.FC<SubmissionDetailProps> = ({
     });
     
     setIsSaving(false);
+  };
+
+  const handleUseAIFeedback = () => {
+    if (submission?.aiFeedback) {
+      setFeedback(submission.aiFeedback.comment || "");
+      if (submission.aiFeedback.score !== undefined) {
+        setScore(submission.aiFeedback.score.toString());
+      }
+    }
   };
 
   // Determine what type of answers we have
@@ -207,12 +221,27 @@ const SubmissionDetail: React.FC<SubmissionDetailProps> = ({
 
       {submission.aiFeedback && (
         <div className="mt-4">
-          <h3 className="text-lg font-medium">AI Feedback</h3>
-          <div className="mt-2 bg-purple-50 p-4 rounded-md text-sm">
-            <p>{submission.aiFeedback.comment}</p>
-            {submission.aiFeedback.score !== undefined && (
-              <p className="mt-2 font-medium">Score: {submission.aiFeedback.score}/10</p>
-            )}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">AI Feedback</h3>
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="use-ai-feedback"
+                checked={useAiFeedback}
+                onCheckedChange={setUseAiFeedback}
+              />
+              <Label htmlFor="use-ai-feedback" className="text-sm">
+                Use AI feedback
+              </Label>
+            </div>
+          </div>
+          
+          <div className="mt-2">
+            <AIFeedbackCard
+              comment={submission.aiFeedback.comment}
+              score={submission.aiFeedback.score}
+              outOf={10}
+              onEdit={handleUseAIFeedback}
+            />
           </div>
         </div>
       )}
@@ -275,7 +304,6 @@ const TeacherMarkingPanel: React.FC = () => {
   const [classes, setClasses] = useState<{ id: string, name: string }[]>([]);
   const [subjects, setSubjects] = useState<string[]>([]);
   
-  // Filter states
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -287,13 +315,9 @@ const TeacherMarkingPanel: React.FC = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Get all submissions
         const allSubmissions = await assignmentService.getSubmissions();
-        
-        // Get all assignments to map to submissions
         const allAssignments = await assignmentService.getAssignments();
         
-        // Combine the data
         const submissionsWithAssignments = allSubmissions.map(submission => {
           const matchingAssignment = allAssignments.find(a => a.id === submission.assignmentId);
           return {
@@ -311,7 +335,7 @@ const TeacherMarkingPanel: React.FC = () => {
               visibility: 'active' as const,
               assignmentType: 'quiz' as const,
               linkedResources: [],
-              topic: null, // Add the missing topic property
+              topic: null,
             }
           };
         });
@@ -319,7 +343,6 @@ const TeacherMarkingPanel: React.FC = () => {
         setSubmissions(submissionsWithAssignments);
         setFilteredSubmissions(submissionsWithAssignments);
         
-        // Extract unique classes and subjects for filters
         const uniqueClasses = Array.from(new Set(allAssignments.map(a => a.classId)))
           .map(id => ({ id, name: `Class ${id}` }));
         
@@ -343,7 +366,6 @@ const TeacherMarkingPanel: React.FC = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    // Apply filters whenever filter criteria change
     let filtered = [...submissions];
     
     if (selectedClass !== "all") {
@@ -372,7 +394,6 @@ const TeacherMarkingPanel: React.FC = () => {
   const handleMarkSubmission = (submission: Submission) => {
     setSelectedSubmission(submission);
     
-    // Find the corresponding assignment
     const assignment = submissions.find(s => s.id === submission.id)?.assignment || null;
     setSelectedAssignment(assignment);
     
@@ -381,7 +402,6 @@ const TeacherMarkingPanel: React.FC = () => {
 
   const handleSaveFeedback = async (submissionId: string, feedbackData: { score: number, comment: string }) => {
     try {
-      // First mark the submission
       const updatedSubmission = await assignmentService.markSubmission(
         submissionId,
         {
@@ -393,12 +413,10 @@ const TeacherMarkingPanel: React.FC = () => {
         }
       );
       
-      // Then return it to the student
       if (updatedSubmission) {
         await assignmentService.returnSubmission(submissionId);
       }
       
-      // Update UI
       setSubmissions(prev => prev.map(sub => 
         sub.id === submissionId ? { ...sub, status: 'returned' as const, teacherFeedback: {
           score: feedbackData.score,

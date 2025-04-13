@@ -1,5 +1,6 @@
 
 import { toast } from "@/components/ui/use-toast";
+import { generateAIFeedback, FeedbackInput } from "./aiFeedback";
 
 // Types for marking engine
 export interface MarkingRequest {
@@ -141,8 +142,16 @@ export const markAnswer = async (request: MarkingRequest): Promise<MarkingRecord
     // Detect topic if not provided
     const topic = request.topic || detectTopic(request.answer, request.subject);
     
-    // Generate AI marking
-    const aiResult = generateAIScoring(request.answer, request.prompt, request.subject, topic);
+    // Generate AI feedback using the aiFeedback service
+    const aiFeedbackInput: FeedbackInput = {
+      studentAnswer: request.answer,
+      subject: request.subject,
+      topic: topic || undefined,
+      examBoard: request.examBoard,
+      tone: 'encouraging', // Default tone, could be made configurable
+    };
+    
+    const aiFeedbackResult = await generateAIFeedback(aiFeedbackInput);
     
     // Create marking record
     const record: MarkingRecord = {
@@ -155,14 +164,14 @@ export const markAnswer = async (request: MarkingRequest): Promise<MarkingRecord
       originalPrompt: request.prompt,
       studentAnswer: request.answer,
       aiMark: {
-        score: aiResult.score,
-        outOf: aiResult.outOf,
-        comment: `${aiResult.explanation} ${aiResult.suggestedImprovement || ''}`.trim()
+        score: aiFeedbackResult.score || 0,
+        outOf: aiFeedbackResult.outOf || 10,
+        comment: aiFeedbackResult.comment
       },
       teacherMark: null,
-      finalFeedback: aiResult.explanation,
+      finalFeedback: aiFeedbackResult.comment,
       visibility: 'student',
-      timestamp: aiResult.timestamp
+      timestamp: new Date().toISOString()
     };
     
     // In a real implementation, save to Firestore

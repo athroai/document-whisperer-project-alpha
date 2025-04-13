@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { 
   Check, 
   FileText, 
@@ -43,6 +45,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
+import AIFeedbackCard from '@/components/marking/AIFeedbackCard';
 
 const TeacherMarkingPage: React.FC = () => {
   const { state } = useAuth();
@@ -54,6 +57,7 @@ const TeacherMarkingPage: React.FC = () => {
   const [markingStyle, setMarkingStyle] = useState<MarkingStyle>("detailed");
   const [teacherFeedback, setTeacherFeedback] = useState("");
   const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [useAIFeedback, setUseAIFeedback] = useState(true);
   const [records, setRecords] = useState<MarkingRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -156,7 +160,7 @@ const TeacherMarkingPage: React.FC = () => {
     try {
       await updateMarkingRecord(selectedAssignment.id, {
         score: selectedAssignment.aiMark.score,
-        comment: `I agree with the AI assessment: ${selectedAssignment.aiMark.comment}`,
+        comment: `${selectedAssignment.aiMark.comment}`,
         override: false
       });
       
@@ -182,6 +186,14 @@ const TeacherMarkingPage: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleUseAIFeedback = (comment: string) => {
+    setTeacherFeedback(comment);
+  };
+
+  const handleToggleAIFeedback = (checked: boolean) => {
+    setUseAIFeedback(checked);
   };
 
   const handleDownload = () => {
@@ -409,14 +421,28 @@ const TeacherMarkingPage: React.FC = () => {
                 <p className="text-sm">{selectedAssignment.studentAnswer}</p>
               </div>
               
-              <div className="p-4 bg-blue-50 rounded-md">
-                <h3 className="text-sm font-medium mb-2">AI Assessment</h3>
-                <div className="flex items-center mb-3">
-                  <span className="font-medium text-blue-800">Score: </span>
-                  <span className="ml-2">{selectedAssignment.aiMark.score}/{selectedAssignment.aiMark.outOf}</span>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">AI Assessment</h3>
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="ai-feedback-toggle" className="text-sm text-gray-500">
+                    Use AI feedback
+                  </Label>
+                  <Switch 
+                    id="ai-feedback-toggle"
+                    checked={useAIFeedback}
+                    onCheckedChange={handleToggleAIFeedback}
+                  />
                 </div>
-                <p className="text-sm text-blue-800">{selectedAssignment.aiMark.comment}</p>
               </div>
+              
+              <AIFeedbackCard
+                comment={selectedAssignment.aiMark.comment}
+                score={selectedAssignment.aiMark.score}
+                outOf={selectedAssignment.aiMark.outOf}
+                style={markingStyle}
+                onAccept={handleApproveAIMark}
+                onEdit={handleUseAIFeedback}
+              />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
