@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Users, 
   Bell, 
@@ -24,6 +24,23 @@ interface SidebarItemProps {
 }
 
 const SidebarItem = ({ icon: Icon, label, href, isActive }: SidebarItemProps) => {
+  const location = useLocation();
+  
+  // Prevent unnecessary navigation if already on the page
+  if (location.pathname === href) {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer",
+          isActive && "bg-purple-100 text-purple-700 font-medium"
+        )}
+      >
+        <Icon size={18} className={cn("text-gray-500", isActive && "text-purple-700")} />
+        <span>{label}</span>
+      </div>
+    );
+  }
+  
   return (
     <Link
       to={href}
@@ -46,6 +63,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
   const { state } = useAuth();
   const { user } = state;
   const navigate = useNavigate();
+  const location = useLocation();
 
   const sidebarItems = [
     { icon: Home, label: 'Dashboard', href: '/teacher-dashboard' },
@@ -61,7 +79,8 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
   ];
 
   if (!user || user.role !== 'teacher') {
-    setTimeout(() => navigate('/home'), 0);
+    // Use replace:true to avoid adding to history stack
+    setTimeout(() => navigate('/home', { replace: true }), 0);
     return null;
   }
 
@@ -80,7 +99,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
             icon={item.icon}
             label={item.label}
             href={item.href}
-            isActive={item.href.includes(activePage)}
+            isActive={location.pathname.includes(activePage) && item.href.includes(activePage)}
           />
         ))}
       </div>

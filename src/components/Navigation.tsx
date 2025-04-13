@@ -36,6 +36,16 @@ const Navigation: React.FC = () => {
     ? [...baseNavItems, { name: 'Teacher Dashboard', path: '/teacher-dashboard', icon: Presentation }] 
     : baseNavItems;
 
+  // Handle logout without page reload
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   return (
     <nav className="bg-white shadow-md py-4 px-6">
       <div className="container mx-auto flex justify-between items-center">
@@ -50,12 +60,14 @@ const Navigation: React.FC = () => {
                 // Student navigation
                 navItems.map((item) => {
                   const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  
                   return (
                     <Link
                       key={item.name}
                       to={item.path}
                       className={`flex items-center space-x-1 px-3 py-2 rounded-md ${
-                        location.pathname === item.path
+                        isActive
                           ? 'bg-purple-100 text-purple-700'
                           : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600'
                       }`}
@@ -91,7 +103,7 @@ const Navigation: React.FC = () => {
               <Button
                 variant="ghost"
                 className="text-gray-600"
-                onClick={() => logout()}
+                onClick={handleLogout}
               >
                 <LogOut size={18} className="mr-1" />
                 <span className="hidden md:inline">Logout</span>
@@ -112,15 +124,17 @@ const Navigation: React.FC = () => {
       
       {/* Mobile Navigation - Only show for students */}
       {user && user.role !== 'teacher' && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t py-2 px-6 flex justify-between items-center">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t py-2 px-6 flex justify-between items-center z-50">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
             return (
               <Link
                 key={item.name}
                 to={item.path}
                 className={`flex flex-col items-center p-2 ${
-                  location.pathname === item.path
+                  isActive
                     ? 'text-purple-700'
                     : 'text-gray-500 hover:text-purple-600'
                 }`}
@@ -135,7 +149,7 @@ const Navigation: React.FC = () => {
       
       {/* Mobile Navigation - Simple version for teachers */}
       {user && user.role === 'teacher' && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t py-2 px-6 flex justify-center items-center">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t py-2 px-6 flex justify-center items-center z-50">
           <Link
             to="/teacher-dashboard"
             className={`flex flex-col items-center p-2 ${

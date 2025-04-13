@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import { AuthState, User } from '../types/auth';
 import { toast } from 'sonner';
@@ -73,12 +72,17 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
+  const [authCheckAttempted, setAuthCheckAttempted] = useState(false);
 
-  // Simulating authentication check on app load with persistence
+  // Simulating authentication check on app load with persistence - only run once
   useEffect(() => {
+    if (authCheckAttempted) return;
+    
     const checkAuth = async () => {
       try {
+        setAuthCheckAttempted(true);
         dispatch({ type: 'AUTH_START' });
+        
         // Check for existing user session
         const savedUser = localStorage.getItem('athro_user') || sessionStorage.getItem('athro_user');
         const savedToken = localStorage.getItem('athro_token') || sessionStorage.getItem('athro_token');
@@ -131,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
     
     return () => clearTimeout(authTimeout);
-  }, []);
+  }, [authCheckAttempted, authCheckComplete]);
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     dispatch({ type: 'AUTH_START' });

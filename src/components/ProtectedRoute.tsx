@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLicenseCheck } from '../hooks/useLicenseCheck';
 import { useRoleAccess } from '../hooks/useRoleAccess';
@@ -21,12 +21,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { state } = useAuth();
   const { user, loading } = state;
   const navigate = useNavigate();
+  const location = useLocation();
   const [redirectStuck, setRedirectStuck] = useState(false);
+  const [redirectAttempted, setRedirectAttempted] = useState(false);
   
-  const { isLicensed, redirectTo } = useLicenseCheck(user);
+  const { isLicensed } = useLicenseCheck(user);
   const { hasAccess } = useRoleAccess(user, requiredRole);
 
-  // Fail-safe for stuck redirects
+  // Fail-safe for stuck loading states
   useEffect(() => {
     if (loading) {
       // Set a timeout to detect stuck loading states
@@ -41,22 +43,24 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }, [loading]);
 
+  // Handle license redirects - only once
   useEffect(() => {
-    if (requireLicense && !isLicensed && user && user.role === 'teacher') {
-      redirectTo('/required-license');
+    if (!loading && !redirectAttempted && requireLicense && !isLicensed && user && user.role === 'teacher') {
+      setRedirectAttempted(true);
+      navigate('/required-license', { replace: true });
     }
-  }, [isLicensed, requireLicense, user, redirectTo]);
+  }, [isLicensed, requireLicense, user, loading, navigate, redirectAttempted]);
 
   // Handle manual recovery from stuck states
   const handleManualRedirect = () => {
     if (user) {
       if (user.role === 'teacher') {
-        navigate('/teacher');
+        navigate('/teacher-dashboard', { replace: true });
       } else {
-        navigate('/athro/select');
+        navigate('/athro/select', { replace: true });
       }
     } else {
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   };
   
@@ -88,16 +92,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check role-based access
   if (!hasAccess) {
     console.log(`Access denied: Required role: ${requiredRole}, User role: ${user.role}`);
-    return <Navigate to={user.role === 'teacher' ? '/teacher' : '/athro/select'} replace />;
+    // Avoid repeat redirects by checking current path
+    const redirectPath = user.role === 'teacher' ? '/teacher-dashboard' : '/athro/select';
+    if (location.pathname !== redirectPath) {
+      return <Navigate to={redirectPath} replace />;
+    }
   }
   
   // Redirect teachers to dashboard if trying to access student routes
-  if (user.role === 'teacher' && window.location.pathname === '/home') {
-    return <Navigate to="/teacher" replace />;
+  if (user.role === 'teacher' && location.pathname === '/home' && location.pathname !== '/teacher-dashboard') {
+    return <Navigate to="/teacher-dashboard" replace />;
   }
   
   // Redirect students to athro selector if trying to access teacher routes
-  if (user.role === 'student' && window.location.pathname.startsWith('/teacher')) {
+  if (user.role === 'student' && location.pathname.startsWith('/teacher') && location.pathname !== '/athro/select') {
     return <Navigate to="/athro/select" replace />;
   }
   
