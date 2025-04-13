@@ -9,11 +9,12 @@ import { Upload } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadFile } from '@/services/fileService';
+import { UploadMetadata } from '@/types/files';
 
 interface ResourceUploadProps {
   subjectId?: string;
   classId?: string;
-  onUploadComplete?: () => void;
+  onUploadComplete?: (metadata: UploadMetadata) => void;
 }
 
 const ResourceUpload: React.FC<ResourceUploadProps> = ({
@@ -65,7 +66,7 @@ const ResourceUpload: React.FC<ResourceUploadProps> = ({
 
     try {
       // Upload file using fileService
-      await uploadFile(selectedFile, {
+      const uploadMetadata = await uploadFile(selectedFile, {
         uploadedBy: user.id,
         role: user.role,
         subject,
@@ -84,7 +85,7 @@ const ResourceUpload: React.FC<ResourceUploadProps> = ({
       
       // Call the onUploadComplete callback if provided
       if (onUploadComplete) {
-        onUploadComplete();
+        onUploadComplete(uploadMetadata);
       }
     } catch (error) {
       console.error('Upload error:', error);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +12,7 @@ import { Calendar, Upload, Clock } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import FileUpload from '@/components/FileUpload';
+import { UploadMetadata } from '@/types/files';
 
 const AssignmentSubmission: React.FC = () => {
   const navigate = useNavigate();
@@ -48,7 +48,6 @@ const AssignmentSubmission: React.FC = () => {
         
         setAssignment(fetchedAssignment);
         
-        // Check for existing submission
         const submissions = await assignmentService.getSubmissions({
           assignmentId: id,
           studentId: user.id
@@ -58,7 +57,6 @@ const AssignmentSubmission: React.FC = () => {
           const submission = submissions[0];
           setExistingSubmission(submission);
           
-          // Populate form based on assignment type
           if (fetchedAssignment.assignmentType === 'open-answer') {
             setAnswerText((submission.answers as OpenAnswer).text);
           } else if (fetchedAssignment.assignmentType === 'file-upload') {
@@ -89,7 +87,6 @@ const AssignmentSubmission: React.FC = () => {
     try {
       let answers: any;
       
-      // Prepare answers based on assignment type
       if (assignment.assignmentType === 'open-answer') {
         answers = { text: answerText };
       } else if (assignment.assignmentType === 'file-upload') {
@@ -104,14 +101,12 @@ const AssignmentSubmission: React.FC = () => {
       }
       
       if (existingSubmission) {
-        // Update existing submission
         await assignmentService.updateSubmission(existingSubmission.id, {
           answers,
           submittedAt: new Date().toISOString(),
           status: "submitted"
         });
       } else {
-        // Create new submission
         await assignmentService.createSubmission({
           assignmentId: assignment.id,
           submittedBy: user.id,
@@ -129,7 +124,6 @@ const AssignmentSubmission: React.FC = () => {
         description: "Your work has been submitted successfully.",
       });
       
-      // Redirect to assignments page
       navigate('/assignments');
     } catch (error) {
       console.error('Error submitting assignment:', error);
@@ -143,13 +137,13 @@ const AssignmentSubmission: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (url: string, fileName: string) => {
-    setFileUrls(prev => [...prev, url]);
-    setFileNames(prev => [...prev, fileName]);
+  const handleFileUpload = (metadata: UploadMetadata) => {
+    setFileUrls(prev => [...prev, metadata.url]);
+    setFileNames(prev => [...prev, metadata.filename]);
     
     toast({
       title: "File uploaded",
-      description: `${fileName} has been uploaded successfully.`,
+      description: `${metadata.filename} has been uploaded successfully.`,
     });
   };
 

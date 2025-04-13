@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +12,7 @@ import { toast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, FileDown, Clock, Calendar, Upload } from 'lucide-react';
 import { format } from 'date-fns';
+import { UploadMetadata } from '@/types/files';
 
 const StudentAssignmentViewPage = () => {
   const { assignmentId } = useParams<{ assignmentId: string }>();
@@ -34,7 +34,6 @@ const StudentAssignmentViewPage = () => {
       
       setLoading(true);
       try {
-        // Fetch the assignment details
         const fetchedAssignment = await assignmentService.getAssignmentById(assignmentId);
         if (!fetchedAssignment) {
           toast({
@@ -48,22 +47,19 @@ const StudentAssignmentViewPage = () => {
         
         setAssignment(fetchedAssignment);
         
-        // Check if the student has already made a submission
         const submissions = await assignmentService.getSubmissions({
           assignmentId: assignmentId,
           studentId: user.id
         });
         
         if (submissions.length > 0) {
-          const currentSubmission = submissions[0]; // Get the most recent submission
+          const currentSubmission = submissions[0];
           setSubmission(currentSubmission);
           
-          // If it's a text submission
           if ((currentSubmission.answers as any).text) {
             setSubmissionText((currentSubmission.answers as any).text);
           }
           
-          // If it's file uploads, populate the uploaded files
           const fileAnswers = currentSubmission.answers as any;
           if (fileAnswers.fileUrls && fileAnswers.fileNames) {
             const files = fileAnswers.fileUrls.map((url: string, index: number) => ({
@@ -90,8 +86,8 @@ const StudentAssignmentViewPage = () => {
     fetchAssignment();
   }, [assignmentId, user?.id, navigate]);
 
-  const handleFileUpload = (fileUrl: string, fileName: string) => {
-    setUploadedFiles(prev => [...prev, { url: fileUrl, name: fileName }]);
+  const handleFileUpload = (metadata: UploadMetadata) => {
+    setUploadedFiles(prev => [...prev, { url: metadata.url, name: metadata.filename }]);
     toast({
       title: "File uploaded",
       description: "Your file has been uploaded successfully."
@@ -121,7 +117,6 @@ const StudentAssignmentViewPage = () => {
 
     setSubmitting(true);
     try {
-      // Construct the submission object based on what we have
       let answers;
       
       if (assignment.assignmentType === 'file-upload') {
@@ -134,7 +129,6 @@ const StudentAssignmentViewPage = () => {
           text: submissionText
         };
       } else {
-        // Quiz type - would be handled differently
         answers = [];
       }
       
@@ -142,7 +136,7 @@ const StudentAssignmentViewPage = () => {
         assignmentId: assignment.id,
         submittedBy: user.id,
         submittedAt: new Date().toISOString(),
-        status: "submitted" as const, // Explicitly typed as the literal "submitted"
+        status: "submitted" as const,
         answers,
         teacherFeedback: null,
         aiFeedback: null,
@@ -156,7 +150,6 @@ const StudentAssignmentViewPage = () => {
         description: "Thanks for submitting your work! Your teacher will review it soon. You'll get notified when feedback is ready."
       });
       
-      // Navigate back to assignments list
       navigate('/student/assignments');
     } catch (error) {
       console.error('Error submitting assignment:', error);

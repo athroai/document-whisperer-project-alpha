@@ -1,5 +1,4 @@
-
-import { UploadedFile } from '@/types/auth';
+import { UploadedFile, UploadMetadata } from '@/types/files';
 import { toast } from '@/components/ui/use-toast';
 
 // Mock Firebase Storage and Firestore - In production this would connect to Firebase
@@ -45,6 +44,9 @@ const mockTeacherPreferences: TeacherPreference[] = [
   }
 ];
 
+// Mock file uploads array
+export const mockUploadedFiles: UploadMetadata[] = [];
+
 // File upload function - would connect to Firebase Storage in production
 export const uploadFile = async (
   file: File, 
@@ -56,13 +58,26 @@ export const uploadFile = async (
     visibility: 'public' | 'class-only' | 'private';
     type: 'topic-notes' | 'quiz' | 'past-paper' | 'notes';
   }
-): Promise<UploadedFile> => {
+): Promise<UploadMetadata> => {
   // Simulate upload delay
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // In a real app, this would upload to Firebase Storage
-  // and store metadata in Firestore
+  // Generate a mock URL for the file
   const fileUrl = `https://storage.example.com/${metadata.uploadedBy}/${file.name}`;
+  
+  const uploadMetadata: UploadMetadata = {
+    url: fileUrl,
+    filename: file.name,
+    mimeType: file.type,
+    uploadedBy: metadata.uploadedBy,
+    subject: metadata.subject,
+    classId: metadata.classId,
+    uploadTime: new Date().toISOString(),
+    visibility: metadata.visibility
+  };
+  
+  // Add to mock storage
+  mockUploadedFiles.push(uploadMetadata);
   
   const newFile: UploadedFile = {
     id: `file_${Date.now()}`,
@@ -73,13 +88,15 @@ export const uploadFile = async (
     filename: file.name,
     storagePath: `files/${metadata.uploadedBy}/${file.name}`,
     timestamp: new Date().toISOString(),
-    label: file.name
+    label: file.name,
+    mimeType: file.type,
+    url: fileUrl
   };
   
   mockFiles.push(newFile);
   
   console.log('File uploaded:', newFile);
-  return newFile;
+  return uploadMetadata;
 };
 
 export const getUserFiles = async (userId: string): Promise<UploadedFile[]> => {

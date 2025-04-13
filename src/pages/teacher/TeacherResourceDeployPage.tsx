@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
@@ -13,6 +12,7 @@ import { Check, Link as LinkIcon, FileUp, Wand2 } from 'lucide-react';
 import ResourceUpload from '@/components/dashboard/ResourceUpload';
 import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
 import { Class, StudentDetail } from '@/types/teacher';
+import { UploadMetadata } from '@/types/files';
 
 // Mock data for Sets (classes)
 const mockClasses: Class[] = [
@@ -57,6 +57,7 @@ const TeacherResourceDeployPage = () => {
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [resourceType, setResourceType] = useState<string>('upload');
   const [resourceUrl, setResourceUrl] = useState<string>('');
+  const [fileName, setFileName] = useState<string>('');
   const [linkUrl, setLinkUrl] = useState<string>('');
   const [aiInstruction, setAiInstruction] = useState<string>('');
   const [subject, setSubject] = useState<string>('Mathematics');
@@ -87,13 +88,10 @@ const TeacherResourceDeployPage = () => {
     );
   };
 
-  // Handle resource upload completion
-  // Fixed function signature to match what ResourceUpload expects
-  const handleUploadComplete = () => {
-    // Since we can't access the URL directly from the callback anymore, 
-    // we'll set a placeholder URL or retrieve it differently in a real implementation
-    const placeholderUrl = "https://example.com/uploaded-file";
-    setResourceUrl(placeholderUrl);
+  // Handle resource upload completion with the new UploadMetadata type
+  const handleUploadComplete = (metadata: UploadMetadata) => {
+    setResourceUrl(metadata.url);
+    setFileName(metadata.filename);
     
     toast({
       title: "File uploaded",
@@ -110,6 +108,7 @@ const TeacherResourceDeployPage = () => {
       studentIds: assignToWholeClass ? undefined : selectedStudentIds,
       resourceType: resourceType === 'upload' ? 'file' : resourceType === 'link' ? 'link' : 'ai-instruction',
       fileUrl: resourceUrl,
+      fileName: fileName,
       linkUrl: linkUrl,
       aiInstruction: aiInstruction,
       deployedAt: new Date().toISOString(),
@@ -133,6 +132,7 @@ const TeacherResourceDeployPage = () => {
     setSelectedStudentIds([]);
     setResourceType('upload');
     setResourceUrl('');
+    setFileName('');
     setLinkUrl('');
     setAiInstruction('');
     setTopic('');
@@ -295,7 +295,7 @@ const TeacherResourceDeployPage = () => {
                     />
                     {resourceUrl && (
                       <p className="text-sm text-green-600">
-                        ✓ File uploaded successfully
+                        ✓ File uploaded successfully: {fileName}
                       </p>
                     )}
                   </TabsContent>
@@ -385,7 +385,7 @@ const TeacherResourceDeployPage = () => {
                       <p className="text-sm text-gray-500">Resource Type:</p>
                       <p className="font-medium">
                         {resourceType === 'upload' 
-                          ? 'Uploaded File'
+                          ? `Uploaded File: ${fileName}`
                           : resourceType === 'link'
                             ? 'External Link'
                             : 'AI Instruction'}

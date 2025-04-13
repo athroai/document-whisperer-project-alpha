@@ -6,11 +6,12 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileUp, File as FileIcon } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { UploadMetadata } from '@/types/files';
 
 interface FileUploadProps {
   userId?: string;
   userRole?: string;
-  onFileUploaded?: (url: string, fileName: string) => void;
+  onFileUploaded?: (metadata: UploadMetadata) => void;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({ userId, userRole, onFileUploaded }) => {
@@ -56,9 +57,19 @@ const FileUpload: React.FC<FileUploadProps> = ({ userId, userRole, onFileUploade
       // Generate a mock URL for the file
       const mockUrl = `https://storage.example.com/files/${Date.now()}-${file.name}`;
       
+      const uploadMetadata: UploadMetadata = {
+        url: mockUrl,
+        filename: file.name,
+        mimeType: file.type,
+        uploadedBy: userId || 'unknown',
+        subject: subject || undefined,
+        uploadTime: new Date().toISOString(),
+        visibility: (visibility as 'public' | 'class-only' | 'private') || 'private'
+      };
+      
       // If this is being used in the assignment submission component
       if (onFileUploaded) {
-        onFileUploaded(mockUrl, file.name);
+        onFileUploaded(uploadMetadata);
       } else {
         // Regular file upload to user's collection
         const fileMetadata = {
@@ -70,7 +81,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ userId, userRole, onFileUploade
           filename: file.name,
           storagePath: `files/${userId}/${file.name}`,
           timestamp: new Date().toISOString(),
-          label: label || undefined
+          label: label || undefined,
+          mimeType: file.type,
+          url: mockUrl
         };
 
         // Here we would save fileMetadata to Firebase
