@@ -1,6 +1,7 @@
 
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import { AuthState, User } from '../types/auth';
+import { toast } from 'sonner';
 
 type AuthAction = 
   | { type: 'AUTH_START' }
@@ -11,7 +12,7 @@ type AuthAction =
 
 const initialState: AuthState = {
   user: null,
-  loading: true, // Changed to true to prevent flicker during session check
+  loading: true, // Start with loading true to check session
   error: null
 };
 
@@ -21,12 +22,14 @@ const AuthContext = createContext<{
   signup: (email: string, password: string, role: 'student' | 'teacher' | 'parent') => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
+  resetAuthState: () => void;
 }>({
   state: initialState,
   login: async () => {},
   signup: async () => {},
   logout: async () => {},
-  updateUser: () => {}
+  updateUser: () => {},
+  resetAuthState: () => {}
 });
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
@@ -69,6 +72,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
 
   // Simulating authentication check on app load with persistence
   useEffect(() => {
@@ -76,8 +80,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         dispatch({ type: 'AUTH_START' });
         // Check for existing user session
-        const savedUser = localStorage.getItem('athro_user');
-        const savedToken = localStorage.getItem('athro_token');
+        const savedUser = localStorage.getItem('athro_user') || sessionStorage.getItem('athro_user');
+        const savedToken = localStorage.getItem('athro_token') || sessionStorage.getItem('athro_token');
         
         if (savedUser && savedToken) {
           const user = JSON.parse(savedUser);
@@ -92,17 +96,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user.examBoard = 'none';
           }
           
-          localStorage.setItem('athro_user', JSON.stringify(user));
+          // Store back to storage
+          if (user.rememberMe) {
+            localStorage.setItem('athro_user', JSON.stringify(user));
+          }
+          
           dispatch({ type: 'AUTH_SUCCESS', payload: user });
         } else {
           dispatch({ type: 'AUTH_LOGOUT' });
         }
+        
+        // Mark auth check as complete
+        setAuthCheckComplete(true);
       } catch (error) {
+        console.error("Auth check error:", error);
         dispatch({ type: 'AUTH_FAIL', payload: 'Authentication check failed' });
+        setAuthCheckComplete(true);
+        
+        // Show a toast error
+        toast.error('Authentication error. Please try logging in again.');
       }
     };
     
+    // Set a timeout to catch stuck auth checks
+    const authTimeout = setTimeout(() => {
+      if (!authCheckComplete) {
+        console.warn("Auth check timeout reached!");
+        setAuthCheckComplete(true);
+        dispatch({ type: 'AUTH_FAIL', payload: 'Authentication check timed out' });
+        toast.error('Authentication check timed out. Please refresh the page.');
+      }
+    }, 5000); // 5 second timeout
+    
     checkAuth();
+    
+    return () => clearTimeout(authTimeout);
   }, []);
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
@@ -136,7 +164,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       dispatch({ type: 'AUTH_SUCCESS', payload: mockUser });
     } catch (error) {
+      console.error("Login error:", error);
       dispatch({ type: 'AUTH_FAIL', payload: 'Login failed. Please check your credentials.' });
+      toast.error('Login failed. Please check your credentials.');
     }
   };
 
@@ -166,7 +196,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       dispatch({ type: 'AUTH_SUCCESS', payload: mockUser });
       return Promise.resolve();
     } catch (error) {
+      console.error("Signup error:", error);
       dispatch({ type: 'AUTH_FAIL', payload: 'Signup failed. Please try again.' });
+      toast.error('Signup failed. Please try again.');
       return Promise.reject(error);
     }
   };
@@ -181,7 +213,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       dispatch({ type: 'AUTH_LOGOUT' });
     } catch (error) {
+      console.error("Logout error:", error);
       dispatch({ type: 'AUTH_FAIL', payload: 'Logout failed' });
+      toast.error('Logout failed. Please try again.');
     }
   };
   
@@ -197,9 +231,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       dispatch({ type: 'UPDATE_USER', payload: userData });
     }
   };
+  
+  // Add a reset function to help with authentication issues
+  const resetAuthState = () => {
+    // Clear any stale state and restart the auth flow
+    localStorage.removeItem('athro_user');
+    localStorage.removeItem('athro_token');
+    sessionStorage.removeItem('athro_user');
+    sessionStorage.removeItem('athro_token');
+    
+    dispatch({ type: 'AUTH_START' });
+    setTimeout(() => {
+      dispatch({ type: 'AUTH_LOGOUT' });
+      window.location.href = '/welcome';
+    }, 100);
+  };
 
   return (
-    <AuthContext.Provider value={{ state, login, signup, logout, updateUser }}>
+    <AuthContext.Provider value={{ state, login, signup, logout, updateUser, resetAuthState }}>
       {children}
     </AuthContext.Provider>
   );

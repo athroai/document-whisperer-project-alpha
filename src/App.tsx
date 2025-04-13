@@ -104,8 +104,8 @@ function App() {
         }
       />
 
-      {/* Athro Chat Routes */}
-      <Route path="/athro" element={<AthroPage />} />
+      {/* Athro Chat Routes - Ensure these are properly nested and accessible */}
+      <Route path="/athro/*" element={<AthroPage />} />
       <Route path="/athro/select" element={<AthroSelectorPage />} />
       <Route path="/athro/maths" element={<AthroMathsPage />} />
       <Route path="/athro/science" element={<AthroSciencePage />} />
