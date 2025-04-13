@@ -14,13 +14,11 @@ import { useTranslation } from '@/hooks/useTranslation';
 interface AthroBaseProps {
   subject: string;
   allowScience?: boolean;
-  showTopicSelector?: boolean;
 }
 
 const AthroBase: React.FC<AthroBaseProps> = ({ 
   subject, 
-  allowScience = false,
-  showTopicSelector = false
+  allowScience = false
 }) => {
   const [activeTab, setActiveTab] = useState<string>('chat');
   const { characters, setActiveCharacter, activeCharacter } = useAthro();
