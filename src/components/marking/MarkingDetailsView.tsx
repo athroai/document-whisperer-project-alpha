@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,13 +65,18 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
 
   // Render student answer based on assignment type
   const renderStudentAnswer = () => {
+    // Handle OpenAnswer type (text)
     if ('text' in submission.answers) {
       return (
         <div className="whitespace-pre-wrap p-4 border rounded-md bg-gray-50">
           {submission.answers.text}
         </div>
       );
-    } else if (
+    } 
+    // Handle FileUploadAnswer type (files)
+    else if (
+      typeof submission.answers === 'object' && 
+      !Array.isArray(submission.answers) &&
       'fileUrls' in submission.answers && 
       'fileNames' in submission.answers &&
       Array.isArray(submission.answers.fileUrls) && 
@@ -97,13 +101,14 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
           </ul>
         </div>
       );
-    } else {
-      // Quiz answers
+    } 
+    // Handle QuizAnswer type (array of answers)
+    else if (Array.isArray(submission.answers)) {
       return (
         <div>
           <p className="text-sm text-muted-foreground mb-2">Quiz Responses:</p>
           <ul className="space-y-2">
-            {Array.isArray(submission.answers) && submission.answers.map((answer, index) => (
+            {submission.answers.map((answer, index) => (
               <li key={index} className="p-2 border rounded-md">
                 <p className="font-medium">Question {index + 1}</p>
                 <p>Answer: {answer.userAnswer}</p>
@@ -118,6 +123,13 @@ const MarkingDetailsView: React.FC<MarkingDetailsViewProps> = ({
         </div>
       );
     }
+    
+    // Fallback for unrecognized answer format
+    return (
+      <div className="p-4 border rounded-md bg-gray-50">
+        <p className="text-sm text-muted-foreground">Unable to display answer format.</p>
+      </div>
+    );
   };
 
   return (
