@@ -16,6 +16,8 @@ import AthroRouter from './AthroRouter';
 import LanguageSelector from './LanguageSelector';
 import { useAuth } from '@/contexts/AuthContext';
 import { FirestoreStatus } from '../ui/firestore-status';
+import { useTranslation } from '@/hooks/useTranslation';
+import { LanguageSwitcher } from '@/components/ui/language-switcher';
 
 interface AthroBaseProps {
   showTopicSelector?: boolean;
@@ -32,6 +34,7 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = false }) => {
     firestoreStatus
   } = useAthro();
   const { state: authState } = useAuth();
+  const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState('chat');
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [message, setMessage] = useState<string>('');
@@ -43,14 +46,15 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = false }) => {
     if (activeCharacter && messages.length <= 1 && showConfidencePrompt) {
       // After a delay, send the confidence question
       const timer = setTimeout(() => {
-        sendMessage(`On a scale of 1-10, how confident are you with ${activeCharacter.subject} today?`);
+        const promptMessage = t('athro.confidencePrompt', { subject: activeCharacter.subject });
+        sendMessage(promptMessage);
         setShowConfidencePrompt(false);
       }, 3000);
       
       // Clear the timer if component unmounts
       return () => clearTimeout(timer);
     }
-  }, [activeCharacter, messages, sendMessage, showConfidencePrompt]);
+  }, [activeCharacter, messages, sendMessage, showConfidencePrompt, t]);
   
   // Handle topic selection
   const handleTopicSelect = (topic: string) => {
@@ -82,13 +86,13 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = false }) => {
     if (activeCharacter.subject === 'Science') {
       return (
         <div className="mb-4">
-          <Label htmlFor="science-section" className="mb-2 block">Science Section</Label>
+          <Label htmlFor="science-section" className="mb-2 block">{t('athro.selectScience')}</Label>
           <Select
             value={currentScienceSubject}
             onValueChange={handleScienceSectionChange}
           >
             <SelectTrigger id="science-section">
-              <SelectValue placeholder="Select a science subject" />
+              <SelectValue placeholder={t('athro.selectScience')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="biology">Biology</SelectItem>
@@ -106,10 +110,10 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = false }) => {
     // For other subjects, show topic selector
     return (
       <div className="mb-4">
-        <Label htmlFor="topic-selector" className="mb-2 block">Select Topic</Label>
+        <Label htmlFor="topic-selector" className="mb-2 block">{t('athro.selectTopic')}</Label>
         <Select value={selectedTopic} onValueChange={handleTopicSelect}>
           <SelectTrigger id="topic-selector">
-            <SelectValue placeholder="Select a topic" />
+            <SelectValue placeholder={t('athro.selectTopic')} />
           </SelectTrigger>
           <SelectContent>
             {activeCharacter.topics?.map((topic, index) => (
@@ -129,11 +133,14 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = false }) => {
   return (
     <Card className="h-full overflow-hidden border rounded-lg">
       <Tabs defaultValue="chat" value={selectedTab} onValueChange={setSelectedTab} className="h-full flex flex-col">
-        <div className="px-4 pt-4">
+        <div className="px-4 pt-4 flex justify-between items-center">
           <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="chat">Study Session</TabsTrigger>
-            <TabsTrigger value="topics">Topics</TabsTrigger>
+            <TabsTrigger value="chat">{t('athro.studySession')}</TabsTrigger>
+            <TabsTrigger value="topics">{t('athro.topics')}</TabsTrigger>
           </TabsList>
+          
+          {/* Language switcher */}
+          <LanguageSwitcher className="ml-2" />
         </div>
         
         <TabsContent value="chat" className="flex-grow flex flex-col overflow-hidden px-0 m-0">
@@ -165,14 +172,14 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = false }) => {
           {renderSubjectSelector()}
           
           <div className="space-y-4">
-            <h3 className="font-medium text-lg mb-2">Topic Overview</h3>
+            <h3 className="font-medium text-lg mb-2">{t('athro.topics')}</h3>
             <p className="text-muted-foreground">
-              Select a topic from the dropdown above to explore it with {activeCharacter?.name || 'your Athro mentor'}.
+              {t('athro.selectTopic')}
             </p>
             
             {activeCharacter?.topics && (
               <div className="mt-4">
-                <h4 className="font-medium mb-2">Available Topics</h4>
+                <h4 className="font-medium mb-2">{t('athro.topics')}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {activeCharacter.topics.map((topic, index) => (
                     <div 

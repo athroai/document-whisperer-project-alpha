@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,10 +9,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const SettingsPage = () => {
   const { state, updateUser } = useAuth();
   const { user } = state;
+  const { t, changeLanguage } = useTranslation();
   
   // Profile settings state
   const [displayName, setDisplayName] = useState(user?.displayName || '');
@@ -32,43 +33,68 @@ const SettingsPage = () => {
   const [highContrast, setHighContrast] = useState(false);
   const [largeText, setLargeText] = useState(false);
   
+  // Language settings state
+  const [welshEligible, setWelshEligible] = useState(user?.welshEligible || false);
+  const [preferredLanguage, setPreferredLanguage] = useState<'en' | 'cy'>(
+    (user?.preferredLanguage as 'en' | 'cy') || 'en'
+  );
+  
   // License information
   const licenseStatus = user?.licenseExempt ? "Exempted" : "Active";
   const schoolName = "St. Thomas High School";
   const licenseExpiry = "2025-12-31";
   const licenseType = "Educational Institution";
   
-  const handleSaveProfile = () => {
-    // Would update the user profile in a real implementation
-    // Save exam board preference to local storage for the mock implementation
+  useEffect(() => {
     if (user) {
-      const savedUser = localStorage.getItem('athro_user');
-      if (savedUser) {
-        const updatedUser = JSON.parse(savedUser);
-        updatedUser.examBoard = examBoard;
-        updatedUser.displayName = displayName;
-        localStorage.setItem('athro_user', JSON.stringify(updatedUser));
-      }
+      setWelshEligible(user.welshEligible || false);
+      setPreferredLanguage((user.preferredLanguage as 'en' | 'cy') || 'en');
     }
-    
-    toast({
-      title: "Profile updated",
-      description: "Your profile information has been saved.",
-    });
+  }, [user]);
+  
+  const handleSaveProfile = () => {
+    if (user) {
+      updateUser({
+        displayName,
+        examBoard
+      });
+      
+      toast({
+        title: t('common.save'),
+        description: t('settings.profileDescription'),
+      });
+    }
   };
   
   const handleSaveNotifications = () => {
     toast({
-      title: "Notification preferences updated",
-      description: "Your notification settings have been saved.",
+      title: t('common.save'),
+      description: t('settings.notificationsDescription'),
     });
   };
   
   const handleSaveTheme = () => {
     toast({
-      title: "Theme preferences updated", 
-      description: "Your theme settings have been saved."
+      title: t('common.save'), 
+      description: t('settings.themeDescription')
     });
+  };
+  
+  const handleSaveLanguage = () => {
+    if (user) {
+      updateUser({
+        welshEligible,
+        preferredLanguage
+      });
+      
+      // Update the language in the translation system
+      changeLanguage(preferredLanguage);
+      
+      toast({
+        title: t('common.save'),
+        description: t('settings.languageDescription'),
+      });
+    }
   };
 
   if (!user) {
@@ -77,14 +103,15 @@ const SettingsPage = () => {
   
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      <h1 className="text-3xl font-bold mb-6">{t('settings.title')}</h1>
       
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="theme">Theme</TabsTrigger>
-          <TabsTrigger value="license">License</TabsTrigger>
+          <TabsTrigger value="profile">{t('settings.profile')}</TabsTrigger>
+          <TabsTrigger value="notifications">{t('settings.notifications')}</TabsTrigger>
+          <TabsTrigger value="theme">{t('settings.theme')}</TabsTrigger>
+          <TabsTrigger value="language">{t('settings.language')}</TabsTrigger>
+          <TabsTrigger value="license">{t('settings.license')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="profile">
@@ -263,6 +290,51 @@ const SettingsPage = () => {
             </CardContent>
             <CardFooter className="flex justify-end">
               <Button onClick={handleSaveTheme}>Save Theme</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="language">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('settings.language')}</CardTitle>
+              <CardDescription>
+                {t('settings.languageDescription')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">{t('settings.welshSupport')}</h3>
+                  <p className="text-sm text-gray-500">
+                    {t('signup.welshLanguageYes')}
+                  </p>
+                </div>
+                <Switch 
+                  checked={welshEligible}
+                  onCheckedChange={setWelshEligible}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="preferredLanguage">{t('settings.preferredLanguage')}</Label>
+                <Select 
+                  value={preferredLanguage} 
+                  onValueChange={(value: 'en' | 'cy') => setPreferredLanguage(value)}
+                  disabled={!welshEligible}
+                >
+                  <SelectTrigger id="preferredLanguage">
+                    <SelectValue placeholder={t('settings.preferredLanguage')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="cy">Cymraeg</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button onClick={handleSaveLanguage}>{t('common.save')}</Button>
             </CardFooter>
           </Card>
         </TabsContent>

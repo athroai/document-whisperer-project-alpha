@@ -1,4 +1,3 @@
-
 // If this file already exists, we'll add to it
 // This is a simplified version, assuming the file already has some content
 
@@ -18,6 +17,8 @@ export interface User {
   confidenceScores?: {
     [subject: string]: number;
   };
+  welshEligible?: boolean; // Determines language toggle visibility
+  preferredLanguage?: 'en' | 'cy' | 'es' | 'fr' | 'de'; // Current selected language
 }
 
 // Adding the AuthState interface that was missing

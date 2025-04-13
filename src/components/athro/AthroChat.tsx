@@ -12,6 +12,7 @@ import AthroMathsRenderer from './AthroMathsRenderer';
 import { markAnswer } from '@/services/markingEngine';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
   Popover,
   PopoverContent,
@@ -33,6 +34,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     firestoreStatus 
   } = useAthro();
   const { state } = useAuth();
+  const { t } = useTranslation();
   const [userMessage, setUserMessage] = useState<string>('');
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [markedMessageIds, setMarkedMessageIds] = useState<Set<string>>(new Set());
@@ -41,14 +43,12 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const [expandedCulturalNotes, setExpandedCulturalNotes] = useState<Set<string>>(new Set());
   const [expandedGrammarTips, setExpandedGrammarTips] = useState<Set<string>>(new Set());
   
-  // Auto-scroll to the latest message
   useEffect(() => {
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
   
-  // Check for pending assignments
   useEffect(() => {
     if (state.user?.id && activeCharacter?.subject) {
       const fetchPendingAssignments = async () => {
@@ -70,7 +70,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const handleSendMessage = () => {
     if (!userMessage.trim() || !activeCharacter) return;
     
-    // Log to debug
     console.log('Sending message to Athro:', userMessage);
     
     sendMessage(userMessage);
@@ -87,14 +86,11 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const handleMarkMessage = async (message: AthroMessage, previousMessage?: AthroMessage) => {
     if (!activeCharacter || !state.user) return;
     
-    // Don't mark if already marked or marking in progress
     if (markedMessageIds.has(message.id) || markingInProgress.has(message.id)) return;
     
-    // Set marking in progress
     setMarkingInProgress(prev => new Set(prev).add(message.id));
     
     try {
-      // Get the prompt from the previous AI message if available
       const prompt = previousMessage?.senderId !== 'user' 
         ? previousMessage?.content 
         : "Please respond to this question";
@@ -107,7 +103,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         sourceType: 'athro_chat'
       });
       
-      // Mark as complete
       setMarkedMessageIds(prev => new Set(prev).add(message.id));
       
       toast({
@@ -115,7 +110,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         description: `Your answer has been marked with a score of ${result.aiMark.score}/${result.aiMark.outOf}.`,
       });
       
-      // Send feedback as a new message
       sendMessage(`[Marking feedback: ${result.aiMark.comment}]`);
       
     } catch (error) {
@@ -126,7 +120,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         variant: "destructive",
       });
     } finally {
-      // Remove from in progress
       setMarkingInProgress(prev => {
         const newSet = new Set(prev);
         newSet.delete(message.id);
@@ -138,7 +131,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const handleStartAssignment = (assignment: any) => {
     if (!activeCharacter) return;
     
-    // Send a message to Athro about the assignment
     const message = `I'd like some help with my assignment on ${assignment.topic || assignment.subject}: "${assignment.title}". The instructions say: "${assignment.description}"`;
     
     sendMessage(message);
@@ -168,13 +160,11 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     });
   };
 
-  // Helper to extract and create grammar tips from messages
   const extractGrammarTip = (content: string) => {
     const grammarMatch = content.match(/Grammar (?:tip|note):\s*(.*?)(?:\n\n|\n$|$)/is);
     return grammarMatch ? grammarMatch[1] : null;
   };
 
-  // Helper to extract and create cultural notes from messages
   const extractCulturalNote = (content: string) => {
     const culturalMatch = content.match(/Cultural note:\s*(.*?)(?:\n\n|\n$|$)/is);
     return culturalMatch ? culturalMatch[1] : null;
@@ -256,14 +246,12 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
                       </div>
                     )}
                     
-                    {/* Use math renderer for responses if needed */}
                     {msg.senderId !== 'user' && activeCharacter?.supportsMathNotation ? (
                       <AthroMathsRenderer content={msg.content} />
                     ) : (
                       <div className="whitespace-pre-wrap">{msg.content}</div>
                     )}
                     
-                    {/* Grammar Tips for Languages */}
                     {msg.senderId !== 'user' && activeCharacter?.subject === 'Languages' && grammarTip && (
                       <div className="mt-4 pt-2 border-t border-gray-200">
                         <Button 
@@ -285,7 +273,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
                       </div>
                     )}
                     
-                    {/* Cultural Notes for Languages */}
                     {msg.senderId !== 'user' && activeCharacter?.subject === 'Languages' && culturalNote && (
                       <div className="mt-2 pt-2 border-t border-gray-200">
                         <Button 
@@ -375,7 +362,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
                   <span className="text-sm font-medium">{activeCharacter.name}</span>
                 </div>
                 <div className="whitespace-pre-wrap">
-                  Hello! I'm {activeCharacter.name}, your {activeCharacter.subject} mentor. How can I help you today?
+                  {t('athro.welcomeMessage', { name: activeCharacter.name, subject: activeCharacter.subject })}
                 </div>
               </div>
             </div>
@@ -433,7 +420,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       <div className={`p-4 border-t ${isCompactMode ? 'bg-background' : ''}`}>
         <div className="flex space-x-2">
           <Textarea
-            placeholder={`Ask ${activeCharacter?.name || 'Athro AI'} a question...`}
+            placeholder={t('athro.askQuestion', { name: activeCharacter?.name || 'Athro AI' })}
             value={userMessage}
             onChange={(e) => setUserMessage(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -441,7 +428,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
           />
           <Button className="shrink-0" onClick={handleSendMessage}>
             <Send className="h-4 w-4" />
-            <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>
+            <span className={isCompactMode ? 'sr-only' : 'ml-2'}>{t('common.submit')}</span>
           </Button>
         </div>
       </div>

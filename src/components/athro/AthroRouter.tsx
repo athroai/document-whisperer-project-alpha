@@ -6,6 +6,7 @@ import { useStudentClass } from '@/contexts/StudentClassContext';
 import { useAuth } from '@/contexts/AuthContext';
 import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
 import { getAthroById } from '@/config/athrosConfig';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface AthroRouterProps {
   character: AthroCharacter;
@@ -22,6 +23,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
 }) => {
   const { isMockEnrollment } = useStudentClass();
   const { state } = useAuth();
+  const { language } = useTranslation();
   
   useEffect(() => {
     const processMessage = async () => {
@@ -42,7 +44,8 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         // Add mock enrollment information to the context if needed
         let enhancedContext = {
           ...context,
-          promptPersona
+          promptPersona,
+          preferredLanguage: language // Add the user's language preference
         };
         
         if (isMockEnrollment) {
@@ -90,6 +93,11 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         
         if (character.subject === 'Science' && context?.subjectSection) {
           subjectContext = { subjectSection: context.subjectSection };
+        }
+        
+        // Special handling for AthroWelsh when language is set to Welsh
+        if (character.subject === 'Welsh' && language === 'cy') {
+          enhancedContext.respondInWelsh = true;
         }
         
         // Use the athroService to generate a persona-driven response
@@ -141,7 +149,9 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         const errorResponse = {
           id: Date.now().toString(),
           senderId: character.id,
-          content: "I'm having trouble processing that right now. Could you try again?",
+          content: language === 'cy' 
+            ? "Mae gen i broblem yn prosesu hynny ar hyn o bryd. Allech chi roi cynnig arall arni?"
+            : "I'm having trouble processing that right now. Could you try again?",
           timestamp: new Date().toISOString()
         };
         
@@ -150,7 +160,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
     };
     
     processMessage();
-  }, [character, message, context, onResponse, isMockEnrollment, state.user]);
+  }, [character, message, context, onResponse, isMockEnrollment, state.user, language]);
   
   return null; // This is a logic component, not a UI component
 };

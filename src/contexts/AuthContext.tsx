@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AuthState, User } from '../types/auth';
 import { toast } from 'sonner';
@@ -19,7 +20,7 @@ const initialState: AuthState = {
 const AuthContext = createContext<{
   state: AuthState;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
-  signup: (email: string, password: string, role: 'student' | 'teacher' | 'parent') => Promise<void>;
+  signup: (email: string, password: string, role: 'student' | 'teacher' | 'parent', additionalData?: Partial<User>) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   resetAuthState: () => void;
@@ -155,7 +156,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           maths: 5,
           science: 5,
           english: 5
-        }
+        },
+        welshEligible: false, // Default to false for existing users
+        preferredLanguage: 'en' // Default to English
       };
       
       try {
@@ -178,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string, role: 'student' | 'teacher' | 'parent') => {
+  const signup = async (email: string, password: string, role: 'student' | 'teacher' | 'parent', additionalData?: Partial<User>) => {
     dispatch({ type: 'AUTH_START' });
     try {
       const isNexastream = email.endsWith('@nexastream.co.uk');
@@ -196,7 +199,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           maths: 5,
           science: 5,
           english: 5
-        }
+        },
+        welshEligible: additionalData?.welshEligible || false,
+        preferredLanguage: additionalData?.preferredLanguage || 'en'
       };
       
       try {

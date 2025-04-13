@@ -6,14 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'student' | 'parent' | 'teacher'>('student');
+  const [welshEligible, setWelshEligible] = useState(false);
   const { signup, state } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +53,11 @@ const SignupPage: React.FC = () => {
     }
     
     try {
-      await signup(email, password, role);
+      await signup(email, password, role, { 
+        welshEligible,
+        preferredLanguage: 'en' // Default to English
+      });
+      
       toast({
         title: "Account created!",
         description: "Welcome to Athro AI",
@@ -75,10 +83,10 @@ const SignupPage: React.FC = () => {
           />
         </Link>
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-purple-800">
-          Create your account
+          {t('signup.welcomeTitle')}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Join Athro AI and start your GCSE learning journey today
+          {t('signup.welcomeMessage')}
         </p>
       </div>
 
@@ -86,7 +94,7 @@ const SignupPage: React.FC = () => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 name="email"
@@ -100,7 +108,7 @@ const SignupPage: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input
                 id="password"
                 name="password"
@@ -112,13 +120,13 @@ const SignupPage: React.FC = () => {
                 className="mt-1"
               />
               <p className="mt-1 text-xs text-gray-500">
-                Password must be at least 8 characters long
+                {t('signup.passwordRequirements')}
               </p>
             </div>
 
             <div>
               <Label htmlFor="role" className="mb-2 block">
-                I am a:
+                {t('signup.roleLabel')}
               </Label>
               <RadioGroup 
                 value={role}
@@ -127,17 +135,38 @@ const SignupPage: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="student" id="student" />
-                  <Label htmlFor="student">Student</Label>
+                  <Label htmlFor="student">{t('signup.roleStudent')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="parent" id="parent" />
-                  <Label htmlFor="parent">Parent</Label>
+                  <Label htmlFor="parent">{t('signup.roleParent')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="teacher" id="teacher" />
-                  <Label htmlFor="teacher">Teacher</Label>
+                  <Label htmlFor="teacher">{t('signup.roleTeacher')}</Label>
                 </div>
               </RadioGroup>
+            </div>
+            
+            <div>
+              <div className="flex items-start space-x-2 mt-4">
+                <Checkbox 
+                  id="welsh-eligible" 
+                  checked={welshEligible}
+                  onCheckedChange={(checked) => setWelshEligible(checked === true)}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <Label 
+                    htmlFor="welsh-eligible" 
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {t('signup.welshLanguageQuestion')}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t('signup.welshLanguageYes')}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -146,7 +175,7 @@ const SignupPage: React.FC = () => {
                 className="w-full bg-purple-600 hover:bg-purple-700"
                 disabled={state.loading}
               >
-                {state.loading ? "Creating account..." : "Sign up"}
+                {state.loading ? "Creating account..." : t('signup.welcomeTitle')}
               </Button>
             </div>
           </form>
@@ -164,7 +193,7 @@ const SignupPage: React.FC = () => {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  Already have an account?
+                  {t('auth.hasAccount')}
                 </span>
               </div>
             </div>
@@ -175,7 +204,7 @@ const SignupPage: React.FC = () => {
                   variant="outline"
                   className="w-full border-purple-300 text-purple-600 hover:bg-purple-50"
                 >
-                  Log in instead
+                  {t('common.login')}
                 </Button>
               </Link>
             </div>
