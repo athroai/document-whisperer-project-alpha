@@ -1,3 +1,4 @@
+
 import { Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -42,6 +43,7 @@ import StudentFeedbackPage from "./pages/student/StudentFeedbackPage";
 import StudentAssignmentViewPage from "./pages/student/StudentAssignmentViewPage";
 import StudentResourcesPage from "./pages/student/StudentResourcesPage";
 import StudentProgressPage from "./pages/student/StudentProgressPage";
+import StudentHistoryPage from "./pages/student/StudentHistoryPage";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AthroProvider } from '@/contexts/AthroContext';
 import { StudentRecordProvider } from '@/contexts/StudentRecordContext';
@@ -292,6 +294,15 @@ function App() {
                 element={
                   <ProtectedRoute requiredRole="student">
                     <StudentProgressPage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* New History Route */}
+              <Route
+                path="/student/history"
+                element={
+                  <ProtectedRoute requiredRole="student">
+                    <StudentHistoryPage />
                   </ProtectedRoute>
                 }
               />

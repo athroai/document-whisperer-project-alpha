@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -8,7 +9,8 @@ import {
   Settings, 
   LogOut, 
   Presentation,
-  BarChart
+  BarChart,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +27,7 @@ const Navigation: React.FC = () => {
     { name: 'Study', path: '/study', icon: BookOpen },
     { name: 'Assignments', path: '/assignments', icon: BookOpen },
     { name: 'Progress', path: '/student/progress', icon: BarChart },
+    { name: 'History', path: '/student/history', icon: Clock },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     { name: 'Quiz', path: '/quiz', icon: GraduationCap },
     { name: 'Settings', path: '/settings', icon: Settings },
