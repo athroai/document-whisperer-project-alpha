@@ -1,4 +1,3 @@
-
 // Updated Athro type definitions
 
 export type AthroSubject = 
@@ -98,16 +97,18 @@ export interface PastPaper {
   subject: string;
   tier?: 'foundation' | 'higher';
   questions: PastPaperQuestion[];
+  unit?: string; // Added to match existing data
 }
 
 export interface PastPaperQuestion {
   id: string;
-  number: number;
-  text: string;
   topic: string;
+  subtopic?: string; // Added subtopic field
+  text: string;
   difficulty: 'easy' | 'medium' | 'hard';
   marks: number;
   imageUrl?: string;
+  number?: number; // Added to match interface definition
 }
 
 export interface ModelAnswer {
@@ -117,10 +118,10 @@ export interface ModelAnswer {
   workingSteps: string[];
   markScheme: string;
   latexNotation?: string;
-  marks?: number; // Added marks field to match existing data
-  translation?: string; // Added for language model answers
-  grammarExplanation?: string; // Added for language model answers
-  culturalNote?: string; // Added for language model answers
+  marks?: number;
+  translation?: string;
+  grammarExplanation?: string;
+  culturalNote?: string;
 }
 
 export interface FeedbackSummary {

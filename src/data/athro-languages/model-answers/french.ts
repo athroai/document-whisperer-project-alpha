@@ -3,7 +3,9 @@ import { ModelAnswer } from '@/types/athro';
 
 export const frenchModelAnswers: ModelAnswer[] = [
   {
+    id: 'f22-3800u10-1-q1', // Added id field
     questionId: 'f22-3800u10-1-q1',
+    answer: "Dans ma famille, il y a quatre personnes. Je vais décrire chaque membre et nos relations.", // Added answer field
     workingSteps: [
       'Commencez par une introduction de votre famille',
       'Décrivez chaque membre de votre famille (parents, frères/sœurs)',
@@ -19,7 +21,9 @@ export const frenchModelAnswers: ModelAnswer[] = [
     culturalNote: 'En France, les relations familiales sont importantes, et il est courant que les membres de la famille restent proches tout au long de leur vie.'
   },
   {
+    id: 'f22-3800u10-1-q2', // Added id field
     questionId: 'f22-3800u10-1-q2',
+    answer: "Je vais décrire mes passe-temps préférés et expliquer pourquoi je les apprécie.", // Added answer field
     workingSteps: [
       'Présentez vos passe-temps préférés',
       'Expliquez pourquoi vous aimez ces activités',

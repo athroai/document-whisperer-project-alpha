@@ -3,7 +3,9 @@ import { ModelAnswer } from '@/types/athro';
 
 export const germanModelAnswers: ModelAnswer[] = [
   {
+    id: 'g22-3850u10-1-q1', // Added id field
     questionId: 'g22-3850u10-1-q1',
+    answer: "Ich werde meine Familie beschreiben und erklären, was wir zusammen machen.", // Added answer field
     workingSteps: [
       'Beginnen Sie mit einer Einleitung zu Ihrer Familie',
       'Beschreiben Sie jeden Familienangehörigen (Eltern, Geschwister)',
@@ -19,7 +21,9 @@ export const germanModelAnswers: ModelAnswer[] = [
     culturalNote: 'In Deutschland ist das gemeinsame Sonntagsessen eine wichtige Familientradition, die viele Familien zusammenbringt.'
   },
   {
+    id: 'g22-3850u10-1-q2', // Added id field
     questionId: 'g22-3850u10-1-q2',
+    answer: "Ich werde über meinen letzten Urlaub in Bayern berichten.", // Added answer field
     workingSteps: [
       'Erwähnen Sie, wohin Sie in den Urlaub gefahren sind',
       'Beschreiben Sie, wie Sie dorthin gereist sind',

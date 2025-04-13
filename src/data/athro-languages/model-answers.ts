@@ -16,7 +16,7 @@ export const languagesModelAnswers: ModelAnswer[] = [
     ],
     markScheme: 'A complete answer should include a proper introduction with name and age, accurate description of family structure using appropriate vocabulary, correct use of possessive adjectives, accurate verb conjugation, and proper sentence structure. Aim to include at least three family members with descriptions.',
     marks: 10,
-    latexNotation: '' // Added empty string for latex notation
+    latexNotation: ''
   },
   {
     id: 's22-3810u10-1-q1',
@@ -31,7 +31,7 @@ export const languagesModelAnswers: ModelAnswer[] = [
     ],
     markScheme: 'Full marks require demonstrating comprehension of the text through accurate answers that include relevant details. Answers should be in complete sentences with correct grammar and spelling where required. Include direct evidence from the text to support your answers.',
     marks: 15,
-    latexNotation: '' // Added empty string for latex notation
+    latexNotation: ''
   }
 ];
 
