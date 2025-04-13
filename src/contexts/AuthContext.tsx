@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
+
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AuthState, User } from '../types/auth';
 import { toast } from 'sonner';
 
@@ -71,28 +72,25 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
-  const [authCheckComplete, setAuthCheckComplete] = useState(false);
-  const [authCheckAttempted, setAuthCheckAttempted] = useState(false);
 
-  // Simulating authentication check on app load with persistence - only run once
+  // Check for existing auth session on mount
   useEffect(() => {
-    if (authCheckAttempted) return;
-    
     const checkAuth = async () => {
       try {
-        setAuthCheckAttempted(true);
         dispatch({ type: 'AUTH_START' });
         
-        // Check for existing user session
+        // Check for existing user session in localStorage or sessionStorage
         const savedUser = localStorage.getItem('athro_user') || sessionStorage.getItem('athro_user');
-        const savedToken = localStorage.getItem('athro_token') || sessionStorage.getItem('athro_token');
         
-        if (savedUser && savedToken) {
+        if (savedUser) {
           const user = JSON.parse(savedUser);
           
-          // Check if the user is from nexastream for license exemption
-          if (user.email.endsWith('@nexastream.co.uk') && !user.licenseExempt) {
+          // Apply Nexastream privilege rules
+          if (user.email && user.email.endsWith('@nexastream.co.uk')) {
             user.licenseExempt = true;
+            if (user.role !== 'admin') {
+              user.role = 'admin';
+            }
           }
           
           // Ensure user has an examBoard property, defaulting to 'none'
@@ -100,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user.examBoard = 'none';
           }
           
-          // Store back to storage
+          // Store back to storage based on rememberMe setting
           if (user.rememberMe) {
             localStorage.setItem('athro_user', JSON.stringify(user));
           }
@@ -109,47 +107,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           dispatch({ type: 'AUTH_LOGOUT' });
         }
-        
-        // Mark auth check as complete
-        setAuthCheckComplete(true);
       } catch (error) {
         console.error("Auth check error:", error);
         dispatch({ type: 'AUTH_FAIL', payload: 'Authentication check failed' });
-        setAuthCheckComplete(true);
-        
-        // Show a toast error
         toast.error('Authentication error. Please try logging in again.');
       }
     };
     
-    // Set a timeout to catch stuck auth checks
-    const authTimeout = setTimeout(() => {
-      if (!authCheckComplete) {
-        console.warn("Auth check timeout reached!");
-        setAuthCheckComplete(true);
-        dispatch({ type: 'AUTH_FAIL', payload: 'Authentication check timed out' });
-        toast.error('Authentication check timed out. Please refresh the page.');
-      }
-    }, 5000); // 5 second timeout
-    
     checkAuth();
-    
-    return () => clearTimeout(authTimeout);
-  }, [authCheckAttempted, authCheckComplete]);
+  }, []);
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     dispatch({ type: 'AUTH_START' });
     try {
       // Mock login - would use Firebase auth in actual implementation
+      const isNexastream = email.endsWith('@nexastream.co.uk');
       const mockUser: User = {
         id: '123456789',
         email,
-        role: 'student',
+        role: isNexastream ? 'admin' : 'student',
         displayName: email.split('@')[0],
         createdAt: new Date(),
         rememberMe,
-        examBoard: 'none', // Default to none instead of undefined
-        licenseExempt: email.endsWith('@nexastream.co.uk'),
+        examBoard: 'none', // Default to none
+        licenseExempt: isNexastream,
         confidenceScores: {
           maths: 5,
           science: 5,
@@ -160,10 +141,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store auth info based on remember me setting
       if (rememberMe) {
         localStorage.setItem('athro_user', JSON.stringify(mockUser));
-        localStorage.setItem('athro_token', 'mock-token-' + Date.now());
       } else {
         sessionStorage.setItem('athro_user', JSON.stringify(mockUser));
-        sessionStorage.setItem('athro_token', 'mock-token-' + Date.now());
       }
       
       dispatch({ type: 'AUTH_SUCCESS', payload: mockUser });
@@ -177,15 +156,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, role: 'student' | 'teacher' | 'parent') => {
     dispatch({ type: 'AUTH_START' });
     try {
-      // Mock signup with Nexastream license exemption check
+      // Check if Nexastream user and apply special privileges
+      const isNexastream = email.endsWith('@nexastream.co.uk');
+      
       const mockUser: User = {
         id: Math.random().toString(36).substr(2, 9),
         email,
-        role,
+        role: isNexastream ? 'admin' : role,
         displayName: email.split('@')[0],
         createdAt: new Date(),
-        examBoard: 'none', // Default to none instead of undefined
-        licenseExempt: email.endsWith('@nexastream.co.uk'),
+        examBoard: 'none', // Default to none
+        licenseExempt: isNexastream,
         rememberMe: true,
         confidenceScores: {
           maths: 5,
@@ -195,7 +176,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       localStorage.setItem('athro_user', JSON.stringify(mockUser));
-      localStorage.setItem('athro_token', 'mock-token-' + Date.now());
       
       dispatch({ type: 'AUTH_SUCCESS', payload: mockUser });
       return Promise.resolve();
@@ -211,9 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Clear all storage
       localStorage.removeItem('athro_user');
-      localStorage.removeItem('athro_token');
       sessionStorage.removeItem('athro_user');
-      sessionStorage.removeItem('athro_token');
       
       dispatch({ type: 'AUTH_LOGOUT' });
     } catch (error) {
@@ -227,27 +205,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (state.user) {
       const updatedUser = { ...state.user, ...userData };
       
-      // Update local storage if remember me is set
-      if (state.user.rememberMe) {
+      // Update local storage if user exists
+      if (updatedUser.rememberMe) {
         localStorage.setItem('athro_user', JSON.stringify(updatedUser));
+      } else {
+        sessionStorage.setItem('athro_user', JSON.stringify(updatedUser));
       }
       
       dispatch({ type: 'UPDATE_USER', payload: userData });
     }
   };
   
-  // Add a reset function to help with authentication issues
   const resetAuthState = () => {
     // Clear any stale state and restart the auth flow
     localStorage.removeItem('athro_user');
-    localStorage.removeItem('athro_token');
     sessionStorage.removeItem('athro_user');
-    sessionStorage.removeItem('athro_token');
     
     dispatch({ type: 'AUTH_START' });
     setTimeout(() => {
       dispatch({ type: 'AUTH_LOGOUT' });
-      window.location.href = '/welcome';
+      window.location.href = '/login';
     }, 100);
   };
 

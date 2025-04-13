@@ -1,98 +1,46 @@
 
-import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useLicenseCheck } from '../hooks/useLicenseCheck';
-import { useRoleAccess } from '../hooks/useRoleAccess';
 import { UserRole } from '../types/auth';
-import { Button } from './ui/button';
 
 interface ProtectedRouteProps {
   children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
-  requireLicense?: boolean;
   requiredRole?: UserRole;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requireLicense = false,
   requiredRole
 }) => {
   const { state } = useAuth();
   const { user, loading } = state;
   const navigate = useNavigate();
-  const location = useLocation();
-  const [redirectStuck, setRedirectStuck] = useState(false);
-  const [redirectAttempted, setRedirectAttempted] = useState(false);
   
-  const { isLicensed } = useLicenseCheck(user);
-  const { hasAccess } = useRoleAccess(user, requiredRole);
-
-  // Fail-safe for stuck loading states
-  useEffect(() => {
-    if (loading) {
-      // Set a timeout to detect stuck loading states
-      const timer = setTimeout(() => {
-        console.warn("Auth loading state appears to be stuck");
-        setRedirectStuck(true);
-      }, 3000); // 3 seconds timeout
-      
-      return () => clearTimeout(timer);
-    } else {
-      setRedirectStuck(false);
-    }
-  }, [loading]);
-
-  // Handle license redirects - only once
-  useEffect(() => {
-    if (!loading && !redirectAttempted && requireLicense && !isLicensed && user && user.role === 'teacher') {
-      setRedirectAttempted(true);
-      navigate('/required-license', { replace: true });
-    }
-  }, [isLicensed, requireLicense, user, loading, navigate, redirectAttempted]);
-
-  // Handle manual recovery from stuck states
-  const handleManualRedirect = () => {
-    if (user) {
-      if (user.role === 'teacher') {
-        navigate('/teacher-dashboard', { replace: true });
-      } else {
-        navigate('/athro/select', { replace: true });
-      }
-    } else {
-      navigate('/login', { replace: true });
-    }
-  };
-  
+  // Show loading state while auth is being checked
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4">Loading...</h2>
           <p className="text-gray-600 mb-4">Setting up your experience</p>
-          
-          {redirectStuck && (
-            <div className="mt-6">
-              <p className="text-amber-600 mb-3">Loading seems to be taking longer than expected</p>
-              <Button onClick={handleManualRedirect} variant="default">
-                Take me to my Dashboard
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     );
   }
   
+  // Redirect to login if no user
   if (!user) {
-    console.log("No user found, redirecting to login");
     return <Navigate to="/login" replace />;
   }
   
+  // Ensure the session persists if rememberMe is true
+  if (user.rememberMe) {
+    localStorage.setItem('athro_user', JSON.stringify(user));
+  }
+  
   // Check role-based access
-  if (requiredRole && !hasAccess) {
-    console.log(`Access denied: Required role: ${requiredRole}, User role: ${user.role}`);
-    
+  if (requiredRole && user.role !== requiredRole) {
     // Redirect based on user role
     if (user.role === 'teacher') {
       return <Navigate to="/teacher-dashboard" replace />;
@@ -101,14 +49,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
   
-  // Role-specific redirects
-  if (user.role === 'teacher' && location.pathname === '/home') {
-    return <Navigate to="/teacher-dashboard" replace />;
-  }
-  
-  // Redirect students to athro selector if trying to access teacher routes
-  if (user.role === 'student' && location.pathname.includes('/teacher')) {
-    return <Navigate to="/athro/select" replace />;
+  // Check license status (skip for Nexastream users)
+  if (!user.licenseExempt && user.role === 'teacher' && !user.schoolId) {
+    return <Navigate to="/required-license" replace />;
   }
   
   // Handle function children that need user data

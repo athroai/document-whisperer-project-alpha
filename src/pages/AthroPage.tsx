@@ -1,17 +1,17 @@
 
 import React from 'react';
-import { Navigate, Route, Routes, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import AthroSelectorPage from './athro/AthroSelectorPage';
 import AthroMathsPage from './athro/AthroMathsPage';
 import AthroSciencePage from './athro/AthroSciencePage';
 import AthroSystem from '@/components/AthroSystem';
 import { useAuth } from '@/contexts/AuthContext';
-import ProtectedRoute from '@/components/ProtectedRoute';
 
 const AthroPage: React.FC = () => {
   const { state } = useAuth();
   const { user, loading } = state;
+  const navigate = useNavigate();
   
   // If we're still loading, show a loading indicator
   if (loading) {
@@ -30,8 +30,8 @@ const AthroPage: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
   
-  // For teachers, redirect to teacher dashboard
-  if (user.role === 'teacher') {
+  // For teachers and admins, redirect to teacher dashboard
+  if (user.role === 'teacher' || user.role === 'admin') {
     return <Navigate to="/teacher-dashboard" replace />;
   }
   

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   Users, 
   Bell, 
@@ -26,21 +26,6 @@ interface SidebarItemProps {
 const SidebarItem = ({ icon: Icon, label, href, isActive }: SidebarItemProps) => {
   const location = useLocation();
   
-  // Prevent navigation if already on the page
-  if (location.pathname === href) {
-    return (
-      <div
-        className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-md cursor-default",
-          isActive && "bg-purple-100 text-purple-700 font-medium"
-        )}
-      >
-        <Icon size={18} className={cn("text-gray-500", isActive && "text-purple-700")} />
-        <span>{label}</span>
-      </div>
-    );
-  }
-  
   return (
     <Link
       to={href}
@@ -62,7 +47,6 @@ interface TeacherSidebarProps {
 const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
   const { state } = useAuth();
   const { user } = state;
-  const navigate = useNavigate();
   const location = useLocation();
 
   const sidebarItems = [
@@ -78,8 +62,8 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
     { icon: Settings, label: 'System Tools', href: '/teacher/system' },
   ];
 
-  if (!user || user.role !== 'teacher') {
-    // Use replace:true to avoid adding to history stack
+  // Only show sidebar for teachers and admins
+  if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
     return null;
   }
 
