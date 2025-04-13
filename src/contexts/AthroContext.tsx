@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AthroCharacter, AthroMessage } from '@/types/athro';
+import { AthroCharacter, AthroMessage, AthroLanguage, ExamBoard } from '@/types/athro';
 import { AthroCharacterConfig, SubjectData } from '@/types/athroCharacter';
 import { athroCharacters } from '@/config/athrosConfig';
 import { pastPapers } from '@/data/athro-maths/past-papers';
@@ -90,6 +90,7 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     id: config.id,
     name: config.name,
     subject: config.subject,
+    avatar: config.avatarUrl,
     avatarUrl: config.avatarUrl,
     shortDescription: config.shortDescription,
     fullDescription: config.fullDescription,
@@ -99,6 +100,7 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     supportedLanguages: config.supportedLanguages || [],
     topics: config.topics,
     examBoards: config.examBoards,
+    description: config.shortDescription,
   }));
 
   const [characters] = useState<AthroCharacter[]>(convertedCharacters);
@@ -174,6 +176,7 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         id: character.id,
         name: character.name,
         subject: character.subject,
+        avatar: character.avatarUrl,
         avatarUrl: character.avatarUrl,
         shortDescription: character.shortDescription,
         fullDescription: character.fullDescription,
@@ -183,6 +186,7 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         supportedLanguages: character.supportedLanguages || [],
         topics: character.topics,
         examBoards: character.examBoards,
+        description: character.shortDescription,
       };
       setActiveCharacterState(convertedChar);
     } else {

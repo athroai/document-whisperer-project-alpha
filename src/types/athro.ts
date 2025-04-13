@@ -1,5 +1,5 @@
 
-// If this file doesn't exist yet, we need to create it with the complete type definitions
+// Updated Athro type definitions
 
 export type AthroSubject = 
   | 'Mathematics' 
@@ -13,14 +13,26 @@ export type AthroSubject =
 
 export type AthroExamBoard = 'WJEC' | 'AQA' | 'OCR' | 'Edexcel' | 'CCEA';
 
+// Use lowercase for actual data storage
+export type ExamBoard = 'wjec' | 'aqa' | 'ocr' | 'edexcel' | 'ccea';
+
+export type AthroLanguage = 'english' | 'welsh' | 'french' | 'spanish' | 'german';
+
 export interface AthroCharacter {
   id: string;
   name: string;
   subject: AthroSubject;
-  description: string;
-  examBoards: AthroExamBoard[];
-  avatar?: string;
-  promptPersona?: string;
+  avatar: string; // keep this for backward compatibility
+  avatarUrl: string; // new - replace usages of 'avatar' with this
+  shortDescription: string;
+  fullDescription: string;
+  tone: string;
+  supportsMathNotation: boolean;
+  supportsSpecialCharacters: boolean;
+  supportedLanguages: AthroLanguage[];
+  topics: string[];
+  examBoards: ExamBoard[];
+  description?: string; // For backward compatibility
 }
 
 export interface AthroMessage {
@@ -29,6 +41,8 @@ export interface AthroMessage {
   content: string;
   timestamp: string;
   attachments?: AthroAttachment[];
+  markScheme?: string;
+  referencedResources?: string[];
 }
 
 export interface AthroAttachment {
@@ -62,13 +76,52 @@ export interface AthroConfig {
   id: string;
   name: string;
   subject: AthroSubject;
-  description: string;
-  examBoards: AthroExamBoard[];
+  description?: string;
+  examBoards: ExamBoard[];
   avatar?: string;
+  avatarUrl?: string;
   promptPersona?: string;
   feedback?: {
     style?: string;
     encouragementPhrases?: string[];
   };
   specializations?: string[];
+}
+
+// Add these types to fix import errors
+export interface PastPaper {
+  id: string;
+  title: string;
+  year: number;
+  season: 'summer' | 'winter' | 'autumn';
+  examBoard: ExamBoard;
+  subject: string;
+  tier?: 'foundation' | 'higher';
+  questions: PastPaperQuestion[];
+}
+
+export interface PastPaperQuestion {
+  id: string;
+  number: number;
+  text: string;
+  topic: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  marks: number;
+  imageUrl?: string;
+}
+
+export interface ModelAnswer {
+  id: string;
+  questionId: string;
+  answer: string;
+  workingSteps: string[];
+  markScheme: string;
+  latexNotation?: string;
+}
+
+export interface FeedbackSummary {
+  strengths: string[];
+  improvements: string[];
+  nextSteps: string[];
+  confidence: number;
 }
