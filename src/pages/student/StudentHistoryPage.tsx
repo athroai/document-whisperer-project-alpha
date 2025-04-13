@@ -71,6 +71,22 @@ const StudentHistoryPage: React.FC = () => {
       </p>
     </div>
   );
+
+  // Group entries by month
+  const groupedByMonth = filteredHistory.reduce<Record<string, React.ReactNode[]>>((acc, entry) => {
+    const monthYear = format(new Date(entry.dateCompleted), 'MMMM yyyy');
+    if (!acc[monthYear]) {
+      acc[monthYear] = [];
+    }
+    
+    acc[monthYear].push(
+      <div key={entry.id} className="mb-4">
+        <HistoryEntryCard entry={entry} onReview={handleReview} />
+      </div>
+    );
+    
+    return acc;
+  }, {});
   
   return (
     <div className="container mx-auto p-4 max-w-7xl">
@@ -108,21 +124,7 @@ const StudentHistoryPage: React.FC = () => {
       
       {filteredHistory.length > 0 ? (
         <div>
-          {/* Group entries by month */}
-          {filteredHistory.reduce((groups: Record<string, JSX.Element[]>, entry) => {
-            const monthYear = format(new Date(entry.dateCompleted), 'MMMM yyyy');
-            if (!groups[monthYear]) {
-              groups[monthYear] = [];
-            }
-            
-            groups[monthYear].push(
-              <div key={entry.id} className="mb-4">
-                <HistoryEntryCard entry={entry} onReview={handleReview} />
-              </div>
-            );
-            
-            return groups;
-          }, Object.entries({})).map(([monthYear, entries], index) => (
+          {Object.entries(groupedByMonth).map(([monthYear, entries], index) => (
             <div key={index} className="mb-8">
               <h2 className="text-lg font-medium text-gray-700 mb-4">{monthYear}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
