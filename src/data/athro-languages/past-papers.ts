@@ -49,7 +49,7 @@ export const languagesPastPapers = [
         id: 's22-3810u10-1-q1',
         topic: 'Comprehension',
         subtopic: 'Daily Routine',
-        text: 'Read the following passage about María's daily routine and answer the questions.',
+        text: 'Read the following passage about María\'s daily routine and answer the questions.',
         marks: 15,
         difficulty: 3
       },
