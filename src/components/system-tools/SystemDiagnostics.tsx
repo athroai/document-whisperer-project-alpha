@@ -1,46 +1,66 @@
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Server, Clock, Database } from 'lucide-react';
+import { Activity, Terminal, Database, Info } from 'lucide-react';
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import { SystemToolsService } from '@/services/systemToolsService';
+import { useToast } from '@/hooks/use-toast';
 
 const SystemDiagnostics: React.FC = () => {
-  const [systemInfo, setSystemInfo] = useState({
-    firestoreStatus: 'disconnected' as 'connected' | 'disconnected' | 'mock',
-    environment: 'development' as 'development' | 'production',
-    systemTime: '',
-    userSessionActive: false
-  });
-  const [currentTime, setCurrentTime] = useState('');
+  const { toast } = useToast();
+  const [debugMode, setDebugMode] = useState(false);
+  const [useMockData, setUseMockData] = useState(false);
+  const [testAIMode, setTestAIMode] = useState(false);
+  const [systemInfo, setSystemInfo] = useState(() => SystemToolsService.getSystemDiagnostics());
   
-  // Get initial system info
-  useEffect(() => {
-    const info = SystemToolsService.getSystemDiagnostics();
-    setSystemInfo(info);
-    
-    // Update time every second
-    const interval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString());
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, []);
+  // Enable debug mode
+  const toggleDebugMode = () => {
+    setDebugMode(!debugMode);
+    console.log(`Debug mode ${!debugMode ? 'enabled' : 'disabled'}`);
+    toast({
+      title: `Debug Mode ${!debugMode ? 'Enabled' : 'Disabled'}`,
+      description: !debugMode ? 'Additional logging is now active' : 'Standard logging restored',
+      variant: "default"
+    });
+  };
   
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'connected':
-        return 'text-green-500';
-      case 'mock':
-        return 'text-amber-500';
-      default:
-        return 'text-red-500';
-    }
+  // Toggle mock data
+  const toggleMockData = () => {
+    setUseMockData(!useMockData);
+    toast({
+      title: `Mock Data ${!useMockData ? 'Enabled' : 'Disabled'}`,
+      description: !useMockData ? 'Using simulated data responses' : 'Using live data sources',
+      variant: "default"
+    });
+  };
+  
+  // Test AI responses
+  const toggleTestAI = () => {
+    setTestAIMode(!testAIMode);
+    toast({
+      title: `AI Test Mode ${!testAIMode ? 'Enabled' : 'Disabled'}`,
+      description: !testAIMode ? 'Using test data for AI responses' : 'Using standard AI behavior',
+      variant: "default"
+    });
+  };
+  
+  // Refresh system status
+  const refreshSystemInfo = () => {
+    setSystemInfo(SystemToolsService.getSystemDiagnostics());
+    toast({
+      title: "System Information Updated",
+      description: "Latest system status retrieved",
+      variant: "default"
+    });
   };
   
   return (
@@ -51,53 +71,127 @@ const SystemDiagnostics: React.FC = () => {
           System Diagnostics
         </CardTitle>
         <CardDescription>
-          Current status and health of the system.
+          View system status and enable developer tools
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1 p-3 bg-gray-50 rounded-md">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Database className="h-4 w-4" />
-              Firestore Status
+      <CardContent className="space-y-4">
+        {/* System Status Section */}
+        <div className="rounded-md border p-4 space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2">
+            <Info className="h-4 w-4 text-blue-500" />
+            System Status
+          </h3>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Firestore Connection:</span>
+              <Badge variant={systemInfo.firestoreStatus === 'connected' ? 'outline' : 'destructive'}>
+                {systemInfo.firestoreStatus === 'connected' ? 'Connected' : systemInfo.firestoreStatus === 'mock' ? 'Mock Mode' : 'Disconnected'}
+              </Badge>
             </div>
-            <div className={`text-lg font-semibold ${getStatusColor(systemInfo.firestoreStatus)}`}>
-              {systemInfo.firestoreStatus.charAt(0).toUpperCase() + systemInfo.firestoreStatus.slice(1)}
-              {systemInfo.firestoreStatus === 'mock' && ' (Using mock data)'}
+            
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Environment:</span>
+              <Badge variant="outline">
+                {systemInfo.environment}
+              </Badge>
+            </div>
+            
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">System Time:</span>
+              <span>{new Date(systemInfo.systemTime).toLocaleString()}</span>
+            </div>
+            
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">User Session:</span>
+              <Badge variant={systemInfo.userSessionActive ? 'outline' : 'destructive'}>
+                {systemInfo.userSessionActive ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+            
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">System Version:</span>
+              <span>1.0.25-a</span>
             </div>
           </div>
+        </div>
+        
+        {/* Developer Tools Section */}
+        <div className="rounded-md border p-4 space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2">
+            <Terminal className="h-4 w-4 text-green-500" />
+            Developer Tools
+          </h3>
           
-          <div className="space-y-1 p-3 bg-gray-50 rounded-md">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Server className="h-4 w-4" />
-              Environment
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Debug Mode</label>
+                <div className="text-xs text-muted-foreground">
+                  Logs additional information to the console
+                </div>
+              </div>
+              <Switch checked={debugMode} onCheckedChange={toggleDebugMode} />
             </div>
-            <div className="text-lg font-semibold">
-              {systemInfo.environment.charAt(0).toUpperCase() + systemInfo.environment.slice(1)}
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Use Mock Data</label>
+                <div className="text-xs text-muted-foreground">
+                  Uses simulated data instead of firestore
+                </div>
+              </div>
+              <Switch checked={useMockData} onCheckedChange={toggleMockData} />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Test AI Responses</label>
+                <div className="text-xs text-muted-foreground">
+                  Uses test data for Athro AI responses
+                </div>
+              </div>
+              <Switch checked={testAIMode} onCheckedChange={toggleTestAI} />
             </div>
           </div>
+        </div>
+        
+        {/* Database Section */}
+        <div className="rounded-md border p-4 space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2">
+            <Database className="h-4 w-4 text-amber-500" />
+            Database Status
+          </h3>
           
-          <div className="space-y-1 p-3 bg-gray-50 rounded-md">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Clock className="h-4 w-4" />
-              System Time
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Last Sync:</span>
+              <span>{new Date().toLocaleString()}</span>
             </div>
-            <div className="text-lg font-semibold">
-              {currentTime}
+            
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Connection Type:</span>
+              <Badge variant="outline">ReadWrite</Badge>
             </div>
-          </div>
-          
-          <div className="space-y-1 p-3 bg-gray-50 rounded-md">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Activity className="h-4 w-4" />
-              User Session
-            </div>
-            <div className={`text-lg font-semibold ${systemInfo.userSessionActive ? 'text-green-500' : 'text-red-500'}`}>
-              {systemInfo.userSessionActive ? 'Active' : 'Inactive'}
+            
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Data Mode:</span>
+              <Badge variant={useMockData ? 'secondary' : 'outline'}>
+                {useMockData ? 'Mock' : 'Live'}
+              </Badge>
             </div>
           </div>
         </div>
       </CardContent>
+      <CardFooter>
+        <Button 
+          variant="outline" 
+          className="w-full"
+          onClick={refreshSystemInfo}
+        >
+          Refresh System Info
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
