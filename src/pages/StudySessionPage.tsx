@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,6 +32,11 @@ const StudySessionPage: React.FC = () => {
 
   // Check if the student is enrolled in any subjects
   const hasNoClasses = !loading && enrolledSubjects.length === 0;
+  
+  useEffect(() => {
+    // If the user manually navigates to the legacy study page, we want to redirect them to the new study router
+    navigate('/study', { replace: true });
+  }, [navigate]);
 
   // Get active goals for the current user
   useEffect(() => {
@@ -69,7 +73,25 @@ const StudySessionPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-6">{t('athro.studySession')}</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">{t('athro.studySession')}</h1>
+        <Button onClick={() => navigate('/study')} variant="outline">
+          Go to New Study Session
+        </Button>
+      </div>
+      
+      <Alert className="mb-6 bg-amber-50 text-amber-800 border-amber-200">
+        <Info className="h-4 w-4" />
+        <AlertTitle>Legacy Study Page</AlertTitle>
+        <AlertDescription>
+          This is the legacy study session page. We recommend using our new improved study experience.
+        </AlertDescription>
+        <div className="mt-2">
+          <Button onClick={() => navigate('/study')} size="sm">
+            Try New Study Experience
+          </Button>
+        </div>
+      </Alert>
       
       {isMockEnrollment && (
         <Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">

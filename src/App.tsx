@@ -13,6 +13,9 @@ import NotFound from "./pages/NotFound";
 import CalendarPage from "./pages/CalendarPage";
 import QuizPage from "./pages/QuizPage";
 import StudySessionPage from "./pages/StudySessionPage";
+import StudySessionRouter from "./pages/study/StudySessionRouter";
+import StudyAssignedPage from "./pages/study/StudyAssignedPage";
+import StudyStartPage from "./pages/study/StudyStartPage";
 import LicenseRequiredPage from "./pages/LicenseRequiredPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AthroMathsPage from "./pages/athro/AthroMathsPage";
@@ -115,6 +118,32 @@ function App() {
               />
               <Route
                 path="/study"
+                element={
+                  <ProtectedRoute>
+                    <StudySessionRouter />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/study/assigned"
+                element={
+                  <ProtectedRoute>
+                    <StudyAssignedPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/study/start"
+                element={
+                  <ProtectedRoute>
+                    <StudyStartPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Legacy study route for backwards compatibility */}
+              <Route
+                path="/study/legacy"
                 element={
                   <ProtectedRoute>
                     <StudySessionPage />

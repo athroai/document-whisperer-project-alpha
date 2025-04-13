@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Send, CheckCircle, AlertCircle, FileText, Calendar, BookOpen, Globe, CloudOff } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle, FileText, Calendar, BookOpen, Globe, CloudOff, BookMarked, Pin } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
@@ -19,6 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { assignmentService } from '@/services/assignmentService';
+import { getStudySessionContext } from '@/utils/studySessionManager';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
@@ -42,7 +43,15 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const [pendingAssignments, setPendingAssignments] = useState<any[]>([]);
   const [expandedCulturalNotes, setExpandedCulturalNotes] = useState<Set<string>>(new Set());
   const [expandedGrammarTips, setExpandedGrammarTips] = useState<Set<string>>(new Set());
-  
+  const [sessionContext, setSessionContext] = useState<any>(null);
+
+  useEffect(() => {
+    const context = getStudySessionContext();
+    if (context) {
+      setSessionContext(context);
+    }
+  }, []);
+
   useEffect(() => {
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -66,6 +75,31 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       fetchPendingAssignments();
     }
   }, [state.user?.id, activeCharacter?.subject]);
+
+  const renderContextIndicator = () => {
+    if (!sessionContext) return null;
+    
+    return (
+      <Badge 
+        className={`bg-${sessionContext.entryMode === 'assigned' ? 'amber' : 'blue'}-50 
+                  text-${sessionContext.entryMode === 'assigned' ? 'amber' : 'blue'}-800 
+                  border-${sessionContext.entryMode === 'assigned' ? 'amber' : 'blue'}-200 
+                  flex items-center gap-1 ml-2`}
+      >
+        {sessionContext.entryMode === 'assigned' ? (
+          <>
+            <Pin className="h-3 w-3" />
+            Assignment: {sessionContext.taskTitle || 'Task'}
+          </>
+        ) : (
+          <>
+            <BookMarked className="h-3 w-3" />
+            Self-Study
+          </>
+        )}
+      </Badge>
+    );
+  };
 
   const handleSendMessage = () => {
     if (!userMessage.trim() || !activeCharacter) return;
@@ -200,9 +234,10 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="p-2 bg-background border-b flex items-center justify-between">
-        <div className="flex items-center">
+        <div className="flex items-center flex-wrap gap-1">
           <span className="text-sm font-medium">AthroChat</span>
           {getLanguageLabel()}
+          {renderContextIndicator()}
         </div>
         {firestoreStatus === 'offline' && (
           <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200 flex items-center gap-1">
