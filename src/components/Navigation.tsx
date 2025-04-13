@@ -7,7 +7,8 @@ import {
   GraduationCap, 
   Settings, 
   LogOut, 
-  Presentation
+  Presentation,
+  BarChart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,6 +24,7 @@ const Navigation: React.FC = () => {
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Study', path: '/study', icon: BookOpen },
     { name: 'Assignments', path: '/assignments', icon: BookOpen },
+    { name: 'Progress', path: '/student/progress', icon: BarChart },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     { name: 'Quiz', path: '/quiz', icon: GraduationCap },
     { name: 'Settings', path: '/settings', icon: Settings },
