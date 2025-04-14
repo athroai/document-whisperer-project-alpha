@@ -7,10 +7,13 @@ import { File, FileText, FileImage } from 'lucide-react';
 
 interface FilesListProps {
   files: UploadedFile[];
+  title?: string; // Make title optional
   onFileClick?: (file: UploadedFile) => void;
+  onFileDeleted?: () => void;
+  isLoading?: boolean;
 }
 
-const FilesList: React.FC<FilesListProps> = ({ files, onFileClick }) => {
+const FilesList: React.FC<FilesListProps> = ({ files, title, onFileClick, onFileDeleted, isLoading }) => {
   const getFileIcon = (file: UploadedFile) => {
     const mimeType = file.mimeType || '';
     

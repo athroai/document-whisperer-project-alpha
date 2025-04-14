@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAthro } from '@/contexts/AthroContext';
 import { getSubjectPath } from '@/utils/subjectRouteUtils';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
 const AthroSubjectSelect: React.FC = () => {
   const { characters, setCurrentSubject } = useAthro();
@@ -16,6 +17,15 @@ const AthroSubjectSelect: React.FC = () => {
     const path = getSubjectPath(subject);
     navigate(`/athro/${path}`);
   };
+
+  if (characters.length === 0) {
+    return (
+      <div className="container mx-auto py-8 text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto" />
+        <p className="mt-4 text-lg text-gray-600">Loading subjects...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8">
@@ -39,7 +49,7 @@ const AthroSubjectSelect: React.FC = () => {
                       // Handle image load error
                       const target = e.target as HTMLImageElement;
                       target.onerror = null; // Prevent infinite loop
-                      target.src = '/lovable-uploads/athro-generic.png'; // Fallback image
+                      target.src = '/placeholder.svg'; // Fallback image
                     }}
                   />
                 ) : (
@@ -66,6 +76,13 @@ const AthroSubjectSelect: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {characters.length === 0 && (
+        <div className="text-center mt-8">
+          <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
+          <p className="mt-2 text-lg text-gray-600">No subjects available. Please check your configuration.</p>
+        </div>
+      )}
     </div>
   );
 };

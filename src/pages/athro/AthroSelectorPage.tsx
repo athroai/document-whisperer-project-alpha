@@ -8,9 +8,10 @@ import { Info, Loader2 } from 'lucide-react';
 import AthroProfile from '@/components/athro/AthroProfile';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/contexts/AuthContext';
+import athrosConfig from '@/config/athrosConfig';
 
 const AthroSelectorPage: React.FC = () => {
-  const { characters, setActiveCharacter } = useAthro();
+  const { characters, setActiveCharacter, setCurrentSubject } = useAthro();
   const { enrolledSubjects, isMockEnrollment, loading: classLoading } = useStudentClass();
   const { state } = useAuth();
   const { t } = useTranslation();
@@ -20,6 +21,11 @@ const AthroSelectorPage: React.FC = () => {
     // Wait for both characters and enrolled subjects to be loaded
     if (characters && characters.length > 0 && !classLoading) {
       setIsInitializing(false);
+    }
+    
+    // Ensure we're using all characters from config if not enough are loaded
+    if (characters.length < athrosConfig.length) {
+      setActiveCharacter(athrosConfig[0]);
     }
   }, [characters, classLoading]);
   
@@ -40,9 +46,19 @@ const AthroSelectorPage: React.FC = () => {
     );
   }
   
-  const availableSubjects = characters.filter(character => 
-    enrolledSubjects.some(subject => subject.subject.toLowerCase() === character.subject.toLowerCase())
-  );
+  // Use all available subjects from config if no enrollment or for testing
+  const availableSubjects = enrolledSubjects.length === 0 
+    ? athrosConfig 
+    : athrosConfig.filter(character => 
+        enrolledSubjects.some(subject => 
+          subject.subject.toLowerCase() === character.subject.toLowerCase()
+        )
+      );
+
+  const handleSelectCharacter = (character) => {
+    setActiveCharacter(character);
+    setCurrentSubject(character.subject);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -67,23 +83,13 @@ const AthroSelectorPage: React.FC = () => {
         <div className="md:col-span-2">
           {availableSubjects.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {characters.map((character) => {
-                // Check if student is enrolled in this subject
-                const isEnrolled = enrolledSubjects.some(
-                  subject => subject.subject.toLowerCase() === character.subject.toLowerCase()
-                );
-                
-                // Skip if not enrolled
-                if (!isEnrolled) return null;
-                
-                return (
-                  <AthroCharacterCard 
-                    key={character.id}
-                    character={character}
-                    onSelect={setActiveCharacter}
-                  />
-                );
-              })}
+              {availableSubjects.map((character) => (
+                <AthroCharacterCard 
+                  key={character.id}
+                  character={character}
+                  onSelect={handleSelectCharacter}
+                />
+              ))}
             </div>
           ) : (
             <div className="bg-amber-50 border border-amber-100 rounded-lg p-6">
@@ -111,6 +117,7 @@ const AthroSelectorPage: React.FC = () => {
             <div><strong>Available Subjects:</strong> {availableSubjects.length}</div>
             <div><strong>Mock Enrollment:</strong> {isMockEnrollment ? 'Yes' : 'No'}</div>
             <div><strong>Characters Loaded:</strong> {characters?.length || 0}</div>
+            <div><strong>Config Characters:</strong> {athrosConfig?.length || 0}</div>
           </div>
         </div>
       )}
