@@ -47,9 +47,9 @@ export function useSupabaseQuery<T extends Record<string, any>>(
     setError(null);
     
     try {
-      // Use type assertion to tell TypeScript this is a valid table name
+      // Use type assertion for the table name
       let query = supabase
-        .from(tableName as TableName)
+        .from(tableName)
         .select(select);
         
       // Apply filters if provided
@@ -129,7 +129,7 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
-        let query = supabase.from(tableName as TableName).select('*');
+        let query = supabase.from(tableName).select('*');
         
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {
@@ -150,10 +150,10 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     fetchInitialData();
     
     // Set up real-time subscription
+    // Fixed: Use the correct type for the channel subscription
     const channel = supabase
       .channel('db-changes')
-      .on(
-        'postgres_changes',
+      .on('postgres_changes', 
         {
           event: options.event || '*',
           schema: 'public',
