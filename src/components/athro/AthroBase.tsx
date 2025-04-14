@@ -11,7 +11,12 @@ interface KnowledgeResponse {
   citations: any[];
 }
 
-const AthroBase: React.FC = () => {
+interface AthroBaseProps {
+  subject?: string;
+  allowScience?: boolean;
+}
+
+const AthroBase: React.FC<AthroBaseProps> = ({ subject, allowScience = false }) => {
   const { isOpen, setIsOpen, activeCharacter } = useAthro();
   const [isLoading, setIsLoading] = useState(false);
   

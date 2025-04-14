@@ -1,12 +1,23 @@
 
-export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Languages';
+export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Languages' | 'Religious Education' | 'Welsh';
+
+export type ExamBoard = 'WJEC' | 'AQA' | 'OCR' | 'Edexcel' | 'Cambridge' | 'CCEA';
 
 export interface AthroCharacter {
   id: string;
-  subject: string;
+  name?: string;
+  subject: AthroSubject;
   avatar?: string;
+  avatarUrl?: string; // For backwards compatibility
   description?: string;
+  shortDescription?: string; // For backwards compatibility 
   greeting?: string;
+  imageUrl?: string; // For backwards compatibility
+  supportsMathNotation?: boolean;
+  supportsSpecialCharacters?: boolean;
+  supportedLanguages?: string[];
+  topics?: string[];
+  examBoards?: ExamBoard[];
 }
 
 export interface AthroTheme {
@@ -21,5 +32,42 @@ export interface AthroMessage {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
+  senderId?: string;
   citations?: any[];
+}
+
+export interface PastPaper {
+  id: string;
+  examBoard: ExamBoard;
+  subject: AthroSubject;
+  year: number;
+  season: 'Summer' | 'Winter' | 'Autumn';
+  fileUrl: string;
+  markSchemeUrl?: string;
+}
+
+export interface ModelAnswer {
+  id: string;
+  question: string;
+  answer: string;
+  examBoard: ExamBoard;
+  grade: 'A*' | 'A' | 'B' | 'C' | 'D' | 'E' | 'U';
+  marks: number;
+  totalMarks: number;
+}
+
+export interface FeedbackSummary {
+  id: string;
+  score: number;
+  strengths: string[];
+  areasToImprove: string[];
+  nextSteps: string[];
+  confidence?: number;
+}
+
+export interface AthroLanguage {
+  code: string;
+  name: string;
+  nativeName: string;
+  supported: boolean;
 }

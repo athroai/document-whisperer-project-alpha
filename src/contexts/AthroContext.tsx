@@ -9,7 +9,10 @@ export interface AthroContextProps {
   setIsOpen: (open: boolean) => void;
   currentSubject: string | null;
   setCurrentSubject: (subject: string) => void;
+  setActiveCharacter: (character: AthroCharacter) => void;
   athroThemeForSubject: (subject: string) => any;
+  currentScienceSubject?: string;
+  setCurrentScienceSubject?: (subject: string) => void;
 }
 
 const defaultContextValue: AthroContextProps = {
@@ -19,6 +22,7 @@ const defaultContextValue: AthroContextProps = {
   setIsOpen: () => {},
   currentSubject: null,
   setCurrentSubject: () => {},
+  setActiveCharacter: () => {},
   athroThemeForSubject: () => ({}),
 };
 
@@ -29,34 +33,41 @@ export const useAthro = () => useContext(AthroContext);
 export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentSubject, setCurrentSubject] = useState<string | null>(null);
+  const [currentScienceSubject, setCurrentScienceSubject] = useState<string>('biology');
+  const [activeCharacter, setActiveCharacter] = useState<AthroCharacter | null>(null);
   const [characters, setCharacters] = useState<AthroCharacter[]>([
     {
       id: '1',
+      name: 'AthroMaths',
       subject: 'Mathematics',
       avatar: '/assets/images/athro-math.png',
       description: 'Master geometry, algebra, and calculus with personalized help.',
       greeting: 'Hello! I\'m here to help with your maths questions.',
+      topics: ['Algebra', 'Geometry', 'Calculus', 'Statistics'],
+      examBoards: ['WJEC', 'AQA', 'OCR'],
+      supportsMathNotation: true
     },
     {
       id: '2',
+      name: 'AthroScience',
       subject: 'Science',
       avatar: '/assets/images/athro-science.png',
       description: 'Explore biology, chemistry, and physics concepts.',
       greeting: 'Hi there! Ready to explore scientific concepts together?',
+      topics: ['Biology', 'Chemistry', 'Physics', 'Environmental Science'],
+      examBoards: ['WJEC', 'AQA', 'OCR'],
     },
     {
       id: '3',
+      name: 'AthroEnglish',
       subject: 'English',
       avatar: '/assets/images/athro-english.png',
       description: 'Improve your writing, reading, and literature analysis.',
       greeting: 'Welcome! Let\'s dive into the world of language and literature.',
+      topics: ['Literature', 'Language', 'Writing', 'Poetry'],
+      examBoards: ['WJEC', 'AQA', 'OCR'],
     },
   ]);
-
-  // Find the active character based on the current subject
-  const activeCharacter = currentSubject
-    ? characters.find((char) => char.subject === currentSubject) || null
-    : null;
 
   // Get theme colors based on subject
   const athroThemeForSubject = (subject: string) => {
@@ -102,11 +113,14 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         characters,
         activeCharacter,
+        setActiveCharacter,
         isOpen,
         setIsOpen,
         currentSubject,
         setCurrentSubject,
         athroThemeForSubject,
+        currentScienceSubject,
+        setCurrentScienceSubject,
       }}
     >
       {children}

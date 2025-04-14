@@ -1,5 +1,8 @@
 
-import { AthroSubject, ExamBoard } from './athro';
+import { AthroSubject } from './athro';
+
+// Define ExamBoard type directly here since we're having problems with imports
+export type ExamBoard = 'WJEC' | 'AQA' | 'OCR' | 'Edexcel' | 'Cambridge' | 'CCEA';
 
 export interface AthroCharacterConfig {
   id: string;

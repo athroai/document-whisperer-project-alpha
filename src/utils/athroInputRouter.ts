@@ -1,5 +1,8 @@
 
-import { AthroSubject, ExamBoard } from '@/types/athro';
+import { AthroSubject } from '@/types/athro';
+
+// Define ExamBoard type directly here since we already defined it in athro.ts
+type ExamBoard = 'WJEC' | 'AQA' | 'OCR' | 'Edexcel' | 'Cambridge' | 'CCEA';
 
 // This is a stub for future API integration
 interface ProcessorOptions {
