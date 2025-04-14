@@ -42,9 +42,11 @@ export function useSupabaseQuery<T>(
     
     try {
       // Start building the query
+      // Use 'any' type to bypass TypeScript constraints on dynamic table names
       let query = supabase
-        .from(tableName)
-        .select(select);
+        .from(tableName) as any;
+        
+      query = query.select(select);
         
       // Apply filters if provided
       if (filter) {
@@ -120,7 +122,9 @@ export function useSupabaseRealtime<T>(
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
-        let query = supabase.from(tableName).select('*');
+        // Use 'any' type to bypass TypeScript constraints on dynamic table names
+        let query = supabase.from(tableName) as any;
+        query = query.select('*');
         
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {
@@ -144,7 +148,7 @@ export function useSupabaseRealtime<T>(
     const channel = supabase
       .channel('db-changes')
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event: options.event || '*',
           schema: 'public',

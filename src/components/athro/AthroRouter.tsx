@@ -5,7 +5,7 @@ import { useAthro } from '@/contexts/AthroContext';
 import AthroChat from './AthroChat';
 import AthroSubjectSelect from './AthroSubjectSelect';
 import { getSubjectFromPath } from '@/utils/subjectRouteUtils';
-import { fetchKnowledgeForQuery } from '@/services/fileAwareService';
+import { fetchKnowledgeForQuery } from '@/utils/fileAwareService';
 
 const AthroRouter: React.FC = () => {
   const { subject } = useParams<{ subject?: string }>();

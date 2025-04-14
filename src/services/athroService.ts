@@ -3,13 +3,25 @@ import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
 import { FeedbackSummary } from '@/types/feedback';
 import { supabase } from '@/integrations/supabase/client';
 
+// Interface for athro_characters table data
+interface AthroCharacterRecord {
+  id: string;
+  name: string;
+  subject: string;
+  avatar_url: string;
+  description: string;
+  strengths: string[];
+  voice_style?: string;
+  created_at: string;
+}
+
 // Service for Athro character management
 const athroService = {
   // Get available Athro characters - now from Supabase
   getCharacters: async (): Promise<AthroCharacter[]> => {
     try {
-      const { data, error } = await supabase
-        .from('athro_characters')
+      const { data, error } = await (supabase
+        .from('athro_characters') as any)
         .select('*');
         
       if (error) {
@@ -23,7 +35,7 @@ const athroService = {
       }
       
       // Map database fields to our AthroCharacter type
-      return data.map(char => ({
+      return (data as AthroCharacterRecord[]).map(char => ({
         id: char.id,
         name: char.name,
         subject: char.subject as AthroSubject,
@@ -76,8 +88,8 @@ const athroService = {
   // Get a character by ID
   getCharacterById: async (id: string): Promise<AthroCharacter | null> => {
     try {
-      const { data, error } = await supabase
-        .from('athro_characters')
+      const { data, error } = await (supabase
+        .from('athro_characters') as any)
         .select('*')
         .eq('id', id)
         .single();
@@ -89,15 +101,16 @@ const athroService = {
       
       if (!data) return null;
       
+      const char = data as AthroCharacterRecord;
       return {
-        id: data.id,
-        name: data.name,
-        subject: data.subject as AthroSubject,
-        avatar: data.avatar_url,
-        description: data.description,
-        topics: data.strengths || [],
+        id: char.id,
+        name: char.name,
+        subject: char.subject as AthroSubject,
+        avatar: char.avatar_url,
+        description: char.description,
+        topics: char.strengths || [],
         examBoards: ['WJEC', 'AQA', 'OCR'],
-        supportsMathNotation: data.subject === 'Mathematics'
+        supportsMathNotation: char.subject === 'Mathematics'
       };
     } catch (error) {
       console.error(`Error in getCharacterById for ID ${id}:`, error);
@@ -108,8 +121,8 @@ const athroService = {
   // Get a character by subject
   getCharacterBySubject: async (subject: string): Promise<AthroCharacter | null> => {
     try {
-      const { data, error } = await supabase
-        .from('athro_characters')
+      const { data, error } = await (supabase
+        .from('athro_characters') as any)
         .select('*')
         .ilike('subject', subject)
         .maybeSingle();
@@ -121,15 +134,16 @@ const athroService = {
       
       if (!data) return null;
       
+      const char = data as AthroCharacterRecord;
       return {
-        id: data.id,
-        name: data.name,
-        subject: data.subject as AthroSubject,
-        avatar: data.avatar_url,
-        description: data.description,
-        topics: data.strengths || [],
+        id: char.id,
+        name: char.name,
+        subject: char.subject as AthroSubject,
+        avatar: char.avatar_url,
+        description: char.description,
+        topics: char.strengths || [],
         examBoards: ['WJEC', 'AQA', 'OCR'],
-        supportsMathNotation: data.subject === 'Mathematics'
+        supportsMathNotation: char.subject === 'Mathematics'
       };
     } catch (error) {
       console.error(`Error in getCharacterBySubject for subject ${subject}:`, error);

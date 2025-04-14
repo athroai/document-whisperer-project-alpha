@@ -12,12 +12,10 @@ import { UploadMetadata } from '@/types/files';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import KnowledgeIntegration from '@/components/knowledge/KnowledgeIntegration';
-import { fetchKnowledgeForQuery } from '@/services/fileAwareService';
-import useTabSync from '@/hooks/useTabSync';
 import persistentStorage from '@/services/persistentStorage';
 import { AthroMessage } from '@/types/athro';
 
-interface Knowledge {
+export interface Knowledge {
   enhancedContext: string;
   hasKnowledgeResults: boolean;
   citations: Citation[];
@@ -52,20 +50,53 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const [isRestoringSession, setIsRestoringSession] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { 
-    hasMultipleTabs, 
-    lastMessage: syncMessage, 
-    sendMessage: syncChatHistory,
-    tabId 
-  } = useTabSync('CHAT_HISTORY_UPDATE', {
-    onConflict: () => {
-      toast({
-        title: "Multiple tabs detected",
-        description: "Be careful when making changes in multiple tabs as they may conflict.",
-        variant: "default",
-      });
-    }
-  });
+  const [tabId] = useState(`tab_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`);
+  const [hasMultipleTabs, setHasMultipleTabs] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<any>(null);
+  
+  const sendSyncMessage = useCallback((payload: any) => {
+    const message = {
+      type: 'CHAT_HISTORY_UPDATE',
+      tabId,
+      timestamp: Date.now(),
+      payload
+    };
+    localStorage.setItem('CHAT_SYNC', JSON.stringify(message));
+    const event = new CustomEvent('storage-sync', { detail: message });
+    window.dispatchEvent(event);
+  }, [tabId]);
+
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'CHAT_SYNC') {
+        try {
+          const message = JSON.parse(e.newValue || '{}');
+          if (message.tabId !== tabId) {
+            setSyncMessage(message);
+            setHasMultipleTabs(true);
+          }
+        } catch (error) {
+          console.error('Error parsing sync message:', error);
+        }
+      }
+    };
+    
+    const handleCustomEvent = (e: CustomEvent) => {
+      const message = e.detail;
+      if (message.tabId !== tabId) {
+        setSyncMessage(message);
+        setHasMultipleTabs(true);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('storage-sync', handleCustomEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage-sync', handleCustomEvent as EventListener);
+    };
+  }, [tabId]);
 
   const currentSubject = subject ? subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase() : null;
   const theme = currentSubject ? athroThemeForSubject(currentSubject) : {
@@ -115,7 +146,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
           
           await persistentStorage.saveChatHistory(userId, conversation);
           
-          syncChatHistory({ conversation });
+          sendSyncMessage({ conversation });
           
           setHasUnsavedChanges(false);
         } catch (error) {
@@ -126,10 +157,10 @@ const AthroChat: React.FC<AthroChatProps> = ({
     };
     
     saveSession();
-  }, [conversation, state.user?.id, currentSubject, isRestoringSession, syncChatHistory]);
+  }, [conversation, state.user?.id, currentSubject, isRestoringSession, sendSyncMessage]);
   
   useEffect(() => {
-    if (syncMessage && syncMessage.tabId !== tabId && syncMessage.payload) {
+    if (syncMessage && syncMessage.payload) {
       const { conversation: syncedConversation } = syncMessage.payload;
       
       if (syncedConversation && 
@@ -141,7 +172,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
         });
       }
     }
-  }, [syncMessage, tabId, conversation, toast]);
+  }, [syncMessage, conversation, toast]);
   
   useEffect(() => {
     const saveDraft = async () => {
@@ -340,30 +371,34 @@ const AthroChat: React.FC<AthroChatProps> = ({
           </div>
         </div>
         
-        <div className="p-4 border-b">
-          <KnowledgeIntegration 
-            subject={currentSubject?.toLowerCase()}
-            onClose={() => setShowKnowledgePanel(false)}
-          />
-        </div>
-        
-        <div className="p-4 border-b">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-medium">Upload Study Materials</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setShowFileUpload(false)}
-            >
-              <X size={16} />
-            </Button>
+        {showKnowledgePanel && (
+          <div className="p-4 border-b">
+            <KnowledgeIntegration 
+              subject={currentSubject?.toLowerCase()}
+              onClose={() => setShowKnowledgePanel(false)}
+            />
           </div>
-          <FileUpload
-            userId={state.user?.id}
-            userRole={state.user?.role}
-            onFileUploaded={handleFileUpload}
-          />
-        </div>
+        )}
+        
+        {showFileUpload && (
+          <div className="p-4 border-b">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-medium">Upload Study Materials</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowFileUpload(false)}
+              >
+                <X size={16} />
+              </Button>
+            </div>
+            <FileUpload
+              userId={state.user?.id}
+              userRole={state.user?.role}
+              onFileUploaded={handleFileUpload}
+            />
+          </div>
+        )}
         
         <div className="flex-1 overflow-auto p-4">
           {conversation.map(renderMessage)}
