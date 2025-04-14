@@ -1,6 +1,6 @@
 
 import { initializeApp } from "firebase/app";
-import { getFirestore, initializeFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, initializeFirestore, enableIndexedDbPersistence, collection, doc, getDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 // Firebase configuration
@@ -47,8 +47,8 @@ const storage = getStorage(app);
 export const checkFirestoreConnection = async () => {
   try {
     // Perform a simple test read to verify connection
-    const testRef = db.collection('_connection_test').doc('test');
-    await testRef.get({ source: 'server' });
+    const testDoc = doc(db, '_connection_test', 'test');
+    await getDoc(testDoc);
     return 'connected';
   } catch (error) {
     console.warn("Firestore connection check failed:", error);
