@@ -1,6 +1,6 @@
 
 import { initializeApp } from "firebase/app";
-import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
+import { getFirestore, initializeFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 // Firebase configuration
@@ -17,12 +17,14 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with persistence configuration
-// Using the new recommended approach instead of enableIndexedDbPersistence
+// Initialize Firestore with indexed DB persistence
 const db = initializeFirestore(app, {
-  cache: {
-    sizeBytes: CACHE_SIZE_UNLIMITED
-  }
+  // Remove the 'cache' property and use enableIndexedDbPersistence instead
+});
+
+// Enable IndexedDB persistence
+enableIndexedDbPersistence(db).catch((err) => {
+  console.error("Firestore persistence error:", err);
 });
 
 const storage = getStorage(app);
