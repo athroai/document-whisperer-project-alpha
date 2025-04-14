@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -97,16 +96,13 @@ const MyWorkPage: React.FC = () => {
   useEffect(() => {
     const fetchSubmissions = async () => {
       if (!user) return;
-      
       setIsLoadingSubmissions(true);
       try {
-        const submissionsQuery = supabase
+        const { data, error } = await supabase
           .from('task_submissions')
           .select('*, tasks(*)')
           .eq('student_id', user.id)
           .order('created_at', { ascending: false });
-        
-        const { data, error } = await submissionsQuery;
         
         if (error) throw error;
         setSubmissions(data || []);

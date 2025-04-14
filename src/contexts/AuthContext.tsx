@@ -67,7 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .single();
 
           const role = (profileData?.role || 'student') as UserRole;
-
+          
+          // Use optional chaining and provide fallback values for all profile fields
           dispatch({ 
             type: 'AUTH_SUCCESS', 
             payload: {
@@ -78,11 +79,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               createdAt: new Date(session.user.created_at),
               rememberMe: true,
               schoolId: profileData?.school_id || undefined,
-              // Add safe fallbacks for missing properties
-              examBoard: profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined || undefined,
-              confidenceScores: profileData?.confidence_scores as {[subject: string]: number} | undefined || {},
-              welshEligible: profileData?.welsh_eligible as boolean | undefined || false,
-              preferredLanguage: profileData?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined || 'en'
+              // Safe fallbacks for potentially missing properties
+              examBoard: (profileData as any)?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined || undefined,
+              confidenceScores: (profileData as any)?.confidence_scores as {[subject: string]: number} | undefined || {},
+              welshEligible: (profileData as any)?.welsh_eligible as boolean | undefined || false,
+              preferredLanguage: (profileData as any)?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined || 'en'
             }
           });
         } else {
@@ -114,11 +115,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: new Date(session.user.created_at),
             rememberMe: true,
             schoolId: profileData?.school_id || undefined,
-            // Add safe fallbacks for missing properties
-            examBoard: profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined || undefined,
-            confidenceScores: profileData?.confidence_scores as {[subject: string]: number} | undefined || {},
-            welshEligible: profileData?.welsh_eligible as boolean | undefined || false,
-            preferredLanguage: profileData?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined || 'en'
+            // Safe fallbacks for potentially missing properties
+            examBoard: (profileData as any)?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined || undefined,
+            confidenceScores: (profileData as any)?.confidence_scores as {[subject: string]: number} | undefined || {},
+            welshEligible: (profileData as any)?.welsh_eligible as boolean | undefined || false,
+            preferredLanguage: (profileData as any)?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined || 'en'
           }
         });
       } else {
