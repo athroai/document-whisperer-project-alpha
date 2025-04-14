@@ -4,24 +4,13 @@ import { Link } from 'react-router-dom';
 import { AthroSubject } from '@/types/athro';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAthro } from '@/contexts/AthroContext';
+import { getSubjectPath } from '@/utils/subjectRouteUtils';
 
 const AthroSubjectSelect: React.FC = () => {
   const { characters, setCurrentSubject } = useAthro();
   
   const handleSelectSubject = (subject: string) => {
     setCurrentSubject(subject);
-  };
-
-  // Helper function to get route path from subject
-  const getSubjectPath = (subject: string): string => {
-    const pathMap: Record<string, string> = {
-      'Mathematics': 'maths',
-      'Religious Education': 're',
-      'Study Skills': 'study-skills',
-      'Computer Science': 'computer-science'
-    };
-    
-    return pathMap[subject] || subject.toLowerCase();
   };
 
   return (

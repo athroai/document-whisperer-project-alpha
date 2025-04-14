@@ -4,7 +4,7 @@ import { Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { useAthro } from '@/contexts/AthroContext';
 import AthroChat from './AthroChat';
 import AthroSubjectSelect from './AthroSubjectSelect';
-import { AthroSubject } from '@/types/athro';
+import { getSubjectFromPath } from '@/utils/subjectRouteUtils';
 
 interface KnowledgeResponse {
   enhancedContext: string;
@@ -31,27 +31,8 @@ const AthroRouter: React.FC = () => {
   // Update current subject when route changes
   useEffect(() => {
     if (subject) {
-      // Handle special cases for URL paths
-      let formattedSubject: string;
-      
-      switch(subject.toLowerCase()) {
-        case 'maths':
-          formattedSubject = 'Mathematics';
-          break;
-        case 're':
-          formattedSubject = 'Religious Education';
-          break;
-        case 'study-skills':
-          formattedSubject = 'Study Skills';
-          break;
-        case 'computer-science':
-          formattedSubject = 'Computer Science';
-          break;
-        default:
-          // Convert first letter to uppercase and rest to lowercase
-          formattedSubject = subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase();
-      }
-      
+      // Convert path to formal subject name using our utility function
+      const formattedSubject = getSubjectFromPath(subject);
       setCurrentSubject(formattedSubject);
     }
   }, [subject, setCurrentSubject]);
