@@ -11,6 +11,7 @@ export interface AthroCharacter {
   imageUrl?: string;
   bio?: string;
   description?: string;
+  fullDescription?: string;
   shortDescription?: string;
   avatarUrl?: string;
   topics?: string[];
@@ -19,6 +20,7 @@ export interface AthroCharacter {
   supportedLanguages?: string[];
   referencedResources?: string[];
   avatar?: string; // For backward compatibility
+  tone?: string;
 }
 
 export interface AthroMessage {
@@ -67,7 +69,8 @@ export interface ModelAnswer {
   id?: string;       // Making id optional to fix existing code
   questionId?: string;
   grade: string;
-  text: string;
+  text?: string;
+  answer?: string;   // Adding answer as an alternative to text
   workingSteps?: string[];
   markScheme?: string;
   marks?: number;
@@ -87,4 +90,5 @@ export interface PastPaper {
   questions?: any[];
   difficulty?: string;
   topics?: string[];
+  season?: 'Summer' | 'Winter' | 'Autumn' | 'Spring' | string;
 }
