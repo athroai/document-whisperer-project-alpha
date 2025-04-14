@@ -27,13 +27,17 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error("Missing information", "Please fill in all required fields");
+      toast.error("Missing information", {
+        description: "Please fill in all required fields"
+      });
       return;
     }
     
     try {
       await login(email, password);
-      toast.success("Login successful!", "Welcome back to Athro AI");
+      toast.success("Login successful!", {
+        description: "Welcome back to Athro AI"
+      });
       navigate('/home');
     } catch (error) {
       // Error is already handled in the AuthContext

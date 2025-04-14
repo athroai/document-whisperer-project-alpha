@@ -41,17 +41,23 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
 
   const handleUpload = async () => {
     if (!files.length) {
-      toast.error("No Files Selected", "Please select files to upload.");
+      toast.error("No Files Selected", {
+        description: "Please select files to upload."
+      });
       return;
     }
 
     if (!subject) {
-      toast.error("Subject Required", "Please select a subject for your uploads.");
+      toast.error("Subject Required", {
+        description: "Please select a subject for your uploads."
+      });
       return;
     }
 
     if (!state.user) {
-      toast.error("Authentication Error", "Please log in to upload files.");
+      toast.error("Authentication Error", {
+        description: "Please log in to upload files."
+      });
       return;
     }
 
@@ -120,10 +126,9 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
 
       setProgress(100);
 
-      toast.success(
-        "Files Uploaded Successfully", 
-        `${files.length} ${files.length === 1 ? 'file has' : 'files have'} been uploaded`
-      );
+      toast.success("Files Uploaded Successfully", {
+        description: `${files.length} ${files.length === 1 ? 'file has' : 'files have'} been uploaded`
+      });
 
       // Reset form
       setFiles([]);
@@ -136,7 +141,9 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
       if (onClose) onClose();
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error("Upload Failed", error.message);
+      toast.error("Upload Failed", {
+        description: error.message
+      });
       setProgress(0);
     } finally {
       setUploading(false);

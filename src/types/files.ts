@@ -11,22 +11,33 @@ export interface UploadMetadata {
 }
 
 export interface UploadedFile {
-  id?: string; // Make id optional to match fileService implementation
-  uploadedBy: string;
-  subject: string;
-  fileType: string; // 'paper', 'notes', 'quiz', etc.
-  visibility: string; // 'public', 'private', 'class-only'
-  filename: string;
-  storagePath: string;
-  timestamp: string;
-  label?: string;
-  mimeType?: string;
-  url?: string;
-  // Adding properties needed for compatibility with fileService implementation
+  id?: string;
+  // Properties used in FileBrowser component
+  bucket_name?: string;
+  created_at?: string;
+  description?: string;
+  file_type?: string;
+  file_url?: string;
+  mime_type?: string;
+  original_name?: string;
+  set_id?: string;
+  size?: number;
+  storage_path?: string;
+  topic?: string;
+  
+  // Properties needed for compatibility with existing code
+  uploadedBy?: string;
+  fileType?: string;
+  storagePath?: string;
+  timestamp?: string;
+  subject?: string;
+  uploaded_by?: string;
+  visibility?: string;
+  filename?: string;
+  
+  // Additional compatibility properties
   userId?: string;
   fileURL?: string;
-  originalName?: string;
-  description?: string;
-  size?: number;
-  createdAt?: Date;
+  url?: string;
+  mimeType?: string;
 }

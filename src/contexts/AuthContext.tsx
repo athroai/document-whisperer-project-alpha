@@ -78,10 +78,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               createdAt: new Date(session.user.created_at),
               rememberMe: true,
               schoolId: profileData?.school_id || undefined,
-              examBoard: profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined,
-              confidenceScores: profileData?.confidence_scores as {[subject: string]: number} | undefined,
-              welshEligible: profileData?.welsh_eligible as boolean | undefined,
-              preferredLanguage: profileData?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined
+              // Handle potentially missing properties
+              examBoard: (profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined) || undefined,
+              confidenceScores: (profileData?.confidence_scores as {[subject: string]: number} | undefined) || {},
+              welshEligible: (profileData?.welsh_eligible as boolean | undefined) || false,
+              preferredLanguage: (profileData?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined) || 'en'
             }
           });
         } else {
@@ -113,10 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: new Date(session.user.created_at),
             rememberMe: true,
             schoolId: profileData?.school_id || undefined,
-            examBoard: profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined,
-            confidenceScores: profileData?.confidence_scores as {[subject: string]: number} | undefined,
-            welshEligible: profileData?.welsh_eligible as boolean | undefined,
-            preferredLanguage: profileData?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined
+            // Handle potentially missing properties
+            examBoard: (profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined) || undefined,
+            confidenceScores: (profileData?.confidence_scores as {[subject: string]: number} | undefined) || {},
+            welshEligible: (profileData?.welsh_eligible as boolean | undefined) || false,
+            preferredLanguage: (profileData?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined) || 'en'
           }
         });
       } else {

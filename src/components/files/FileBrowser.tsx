@@ -23,7 +23,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UploadedFile } from '@/types/auth';
+import { UploadedFile } from '@/types/files';
 
 interface FileBrowserProps {
   onSelectFile?: (file: UploadedFile) => void;
@@ -74,11 +74,12 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
 
       if (error) throw error;
       
-      setFiles(data as UploadedFile[]);
+      // Explicitly cast the data to UploadedFile[] since we've updated our type
+      setFiles(data as unknown as UploadedFile[]);
     } catch (err: any) {
       console.error('Error fetching files:', err);
       setError('Failed to load files. Please try again.');
-      toast.error('Error loading files', err.message);
+      toast.error('Error loading files');
     } finally {
       setLoading(false);
     }
@@ -92,8 +93,8 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
     try {
       // Get bucket name from file record
       const { data, error } = await supabase.storage
-        .from(file.storagePath.split('/')[0])
-        .download(file.storagePath);
+        .from(file.bucket_name || 'uploads')
+        .download(file.storage_path || '');
         
       if (error) throw error;
       
@@ -101,7 +102,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = file.filename;
+      a.download = file.filename || 'download';
       document.body.appendChild(a);
       a.click();
       URL.revokeObjectURL(url);
@@ -110,7 +111,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       toast.info('File download started');
     } catch (err: any) {
       console.error('Download error:', err);
-      toast.error('Download failed', err.message);
+      toast.error('Download failed');
     }
   };
 
@@ -120,8 +121,8 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
     try {
       // Delete from storage
       const { error: storageError } = await supabase.storage
-        .from(file.bucket_name)
-        .remove([file.storagePath]);
+        .from(file.bucket_name || 'uploads')
+        .remove([file.storage_path || '']);
         
       if (storageError) throw storageError;
       
@@ -129,7 +130,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       const { error: dbError } = await supabase
         .from('uploads')
         .delete()
-        .eq('id', file.id);
+        .eq('id', file.id || '');
         
       if (dbError) throw dbError;
       
@@ -138,7 +139,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       toast.success('File deleted');
     } catch (err: any) {
       console.error('Delete error:', err);
-      toast.error('Delete failed', err.message);
+      toast.error('Delete failed');
     }
   };
 
@@ -149,7 +150,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       const { error } = await supabase
         .from('uploads')
         .update({ visibility: newVisibility })
-        .eq('id', file.id);
+        .eq('id', file.id || '');
         
       if (error) throw error;
       
@@ -165,12 +166,12 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       );
     } catch (err: any) {
       console.error('Update error:', err);
-      toast.error('Update failed', err.message);
+      toast.error('Update failed');
     }
   };
 
   const getFileIcon = (file: UploadedFile) => {
-    const mimeType = file.fileType || '';
+    const mimeType = file.file_type || file.mime_type || '';
     
     if (mimeType.includes('image')) return <Image className="h-8 w-8 text-blue-500" />;
     if (mimeType.includes('pdf')) return <FileText className="h-8 w-8 text-red-500" />;
@@ -253,7 +254,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
                 <div className="flex justify-between items-start">
                   <div className="truncate">
                     <h3 className="font-medium truncate">
-                      {file.filename}
+                      {file.original_name || file.filename}
                     </h3>
                     <p className="text-sm text-gray-500 truncate">
                       {file.subject} {file.topic ? `• ${file.topic}` : ''}

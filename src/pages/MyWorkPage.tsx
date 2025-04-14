@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +8,7 @@ import LoadingSpinner from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
 import { ClipboardCheck, Clock, X, Check, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 interface Task {
   id: string;
@@ -37,6 +37,8 @@ const MyWorkPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('pending');
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -46,7 +48,6 @@ const MyWorkPage: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        // Fetch tasks for the user
         const { data, error } = await supabase
           .from('tasks')
           .select(`
@@ -67,7 +68,6 @@ const MyWorkPage: React.FC = () => {
             )
           `)
           .in('set_id', [
-            // Subquery to get set_ids for the student
             supabase
               .from('student_sets')
               .select('set_id')
@@ -93,7 +93,35 @@ const MyWorkPage: React.FC = () => {
     }
   }, [user, authLoading, navigate]);
   
-  // Filter tasks based on active tab
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      if (!user) return;
+      
+      setIsLoadingSubmissions(true);
+      try {
+        const submissionsQuery = supabase
+          .from('task_submissions')
+          .select('*, tasks(*)')
+          .eq('student_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        const { data, error } = await submissionsQuery;
+        
+        if (error) throw error;
+        setSubmissions(data || []);
+      } catch (err) {
+        console.error('Error fetching submissions:', err);
+        toast.error('Failed to load your submissions');
+      } finally {
+        setIsLoadingSubmissions(false);
+      }
+    };
+    
+    if (!authLoading && user) {
+      fetchSubmissions();
+    }
+  }, [user, authLoading]);
+  
   const filterTasks = () => {
     if (!tasks) return [];
     
@@ -117,7 +145,6 @@ const MyWorkPage: React.FC = () => {
   
   const filteredTasks = filterTasks();
   
-  // Get task status for display
   const getTaskStatus = (task: Task) => {
     const hasSubmission = task.submissions && task.submissions.length > 0;
     const latestSubmission = hasSubmission ? task.submissions[0] : null;

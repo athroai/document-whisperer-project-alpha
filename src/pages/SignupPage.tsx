@@ -24,20 +24,26 @@ const SignupPage: React.FC = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error("Missing information", "Please fill in all required fields");
+      toast.error("Missing information", {
+        description: "Please fill in all required fields"
+      });
       return;
     }
     
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error("Invalid email", "Please enter a valid email address");
+      toast.error("Invalid email", {
+        description: "Please enter a valid email address"
+      });
       return;
     }
     
     // Validate password length
     if (password.length < 8) {
-      toast.error("Password too short", "Password must be at least 8 characters long");
+      toast.error("Password too short", {
+        description: "Password must be at least 8 characters long"
+      });
       return;
     }
     
@@ -47,7 +53,9 @@ const SignupPage: React.FC = () => {
         preferredLanguage: 'en' // Default to English
       });
       
-      toast.success("Account created!", "Welcome to Athro AI");
+      toast.success("Account created!", {
+        description: "Welcome to Athro AI"
+      });
       navigate('/home');
     } catch (error) {
       // Error is already handled in the AuthContext
