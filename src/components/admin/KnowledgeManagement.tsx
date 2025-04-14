@@ -29,12 +29,18 @@ import {
   DialogTrigger 
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, FileText, Search } from 'lucide-react';
+import { Trash2, FileText, Search, Eye, EyeOff, Tag } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import KnowledgeUpload from './KnowledgeUpload';
-import { getKnowledgeDocuments, deleteKnowledgeDocument, getDocumentChunks } from '@/services/knowledgeBaseService';
+import { 
+  getKnowledgeDocuments, 
+  deleteKnowledgeDocument, 
+  getDocumentChunks, 
+  toggleDocumentPublicUsability 
+} from '@/services/knowledgeBaseService';
 import { UploadedDocument, KnowledgeChunk } from '@/types/knowledgeBase';
 import { useAuth } from '@/contexts/AuthContext';
+import { Switch } from '@/components/ui/switch';
 
 const KnowledgeManagement: React.FC = () => {
   const { state } = useAuth();
@@ -116,6 +122,33 @@ const KnowledgeManagement: React.FC = () => {
     } finally {
       setDeleteDialogOpen(false);
       setSelectedDocument(null);
+    }
+  };
+
+  // Toggle document public usability
+  const handleTogglePublicUsability = async (document: UploadedDocument) => {
+    try {
+      await toggleDocumentPublicUsability(document.id, !document.isPubliclyUsable);
+      
+      // Update local state
+      setDocuments(documents.map(doc => {
+        if (doc.id === document.id) {
+          return { ...doc, isPubliclyUsable: !doc.isPubliclyUsable };
+        }
+        return doc;
+      }));
+      
+      toast({
+        title: "Success",
+        description: `Document "${document.title}" is now ${!document.isPubliclyUsable ? 'publicly usable' : 'private'}.`,
+      });
+    } catch (error) {
+      console.error("Error toggling public usability:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update document status. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
@@ -213,12 +246,12 @@ const KnowledgeManagement: React.FC = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Title</TableHead>
-                        <TableHead>Subject</TableHead>
+                        <TableHead>Subject/Topic</TableHead>
                         <TableHead>Type</TableHead>
-                        <TableHead>Size</TableHead>
+                        <TableHead>Year</TableHead>
                         <TableHead>Uploaded</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Chunks</TableHead>
+                        <TableHead>Public</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -226,14 +259,38 @@ const KnowledgeManagement: React.FC = () => {
                       {documents.map((doc) => (
                         <TableRow key={doc.id}>
                           <TableCell className="font-medium">{doc.title}</TableCell>
-                          <TableCell>{doc.subject || 'General'}</TableCell>
+                          <TableCell>
+                            <div>
+                              {doc.subject || 'General'}
+                              {doc.topic && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Topic: {doc.topic}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="uppercase">{doc.fileType}</TableCell>
-                          <TableCell>{formatFileSize(doc.fileSize)}</TableCell>
+                          <TableCell>{doc.yearGroup || 'All'}</TableCell>
                           <TableCell>{formatDate(doc.timestamp)}</TableCell>
                           <TableCell>{renderStatusBadge(doc.status)}</TableCell>
-                          <TableCell>{doc.chunkCount || 'N/A'}</TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={!!doc.isPubliclyUsable}
+                              onCheckedChange={() => handleTogglePublicUsability(doc)}
+                              disabled={doc.status !== 'indexed'}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
+                              {doc.tags && doc.tags.length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={`Tags: ${doc.tags.join(', ')}`}
+                                >
+                                  <Tag className="h-4 w-4" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -242,6 +299,19 @@ const KnowledgeManagement: React.FC = () => {
                                 title="View Chunks"
                               >
                                 <FileText className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleTogglePublicUsability(doc)}
+                                title={doc.isPubliclyUsable ? "Make Private" : "Make Public"}
+                                disabled={doc.status !== 'indexed'}
+                              >
+                                {doc.isPubliclyUsable ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
                               </Button>
                               <Button
                                 variant="ghost"

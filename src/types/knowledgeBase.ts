@@ -11,6 +11,10 @@ export interface UploadedDocument {
   fileSize: number;
   status: 'processing' | 'indexed' | 'failed';
   chunkCount?: number;
+  tags?: string[];
+  yearGroup?: string;
+  isPubliclyUsable: boolean;
+  topic?: string;
 }
 
 export interface KnowledgeChunk {
@@ -23,6 +27,12 @@ export interface KnowledgeChunk {
   pageNumber?: number;
   sectionTitle?: string;
   chunkIndex: number;
+  tags?: string[];
+  uploadedBy: string;
+  timestamp: string;
+  yearGroup?: string;
+  isPubliclyUsable: boolean;
+  topic?: string;
 }
 
 export interface EmbeddingResponse {

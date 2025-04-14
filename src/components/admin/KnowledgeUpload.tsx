@@ -6,11 +6,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileUp, AlertCircle } from 'lucide-react';
+import { FileUp, AlertCircle, Tags, X } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { uploadKnowledgeDocument } from '@/services/knowledgeBaseService';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 const KnowledgeUpload: React.FC = () => {
   const { state } = useAuth();
@@ -18,6 +20,11 @@ const KnowledgeUpload: React.FC = () => {
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [subject, setSubject] = useState<string>('');
+  const [yearGroup, setYearGroup] = useState<string>('');
+  const [topic, setTopic] = useState<string>('');
+  const [isPubliclyUsable, setIsPubliclyUsable] = useState<boolean>(false);
+  const [tag, setTag] = useState<string>('');
+  const [tags, setTags] = useState<string[]>([]);
   const [uploading, setUploading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
 
@@ -25,6 +32,24 @@ const KnowledgeUpload: React.FC = () => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFiles = Array.from(e.target.files);
       setFiles(selectedFiles);
+    }
+  };
+
+  const handleAddTag = () => {
+    if (tag.trim() && !tags.includes(tag.trim())) {
+      setTags([...tags, tag.trim()]);
+      setTag('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(t => t !== tagToRemove));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
     }
   };
 
@@ -84,6 +109,10 @@ const KnowledgeUpload: React.FC = () => {
           description,
           subject,
           uploadedBy: state.user.id,
+          tags,
+          yearGroup,
+          isPubliclyUsable,
+          topic,
         }, (progress) => {
           setProgress(progress);
         });
@@ -99,6 +128,10 @@ const KnowledgeUpload: React.FC = () => {
       setTitle('');
       setDescription('');
       setProgress(100);
+      setTags([]);
+      setYearGroup('');
+      setTopic('');
+      setIsPubliclyUsable(false);
       
       // Reset progress after a short delay
       setTimeout(() => setProgress(0), 2000);
@@ -143,24 +176,96 @@ const KnowledgeUpload: React.FC = () => {
             />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Select value={subject} onValueChange={setSubject}>
+                <SelectTrigger id="subject">
+                  <SelectValue placeholder="Select subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Subjects</SelectItem>
+                  <SelectItem value="mathematics">Mathematics</SelectItem>
+                  <SelectItem value="science">Science</SelectItem>
+                  <SelectItem value="english">English</SelectItem>
+                  <SelectItem value="welsh">Welsh</SelectItem>
+                  <SelectItem value="languages">Languages</SelectItem>
+                  <SelectItem value="history">History</SelectItem>
+                  <SelectItem value="geography">Geography</SelectItem>
+                  <SelectItem value="religious-education">Religious Education</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="year-group">Year Group</Label>
+              <Select value={yearGroup} onValueChange={setYearGroup}>
+                <SelectTrigger id="year-group">
+                  <SelectValue placeholder="Select year group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Any Year</SelectItem>
+                  <SelectItem value="year-7">Year 7</SelectItem>
+                  <SelectItem value="year-8">Year 8</SelectItem>
+                  <SelectItem value="year-9">Year 9</SelectItem>
+                  <SelectItem value="year-10">Year 10</SelectItem>
+                  <SelectItem value="year-11">Year 11</SelectItem>
+                  <SelectItem value="gcse">GCSE</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="subject">Subject (Optional)</Label>
-            <Select value={subject} onValueChange={setSubject}>
-              <SelectTrigger id="subject">
-                <SelectValue placeholder="Select subject" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Subjects</SelectItem>
-                <SelectItem value="mathematics">Mathematics</SelectItem>
-                <SelectItem value="science">Science</SelectItem>
-                <SelectItem value="english">English</SelectItem>
-                <SelectItem value="welsh">Welsh</SelectItem>
-                <SelectItem value="languages">Languages</SelectItem>
-                <SelectItem value="history">History</SelectItem>
-                <SelectItem value="geography">Geography</SelectItem>
-                <SelectItem value="religious-education">Religious Education</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="topic">Topic</Label>
+            <Input 
+              id="topic" 
+              placeholder="Specific topic or area of study" 
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags</Label>
+            <div className="flex gap-2">
+              <Input 
+                id="tags" 
+                placeholder="Add tags" 
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <Button type="button" onClick={handleAddTag} variant="outline">
+                <Tags className="h-4 w-4 mr-1" /> Add
+              </Button>
+            </div>
+            
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {tags.map((t) => (
+                  <Badge key={t} variant="secondary" className="flex items-center gap-1">
+                    {t}
+                    <button 
+                      type="button" 
+                      onClick={() => handleRemoveTag(t)} 
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="public-usable"
+              checked={isPubliclyUsable}
+              onCheckedChange={setIsPubliclyUsable}
+            />
+            <Label htmlFor="public-usable">Make Publicly Usable by AI</Label>
           </div>
           
           <div className="space-y-2">

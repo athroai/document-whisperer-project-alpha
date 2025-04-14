@@ -16,12 +16,20 @@ export const uploadKnowledgeDocument = async (
     description,
     subject,
     uploadedBy,
+    tags = [],
+    yearGroup,
+    isPubliclyUsable = false,
+    topic,
   }: {
     file: File;
     title: string;
     description: string;
     subject?: string;
     uploadedBy: string;
+    tags?: string[];
+    yearGroup?: string;
+    isPubliclyUsable?: boolean;
+    topic?: string;
   },
   progressCallback?: (progress: number) => void
 ): Promise<UploadedDocument> => {
@@ -63,6 +71,10 @@ export const uploadKnowledgeDocument = async (
       fileType: validFileType,
       fileSize: file.size,
       status: 'processing',
+      tags,
+      yearGroup,
+      isPubliclyUsable,
+      topic,
     };
     
     // Add to mock database
@@ -104,7 +116,13 @@ const processDocument = async (document: UploadedDocument, file: File): Promise<
         sourceDocumentId: document.id,
         sourceTitle: document.title,
         subject: document.subject,
-        chunkIndex: i
+        chunkIndex: i,
+        tags: document.tags,
+        uploadedBy: document.uploadedBy,
+        timestamp: document.timestamp,
+        yearGroup: document.yearGroup,
+        isPubliclyUsable: document.isPubliclyUsable,
+        topic: document.topic,
       };
       
       // Store chunk
@@ -301,4 +319,35 @@ export const getDocumentChunks = async (documentId: string): Promise<KnowledgeCh
   return mockChunks
     .filter(chunk => chunk.sourceDocumentId === documentId)
     .sort((a, b) => a.chunkIndex - b.chunkIndex);
+};
+
+// Toggle document public usability
+export const toggleDocumentPublicUsability = async (documentId: string, isPublic: boolean): Promise<void> => {
+  try {
+    // Find the document and update its isPubliclyUsable flag
+    const docIndex = mockUploads.findIndex(doc => doc.id === documentId);
+    if (docIndex >= 0) {
+      mockUploads[docIndex] = {
+        ...mockUploads[docIndex],
+        isPubliclyUsable: isPublic
+      };
+      
+      // Also update all chunks from this document
+      mockChunks.forEach((chunk, index) => {
+        if (chunk.sourceDocumentId === documentId) {
+          mockChunks[index] = {
+            ...chunk,
+            isPubliclyUsable: isPublic
+          };
+        }
+      });
+      
+      console.log(`Document ${documentId} public usability set to: ${isPublic}`);
+    } else {
+      throw new Error(`Document not found: ${documentId}`);
+    }
+  } catch (error) {
+    console.error("Error toggling document public usability:", error);
+    throw error;
+  }
 };
