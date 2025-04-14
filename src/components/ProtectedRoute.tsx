@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types/auth';
@@ -10,13 +10,15 @@ interface ProtectedRouteProps {
   requiredRole?: UserRole;
   requireLicense?: boolean;
   redirectPath?: string;
+  loadingComponent?: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requiredRole,
   requireLicense = false,
-  redirectPath
+  redirectPath,
+  loadingComponent
 }) => {
   const { state } = useAuth();
   const { user, loading } = state;
@@ -24,7 +26,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   // Show loading state while auth is being checked
   if (loading) {
-    return (
+    return loadingComponent || (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <div className="text-center animate-fade-in">
           <LoadingSpinner className="mx-auto mb-4" size={36} />
@@ -61,7 +63,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   // Handle function children that need user data
   if (typeof children === 'function') {
-    return children({ user });
+    return <div className="animate-fade-in">{children({ user })}</div>;
   }
   
   return <div className="animate-fade-in">{children}</div>;

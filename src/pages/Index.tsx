@@ -11,38 +11,42 @@ const IndexPage = () => {
   const { user, loading } = state;
   
   useEffect(() => {
-    // Wait until auth state is confirmed
+    // Handle redirection immediately when auth state is confirmed
     if (!loading) {
-      if (user) {
-        // If user is logged in, redirect based on role
-        if (user.role === 'teacher' || user.role === 'admin') {
-          navigate('/teacher', { replace: true });
-        } else if (user.role === 'student') {
-          navigate('/athro/select', { replace: true });
-        } else {
-          // Default for other roles
-          navigate('/home', { replace: true });
-        }
-      } else {
-        // If not logged in, redirect to login page
+      redirectToUserDashboard();
+    }
+    
+    // Set a maximum wait time before redirecting to login anyway
+    const redirectTimeout = setTimeout(() => {
+      if (loading) {
+        console.log("Redirect timeout triggered - navigating to login");
         navigate('/login', { replace: true });
       }
-    }
+    }, 3000);
+    
+    return () => clearTimeout(redirectTimeout);
   }, [navigate, user, loading]);
-
-  // Handle manual redirect if needed
-  const handleManualRedirect = () => {
+  
+  // Handle redirection based on user role
+  const redirectToUserDashboard = () => {
     if (user) {
       if (user.role === 'teacher' || user.role === 'admin') {
         navigate('/teacher', { replace: true });
       } else if (user.role === 'student') {
         navigate('/athro/select', { replace: true });
       } else {
+        // Default for other roles
         navigate('/home', { replace: true });
       }
     } else {
+      // If not logged in, redirect to login page
       navigate('/login', { replace: true });
     }
+  };
+
+  // Handle manual redirect if needed
+  const handleManualRedirect = () => {
+    redirectToUserDashboard();
   };
 
   return (
@@ -58,7 +62,7 @@ const IndexPage = () => {
           {loading ? (
             <span className="flex items-center justify-center">
               <LoadingSpinner className="mr-2 h-4 w-4" />
-              Setting up your experience...
+              Preparing your experience...
             </span>
           ) : (
             "Redirecting to your dashboard..."

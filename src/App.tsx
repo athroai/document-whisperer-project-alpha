@@ -23,6 +23,13 @@ import StudySessionRouter from "./pages/study/StudySessionRouter";
 import KnowledgePage from './pages/KnowledgePage';
 import LoadingSpinner from "./components/ui/loading-spinner";
 
+// Simple loading fallback component
+const LoadingFallback: React.FC = () => (
+  <div className="flex items-center justify-center h-screen">
+    <LoadingSpinner className="animate-fade-in" size={32} />
+  </div>
+);
+
 // Add a transition wrapper component for smooth page transitions
 const TransitionWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
   return (
@@ -38,11 +45,7 @@ export default function App() {
       <StudentClassProvider>
         <StudentRecordProvider>
           <AthroProvider>
-            <Suspense fallback={
-              <div className="flex items-center justify-center h-screen">
-                <LoadingSpinner size={32} />
-              </div>
-            }>
+            <Suspense fallback={<LoadingFallback />}>
               <TransitionWrapper>
                 <Routes>
                   <Route path="/" element={<IndexPage />} />
@@ -80,7 +83,11 @@ export default function App() {
                   <Route
                     path="/teacher/*"
                     element={
-                      <ProtectedRoute requiredRole="teacher" redirectPath="/login">
+                      <ProtectedRoute 
+                        requiredRole="teacher" 
+                        redirectPath="/login"
+                        loadingComponent={<LoadingFallback />}
+                      >
                         <TeacherDashboardPage />
                       </ProtectedRoute>
                     }

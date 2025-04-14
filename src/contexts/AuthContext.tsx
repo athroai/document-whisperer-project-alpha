@@ -79,6 +79,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         dispatch({ type: 'AUTH_START' });
         
+        // Add timeout to ensure we don't get stuck in loading state
+        const authCheckTimeout = setTimeout(() => {
+          console.log("Auth check timed out after 5 seconds, forcing completion");
+          dispatch({ type: 'AUTH_LOGOUT' });
+        }, 5000);
+        
         const savedUser = localStorage.getItem('athro_user') || sessionStorage.getItem('athro_user');
         
         if (savedUser) {
@@ -107,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 localStorage.setItem('athro_user', JSON.stringify(mergedUser));
               }
               
+              clearTimeout(authCheckTimeout);
               dispatch({ type: 'AUTH_SUCCESS', payload: mergedUser });
             } else {
               await UserFirestoreService.saveUser(user);
@@ -115,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 localStorage.setItem('athro_user', JSON.stringify(user));
               }
               
+              clearTimeout(authCheckTimeout);
               dispatch({ type: 'AUTH_SUCCESS', payload: user });
             }
           } catch (firestoreError) {
@@ -124,9 +132,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               localStorage.setItem('athro_user', JSON.stringify(user));
             }
             
+            clearTimeout(authCheckTimeout);
             dispatch({ type: 'AUTH_SUCCESS', payload: user });
           }
         } else {
+          clearTimeout(authCheckTimeout);
           dispatch({ type: 'AUTH_LOGOUT' });
         }
       } catch (error) {

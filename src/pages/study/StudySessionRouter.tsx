@@ -28,8 +28,17 @@ const StudySessionRouter: React.FC = () => {
       }
 
       try {
+        // Set a timeout to ensure we don't get stuck in loading state
+        const assignmentTimeout = setTimeout(() => {
+          console.log("Assignment check timed out, defaulting to self-study");
+          navigate('/study/start');
+          setIsLoading(false);
+        }, 3000);
+        
         // Check if the student has assigned work
         const assignments = await assignmentService.getStudentAssignments(state.user.id);
+        clearTimeout(assignmentTimeout);
+        
         const hasAssignedWork = assignments.some(a => !a.isPastDue && !a.hasSubmitted);
         
         if (hasAssignedWork) {
@@ -44,7 +53,7 @@ const StudySessionRouter: React.FC = () => {
         // Set a timeout before redirecting to show the error message
         setTimeout(() => {
           navigate('/study/start');
-        }, 3000);
+        }, 2000); // Reduced from 3000ms to 2000ms for faster feedback
       } finally {
         setIsLoading(false);
       }
