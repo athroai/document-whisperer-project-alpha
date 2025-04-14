@@ -1,103 +1,34 @@
-
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { UploadedFile } from '@/types/files';
-import { FileText, BookOpen, HelpCircle } from 'lucide-react';
-import { getRecentFiles } from '@/services/fileService';
 
 interface FileReferenceProps {
-  userId: string;
-  subject: string;
-  onFileSelect: (file: UploadedFile) => void;
+  file: UploadedFile;
 }
 
-const FileReference: React.FC<FileReferenceProps> = ({ userId, subject, onFileSelect }) => {
-  const [relevantFiles, setRelevantFiles] = useState<UploadedFile[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchRelevantFiles = async () => {
-      try {
-        setLoading(true);
-        // In production, this would filter by subject
-        const files = await getRecentFiles(userId);
-        // Convert files to match the expected type - cast as UploadedFile[] to ensure type compatibility
-        const convertedFiles = files.map(file => ({
-          ...file,
-          visibility: file.visibility || 'private',
-          storagePath: file.storagePath || file.filename,
-          timestamp: file.timestamp || new Date().toISOString(),
-          url: file.url || file.fileURL
-        })) as UploadedFile[];
-        
-        setRelevantFiles(convertedFiles);
-      } catch (error) {
-        console.error('Error fetching files:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRelevantFiles();
-  }, [userId, subject]);
-
-  const getFileIcon = (fileType: string) => {
-    switch (fileType) {
-      case 'paper':
-        return <FileText className="h-4 w-4" />;
-      case 'notes':
-        return <BookOpen className="h-4 w-4" />;
-      case 'quiz':
-        return <HelpCircle className="h-4 w-4" />;
-      default:
-        return <FileText className="h-4 w-4" />;
-    }
-  };
-
-  const getAthroReference = (file: UploadedFile) => {
-    const type = file.fileType === 'paper' ? 'past paper' : file.fileType;
-    const timeReference = new Date(file.timestamp).getTime() > Date.now() - 86400000 * 2 
-      ? 'you uploaded recently' 
-      : 'from your collection';
-    
-    if (file.label) {
-      return `your ${file.label}`;
-    }
-    
-    return `the ${file.subject} ${type} ${timeReference}`;
-  };
-
+const FileReferenceName = ({ file }: { file: UploadedFile }) => {
   return (
-    <Card className="mt-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Study Materials</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {loading ? (
-          <p className="text-sm text-center py-2">Loading relevant materials...</p>
-        ) : relevantFiles.length === 0 ? (
-          <p className="text-sm text-center py-2">No relevant materials found</p>
-        ) : (
-          <div className="space-y-2">
-            {relevantFiles.map(file => (
-              <Button 
-                key={file.id}
-                variant="ghost" 
-                className="w-full justify-start text-sm font-normal"
-                onClick={() => onFileSelect(file)}
-              >
-                {getFileIcon(file.fileType)}
-                <span className="ml-2 truncate">
-                  Would you like to review {getAthroReference(file)}?
-                </span>
-              </Button>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col">
+      <span className="font-medium">{file.label || file.filename || file.original_name}</span>
+      <span className="text-xs text-muted-foreground">{file.label || file.subject || 'Unknown subject'}</span>
+    </div>
   );
 };
 
-export default FileReference;
+const FileReferenceSize = ({ file }: { file: UploadedFile }) => {
+  const fileSizeInKB = file.size ? (file.size / 1024).toFixed(2) : 'Unknown';
+  return <span className="text-xs text-muted-foreground">{fileSizeInKB} KB</span>;
+};
+
+const FileReferenceType = ({ file }: { file: UploadedFile }) => {
+  return <span className="text-xs text-muted-foreground">{file.fileType || file.file_type || 'Unknown type'}</span>;
+};
+
+export const FileReference = ({ file }: FileReferenceProps) => {
+  return (
+    <div className="flex items-center space-x-4">
+      <FileReferenceName file={file} />
+      <FileReferenceSize file={file} />
+      <FileReferenceType file={file} />
+    </div>
+  );
+};

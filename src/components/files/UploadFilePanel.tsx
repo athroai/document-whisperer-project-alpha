@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,22 +40,22 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
 
   const handleUpload = async () => {
     if (!files.length) {
-      toast.error("No Files Selected", {
-        description: "Please select files to upload."
+      toast.error("Error", { 
+        description: "Please select files to upload." 
       });
       return;
     }
 
     if (!subject) {
-      toast.error("Subject Required", {
-        description: "Please select a subject for your uploads."
+      toast.error("Error", { 
+        description: "Please select a subject for your uploads." 
       });
       return;
     }
 
     if (!state.user) {
-      toast.error("Authentication Error", {
-        description: "Please log in to upload files."
+      toast.error("Authentication Error", { 
+        description: "Please log in to upload files." 
       });
       return;
     }
@@ -65,7 +64,6 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
     setProgress(10);
 
     try {
-      // Determine appropriate bucket based on user role
       const bucketName = state.user.role === 'teacher' ? 
         'teacher_materials' : 
         'student_uploads';
@@ -73,14 +71,11 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
       let uploadedCount = 0;
       const totalFiles = files.length;
       
-      // Process each file
       for (const file of files) {
-        // Create a unique path for the file
         const fileExt = file.name.split('.').pop();
         const fileName = `${uuidv4()}.${fileExt}`;
         const filePath = `${subject}/${fileName}`;
         
-        // Upload file to Supabase Storage
         const { data: storageData, error: storageError } = await supabase.storage
           .from(bucketName)
           .upload(filePath, file, {
@@ -92,12 +87,10 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
           throw new Error(`Storage error: ${storageError.message}`);
         }
 
-        // Create a public URL for the file
         const { data: publicUrlData } = supabase.storage
           .from(bucketName)
           .getPublicUrl(filePath);
 
-        // Insert record into the uploads table
         const { error: dbError } = await supabase
           .from('uploads')
           .insert({
@@ -119,24 +112,21 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
           throw new Error(`Database error: ${dbError.message}`);
         }
 
-        // Update progress
         uploadedCount++;
         setProgress(Math.round((uploadedCount / totalFiles) * 90) + 10);
       }
 
       setProgress(100);
 
-      toast.success("Files Uploaded Successfully", {
-        description: `${files.length} ${files.length === 1 ? 'file has' : 'files have'} been uploaded`
+      toast.success("Upload Complete", { 
+        description: `Successfully uploaded ${uploadedCount} files` 
       });
 
-      // Reset form
       setFiles([]);
       setTopic('');
       setProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = '';
 
-      // Notify parent component
       if (onUploadComplete) onUploadComplete();
       if (onClose) onClose();
     } catch (error: any) {

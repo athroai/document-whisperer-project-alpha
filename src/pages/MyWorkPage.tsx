@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { format } from 'date-fns';
-import { ClipboardCheck, Clock, X, Check, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Clock, Check, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 interface Task {
   id: string;
@@ -77,7 +78,7 @@ const MyWorkPage: React.FC = () => {
           
         if (error) throw error;
         
-        setTasks(data);
+        setTasks(data || []);
       } catch (err: any) {
         console.error('Error fetching tasks:', err);
         setError('Failed to load tasks. Please try again.');

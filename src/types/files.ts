@@ -34,10 +34,14 @@ export interface UploadedFile {
   uploaded_by?: string;
   visibility?: string;
   filename?: string;
+  label?: string;
   
   // Additional compatibility properties
   userId?: string;
   fileURL?: string;
   url?: string;
   mimeType?: string;
+  
+  // Ensure support for both naming conventions
+  originalName?: string;
 }

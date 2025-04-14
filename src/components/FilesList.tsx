@@ -27,6 +27,8 @@ const FilesList: React.FC<FilesListProps> = ({ files, title, onFileClick, onFile
     }
   };
 
+  const getFileName = (file: UploadedFile) => file.filename || file.original_name || 'Unnamed file';
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -58,7 +60,7 @@ const FilesList: React.FC<FilesListProps> = ({ files, title, onFileClick, onFile
             <CardContent className="p-4 flex items-center space-x-3">
               {getFileIcon(file)}
               <div className="overflow-hidden">
-                <p className="font-medium truncate">{file.originalName || file.filename}</p>
+                <p className="font-medium truncate">{getFileName(file)}</p>
                 <p className="text-sm text-gray-500">{file.subject || file.fileType || 'General'}</p>
               </div>
             </CardContent>
