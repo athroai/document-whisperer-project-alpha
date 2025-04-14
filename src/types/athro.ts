@@ -66,18 +66,18 @@ export interface AthroLanguage {
 }
 
 export interface ModelAnswer {
-  id?: string;
-  questionId?: string;
-  grade: string;
-  text?: string;
-  answer?: string;
+  id: string;
+  questionId: string;
+  answer: string;
+  translation?: string;
   workingSteps?: string[];
   markScheme?: string;
   marks?: number;
   latexNotation?: string;
-  translation?: string;
   grammarExplanation?: string;
   culturalNote?: string;
+  grade?: string;
+  text?: string; // For backward compatibility
 }
 
 export interface PastPaper {

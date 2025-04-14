@@ -5,6 +5,7 @@ export const spanishModelAnswers: ModelAnswer[] = [
   {
     id: 's22-3810u10-1-q1',
     questionId: 's22-3810u10-1-q1',
+    grade: 'A',
     answer: "Voy a describir mi familia y mis relaciones con los diferentes miembros.",
     workingSteps: [
       'Comienza con una introducción a tu familia',
@@ -23,6 +24,7 @@ export const spanishModelAnswers: ModelAnswer[] = [
   {
     id: 's22-3810u10-1-q2',
     questionId: 's22-3810u10-1-q2',
+    grade: 'A',
     answer: "Voy a describir mi rutina diaria y lo que hago normalmente durante la semana.",
     workingSteps: [
       'Describe tu rutina matutina',
@@ -39,3 +41,5 @@ export const spanishModelAnswers: ModelAnswer[] = [
     culturalNote: 'En España, el horario diario es diferente al de muchos países anglosajones, con la comida principal al mediodía y una cena más ligera por la noche, normalmente bastante tarde.'
   }
 ];
+
+export default spanishModelAnswers;
