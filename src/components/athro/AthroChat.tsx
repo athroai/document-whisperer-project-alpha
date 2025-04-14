@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAthro } from '@/contexts/AthroContext';
@@ -12,6 +11,7 @@ import FileUpload from '@/components/FileUpload';
 import { UploadMetadata } from '@/types/files';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { AthroSubject } from '@/types/athro';
 
 interface AthroMessage {
   id: string;
@@ -27,14 +27,19 @@ interface Knowledge {
   citations: Citation[];
 }
 
-interface AthroChatProps {
+export interface AthroChatProps {
   fetchKnowledgeForQuery: (query: string) => Promise<Knowledge>;
   isLoading: boolean;
+  isCompactMode?: boolean;
 }
 
-const AthroChat: React.FC<AthroChatProps> = ({ fetchKnowledgeForQuery, isLoading }) => {
+const AthroChat: React.FC<AthroChatProps> = ({ 
+  fetchKnowledgeForQuery, 
+  isLoading, 
+  isCompactMode = false 
+}) => {
   const { subject } = useParams<{ subject: string }>();
-  const { currentSubject, athroThemeForSubject } = useAthro();
+  const { characters, activeCharacter } = useAthro();
   const { state } = useAuth();
   const { toast } = useToast();
   const [message, setMessage] = useState('');
@@ -46,7 +51,47 @@ const AthroChat: React.FC<AthroChatProps> = ({ fetchKnowledgeForQuery, isLoading
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Get theme colors based on current subject
-  const theme = athroThemeForSubject(currentSubject);
+  const getThemeForSubject = (subjectName?: string) => {
+    // Default theme
+    const defaultTheme = { 
+      primary: 'blue-600',
+      secondary: 'green-500',
+      primaryHex: '#2563eb',
+      secondaryHex: '#22c55e'
+    };
+    
+    if (!subjectName) return defaultTheme;
+    
+    const themes: Record<string, {
+      primary: string;
+      secondary: string;
+      primaryHex: string;
+      secondaryHex: string;
+    }> = {
+      'Mathematics': {
+        primary: 'blue-600',
+        secondary: 'sky-500',
+        primaryHex: '#2563eb',
+        secondaryHex: '#0ea5e9'
+      },
+      'Science': {
+        primary: 'green-600',
+        secondary: 'emerald-500',
+        primaryHex: '#16a34a',
+        secondaryHex: '#10b981'
+      },
+      'English': {
+        primary: 'purple-600',
+        secondary: 'violet-500',
+        primaryHex: '#9333ea',
+        secondaryHex: '#8b5cf6'
+      }
+    };
+    
+    return themes[subjectName] || defaultTheme;
+  };
+  
+  const theme = activeCharacter ? getThemeForSubject(activeCharacter.subject) : getThemeForSubject();
 
   // Scroll to bottom of chat when new messages are added
   useEffect(() => {
@@ -65,76 +110,19 @@ const AthroChat: React.FC<AthroChatProps> = ({ fetchKnowledgeForQuery, isLoading
     setShowFileUpload(false);
   };
 
-  const handleMessageSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim() || isLoading) return;
-
-    // Add user message to conversation
-    const userMessage: AthroMessage = {
-      id: `user_${Date.now()}`,
-      text: message,
-      sender: 'user',
-      timestamp: new Date()
-    };
-    
-    setConversation([...conversation, userMessage]);
-    setMessage('');
-
-    try {
-      // Fetch knowledge context for the query
-      const knowledge = await fetchKnowledgeForQuery(message);
-      
-      // Simulate AI response (in a real app, this would call your AI service)
-      setTimeout(() => {
-        // Create the AI response
-        const aiMessage: AthroMessage = {
-          id: `athro_${Date.now()}`,
-          text: simulateAiResponse(message, knowledge.enhancedContext),
-          sender: 'athro',
-          timestamp: new Date(),
-          citations: knowledge.hasKnowledgeResults ? knowledge.citations : undefined
-        };
-        
-        setConversation(prev => [...prev, aiMessage]);
-      }, 1500);
-    } catch (error) {
-      console.error('Error generating AI response:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to generate a response. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // This is a placeholder to simulate AI responses
-  // In a real implementation, this would call an actual AI service
-  const simulateAiResponse = (query: string, context?: string): string => {
-    // Simple response based on query
-    if (query.toLowerCase().includes('hello') || query.toLowerCase().includes('hi')) {
-      return "Hello! I'm Athro, your AI study assistant. How can I help you today?";
-    }
-    
-    if (context) {
-      return `Based on your study materials: ${context.substring(0, 200)}... \n\nHere's what I found that might help you with your question about ${query}.`;
-    }
-    
-    return `I'm here to help you with ${currentSubject}. What specific topic would you like to explore?`;
-  };
-
-  const handleCitationClick = (citation: Citation) => {
+  function handleCitationClick(citation: Citation) {
     setActiveCitations([citation]);
     setShowCitations(true);
   };
 
-  const toggleCitationSidebar = () => {
+  function toggleCitationSidebar() {
     setShowCitations(!showCitations);
   };
 
-  const renderMessage = (msg: AthroMessage) => {
+  function renderMessage(msg: AthroMessage) {
     const bgColor = msg.sender === 'user' 
       ? 'bg-gray-100' 
-      : `bg-${theme.primary} text-white`;
+      : 'bg-blue-500 text-white';
     
     return (
       <div 
@@ -156,15 +144,74 @@ const AthroChat: React.FC<AthroChatProps> = ({ fetchKnowledgeForQuery, isLoading
     );
   };
 
+  function handleMessageSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!message.trim() || isLoading) return;
+
+    // Add user message to conversation
+    const userMessage: AthroMessage = {
+      id: `user_${Date.now()}`,
+      text: message,
+      sender: 'user',
+      timestamp: new Date()
+    };
+    
+    setConversation([...conversation, userMessage]);
+    setMessage('');
+
+    try {
+      // Fetch knowledge context for the query
+      fetchKnowledgeForQuery(message).then(knowledge => {
+        // Simulate AI response (in a real app, this would call your AI service)
+        setTimeout(() => {
+          // Create the AI response
+          const aiMessage: AthroMessage = {
+            id: `athro_${Date.now()}`,
+            text: simulateAiResponse(message, knowledge.enhancedContext),
+            sender: 'athro',
+            timestamp: new Date(),
+            citations: knowledge.hasKnowledgeResults ? knowledge.citations : undefined
+          };
+          
+          setConversation(prev => [...prev, aiMessage]);
+        }, 1500);
+      });
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate a response. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // This is a placeholder to simulate AI responses
+  // In a real implementation, this would call an actual AI service
+  function simulateAiResponse(query: string, context?: string): string {
+    // Simple response based on query
+    if (query.toLowerCase().includes('hello') || query.toLowerCase().includes('hi')) {
+      return "Hello! I'm Athro, your AI study assistant. How can I help you today?";
+    }
+    
+    if (context) {
+      return `Based on your study materials: ${context.substring(0, 200)}... \n\nHere's what I found that might help you with your question about ${query}.`;
+    }
+    
+    return `I'm here to help you study. What specific topic would you like to explore?`;
+  };
+
   return (
     <div className={`flex h-full`}>
       <div className={`flex-1 flex flex-col h-full ${showCitations ? 'pr-4' : ''}`}>
         {/* Chat header */}
         <div 
-          className={`p-4 bg-${theme.primary} text-white flex justify-between items-center`}
+          className="p-4 text-white flex justify-between items-center"
           style={{ backgroundColor: theme.primaryHex }}
         >
-          <h2 className="text-xl font-bold">Athro {currentSubject}</h2>
+          <h2 className="text-xl font-bold">
+            {activeCharacter ? `Athro ${activeCharacter.subject}` : 'Athro AI'}
+          </h2>
           <div>
             <Button 
               variant="ghost" 
@@ -237,7 +284,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ fetchKnowledgeForQuery, isLoading
             <Button 
               type="submit"
               disabled={!message.trim() || isLoading}
-              className={`bg-${theme.secondary}`}
               style={{ backgroundColor: theme.secondaryHex }}
             >
               <Send size={18} />
@@ -256,6 +302,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ fetchKnowledgeForQuery, isLoading
       )}
     </div>
   );
-};
+}
 
 export default AthroChat;

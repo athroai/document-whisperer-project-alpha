@@ -20,7 +20,7 @@ const AthroRouter: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth().state;
-  const { currentSubject, setCurrentSubject } = useAthro();
+  const { characters, activeCharacter, setActiveCharacter } = useAthro();
   const [isLoading, setIsLoading] = useState(false);
   
   // Check the URL for subject path
@@ -30,16 +30,24 @@ const AthroRouter: React.FC = () => {
     
     if (subjectPath && subjectPath !== 'select') {
       try {
-        const subjectEnum = subjectPath.toUpperCase() as AthroSubject;
-        if (Object.values(AthroSubject).includes(subjectEnum)) {
-          setCurrentSubject(subjectEnum);
+        // Try to find a character with the matching subject
+        const subject = subjectPath.charAt(0).toUpperCase() + subjectPath.slice(1);
+        const foundCharacter = characters.find(
+          c => c.subject.toLowerCase() === subject.toLowerCase()
+        );
+        
+        if (foundCharacter) {
+          setActiveCharacter(foundCharacter);
+        } else {
+          console.error('Invalid subject in URL:', subjectPath);
+          navigate('/athro/select', { replace: true });
         }
       } catch (error) {
-        console.error('Invalid subject in URL:', error);
+        console.error('Error processing subject in URL:', error);
         navigate('/athro/select', { replace: true });
       }
     }
-  }, [location.pathname, setCurrentSubject, navigate]);
+  }, [location.pathname, setActiveCharacter, navigate, characters]);
   
   // Redirect to subject selection if no subject is selected
   useEffect(() => {
@@ -52,7 +60,7 @@ const AthroRouter: React.FC = () => {
   const fetchKnowledgeForQuery = async (query: string): Promise<Knowledge> => {
     setIsLoading(true);
     try {
-      if (!currentSubject) {
+      if (!activeCharacter) {
         return {
           enhancedContext: '',
           hasKnowledgeResults: false,
@@ -60,10 +68,10 @@ const AthroRouter: React.FC = () => {
         };
       }
       
-      const subjectString = currentSubject.toLowerCase();
+      const subjectString = activeCharacter.subject.toLowerCase();
       const searchResults = await searchKnowledgeBase(query, subjectString);
       
-      if (searchResults.length === 0) {
+      if (!searchResults || searchResults.length === 0) {
         return {
           enhancedContext: '',
           hasKnowledgeResults: false,
@@ -102,7 +110,10 @@ const AthroRouter: React.FC = () => {
       <Route 
         path="/:subject" 
         element={
-          <AthroChat fetchKnowledgeForQuery={fetchKnowledgeForQuery} isLoading={isLoading} />
+          <AthroChat 
+            fetchKnowledgeForQuery={fetchKnowledgeForQuery} 
+            isLoading={isLoading} 
+          />
         } 
       />
     </Routes>

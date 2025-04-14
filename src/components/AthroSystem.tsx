@@ -6,10 +6,62 @@ import { Button } from '@/components/ui/button';
 import { MessageCircle, CloudOff, AlertCircle } from 'lucide-react';
 import AthroChat from './athro/AthroChat';
 import { Badge } from './ui/badge';
+import { Citation } from '@/types/citations';
+import { searchKnowledgeBase } from '@/services/knowledgeBaseService';
+import { createCitationsFromKnowledgeResults } from '@/services/fileAwareAiService';
 
 const AthroSystem: React.FC = () => {
   const { activeCharacter, sendMessage, firestoreStatus } = useAthro();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Function to fetch knowledge for a given query
+  const fetchKnowledgeForQuery = async (query: string) => {
+    setIsLoading(true);
+    try {
+      if (!activeCharacter) {
+        return {
+          enhancedContext: '',
+          hasKnowledgeResults: false,
+          citations: []
+        };
+      }
+      
+      const subject = activeCharacter.subject.toLowerCase();
+      const searchResults = await searchKnowledgeBase(query, subject);
+      
+      if (searchResults.length === 0) {
+        return {
+          enhancedContext: '',
+          hasKnowledgeResults: false,
+          citations: []
+        };
+      }
+      
+      // Create citations from the search results
+      const citations = createCitationsFromKnowledgeResults(searchResults);
+      
+      // Create enhanced context from the search results
+      const enhancedContext = searchResults
+        .map(result => result.chunk.content)
+        .join('\n\n');
+      
+      return {
+        enhancedContext,
+        hasKnowledgeResults: true,
+        citations
+      };
+    } catch (error) {
+      console.error('Error fetching knowledge for query:', error);
+      return {
+        enhancedContext: '',
+        hasKnowledgeResults: false,
+        citations: []
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
@@ -79,7 +131,11 @@ const AthroSystem: React.FC = () => {
             </SheetTitle>
           </SheetHeader>
           <div className="h-[calc(100vh-80px)]">
-            <AthroChat isCompactMode={true} />
+            <AthroChat 
+              fetchKnowledgeForQuery={fetchKnowledgeForQuery} 
+              isLoading={isLoading} 
+              isCompactMode={true} 
+            />
           </div>
         </SheetContent>
       </Sheet>

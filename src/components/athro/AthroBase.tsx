@@ -7,6 +7,9 @@ import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { isInStudySession } from '@/utils/studySessionManager';
 import ExitConfirmationModal from './ExitConfirmationModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Citation } from '@/types/citations';
+import { searchKnowledgeBase } from '@/services/knowledgeBaseService';
+import { createCitationsFromKnowledgeResults } from '@/services/fileAwareAiService';
 
 interface AthroBaseProps {
   subject: string;
@@ -57,6 +60,46 @@ const AthroBase: React.FC<AthroBaseProps> = ({ subject, allowScience, allowLangu
     } else {
       // Otherwise just navigate back
       navigate('/athro/select');
+    }
+  };
+
+  // Function to fetch knowledge for a given query
+  const fetchKnowledgeForQuery = async (query: string) => {
+    setIsLoading(true);
+    try {
+      // Search the knowledge base
+      const searchResults = await searchKnowledgeBase(query, subject.toLowerCase());
+      
+      if (searchResults.length === 0) {
+        return {
+          enhancedContext: '',
+          hasKnowledgeResults: false,
+          citations: []
+        };
+      }
+      
+      // Create citations from the search results
+      const citations = createCitationsFromKnowledgeResults(searchResults);
+      
+      // Create enhanced context from the search results
+      const enhancedContext = searchResults
+        .map(result => result.chunk.content)
+        .join('\n\n');
+      
+      return {
+        enhancedContext,
+        hasKnowledgeResults: true,
+        citations
+      };
+    } catch (error) {
+      console.error('Error fetching knowledge for query:', error);
+      return {
+        enhancedContext: '',
+        hasKnowledgeResults: false,
+        citations: []
+      };
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -120,7 +163,10 @@ const AthroBase: React.FC<AthroBaseProps> = ({ subject, allowScience, allowLangu
       </div>
       
       <div className="flex-grow overflow-hidden">
-        <AthroChat />
+        <AthroChat 
+          fetchKnowledgeForQuery={fetchKnowledgeForQuery} 
+          isLoading={isLoading} 
+        />
       </div>
       
       {/* Exit confirmation dialog */}
