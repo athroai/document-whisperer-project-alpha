@@ -1,5 +1,5 @@
 
-export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Languages' | 'Religious Education' | 'Welsh';
+export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Languages' | 'Religious Education' | 'Welsh' | 'French' | 'German' | 'Spanish';
 
 export type ExamBoard = 'WJEC' | 'AQA' | 'OCR' | 'Edexcel' | 'Cambridge' | 'CCEA';
 
@@ -44,16 +44,25 @@ export interface PastPaper {
   season: 'Summer' | 'Winter' | 'Autumn';
   fileUrl: string;
   markSchemeUrl?: string;
+  unit?: string;
+  title?: string;
+  questions?: any[];
 }
 
 export interface ModelAnswer {
   id: string;
-  question: string;
+  question: string; // Note: This is the expected field, not questionId
   answer: string;
   examBoard: ExamBoard;
   grade: 'A*' | 'A' | 'B' | 'C' | 'D' | 'E' | 'U';
   marks: number;
-  totalMarks: number;
+  totalMarks?: number;
+  workingSteps?: string[];
+  markScheme?: string;
+  latexNotation?: string;
+  translation?: string;
+  grammarExplanation?: string;
+  culturalNote?: string;
 }
 
 export interface FeedbackSummary {
@@ -63,6 +72,14 @@ export interface FeedbackSummary {
   areasToImprove: string[];
   nextSteps: string[];
   confidence?: number;
+  feedback?: string;
+  encouragement?: string;
+  teacherComments?: string;
+  submittedAt?: string;
+  activityType?: 'goal' | 'assignment' | 'quiz' | 'exam';
+  activityId?: string;
+  activityName?: string;
+  subject?: string;
 }
 
 export interface AthroLanguage {

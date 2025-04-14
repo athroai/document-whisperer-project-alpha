@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CompletionReviewPanel from './CompletionReviewPanel';
-import { FeedbackSummary } from '@/types/feedback';
+import { FeedbackSummary } from '@/types/athro';
 import athroService from '@/services/athroService';
 
 interface CompletionReviewExampleProps {
@@ -23,8 +23,17 @@ const CompletionReviewExample: React.FC<CompletionReviewExampleProps> = ({ subje
     submittedAt: new Date().toISOString()
   };
   
-  // Get feedback summary from service
-  const feedbackSummary: FeedbackSummary = athroService.getFeedbackSummary(mockSubmission);
+  // Get feedback summary and add required properties
+  const basicFeedback = athroService.getFeedbackSummary(mockSubmission);
+  const feedbackSummary: FeedbackSummary = {
+    ...basicFeedback,
+    feedback: `Good work on your ${subject} practice!`,
+    encouragement: 'Keep up the consistent effort!',
+    activityType: 'quiz',
+    activityId: mockSubmission.id,
+    activityName: mockSubmission.title,
+    subject: mockSubmission.subject
+  };
   
   const handleReviewSubmission = () => {
     console.log('Review submission clicked');

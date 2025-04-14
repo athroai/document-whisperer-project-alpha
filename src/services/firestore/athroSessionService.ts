@@ -13,13 +13,13 @@ let mockSessions = [
       {
         id: 'msg-1',
         content: "Hello! I need help with quadratic equations.",
-        role: 'user',
+        role: 'user' as const,
         timestamp: new Date(Date.now() - 5000)
       },
       {
         id: 'msg-2',
         content: "I'd be happy to help you with quadratic equations. What specifically are you struggling with?",
-        role: 'assistant',
+        role: 'assistant' as const,
         timestamp: new Date(Date.now() - 2000)
       }
     ]
@@ -91,7 +91,7 @@ const athroSessionService = {
     return session.messages.map(msg => ({
       id: msg.id,
       content: msg.content,
-      role: msg.role,
+      role: msg.role as 'user' | 'assistant',
       timestamp: new Date(msg.timestamp)
     }));
   },

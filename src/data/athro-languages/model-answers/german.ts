@@ -4,41 +4,41 @@ import { ModelAnswer } from '@/types/athro';
 export const germanModelAnswers: ModelAnswer[] = [
   {
     id: 'g22-3850u10-1-q1',
-    questionId: 'g22-3850u10-1-q1',
+    question: 'Beschreiben Sie Ihre Familie und was Sie zusammen machen.',
     grade: 'A',
     answer: "Ich werde meine Familie beschreiben und erklären, was wir zusammen machen.",
     workingSteps: [
-      'Beginnen Sie mit einer Einleitung zu Ihrer Familie',
-      'Beschreiben Sie jeden Familienangehörigen (Eltern, Geschwister)',
-      'Erklären Sie, was Sie zusammen machen',
-      'Verwenden Sie verschiedene Adjektive, um Persönlichkeiten zu beschreiben',
-      'Erwähnen Sie besondere Familientraditionen'
+      'Begin with an introduction about your family',
+      'Describe each family member',
+      'Explain your relationships with them',
+      'Mention activities you do together',
+      'Conclude with a general statement about family importance'
     ],
-    markScheme: 'Die Antworten sollten Folgendes enthalten: angemessene Terminologie für Familienmitglieder, verschiedene Adjektive, korrekt konjugierte Verben im Präsens, klare Struktur mit Einleitung und Schluss, mindestens 100 Wörter.',
+    markScheme: 'A complete answer should include: appropriate family terminology in German, varied adjectives for description, correct verb conjugation, proper sentence structure, at least 100 words.',
     marks: 10,
     latexNotation: '',
-    translation: 'In meiner Familie gibt es vier Personen: meinen Vater, meine Mutter, meinen Bruder und mich. Mein Vater heißt Hans, er ist 47 Jahre alt und arbeitet als Ingenieur. Meine Mutter heißt Anna, sie ist 45 Jahre alt und ist Lehrerin. Mein Bruder heißt Max, er ist 15 Jahre alt und geht noch zur Schule. Am Wochenende machen wir oft Ausflüge oder kochen zusammen. Jeden Sonntag besuchen wir meine Großeltern zum Mittagessen.',
-    grammarExplanation: 'Diese Antwort verwendet korrekt die Possessivpronomen (mein, meine, meinen), Verben im Präsens (gibt, ist, heißt, arbeitet) und die Akkusativform nach der Präposition "für".',
-    culturalNote: 'In Deutschland ist das gemeinsame Sonntagsessen eine wichtige Familientradition, die viele Familien zusammenbringt.'
+    translation: 'In my family there are four people: my father, my mother, my brother and me. My father is called Hans, he is 47 years old and works as an engineer. My mother is called Monika, she is 45 years old and works as a teacher. My brother is called Lukas, he is 20 years old and studies medicine.',
+    grammarExplanation: 'This answer correctly uses possessive adjectives (mein, meine), present tense verbs (ist, arbeitet, studiert), and the structure "In meiner Familie gibt es..." to introduce family members.',
+    culturalNote: 'In Germany, family relationships are important, although adult children often live independently from their parents.'
   },
   {
     id: 'g22-3850u10-1-q2',
-    questionId: 'g22-3850u10-1-q2',
+    question: 'Beschreiben Sie Ihren letzten Urlaub.',
     grade: 'A',
-    answer: "Ich werde über meinen letzten Urlaub in Bayern berichten.",
+    answer: "Ich werde über meinen letzten Urlaub berichten.",
     workingSteps: [
-      'Erwähnen Sie, wohin Sie in den Urlaub gefahren sind',
-      'Beschreiben Sie, wie Sie dorthin gereist sind',
-      'Erklären Sie, wo Sie übernachtet haben',
-      'Listen Sie die Aktivitäten auf, die Sie unternommen haben',
-      'Geben Sie Ihre Meinung zum Urlaub'
+      'Mention when and where you went',
+      'Describe your accommodation',
+      'Talk about activities you did',
+      'Mention the weather',
+      'Express your opinion about the holiday'
     ],
-    markScheme: 'Die Antworten sollten Folgendes enthalten: Vergangenheitsformen (Perfekt/Präteritum), Ortsangaben, Reisevokabular, Aktivitätsbeschreibungen, persönliche Meinung, mindestens 150 Wörter.',
+    markScheme: 'A complete answer should include: past tense verbs, time expressions, location details, varied vocabulary about activities and accommodation, personal opinions, at least 120 words.',
     marks: 15,
     latexNotation: '',
-    translation: 'Letzten Sommer bin ich mit meiner Familie nach Bayern gefahren. Wir sind mit dem Auto gefahren und die Reise hat ungefähr vier Stunden gedauert. Wir haben in einem gemütlichen Hotel in der Nähe der Alpen übernachtet. Während des Urlaubs haben wir viele Aktivitäten gemacht. Wir sind gewandert, haben Schloss Neuschwanstein besichtigt und sind im Königssee geschwommen. Das Wetter war meistens sonnig, aber an einem Tag hat es geregnet. Der Urlaub war fantastisch und ich würde gerne wieder nach Bayern fahren.',
-    grammarExplanation: 'Diese Antwort verwendet korrekt das Perfekt mit verschiedenen Hilfsverben (sein, haben), Präpositionen mit Dativ (mit, in, nach) und den Konjunktiv II für den Wunsch (würde).',
-    culturalNote: 'Bayern ist eines der beliebtesten Urlaubsziele innerhalb Deutschlands, bekannt für seine Alpenlandschaft, traditionelle Kultur und historische Schlösser wie Neuschwanstein.'
+    translation: 'Last year I went on holiday to Austria with my family. We stayed in a small hotel in the mountains near Salzburg. The weather was very good - sunny and warm every day. During our holiday, we went hiking in the mountains and visited some interesting museums in the city. The food was delicious, especially the Austrian cakes. I really enjoyed this holiday because I love the mountains and nature.',
+    grammarExplanation: 'This answer correctly uses the simple past tense (ging, war) and the perfect tense (sind gewandert, haben besucht), prepositions with locations (in den Bergen, in der Stadt), and opinion phrases (Das Essen war köstlich).',
+    culturalNote: 'Mountain holidays in Alpine regions like Austria, Switzerland and southern Germany are very popular among German speakers. Hiking is considered an important cultural activity.'
   }
 ];
 

@@ -4,7 +4,7 @@ import { ModelAnswer } from '@/types/athro';
 export const frenchModelAnswers: ModelAnswer[] = [
   {
     id: 'f22-3800u10-1-q1',
-    questionId: 'f22-3800u10-1-q1',
+    question: 'Décrivez votre famille et parlez de vos relations avec les différents membres.',
     grade: 'A',
     answer: "Dans ma famille, il y a quatre personnes. Je vais décrire chaque membre et nos relations.",
     workingSteps: [
@@ -23,7 +23,7 @@ export const frenchModelAnswers: ModelAnswer[] = [
   },
   {
     id: 'f22-3800u10-1-q2',
-    questionId: 'f22-3800u10-1-q2',
+    question: 'Quels sont vos passe-temps préférés et pourquoi les appréciez-vous?',
     grade: 'A',
     answer: "Je vais décrire mes passe-temps préférés et expliquer pourquoi je les apprécie.",
     workingSteps: [

@@ -15,6 +15,7 @@ interface SessionHistoryItem {
   subject: string;
   lastUsed: Date;
   avatarUrl?: string;
+  id?: string;
 }
 
 const AthroProfile = () => {
@@ -31,12 +32,14 @@ const AthroProfile = () => {
         setFirestoreStatus('loading');
         const sessions = await AthroSessionFirestoreService.getUserSessions(state.user.id);
         
-        // Enhance with Avatar URLs
+        // Convert sessions to SessionHistoryItem format with lastUsed
         const enhancedSessions = sessions.map(session => {
           const athroCharacter = getAthroBySubject(session.subject);
           return {
-            ...session,
-            avatarUrl: athroCharacter?.avatarUrl
+            id: session.id,
+            subject: session.subject,
+            avatarUrl: athroCharacter?.avatarUrl,
+            lastUsed: new Date(session.createdAt) // Use createdAt as lastUsed date
           };
         });
         

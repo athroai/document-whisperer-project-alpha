@@ -4,7 +4,7 @@ import { ModelAnswer } from '@/types/athro';
 export const spanishModelAnswers: ModelAnswer[] = [
   {
     id: 's22-3810u10-1-q1',
-    questionId: 's22-3810u10-1-q1',
+    question: 'Describe tu familia y tus relaciones con los diferentes miembros.',
     grade: 'A',
     answer: "Voy a describir mi familia y mis relaciones con los diferentes miembros.",
     workingSteps: [
@@ -23,7 +23,7 @@ export const spanishModelAnswers: ModelAnswer[] = [
   },
   {
     id: 's22-3810u10-1-q2',
-    questionId: 's22-3810u10-1-q2',
+    question: 'Describe tu rutina diaria.',
     grade: 'A',
     answer: "Voy a describir mi rutina diaria y lo que hago normalmente durante la semana.",
     workingSteps: [
