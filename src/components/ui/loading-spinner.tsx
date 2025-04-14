@@ -15,13 +15,11 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   color = "currentColor",
 }) => {
   return (
-    <span className={cn("flex items-center justify-center", className)}>
-      <Loader 
-        className="animate-spin" 
-        size={size} 
-        color={color} 
-      />
-    </span>
+    <Loader 
+      className={cn("animate-spin", className)} 
+      size={size} 
+      color={color} 
+    />
   );
 };
 
