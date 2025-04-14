@@ -89,8 +89,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ userId, userRole, onFileUploade
         // Here we would save fileMetadata to Firebase
         toast({
           title: "File Uploaded",
-          description: `${file.name} has been successfully uploaded.`,
+          description: `${file.name} has been successfully uploaded and will be processed for AI knowledge.`,
         });
+        
+        // In a real implementation, we would call a function to process the file for the knowledge base
+        console.log("Processing file for knowledge base:", fileMetadata);
       }
 
       // Reset form

@@ -36,11 +36,13 @@ export const processCitedMessage = async (
     };
     
     citations.push(citation);
+    
+    // For a real implementation, the AI would need to be instructed to place citation markers
+    // Here we're just appending citation references to the end of the message
+    if (index === knowledgeResults.length - 1) {
+      enhancedMessage += `\n\nReferences: ${citations.map(c => c.label).join(', ')}`;
+    }
   });
-  
-  // For this implementation, we'll assume the message already contains citation markers
-  // In a real implementation, the LLM would need to be instructed to place citation markers
-  // or we would need to analyze the message to find where to place citations
   
   return {
     enhancedMessage,
@@ -52,10 +54,10 @@ export const processCitedMessage = async (
  * Extract a relevant highlight from content
  */
 const extractHighlight = (content: string): string => {
-  // For simplicity, we'll just take the first 100 characters
+  // For simplicity, we'll just take the first 150 characters
   // In a real implementation, this could use NLP to find the most relevant section
-  if (content.length <= 100) return content;
-  return content.substring(0, 100) + '...';
+  if (content.length <= 150) return content;
+  return content.substring(0, 150) + '...';
 };
 
 /**

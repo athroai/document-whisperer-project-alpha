@@ -1,233 +1,112 @@
 
-import React, { useEffect } from 'react';
-import { AthroCharacter, AthroMessage } from '@/types/athro';
-import athroService from '@/services/athroService';
-import { useStudentClass } from '@/contexts/StudentClassContext';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import AthroChat from './AthroChat';
+import AthroSubjectSelect from './AthroSubjectSelect';
+import { AthroSubject } from '@/types/athro';
+import { useAthro } from '@/contexts/AthroContext';
 import { useAuth } from '@/contexts/AuthContext';
-import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
-import { getAthroById } from '@/config/athrosConfig';
-import { useTranslation } from '@/hooks/useTranslation';
-import { enhanceResponseWithKnowledge, shouldEnhanceWithKnowledge } from '@/services/athroServiceExtension';
-import { enhanceMessageWithCitations } from '@/services/citationService';
+import { searchKnowledgeBase } from '@/services/knowledgeBaseService';
+import { createCitationsFromKnowledgeResults } from '@/services/fileAwareAiService';
 import { Citation } from '@/types/citations';
 
-interface AthroRouterProps {
-  character: AthroCharacter;
-  message: string;
-  context?: Record<string, any>;
-  onResponse: (message: AthroMessage) => void;
+interface Knowledge {
+  enhancedContext: string;
+  hasKnowledgeResults: boolean;
+  citations: Citation[];
 }
 
-const AthroRouter: React.FC<AthroRouterProps> = ({
-  character,
-  message,
-  context,
-  onResponse
-}) => {
-  const { isMockEnrollment } = useStudentClass();
-  const { state } = useAuth();
-  const { language } = useTranslation();
+const AthroRouter: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth().state;
+  const { currentSubject, setCurrentSubject } = useAthro();
+  const [isLoading, setIsLoading] = useState(false);
   
+  // Check the URL for subject path
   useEffect(() => {
-    const processMessage = async () => {
-      try {
-        console.log(`[AthroRouter] Processing message for ${character.name}: "${message}"`);
-        
-        // Get the full character config to access promptPersona
-        const characterConfig = getAthroById(character.id);
-        if (!characterConfig) {
-          throw new Error(`Character configuration not found for ID: ${character.id}`);
-        }
-        
-        const promptPersona = characterConfig.promptPersona || 
-          `You are ${character.name}, a mentor for GCSE students specializing in ${character.subject}.`;
-        
-        console.log(`[AthroRouter] Using prompt persona: ${promptPersona.substring(0, 50)}...`);
-        
-        // Add mock enrollment information to the context if needed
-        let enhancedContext: Record<string, any> = {
-          ...context,
-          promptPersona,
-          preferredLanguage: language // Add the user's language preference
-        };
-        
-        if (isMockEnrollment) {
-          console.log('[AthroRouter] Using mock enrollment context');
-          enhancedContext = {
-            ...enhancedContext,
-            isMockEnrollment: true,
-            mockClass: `Mock Class: ${character.subject}`
-          };
-        }
-        
-        // Get subject-specific context if available
-        let subjectContext: Record<string, any> = {};
-        if (character.subject === 'Languages' && context?.subjectSection) {
-          subjectContext = { subjectSection: context.subjectSection };
-          console.log(`[AthroRouter] Language context detected:`, context.subjectSection);
-          
-          // For languages, we want to use special language-specific responses
-          if (['french', 'german', 'spanish'].includes(context.subjectSection)) {
-            // Check if we should use language-specific generation
-            if (!message.includes('past paper') && !message.match(/exam|test|quiz/i)) {
-              const languageResponse = athroService.generateLanguageResponse(message, context.subjectSection);
-              
-              const aiMessage = {
-                id: Date.now().toString(),
-                senderId: character.id,
-                content: languageResponse,
-                timestamp: new Date().toISOString(),
-              };
-              
-              // If logged in, try to save the message to Firestore
-              if (state.user?.id) {
-                try {
-                  AthroSessionFirestoreService.addMessage(state.user.id, character.subject, aiMessage);
-                } catch (err) {
-                  console.error('[AthroRouter] Error saving message to Firestore:', err);
-                }
-              }
-              
-              onResponse(aiMessage);
-              return;
-            }
-          }
-        }
-        
-        if (character.subject === 'Science' && context?.subjectSection) {
-          subjectContext = { subjectSection: context.subjectSection };
-        }
-        
-        // Special handling for AthroWelsh when language is set to Welsh
-        if (character.subject === 'Welsh' && language === 'cy') {
-          enhancedContext.respondInWelsh = true;
-        }
-        
-        // Check if the message would benefit from knowledge base enhancement
-        let knowledgeContext = '';
-        let hasKnowledgeResults = false;
-        let knowledgeSearchResults = [];
-        
-        if (shouldEnhanceWithKnowledge(message)) {
-          console.log(`[AthroRouter] Enhancing response with knowledge for: "${message.substring(0, 50)}..."`);
-          
-          // Get the subject in lowercase format for knowledge search
-          const knowledgeSubject = character.subject.toLowerCase();
-          
-          try {
-            // Enhance with knowledge - modified to properly extract search results
-            const knowledgeEnhancement = await enhanceResponseWithKnowledge(message, knowledgeSubject);
-            
-            knowledgeContext = knowledgeEnhancement.enhancedContext;
-            hasKnowledgeResults = knowledgeEnhancement.hasKnowledgeResults;
-            
-            // Search for knowledge again to get the results for citations
-            // This is a workaround as enhanceResponseWithKnowledge doesn't return searchResults directly
-            if (hasKnowledgeResults) {
-              const { searchKnowledgeBase } = await import('@/services/knowledgeBaseService');
-              knowledgeSearchResults = await searchKnowledgeBase(message, knowledgeSubject, 3);
-              
-              console.log('[AthroRouter] Successfully retrieved relevant knowledge');
-            } else {
-              console.log('[AthroRouter] No relevant knowledge found');
-            }
-          } catch (knowledgeError) {
-            console.error('[AthroRouter] Error enhancing with knowledge:', knowledgeError);
-          }
-        }
-        
-        // Add knowledge context to the enhanced context
-        if (knowledgeContext) {
-          enhancedContext.knowledgeContext = knowledgeContext;
-        }
-        
-        // Use the athroService to generate a persona-driven response
-        const response = await athroService.generateResponse(
-          message,
-          character.subject,
-          character.examBoards[0],
-          {
-            ...subjectContext,
-            ...enhancedContext,
-            hasKnowledgeResults
-          }
-        );
-        
-        // For mock enrollments, add a note to the response
-        let finalResponse = { ...response };
-        if (isMockEnrollment && !response.content.includes('mock')) {
-          finalResponse.content = `[Mock Session] ${response.content}`;
-        }
-
-        // Enhance the message with citations if knowledge results were found
-        let citations: Citation[] = [];
-        if (hasKnowledgeResults && knowledgeSearchResults.length > 0) {
-          try {
-            const { enhancedMessage, citations: messageCitations } = await enhanceMessageWithCitations(
-              finalResponse.content,
-              message,
-              character.subject.toLowerCase()
-            );
-            
-            // Add citations to the response
-            if (messageCitations.length > 0) {
-              console.log('[AthroRouter] Adding citations to response:', messageCitations.length);
-              finalResponse.content = enhancedMessage;
-              finalResponse.citations = messageCitations;
-              citations = messageCitations;
-            }
-          } catch (citationError) {
-            console.error('[AthroRouter] Error adding citations:', citationError);
-          }
-        }
-        
-        // If logged in, try to save the message to Firestore
-        if (state.user?.id) {
-          try {
-            // Save the user's message first
-            await AthroSessionFirestoreService.addMessage(
-              state.user.id, 
-              character.subject,
-              {
-                id: Date.now().toString(),
-                senderId: 'user',
-                content: message,
-                timestamp: new Date().toISOString()
-              }
-            );
-            
-            // Then save the AI's response
-            await AthroSessionFirestoreService.addMessage(
-              state.user.id, 
-              character.subject, 
-              finalResponse
-            );
-          } catch (err) {
-            console.error('[AthroRouter] Error saving session to Firestore:', err);
-          }
-        }
-        
-        onResponse(finalResponse);
-      } catch (error) {
-        console.error('[AthroRouter] Error processing message:', error);
-        
-        const errorResponse: AthroMessage = {
-          id: Date.now().toString(),
-          senderId: character.id,
-          content: language === 'cy' 
-            ? "Mae gen i broblem yn prosesu hynny ar hyn o bryd. Allech chi roi cynnig arall arni?"
-            : "I'm having trouble processing that right now. Could you try again?",
-          timestamp: new Date().toISOString()
-        };
-        
-        onResponse(errorResponse);
-      }
-    };
+    const pathParts = location.pathname.split('/');
+    const subjectPath = pathParts[2];
     
-    processMessage();
-  }, [character, message, context, onResponse, isMockEnrollment, state.user, language]);
+    if (subjectPath && subjectPath !== 'select') {
+      try {
+        const subjectEnum = subjectPath.toUpperCase() as AthroSubject;
+        if (Object.values(AthroSubject).includes(subjectEnum)) {
+          setCurrentSubject(subjectEnum);
+        }
+      } catch (error) {
+        console.error('Invalid subject in URL:', error);
+        navigate('/athro/select', { replace: true });
+      }
+    }
+  }, [location.pathname, setCurrentSubject, navigate]);
   
-  return null; // This is a logic component, not a UI component
+  // Redirect to subject selection if no subject is selected
+  useEffect(() => {
+    if (location.pathname === '/athro' || location.pathname === '/athro/') {
+      navigate('/athro/select', { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
+  // Function to fetch knowledge for a given query
+  const fetchKnowledgeForQuery = async (query: string): Promise<Knowledge> => {
+    setIsLoading(true);
+    try {
+      if (!currentSubject) {
+        return {
+          enhancedContext: '',
+          hasKnowledgeResults: false,
+          citations: []
+        };
+      }
+      
+      const subjectString = currentSubject.toLowerCase();
+      const searchResults = await searchKnowledgeBase(query, subjectString);
+      
+      if (searchResults.length === 0) {
+        return {
+          enhancedContext: '',
+          hasKnowledgeResults: false,
+          citations: []
+        };
+      }
+      
+      // Create citations from the search results
+      const citations = createCitationsFromKnowledgeResults(searchResults);
+      
+      // Create enhanced context from the search results
+      const enhancedContext = searchResults
+        .map(result => result.chunk.content)
+        .join('\n\n');
+      
+      return {
+        enhancedContext,
+        hasKnowledgeResults: true,
+        citations
+      };
+    } catch (error) {
+      console.error('Error fetching knowledge for query:', error);
+      return {
+        enhancedContext: '',
+        hasKnowledgeResults: false,
+        citations: []
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  return (
+    <Routes>
+      <Route path="/select" element={<AthroSubjectSelect />} />
+      <Route 
+        path="/:subject" 
+        element={
+          <AthroChat fetchKnowledgeForQuery={fetchKnowledgeForQuery} isLoading={isLoading} />
+        } 
+      />
+    </Routes>
+  );
 };
 
 export default AthroRouter;
