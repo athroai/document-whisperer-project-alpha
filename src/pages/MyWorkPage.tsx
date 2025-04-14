@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,7 +58,7 @@ const MyWorkPage: React.FC = () => {
         if (setsError) throw setsError;
         
         // Extract the set_ids into an array
-        const setIds = studentSets.map(set => set.set_id);
+        const setIds = studentSets?.map(set => set.set_id) || [];
         
         // Now use those set_ids in the main query
         const { data, error } = await supabase

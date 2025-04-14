@@ -1,72 +1,65 @@
 
-import React from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { UserRole } from '../types/auth';
+import React, { useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { UserRole } from '@/types/auth';
 import LoadingSpinner from './ui/loading-spinner';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
-  requiredRole?: UserRole;
-  requireLicense?: boolean;
+  children: React.ReactNode;
+  requiredRole?: UserRole | UserRole[];
   redirectPath?: string;
+  allowLicenseExempt?: boolean;
   loadingComponent?: React.ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
   requiredRole,
-  requireLicense = false,
-  redirectPath,
-  loadingComponent
+  redirectPath = '/login',
+  allowLicenseExempt = false,
+  loadingComponent = (
+    <div className="flex h-screen items-center justify-center">
+      <LoadingSpinner className="h-12 w-12" />
+    </div>
+  ),
 }) => {
   const { state } = useAuth();
   const { user, loading } = state;
-  const navigate = useNavigate();
-  
-  // Show loading state while auth is being checked
+  const location = useLocation();
+
+  // Show loading state while checking auth
   if (loading) {
-    return loadingComponent || (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="text-center animate-fade-in">
-          <LoadingSpinner className="mx-auto mb-4" size={36} />
-          <p className="text-gray-600 mt-2">Setting up your experience</p>
-        </div>
-      </div>
-    );
+    return <>{loadingComponent}</>;
   }
-  
-  // Redirect to login if no user
+
+  // Redirect if not authenticated
   if (!user) {
-    return <Navigate to={redirectPath || "/login"} replace />;
+    return <Navigate to={redirectPath} state={{ from: location }} replace />;
   }
-  
-  // Ensure the session persists if rememberMe is true
-  if (user.rememberMe) {
-    localStorage.setItem('athro_user', JSON.stringify(user));
-  }
-  
-  // Check role-based access
-  if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
-    // Redirect based on user role
-    if (user.role === 'teacher') {
-      return <Navigate to="/teacher" replace />;
-    } else {
-      return <Navigate to="/athro/select" replace />;
+
+  // Check role requirements if specified
+  if (requiredRole) {
+    const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    
+    // Allow license exempt users to bypass role check if enabled
+    if (allowLicenseExempt && user.licenseExempt) {
+      return <>{children}</>;
+    }
+    
+    // Check if user has one of the required roles
+    if (!roles.includes(user.role)) {
+      // For students, redirect to license required page
+      if (user.role === 'student') {
+        return <Navigate to="/license-required" state={{ from: location }} replace />;
+      }
+      // For others, just redirect to login
+      return <Navigate to={redirectPath} state={{ from: location }} replace />;
     }
   }
-  
-  // Check license status (skip for Nexastream users)
-  if (requireLicense && !user.licenseExempt && user.role === 'teacher' && !user.schoolId) {
-    return <Navigate to="/license-required" replace />;
-  }
-  
-  // Handle function children that need user data
-  if (typeof children === 'function') {
-    return <div className="animate-fade-in">{children({ user })}</div>;
-  }
-  
-  return <div className="animate-fade-in">{children}</div>;
+
+  // User is authenticated and meets role requirements
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;
