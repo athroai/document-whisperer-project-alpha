@@ -1,6 +1,7 @@
 
 import { Citation } from '@/types/citations';
-import { searchKnowledgeBase, KnowledgeSearchResult } from './knowledgeBaseService';
+import { searchKnowledgeBase } from './knowledgeBaseService';
+import { KnowledgeSearchResult } from '@/types/knowledgeBase';
 import { createCitationMarker } from '@/utils/citationUtils';
 
 /**

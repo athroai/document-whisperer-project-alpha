@@ -11,6 +11,13 @@ export interface AthroCharacter {
   imageUrl?: string;
   bio?: string;
   description?: string;
+  shortDescription?: string;
+  avatarUrl?: string;
+  topics?: string[];
+  supportsMathNotation?: boolean;
+  supportsSpecialCharacters?: boolean;
+  supportedLanguages?: string[];
+  referencedResources?: string[];
 }
 
 export interface AthroMessage {
@@ -19,6 +26,8 @@ export interface AthroMessage {
   content: string;
   timestamp: string;
   citations?: Citation[];
+  referencedResources?: string[];
+  markScheme?: string;
 }
 
 export interface FeedbackSummary {
@@ -46,3 +55,23 @@ export type AthroSubject =
   | 'History' 
   | 'Geography' 
   | 'Religious Education';
+
+export interface AthroLanguage {
+  code: string;
+  name: string;
+  flagEmoji?: string;
+}
+
+export interface ModelAnswer {
+  grade: string;
+  text: string;
+}
+
+export interface PastPaper {
+  id: string;
+  question: string;
+  markScheme: string;
+  year: number;
+  subject: string;
+  board: string;
+}

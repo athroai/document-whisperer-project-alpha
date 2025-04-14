@@ -52,6 +52,11 @@ export interface EmbeddingResponse {
 export interface KnowledgeSearchResult {
   chunk: KnowledgeChunk;
   similarity: number;
+  title?: string;
+  section?: string;
+  page?: number;
+  highlight?: string;
+  fileUrl?: string;
 }
 
 export interface VectorSearchOptions {
