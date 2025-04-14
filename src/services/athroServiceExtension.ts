@@ -1,6 +1,6 @@
 
 import { searchKnowledgeBase } from './knowledgeBaseService';
-import { KnowledgeSearchResult } from '@/types/knowledgeBase';
+import { KnowledgeSearchResult, VectorSearchOptions } from '@/types/knowledgeBase';
 
 // Function to enhance AI responses with knowledge base content
 export const enhanceResponseWithKnowledge = async (
@@ -8,8 +8,15 @@ export const enhanceResponseWithKnowledge = async (
   subject?: string
 ): Promise<{ enhancedContext: string, hasKnowledgeResults: boolean }> => {
   try {
+    // Search knowledge base with appropriate options
+    const searchOptions: VectorSearchOptions = {
+      maxResults: 3,
+      minSimilarity: 0.7,
+      filterSubject: subject
+    };
+    
     // Search knowledge base for relevant chunks
-    const relevantChunks: KnowledgeSearchResult[] = await searchKnowledgeBase(query, subject);
+    const relevantChunks: KnowledgeSearchResult[] = await searchKnowledgeBase(query, subject, 3);
     
     // If no relevant chunks found, return empty enhancement
     if (relevantChunks.length === 0) {
@@ -20,15 +27,18 @@ export const enhanceResponseWithKnowledge = async (
     }
     
     // Build enhanced context from chunks
-    let enhancedContext = "Additional context from knowledge base:\n\n";
+    let enhancedContext = "### Trusted Knowledge Context:\n\n";
     
     relevantChunks.forEach((result, index) => {
       const { chunk, similarity } = result;
       
-      enhancedContext += `[Source ${index + 1}: "${chunk.sourceTitle}"]\n`;
+      enhancedContext += `[Source ${index + 1}: "${chunk.sourceTitle}" - Relevance: ${Math.round(similarity * 100)}%]\n`;
       enhancedContext += chunk.content;
       enhancedContext += "\n\n";
     });
+    
+    // Add instruction for AI response
+    enhancedContext += "Base your response primarily on the context provided above. If the context doesn't fully address the question, you may provide general knowledge but clearly indicate when you're doing so.\n\n";
     
     // Add attribution section
     enhancedContext += "Sources:\n";
@@ -36,7 +46,8 @@ export const enhanceResponseWithKnowledge = async (
     
     relevantChunks.forEach(result => {
       const { chunk } = result;
-      uniqueSources.add(`"${chunk.sourceTitle}"`);
+      const sourceInfo = `"${chunk.sourceTitle}"${chunk.topic ? ` (${chunk.topic})` : ''}`;
+      uniqueSources.add(sourceInfo);
     });
     
     enhancedContext += Array.from(uniqueSources).join(", ");

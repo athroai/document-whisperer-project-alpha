@@ -53,3 +53,18 @@ export interface KnowledgeSearchResult {
   chunk: KnowledgeChunk;
   similarity: number;
 }
+
+export interface VectorSearchOptions {
+  maxResults?: number;
+  minSimilarity?: number;
+  filterSubject?: string;
+  filterTopic?: string;
+  filterYearGroup?: string;
+  filterTags?: string[];
+}
+
+export interface VectorSearchStats {
+  queryTime: number;
+  resultsCount: number;
+  totalChunksScanned: number;
+}

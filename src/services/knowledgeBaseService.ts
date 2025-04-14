@@ -1,7 +1,8 @@
+
 import { collection, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/config/firebase';
-import { UploadedDocument, KnowledgeChunk, EmbeddingResponse, KnowledgeSearchResult } from '@/types/knowledgeBase';
+import { UploadedDocument, KnowledgeChunk, EmbeddingResponse, KnowledgeSearchResult, VectorSearchOptions, VectorSearchStats } from '@/types/knowledgeBase';
 import { AthroSubject } from '@/types/athro';
 
 // Mock data for development (will be replaced with actual Firebase implementation)
@@ -266,6 +267,25 @@ export const deleteKnowledgeDocument = async (documentId: string): Promise<void>
   }
 };
 
+// Calculate cosine similarity between two vectors
+const cosineSimilarity = (vecA: number[], vecB: number[]): number => {
+  if (vecA.length !== vecB.length) {
+    throw new Error('Vectors must have the same dimensions');
+  }
+  
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+};
+
 // Search knowledge base for relevant chunks
 export const searchKnowledgeBase = async (
   query: string,
@@ -273,40 +293,45 @@ export const searchKnowledgeBase = async (
   maxResults: number = 3
 ): Promise<KnowledgeSearchResult[]> => {
   try {
-    // In a real implementation, this would:
-    // 1. Create embedding for the query
-    // 2. Perform vector search to find similar chunks
+    console.log(`Searching knowledge base for: "${query}"${subject ? ` in subject: ${subject}` : ''}`);
     
-    // For this mock, we'll randomly select chunks
+    // Step 1: Create embedding for the query
+    const queryEmbedding = await createEmbedding(query);
+    
+    // Step 2: Filter chunks by subject if specified
     let filteredChunks = [...mockChunks];
     
-    // Filter by subject if specified
     if (subject) {
-      filteredChunks = filteredChunks.filter(chunk => chunk.subject === subject);
+      filteredChunks = filteredChunks.filter(chunk => 
+        chunk.subject?.toLowerCase() === subject.toLowerCase()
+      );
     }
+    
+    // Filter for publicly usable chunks only
+    filteredChunks = filteredChunks.filter(chunk => chunk.isPubliclyUsable);
     
     // If no chunks match or none exist, return empty array
     if (filteredChunks.length === 0) {
+      console.log('No matching chunks found in knowledge base');
       return [];
     }
     
-    // Randomly select up to maxResults chunks
-    // (In a real implementation, these would be the most semantically similar)
-    const selectedChunks: KnowledgeSearchResult[] = [];
-    const shuffled = filteredChunks.sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, Math.min(maxResults, shuffled.length));
+    // Step 3: Calculate similarity for each chunk
+    const chunksWithSimilarity: KnowledgeSearchResult[] = filteredChunks.map(chunk => ({
+      chunk,
+      similarity: cosineSimilarity(queryEmbedding, chunk.embedding)
+    }));
     
-    selected.forEach(chunk => {
-      selectedChunks.push({
-        chunk,
-        // Random similarity score between 0.7 and 0.95
-        similarity: 0.7 + Math.random() * 0.25
-      });
-    });
+    // Step 4: Sort by similarity (highest first) and take top results
+    const sortedChunks = chunksWithSimilarity
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, maxResults);
     
-    // Sort by simulated similarity (highest first)
-    return selectedChunks.sort((a, b) => b.similarity - a.similarity);
+    console.log(`Found ${sortedChunks.length} relevant chunks with similarity scores: ${
+      sortedChunks.map(c => c.similarity.toFixed(3)).join(', ')
+    }`);
     
+    return sortedChunks;
   } catch (error) {
     console.error("Error searching knowledge base:", error);
     return [];

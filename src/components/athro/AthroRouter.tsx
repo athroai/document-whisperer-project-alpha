@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
 import { getAthroById } from '@/config/athrosConfig';
 import { useTranslation } from '@/hooks/useTranslation';
+import { enhanceResponseWithKnowledge, shouldEnhanceWithKnowledge } from '@/services/athroServiceExtension';
 
 interface AthroRouterProps {
   character: AthroCharacter;
@@ -100,6 +101,35 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
           enhancedContext.respondInWelsh = true;
         }
         
+        // Check if the message would benefit from knowledge base enhancement
+        let knowledgeContext = '';
+        let hasKnowledgeResults = false;
+        
+        if (shouldEnhanceWithKnowledge(message)) {
+          console.log(`[AthroRouter] Enhancing response with knowledge for: "${message.substring(0, 50)}..."`);
+          
+          // Get the subject in lowercase format for knowledge search
+          const knowledgeSubject = character.subject.toLowerCase();
+          
+          // Enhance with knowledge
+          const { enhancedContext: knowledgeEnhancement, hasKnowledgeResults: hasResults } = 
+            await enhanceResponseWithKnowledge(message, knowledgeSubject);
+          
+          knowledgeContext = knowledgeEnhancement;
+          hasKnowledgeResults = hasResults;
+          
+          if (hasKnowledgeResults) {
+            console.log('[AthroRouter] Successfully retrieved relevant knowledge');
+          } else {
+            console.log('[AthroRouter] No relevant knowledge found');
+          }
+        }
+        
+        // Add knowledge context to the enhanced context
+        if (knowledgeContext) {
+          enhancedContext.knowledgeContext = knowledgeContext;
+        }
+        
         // Use the athroService to generate a persona-driven response
         const response = await athroService.generateResponse(
           message,
@@ -107,7 +137,8 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
           character.examBoards[0],
           {
             ...subjectContext,
-            ...enhancedContext
+            ...enhancedContext,
+            hasKnowledgeResults
           }
         );
         

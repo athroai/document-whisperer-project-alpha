@@ -1,386 +1,428 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
-} from '@/components/ui/alert-dialog';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Trash2, FileText, Search, Eye, EyeOff, Tag } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
-import KnowledgeUpload from './KnowledgeUpload';
 import { 
   getKnowledgeDocuments, 
   deleteKnowledgeDocument, 
-  getDocumentChunks, 
-  toggleDocumentPublicUsability 
+  getDocumentChunks,
+  toggleDocumentPublicUsability
 } from '@/services/knowledgeBaseService';
 import { UploadedDocument, KnowledgeChunk } from '@/types/knowledgeBase';
-import { useAuth } from '@/contexts/AuthContext';
+import KnowledgeUpload from './KnowledgeUpload';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Trash2, FileText, EyeOff, Eye, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 const KnowledgeManagement: React.FC = () => {
-  const { state } = useAuth();
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] = useState<UploadedDocument | null>(null);
   const [documentChunks, setDocumentChunks] = useState<KnowledgeChunk[]>([]);
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>('upload');
-  
-  // Load documents on component mount
+  const [loadingChunks, setLoadingChunks] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
+
   useEffect(() => {
-    if (state.user?.role === 'admin') {
-      loadDocuments();
-    }
-  }, [state.user]);
-  
-  // Load documents from the service
+    // Load all documents on component mount
+    loadDocuments();
+  }, []);
+
   const loadDocuments = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const docs = await getKnowledgeDocuments();
       setDocuments(docs);
     } catch (error) {
-      console.error("Error loading documents:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load documents. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Error loading documents:', error);
+      toast.error('Failed to load documents');
     } finally {
       setLoading(false);
     }
   };
-  
-  // View document chunks
+
   const handleViewChunks = async (document: UploadedDocument) => {
     setSelectedDocument(document);
+    setLoadingChunks(true);
     
     try {
       const chunks = await getDocumentChunks(document.id);
       setDocumentChunks(chunks);
-      setDialogOpen(true);
     } catch (error) {
-      console.error("Error loading chunks:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load document chunks. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  // Confirm document deletion
-  const confirmDelete = (document: UploadedDocument) => {
-    setSelectedDocument(document);
-    setDeleteDialogOpen(true);
-  };
-  
-  // Delete document
-  const handleDelete = async () => {
-    if (!selectedDocument) return;
-    
-    try {
-      await deleteKnowledgeDocument(selectedDocument.id);
-      setDocuments(documents.filter(doc => doc.id !== selectedDocument.id));
-      toast({
-        title: "Success",
-        description: `Document "${selectedDocument.title}" has been deleted.`,
-      });
-    } catch (error) {
-      console.error("Error deleting document:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete document. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Error loading chunks:', error);
+      toast.error('Failed to load document chunks');
     } finally {
-      setDeleteDialogOpen(false);
-      setSelectedDocument(null);
+      setLoadingChunks(false);
     }
   };
 
-  // Toggle document public usability
-  const handleTogglePublicUsability = async (document: UploadedDocument) => {
+  const handleDeleteDocument = async () => {
+    if (!documentToDelete) return;
+    
     try {
-      await toggleDocumentPublicUsability(document.id, !document.isPubliclyUsable);
+      await deleteKnowledgeDocument(documentToDelete);
+      toast.success('Document deleted successfully');
+      setDocuments(documents.filter(doc => doc.id !== documentToDelete));
+      setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
       
-      // Update local state
-      setDocuments(documents.map(doc => {
-        if (doc.id === document.id) {
-          return { ...doc, isPubliclyUsable: !doc.isPubliclyUsable };
-        }
-        return doc;
-      }));
-      
-      toast({
-        title: "Success",
-        description: `Document "${document.title}" is now ${!document.isPubliclyUsable ? 'publicly usable' : 'private'}.`,
-      });
+      // If the deleted document was the selected one, clear it
+      if (selectedDocument?.id === documentToDelete) {
+        setSelectedDocument(null);
+        setDocumentChunks([]);
+      }
     } catch (error) {
-      console.error("Error toggling public usability:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update document status. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Error deleting document:', error);
+      toast.error('Failed to delete document');
     }
   };
-  
-  // Format file size
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1048576).toFixed(1)} MB`;
+
+  const confirmDelete = (documentId: string) => {
+    setDocumentToDelete(documentId);
+    setDeleteDialogOpen(true);
   };
-  
-  // Format date
+
+  const handleTogglePublicUsability = async (documentId: string, isPublic: boolean) => {
+    try {
+      await toggleDocumentPublicUsability(documentId, isPublic);
+      
+      // Update the documents list with the new status
+      const updatedDocs = documents.map(doc => 
+        doc.id === documentId ? { ...doc, isPubliclyUsable: isPublic } : doc
+      );
+      setDocuments(updatedDocs);
+      
+      // Also update selected document if it's the one being toggled
+      if (selectedDocument?.id === documentId) {
+        setSelectedDocument({ ...selectedDocument, isPubliclyUsable: isPublic });
+      }
+      
+      toast.success(`Document is now ${isPublic ? 'publicly usable' : 'private'}`);
+    } catch (error) {
+      console.error('Error toggling document public usability:', error);
+      toast.error('Failed to update document visibility');
+    }
+  };
+
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-GB', {
-      day: '2-digit',
-      month: 'short',
+    return date.toLocaleDateString('en-GB', { 
+      day: 'numeric', 
+      month: 'short', 
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    }).format(date);
+    });
   };
-  
-  // Render status badge
+
+  const renderFileTypeBadge = (fileType: string) => {
+    let color = '';
+    switch (fileType) {
+      case 'pdf':
+        color = 'bg-red-100 text-red-800';
+        break;
+      case 'docx':
+        color = 'bg-blue-100 text-blue-800';
+        break;
+      case 'txt':
+        color = 'bg-green-100 text-green-800';
+        break;
+      default:
+        color = 'bg-gray-100 text-gray-800';
+    }
+    return (
+      <Badge variant="outline" className={`${color} uppercase`}>
+        {fileType}
+      </Badge>
+    );
+  };
+
   const renderStatusBadge = (status: string) => {
+    let color = '';
+    let text = status;
+    
     switch (status) {
       case 'processing':
-        return <Badge className="bg-yellow-400">Processing</Badge>;
+        color = 'bg-yellow-100 text-yellow-800';
+        text = 'Processing';
+        break;
       case 'indexed':
-        return <Badge className="bg-green-500">Indexed</Badge>;
+        color = 'bg-green-100 text-green-800';
+        text = 'Indexed';
+        break;
       case 'failed':
-        return <Badge className="bg-red-500">Failed</Badge>;
+        color = 'bg-red-100 text-red-800';
+        text = 'Failed';
+        break;
       default:
-        return <Badge>{status}</Badge>;
+        color = 'bg-gray-100 text-gray-800';
     }
-  };
-  
-  // Check if user is admin
-  const isAdmin = state.user?.role === 'admin';
-  
-  if (!isAdmin) {
+    
     return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="flex items-center justify-center p-6">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Admin Access Only</h3>
-              <p className="text-gray-600">
-                The Knowledge Management System is only accessible to administrators.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Badge variant="outline" className={`${color}`}>
+        {text}
+      </Badge>
     );
-  }
-  
+  };
+
   return (
-    <div className="container mx-auto p-4">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 w-[400px] mb-4">
-          <TabsTrigger value="upload">Upload Resources</TabsTrigger>
-          <TabsTrigger value="manage">Manage Resources</TabsTrigger>
+    <div className="space-y-6">
+      <Tabs defaultValue="upload">
+        <TabsList className="mb-4">
+          <TabsTrigger value="upload">Upload Knowledge</TabsTrigger>
+          <TabsTrigger value="manage">Manage Documents ({documents.length})</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="upload" className="space-y-4">
-          <KnowledgeUpload />
-        </TabsContent>
-        
-        <TabsContent value="manage" className="space-y-4">
+        <TabsContent value="upload">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Uploaded Knowledge Resources</h2>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={loadDocuments}
-                  disabled={loading}
-                >
-                  Refresh
-                </Button>
-              </div>
-              
-              {loading ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Loading documents...</p>
-                </div>
-              ) : documents.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No documents have been uploaded yet.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Subject/Topic</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Year</TableHead>
-                        <TableHead>Uploaded</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Public</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {documents.map((doc) => (
-                        <TableRow key={doc.id}>
-                          <TableCell className="font-medium">{doc.title}</TableCell>
-                          <TableCell>
-                            <div>
-                              {doc.subject || 'General'}
-                              {doc.topic && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  Topic: {doc.topic}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="uppercase">{doc.fileType}</TableCell>
-                          <TableCell>{doc.yearGroup || 'All'}</TableCell>
-                          <TableCell>{formatDate(doc.timestamp)}</TableCell>
-                          <TableCell>{renderStatusBadge(doc.status)}</TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={!!doc.isPubliclyUsable}
-                              onCheckedChange={() => handleTogglePublicUsability(doc)}
-                              disabled={doc.status !== 'indexed'}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              {doc.tags && doc.tags.length > 0 && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title={`Tags: ${doc.tags.join(', ')}`}
-                                >
-                                  <Tag className="h-4 w-4" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleViewChunks(doc)}
-                                disabled={doc.status !== 'indexed'}
-                                title="View Chunks"
-                              >
-                                <FileText className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleTogglePublicUsability(doc)}
-                                title={doc.isPubliclyUsable ? "Make Private" : "Make Public"}
-                                disabled={doc.status !== 'indexed'}
-                              >
-                                {doc.isPubliclyUsable ? (
-                                  <EyeOff className="h-4 w-4" />
-                                ) : (
-                                  <Eye className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => confirmDelete(doc)}
-                                className="text-red-600 hover:text-red-800 hover:bg-red-100"
-                                title="Delete Document"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+            <CardHeader>
+              <CardTitle>Upload Knowledge Document</CardTitle>
+              <CardDescription>
+                Add documents to the trusted knowledge base for Athro AI to reference.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <KnowledgeUpload onDocumentUploaded={() => loadDocuments()} />
             </CardContent>
           </Card>
         </TabsContent>
+        
+        <TabsContent value="manage">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Knowledge Documents</CardTitle>
+                <CardDescription>
+                  View and manage uploaded knowledge documents
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <p className="text-gray-500">Loading documents...</p>
+                  </div>
+                ) : documents.length === 0 ? (
+                  <div className="h-64 flex flex-col items-center justify-center text-center">
+                    <FileText className="h-10 w-10 text-gray-400 mb-2" />
+                    <p className="text-gray-500">No documents have been uploaded yet</p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Use the Upload tab to add documents to the knowledge base
+                    </p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[500px]">
+                    <div className="space-y-4">
+                      {documents.map((doc) => (
+                        <Card key={doc.id} className={`cursor-pointer ${selectedDocument?.id === doc.id ? 'border-blue-500 ring-1 ring-blue-500' : ''}`} onClick={() => handleViewChunks(doc)}>
+                          <CardHeader className="py-3">
+                            <div className="flex justify-between items-start">
+                              <CardTitle className="text-base line-clamp-1">{doc.title}</CardTitle>
+                              <div className="flex items-center space-x-1">
+                                {renderFileTypeBadge(doc.fileType)}
+                                {renderStatusBadge(doc.status)}
+                              </div>
+                            </div>
+                            <CardDescription className="line-clamp-1">
+                              {doc.description || 'No description'}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardFooter className="py-3 flex justify-between">
+                            <div className="flex flex-col text-xs text-gray-500">
+                              <span>Uploaded: {formatDate(doc.timestamp)}</span>
+                              <span>Size: {formatBytes(doc.fileSize)}</span>
+                              {doc.chunkCount && (
+                                <span>Chunks: {doc.chunkCount}</span>
+                              )}
+                            </div>
+                            <div className="flex space-x-2">
+                              <div className="flex items-center space-x-1">
+                                <Switch
+                                  checked={doc.isPubliclyUsable}
+                                  onCheckedChange={(checked) => handleTogglePublicUsability(doc.id, checked)}
+                                />
+                                {doc.isPubliclyUsable ? (
+                                  <Eye className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4 text-gray-500" />
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  confirmDelete(doc.id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>
+                  {selectedDocument ? `Document Details: ${selectedDocument.title}` : 'Document Details'}
+                </CardTitle>
+                <CardDescription>
+                  {selectedDocument
+                    ? `${selectedDocument.chunkCount || 0} chunks extracted from this document`
+                    : 'Select a document to view its details and chunks'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!selectedDocument ? (
+                  <div className="h-64 flex flex-col items-center justify-center text-center">
+                    <FileText className="h-10 w-10 text-gray-400 mb-2" />
+                    <p className="text-gray-500">No document selected</p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Click on a document from the list to view its details
+                    </p>
+                  </div>
+                ) : loadingChunks ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <p className="text-gray-500">Loading chunks...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Status</p>
+                          <p>{renderStatusBadge(selectedDocument.status)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">File Type</p>
+                          <p>{renderFileTypeBadge(selectedDocument.fileType)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Publicly Usable</p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Switch
+                              checked={selectedDocument.isPubliclyUsable}
+                              onCheckedChange={(checked) => 
+                                handleTogglePublicUsability(selectedDocument.id, checked)
+                              }
+                            />
+                            <span className="text-sm">
+                              {selectedDocument.isPubliclyUsable ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Size</p>
+                          <p>{formatBytes(selectedDocument.fileSize)}</p>
+                        </div>
+                      </div>
+                      
+                      {selectedDocument.subject && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Subject</p>
+                          <p>{selectedDocument.subject}</p>
+                        </div>
+                      )}
+                      
+                      {selectedDocument.topic && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Topic</p>
+                          <p>{selectedDocument.topic}</p>
+                        </div>
+                      )}
+                      
+                      {selectedDocument.yearGroup && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Year Group</p>
+                          <p>{selectedDocument.yearGroup}</p>
+                        </div>
+                      )}
+                      
+                      {selectedDocument.tags && selectedDocument.tags.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Tags</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedDocument.tags.map((tag, index) => (
+                              <Badge key={index} variant="secondary">{tag}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Separator className="my-6" />
+                    
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Document Chunks</h3>
+                      
+                      {documentChunks.length === 0 ? (
+                        <Alert variant="destructive">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertDescription>
+                            No chunks were generated for this document. The document may be empty or processing failed.
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <Accordion type="single" collapsible className="w-full">
+                          {documentChunks.map((chunk, index) => (
+                            <AccordionItem key={chunk.id} value={chunk.id}>
+                              <AccordionTrigger>
+                                Chunk {index + 1} ({chunk.content.slice(0, 30)}...)
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="text-sm whitespace-pre-wrap p-2 bg-gray-50 rounded-md">
+                                  {chunk.content}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))}
+                        </Accordion>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
       
-      {/* Document Chunks Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Chunks - {selectedDocument?.title}</DialogTitle>
+            <DialogTitle>Delete Document</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this document? This action cannot be undone.
+              All associated chunks will also be permanently deleted.
+            </DialogDescription>
           </DialogHeader>
-          
-          {documentChunks.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-gray-500">No chunks available for this document.</p>
-            </div>
-          ) : (
-            <div className="space-y-4 mt-4">
-              {documentChunks.map((chunk, index) => (
-                <Card key={chunk.id} className="overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-sm font-semibold">Chunk {index + 1}</h3>
-                      <Badge variant="outline">{chunk.content.split(/\s+/).length} words</Badge>
-                    </div>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{chunk.content}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteDocument}>Delete</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Document</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{selectedDocument?.title}"? This will remove the document and all its indexed content from the knowledge base. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
