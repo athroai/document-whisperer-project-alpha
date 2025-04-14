@@ -55,7 +55,8 @@ export function useSupabaseQuery<T = any>(
     setError(null);
 
     try {
-      let query = supabase.from(tableName).select(select);
+      // Use type assertion to break potential infinite type recursion
+      let query = supabase.from(tableName).select(select) as any;
 
       if (filter) {
         for (const [key, value] of Object.entries(filter)) {
@@ -127,7 +128,8 @@ export function useSupabaseRealtime<T = any>(
 
     const fetchInitialData = async () => {
       try {
-        let query = supabase.from(tableName).select('*');
+        // Use type assertion to break potential infinite type recursion
+        let query = supabase.from(tableName).select('*') as any;
 
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {
@@ -148,11 +150,11 @@ export function useSupabaseRealtime<T = any>(
 
     fetchInitialData();
 
-    // Using a type assertion to bypass TypeScript's type checking
-    // because Supabase's typings are causing the infinite recursion
+    // Create a channel for realtime updates
     const channel = supabase.channel(`realtime:${tableName}`);
     
-    // @ts-ignore - Ignoring TypeScript error to fix build issue
+    // Using ts-ignore to bypass TypeScript's type checking for the Supabase realtime API
+    // @ts-ignore - Supabase's typings are causing the infinite recursion
     channel.on('postgres_changes', {
       event: options.event || '*',
       schema: 'public',
