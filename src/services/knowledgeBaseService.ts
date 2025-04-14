@@ -1,4 +1,10 @@
+
 import { supabase } from '@/integrations/supabase/client';
+import {
+  UploadedDocument,
+  KnowledgeChunk,
+  KnowledgeSearchResult
+} from '@/types/knowledge';
 
 // Mock data for development (will be replaced with actual Supabase implementation)
 const mockUploads: UploadedDocument[] = [];

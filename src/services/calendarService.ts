@@ -10,8 +10,23 @@ export interface CalendarEvent {
   time?: string;
   duration?: number;
   type: 'study' | 'quiz' | 'revision';
-  mentor?: string; // Added mentor property
+  mentor?: string; // Added mentor field
   createdAt?: Date;
+}
+
+// Interface to match Supabase database schema
+interface CalendarEventDbRow {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  start_time: string;
+  end_time: string;
+  event_type: string;
+  set_id?: string;
+  task_id?: string;
+  created_at: string;
+  mentor?: string; // Added mentor field to match our app model
 }
 
 export const calendarService = {
@@ -52,7 +67,7 @@ export const calendarService = {
       
       if (error) throw error;
       
-      return data.map(event => ({
+      return data.map((event: CalendarEventDbRow) => ({
         id: event.id,
         userId: event.user_id,
         title: event.title,
@@ -83,7 +98,7 @@ export const calendarService = {
       
       if (error) throw error;
       
-      return data.map(event => ({
+      return data.map((event: CalendarEventDbRow) => ({
         id: event.id,
         userId: event.user_id,
         title: event.title,

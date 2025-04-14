@@ -2,31 +2,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Database } from '@/integrations/supabase/types';
 
 // Define a type for valid table names in our Supabase database
-type ValidTableName = keyof Database['public']['Tables'];
-
-// Create a constant with all valid table names for type assertion
-const VALID_TABLES = [
-  'ai_logs', 
-  'athro_characters', 
-  'calendar_events', 
-  'feedback',
-  'model_answers',
-  'past_papers',
-  'profiles',
-  'quiz_results',
-  'schools',
-  'sets',
-  'student_sets',
-  'task_submissions',
-  'tasks',
-  'uploads'
-] as const;
-
-// Type for the array of valid table names
-type ValidTableNameLiteral = typeof VALID_TABLES[number];
+type ValidTableName = 'ai_logs' | 'athro_characters' | 'calendar_events' | 
+  'feedback' | 'model_answers' | 'past_papers' | 'profiles' | 'quiz_results' | 
+  'schools' | 'sets' | 'student_sets' | 'task_submissions' | 'tasks' | 'uploads';
 
 /**
  * A custom hook for making Supabase queries with loading and error handling
@@ -66,12 +46,9 @@ export function useSupabaseQuery<T>(
     setError(null);
     
     try {
-      // Use type assertion for table name
-      const tableNameAsLiteral = tableName as ValidTableNameLiteral;
-      
       // Create the query
       let query = supabase
-        .from(tableNameAsLiteral)
+        .from(tableName)
         .select(select);
         
       // Apply filters if provided
@@ -147,14 +124,11 @@ export function useSupabaseRealtime<T>(
   useEffect(() => {
     if (!state.user) return;
     
-    // Use type assertion for table name
-    const tableNameAsLiteral = tableName as ValidTableNameLiteral;
-    
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
         let query = supabase
-          .from(tableNameAsLiteral)
+          .from(tableName)
           .select('*');
         
         if (options.filter) {
@@ -175,7 +149,7 @@ export function useSupabaseRealtime<T>(
     
     fetchInitialData();
     
-    // Fix: Use the correct channel subscription pattern for Supabase v2
+    // Set up real-time subscription using the correct Supabase v2 pattern
     const channel = supabase
       .channel(`table-changes-${tableName}`)
       .on(
@@ -183,7 +157,7 @@ export function useSupabaseRealtime<T>(
         {
           event: options.event || '*',
           schema: 'public',
-          table: tableNameAsLiteral,
+          table: tableName,
         },
         (payload: any) => {
           // Handle different event types
