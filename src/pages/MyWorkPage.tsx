@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,6 +49,13 @@ const MyWorkPage: React.FC = () => {
         setLoading(true);
         setError(null);
         
+        // Create a subquery first to get the student's set_ids
+        const studentSetsQuery = supabase
+          .from('student_sets')
+          .select('set_id')
+          .eq('student_id', user.id);
+          
+        // Get the tasks using the subquery result
         const { data, error } = await supabase
           .from('tasks')
           .select(`
@@ -67,12 +75,7 @@ const MyWorkPage: React.FC = () => {
               submitted_at
             )
           `)
-          .in('set_id', [
-            supabase
-              .from('student_sets')
-              .select('set_id')
-              .eq('student_id', user.id)
-          ])
+          .in('set_id', studentSetsQuery)
           .order('due_date', { ascending: true });
           
         if (error) throw error;
