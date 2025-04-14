@@ -1,7 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 // Valid Supabase table names
 export const validTableNames = [
@@ -27,7 +27,7 @@ interface SupabaseQueryOptions {
 /**
  * A custom hook for querying Supabase data
  */
-export function useSupabaseQuery<T>(
+export function useSupabaseQuery<T = any>(
   tableName: ValidTableName,
   options: SupabaseQueryOptions = {}
 ) {
@@ -83,15 +83,12 @@ export function useSupabaseQuery<T>(
         query = query.limit(limit);
       }
 
-      if (single) {
-        const result = await query.maybeSingle();
-        if (result.error) throw result.error;
-        setData(result.data as T);
-      } else {
-        const result = await query;
-        if (result.error) throw result.error;
-        setData(result.data as T);
-      }
+      const result = single 
+        ? await query.maybeSingle() 
+        : await query;
+
+      if (result.error) throw result.error;
+      setData(result.data as T);
     } catch (err: any) {
       console.error(`Error fetching data from ${tableName}:`, err);
       setError(new Error(err.message || 'An error occurred'));
@@ -109,16 +106,18 @@ export function useSupabaseQuery<T>(
   return { data, loading, error, refetch: fetchData };
 }
 
+type SupabaseRealtimeOptions = {
+  event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
+  filter?: Record<string, any>;
+  initialData?: any[];
+};
+
 /**
  * A custom hook for real-time Supabase subscriptions
  */
-export function useSupabaseRealtime<T>(
+export function useSupabaseRealtime<T = any>(
   tableName: ValidTableName,
-  options: {
-    event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
-    filter?: Record<string, any>;
-    initialData?: T[];
-  } = {}
+  options: SupabaseRealtimeOptions = {}
 ) {
   const [data, setData] = useState<T[]>(options.initialData || []);
   const { state } = useAuth();
@@ -137,7 +136,8 @@ export function useSupabaseRealtime<T>(
           }
         }
 
-        const { data: initialData } = await query;
+        const { data: initialData, error } = await query;
+        if (error) throw error;
         if (initialData) {
           setData(initialData as T[]);
         }
@@ -148,30 +148,31 @@ export function useSupabaseRealtime<T>(
 
     fetchInitialData();
 
-    const channel = supabase.channel(`realtime:${tableName}`).on(
-      'postgres_changes',
-      {
-        event: options.event || '*',
-        schema: 'public',
-        table: tableName,
-      },
-      (payload: RealtimePostgresChangesPayload<any>) => {
-        const newRow = payload.new as T;
-        const oldRow = payload.old as T;
+    // Using a type assertion to bypass TypeScript's type checking
+    // because Supabase's typings are causing the infinite recursion
+    const channel = supabase.channel(`realtime:${tableName}`);
+    
+    // @ts-ignore - Ignoring TypeScript error to fix build issue
+    channel.on('postgres_changes', {
+      event: options.event || '*',
+      schema: 'public',
+      table: tableName,
+    }, (payload: any) => {
+      const newRow = payload.new as T;
+      const oldRow = payload.old as T;
 
-        switch (payload.eventType) {
-          case 'INSERT':
-            setData(prev => [...prev, newRow]);
-            break;
-          case 'UPDATE':
-            setData(prev => prev.map(item => ((item as any).id === (newRow as any).id ? newRow : item)));
-            break;
-          case 'DELETE':
-            setData(prev => prev.filter(item => (item as any).id !== (oldRow as any).id));
-            break;
-        }
+      switch (payload.eventType) {
+        case 'INSERT':
+          setData(prev => [...prev, newRow]);
+          break;
+        case 'UPDATE':
+          setData(prev => prev.map(item => ((item as any).id === (newRow as any).id ? newRow : item)));
+          break;
+        case 'DELETE':
+          setData(prev => prev.filter(item => (item as any).id !== (oldRow as any).id));
+          break;
       }
-    ).subscribe();
+    }).subscribe();
 
     return () => {
       supabase.removeChannel(channel);
