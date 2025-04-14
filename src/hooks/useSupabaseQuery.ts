@@ -2,6 +2,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
+
+// Using `any` for table names to avoid TypeScript errors when accessing dynamic tables
+type SupabaseTable = any;
 
 /**
  * A custom hook for making Supabase queries with loading and error handling
@@ -41,10 +45,9 @@ export function useSupabaseQuery<T>(
     setError(null);
     
     try {
-      // Start building the query
-      // Use 'any' type to bypass TypeScript constraints on dynamic table names
+      // Start building the query with `any` type to allow dynamic table names
       let query = supabase
-        .from(tableName) as any;
+        .from(tableName) as PostgrestFilterBuilder<SupabaseTable>;
         
       query = query.select(select);
         
@@ -122,8 +125,8 @@ export function useSupabaseRealtime<T>(
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
-        // Use 'any' type to bypass TypeScript constraints on dynamic table names
-        let query = supabase.from(tableName) as any;
+        // Use any type to bypass TypeScript constraints on dynamic table names
+        let query = supabase.from(tableName) as PostgrestFilterBuilder<SupabaseTable>;
         query = query.select('*');
         
         if (options.filter) {
@@ -144,17 +147,18 @@ export function useSupabaseRealtime<T>(
     
     fetchInitialData();
     
-    // Set up real-time subscription
+    // Set up real-time subscription using properly typed payload
     const channel = supabase
       .channel('db-changes')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         {
           event: options.event || '*',
           schema: 'public',
           table: tableName,
         },
-        (payload) => {
+        (payload: any) => {
+          // Type assertion for payload based on Supabase's payload structure
           if (payload.eventType === 'INSERT') {
             setData(prevData => [...prevData, payload.new as T]);
           } else if (payload.eventType === 'UPDATE') {

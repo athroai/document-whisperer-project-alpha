@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { useAthro } from '@/contexts/AthroContext';
 import AthroChat from './AthroChat';
@@ -11,6 +11,7 @@ const AthroRouter: React.FC = () => {
   const { subject } = useParams<{ subject?: string }>();
   const navigate = useNavigate();
   const { currentSubject, setCurrentSubject, characters } = useAthro();
+  const [isLoading, setIsLoading] = useState(false);
   
   // Update current subject when route changes
   useEffect(() => {
@@ -30,7 +31,7 @@ const AthroRouter: React.FC = () => {
         element={
           <AthroChat 
             fetchKnowledgeForQuery={fetchKnowledgeForQuery} 
-            isLoading={false} 
+            isLoading={isLoading} 
           />
         } 
       />

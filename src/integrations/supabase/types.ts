@@ -56,6 +56,39 @@ export type Database = {
           },
         ]
       }
+      athro_characters: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          strengths: string[] | null
+          subject: string
+          voice_style: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          id: string
+          name: string
+          strengths?: string[] | null
+          subject: string
+          voice_style?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          strengths?: string[] | null
+          subject?: string
+          voice_style?: string | null
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           created_at: string

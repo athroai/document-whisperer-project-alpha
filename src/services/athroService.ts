@@ -17,9 +17,10 @@ interface AthroCharacterRecord {
 
 // Service for Athro character management
 const athroService = {
-  // Get available Athro characters - now from Supabase
+  // Get available Athro characters - from Supabase
   getCharacters: async (): Promise<AthroCharacter[]> => {
     try {
+      // Using type assertions to work around TypeScript constraints
       const { data, error } = await (supabase
         .from('athro_characters') as any)
         .select('*');
@@ -88,6 +89,7 @@ const athroService = {
   // Get a character by ID
   getCharacterById: async (id: string): Promise<AthroCharacter | null> => {
     try {
+      // Using type assertions to work around TypeScript constraints
       const { data, error } = await (supabase
         .from('athro_characters') as any)
         .select('*')
@@ -121,6 +123,7 @@ const athroService = {
   // Get a character by subject
   getCharacterBySubject: async (subject: string): Promise<AthroCharacter | null> => {
     try {
+      // Using type assertions to work around TypeScript constraints
       const { data, error } = await (supabase
         .from('athro_characters') as any)
         .select('*')
