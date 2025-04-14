@@ -2,16 +2,20 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Database } from '@/integrations/supabase/types';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
-// Using `any` for table names to avoid TypeScript errors when accessing dynamic tables
-type SupabaseTable = any;
+type Tables = Database['public']['Tables'];
+type TableNames = keyof Tables;
 
 /**
  * A custom hook for making Supabase queries with loading and error handling
  */
-export function useSupabaseQuery<T>(
-  tableName: string,
+export function useSupabaseQuery<
+  T extends Record<string, any>,
+  TName extends TableNames | string = string
+>(
+  tableName: TName,
   options: {
     select?: string;
     filter?: Record<string, any>;
@@ -45,9 +49,9 @@ export function useSupabaseQuery<T>(
     setError(null);
     
     try {
-      // Start building the query with `any` type to allow dynamic table names
+      // Use type assertion to allow dynamic table names
       let query = supabase
-        .from(tableName) as PostgrestFilterBuilder<SupabaseTable>;
+        .from(tableName as string);
         
       query = query.select(select);
         
@@ -108,7 +112,7 @@ export function useSupabaseQuery<T>(
 /**
  * A custom hook for real-time subscriptions to Supabase tables
  */
-export function useSupabaseRealtime<T>(
+export function useSupabaseRealtime<T extends Record<string, any>>(
   tableName: string,
   options: {
     event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
@@ -125,8 +129,8 @@ export function useSupabaseRealtime<T>(
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
-        // Use any type to bypass TypeScript constraints on dynamic table names
-        let query = supabase.from(tableName) as PostgrestFilterBuilder<SupabaseTable>;
+        // Use type assertion to bypass TypeScript constraints
+        let query = supabase.from(tableName as string);
         query = query.select('*');
         
         if (options.filter) {
@@ -147,7 +151,7 @@ export function useSupabaseRealtime<T>(
     
     fetchInitialData();
     
-    // Set up real-time subscription using properly typed payload
+    // Set up real-time subscription
     const channel = supabase
       .channel('db-changes')
       .on(
@@ -158,7 +162,7 @@ export function useSupabaseRealtime<T>(
           table: tableName,
         },
         (payload: any) => {
-          // Type assertion for payload based on Supabase's payload structure
+          // Handle different event types
           if (payload.eventType === 'INSERT') {
             setData(prevData => [...prevData, payload.new as T]);
           } else if (payload.eventType === 'UPDATE') {
