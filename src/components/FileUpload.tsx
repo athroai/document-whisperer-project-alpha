@@ -1,261 +1,340 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileUp, File as FileIcon } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
-import { UploadMetadata } from '@/types/files';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/components/ui/use-toast';
+import { Upload, File, FileText, X, Check } from 'lucide-react';
+import fileService, { UploadProgress, UploadedFile } from '@/services/fileService';
+import { useAthro } from '@/contexts/AthroContext';
 
-interface FileUploadProps {
+export interface FileUploadProps {
   userId?: string;
   userRole?: string;
-  onFileUploaded?: (metadata: UploadMetadata) => void;
+  onFileUploaded?: (file: UploadedFile) => void;
+  maxSize?: number; // in MB
+  allowedTypes?: string[];
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ userId, userRole, onFileUploaded }) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [subject, setSubject] = useState<string>('');
-  const [fileType, setFileType] = useState<string>('');
-  const [visibility, setVisibility] = useState<string>('private');
-  const [label, setLabel] = useState<string>('');
-  const [uploading, setUploading] = useState<boolean>(false);
+export interface UploadMetadata {
+  filename: string;
+  fileType: 'paper' | 'notes' | 'quiz';
+  fileURL: string;
+  subject?: string;
+}
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+const FileUpload: React.FC<FileUploadProps> = ({
+  userId,
+  userRole,
+  onFileUploaded,
+  maxSize = 10, // Default 10MB
+  allowedTypes = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png']
+}) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<'paper' | 'notes' | 'quiz'>('notes');
+  const [subject, setSubject] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const { characters } = useAthro();
+
+  const subjects = characters.map(char => char.subject);
+
+  // Handle file selection
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      
+      // Check file size
+      if (selectedFile.size > maxSize * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: `File size must be less than ${maxSize}MB`,
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Check file type
+      const fileExtension = '.' + selectedFile.name.split('.').pop()?.toLowerCase();
+      if (!allowedTypes.includes(fileExtension)) {
+        toast({
+          title: 'Invalid file type',
+          description: `Allowed file types: ${allowedTypes.join(', ')}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setFile(selectedFile);
+      
+      // Create preview for image files
+      if (selectedFile.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setPreview(reader.result as string);
+        };
+        reader.readAsDataURL(selectedFile);
+      } else {
+        setPreview(null);
+      }
+      
+      // Reset progress
+      setUploadProgress(null);
     }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    setPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setUploadProgress(null);
   };
 
   const handleUpload = async () => {
-    if (!file) {
-      toast({
-        title: "Missing File",
-        description: "Please select a file to upload.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // For assignment submissions, we don't need subject/fileType
-    if (!onFileUploaded && (!subject || !fileType)) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploading(true);
-
+    if (!file || !userId) return;
+    
     try {
-      // Mock upload for now - would connect to Firebase Storage in production
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate upload delay
-
-      // Generate a mock URL for the file
-      const mockUrl = `https://storage.example.com/files/${Date.now()}-${file.name}`;
+      setUploadProgress({ progress: 0, status: 'uploading' });
       
-      const uploadMetadata: UploadMetadata = {
-        url: mockUrl,
-        filename: file.name,
-        mimeType: file.type,
-        uploadedBy: userId || 'unknown',
-        subject: subject || undefined,
-        uploadTime: new Date().toISOString(),
-        visibility: (visibility as 'public' | 'class-only' | 'private') || 'private'
-      };
-      
-      // If this is being used in the assignment submission component
-      if (onFileUploaded) {
-        onFileUploaded(uploadMetadata);
-      } else {
-        // Regular file upload to user's collection
-        const fileMetadata = {
-          id: `file_${Date.now()}`,
-          uploadedBy: userId,
-          subject,
+      const uploadedFile = await fileService.uploadFile(
+        file,
+        userId,
+        {
           fileType,
-          visibility,
-          filename: file.name,
-          storagePath: `files/${userId}/${file.name}`,
-          timestamp: new Date().toISOString(),
-          label: label || undefined,
-          mimeType: file.type,
-          url: mockUrl
-        };
-
-        // Here we would save fileMetadata to Firebase
-        toast({
-          title: "File Uploaded",
-          description: `${file.name} has been successfully uploaded and will be processed for AI knowledge.`,
-        });
-        
-        // In a real implementation, we would call a function to process the file for the knowledge base
-        console.log("Processing file for knowledge base:", fileMetadata);
-      }
-
+          subject,
+          description
+        },
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
+      
+      toast({
+        title: 'Upload successful',
+        description: 'Your file has been uploaded successfully',
+      });
+      
       // Reset form
-      setFile(null);
-      setLabel('');
+      handleRemoveFile();
+      setFileType('notes');
+      setSubject('');
+      setDescription('');
+      
+      // Notify parent component
+      if (onFileUploaded) {
+        onFileUploaded(uploadedFile);
+      }
       
     } catch (error) {
-      toast({
-        title: "Upload Failed",
-        description: "There was an error uploading your file.",
-        variant: "destructive",
+      console.error('Upload error:', error);
+      setUploadProgress({
+        progress: 0,
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Failed to upload file'
       });
-      console.error("Upload error:", error);
-    } finally {
-      setUploading(false);
+      
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Failed to upload file',
+        variant: 'destructive',
+      });
     }
   };
 
-  // Simplified version when used just for file uploads in assignments
-  if (onFileUploaded) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-center w-full">
-          <Label
-            htmlFor="file-upload"
-            className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-          >
-            {file ? (
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <FileIcon className="w-8 h-8 mb-2 text-gray-500" />
-                <p className="text-sm text-gray-500">{file.name}</p>
-                <p className="text-xs text-gray-500">{Math.round(file.size / 1024)} KB</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <FileUp className="w-8 h-8 mb-2 text-gray-500" />
-                <p className="mb-2 text-sm text-gray-500">
-                  <span className="font-semibold">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-gray-500">PDF, DOCX, or images (MAX. 10MB)</p>
-              </div>
-            )}
-          </Label>
-          <Input 
-            id="file-upload"
-            type="file" 
-            className="hidden"
-            onChange={handleFileChange}
-            accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
+  const getFileIcon = () => {
+    if (!file) return <Upload className="h-8 w-8 text-gray-400" />;
+    
+    if (file.type.startsWith('image/')) {
+      return preview ? (
+        <div className="relative w-16 h-16 overflow-hidden rounded-md">
+          <img 
+            src={preview} 
+            alt="Preview" 
+            className="w-full h-full object-cover"
           />
         </div>
-        <Button 
-          onClick={handleUpload} 
-          className="w-full"
-          disabled={!file || uploading}
-        >
-          {uploading ? "Uploading..." : "Upload File"}
-        </Button>
-      </div>
+      ) : (
+        <File className="h-8 w-8 text-gray-400" />
+      );
+    }
+    
+    return <FileText className="h-8 w-8 text-gray-400" />;
+  };
+
+  if (!userId) {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <div className="text-center py-4">
+            <p className="text-gray-500">Please log in to upload files</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Upload Study Material</CardTitle>
+        <CardTitle className="text-lg flex items-center">
+          <Upload className="mr-2 h-5 w-5" />
+          Upload Study Material
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="file-upload">Select File</Label>
-          <div className="flex items-center justify-center w-full">
-            <Label
-              htmlFor="file-upload"
-              className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-            >
-              {file ? (
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <FileIcon className="w-8 h-8 mb-2 text-gray-500" />
-                  <p className="text-sm text-gray-500">{file.name}</p>
-                  <p className="text-xs text-gray-500">{Math.round(file.size / 1024)} KB</p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <FileUp className="w-8 h-8 mb-2 text-gray-500" />
-                  <p className="mb-2 text-sm text-gray-500">
-                    <span className="font-semibold">Click to upload</span> or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-500">PDF, DOCX, or images (MAX. 10MB)</p>
-                </div>
-              )}
-            </Label>
-            <Input 
-              id="file-upload"
-              type="file" 
-              className="hidden"
-              onChange={handleFileChange}
-              accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
-            />
+        {/* File Drop Area */}
+        <div 
+          className={`
+            border-2 border-dashed rounded-md p-6 text-center cursor-pointer
+            ${file ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-gray-400'}
+          `}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+            accept={allowedTypes.join(',')}
+          />
+          
+          <div className="flex flex-col items-center justify-center space-y-2">
+            {getFileIcon()}
+            
+            {file ? (
+              <>
+                <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                <p className="text-xs text-gray-500">
+                  {(file.size / (1024 * 1024)).toFixed(2)} MB
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveFile();
+                  }}
+                >
+                  <X className="mr-1 h-3 w-3" />
+                  Remove
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-gray-900">Click to select file</p>
+                <p className="text-xs text-gray-500">
+                  Supported formats: PDF, DOC, PPT, XLS, JPG, PNG
+                </p>
+                <p className="text-xs text-gray-500">
+                  Max file size: {maxSize}MB
+                </p>
+              </>
+            )}
           </div>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="subject">Subject</Label>
-          <Select value={subject} onValueChange={setSubject}>
-            <SelectTrigger id="subject">
-              <SelectValue placeholder="Select subject" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mathematics">Mathematics</SelectItem>
-              <SelectItem value="science">Science</SelectItem>
-              <SelectItem value="english">English</SelectItem>
-              <SelectItem value="history">History</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="fileType">File Type</Label>
-          <Select value={fileType} onValueChange={setFileType}>
-            <SelectTrigger id="fileType">
-              <SelectValue placeholder="Select file type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="paper">Past Paper</SelectItem>
-              <SelectItem value="notes">Notes</SelectItem>
-              <SelectItem value="quiz">Quiz</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="visibility">Visibility</Label>
-          <Select value={visibility} onValueChange={setVisibility}>
-            <SelectTrigger id="visibility">
-              <SelectValue placeholder="Select visibility" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="private">Private (Only me)</SelectItem>
-              {userRole === 'teacher' && (
-                <SelectItem value="public">Public (All students)</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="label">Label (Optional)</Label>
-          <Input 
-            id="label" 
-            placeholder="e.g. Algebra notes, Paper 2 practice" 
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-          />
+        
+        {/* Upload Progress */}
+        {uploadProgress && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>
+                {uploadProgress.status === 'uploading' 
+                  ? 'Uploading...' 
+                  : uploadProgress.status === 'success'
+                    ? 'Upload complete'
+                    : 'Upload failed'
+                }
+              </span>
+              <span>{Math.round(uploadProgress.progress)}%</span>
+            </div>
+            <Progress value={uploadProgress.progress} className="h-1" />
+            
+            {uploadProgress.error && (
+              <p className="text-xs text-red-500 mt-1">{uploadProgress.error}</p>
+            )}
+            
+            {uploadProgress.status === 'success' && (
+              <div className="flex items-center text-xs text-green-600">
+                <Check className="mr-1 h-3 w-3" />
+                <span>Successfully uploaded</span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* File Details */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="fileType">File Type</Label>
+              <Select 
+                value={fileType} 
+                onValueChange={(value) => setFileType(value as 'paper' | 'notes' | 'quiz')}
+              >
+                <SelectTrigger id="fileType">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paper">Past Paper</SelectItem>
+                  <SelectItem value="notes">Notes</SelectItem>
+                  <SelectItem value="quiz">Quiz</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Select 
+                value={subject} 
+                onValueChange={setSubject}
+              >
+                <SelectTrigger id="subject">
+                  <SelectValue placeholder="Select subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map(subj => (
+                    <SelectItem key={subj} value={subj}>{subj}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Description (Optional)</Label>
+            <Textarea 
+              id="description"
+              placeholder="Add a brief description of this file"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
         </div>
       </CardContent>
       <CardFooter>
         <Button 
           onClick={handleUpload} 
+          disabled={!file || uploadProgress?.status === 'uploading'}
           className="w-full"
-          disabled={!file || !subject || !fileType || uploading}
         >
-          {uploading ? "Uploading..." : "Upload File"}
+          {uploadProgress?.status === 'uploading' ? (
+            <>Uploading...</>
+          ) : (
+            <>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload File
+            </>
+          )}
         </Button>
       </CardFooter>
     </Card>

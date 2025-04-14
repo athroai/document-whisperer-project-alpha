@@ -1,49 +1,50 @@
 
-import { Citation } from '@/types/citations';
-import { KnowledgeSearchResult } from '@/types/knowledgeBase';
-import { searchKnowledgeBase } from './knowledgeBaseService';
+import { db } from '@/config/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
 
-export interface KnowledgeResponse {
+interface KnowledgeResponse {
   enhancedContext: string;
   hasKnowledgeResults: boolean;
-  citations: Citation[];
+  citations: any[];
 }
 
 /**
- * Fetches relevant knowledge from the knowledge base for a given query
+ * Fetch knowledge from uploaded files and other sources
+ * @param queryText The text to search for
+ * @returns Knowledge response with context and citations
  */
-export const fetchKnowledgeForQuery = async (
-  query: string,
-  subject?: string
-): Promise<KnowledgeResponse> => {
-  try {
-    console.log(`Fetching knowledge for query: "${query}" in subject: ${subject || 'any'}`);
-    
-    // Search knowledge base for relevant results
-    const results = await searchKnowledgeBase(query, subject);
-    
-    // If no results, return empty response
-    if (!results || results.length === 0) {
-      return {
-        enhancedContext: '',
-        hasKnowledgeResults: false,
-        citations: []
-      };
-    }
-    
-    // Create context from results
-    const enhancedContext = buildContextFromResults(results);
-    
-    // Create citations from results
-    const citations = createCitationsFromResults(results);
-    
+export const fetchKnowledgeForQuery = async (queryText: string): Promise<KnowledgeResponse> => {
+  console.log('Fetching knowledge for:', queryText);
+  
+  // In a real implementation, this would:
+  // 1. Parse the query to extract key terms
+  // 2. Search through user's uploaded files (via embeddings or other search)
+  // 3. Check curriculum knowledge base
+  // 4. Return combined results with proper citations
+  
+  // For now, we'll simulate finding results
+  const hasResults = Math.random() > 0.3; // 70% chance of "finding" results
+  
+  if (hasResults) {
     return {
-      enhancedContext,
+      enhancedContext: `Based on your study materials, I can help with "${queryText}". 
+        The key concepts related to this topic include several important definitions and formulas that 
+        you'll need to understand. Your materials cover this in detail, particularly in the sections 
+        on theory and application.`,
       hasKnowledgeResults: true,
-      citations
+      citations: [
+        {
+          id: 'citation_1',
+          title: 'Study Materials',
+          text: 'Related content from your uploaded files',
+          url: '#',
+          source: 'User uploaded file',
+          date: new Date().toISOString()
+        }
+      ]
     };
-  } catch (error) {
-    console.error('Error fetching knowledge:', error);
+  } else {
     return {
       enhancedContext: '',
       hasKnowledgeResults: false,
@@ -53,63 +54,38 @@ export const fetchKnowledgeForQuery = async (
 };
 
 /**
- * Build a context string from knowledge search results
+ * Get all relevant files for a subject that might contain knowledge
+ * @param userId User ID
+ * @param subject Subject name
+ * @returns Array of file references
  */
-const buildContextFromResults = (results: KnowledgeSearchResult[]): string => {
-  return results.map((result, index) => {
-    const { chunk } = result;
-    return `[${index + 1}] From "${chunk.sourceTitle}"${chunk.pageNumber ? ` (page ${chunk.pageNumber})` : ''}: ${chunk.content}`;
-  }).join('\n\n');
-};
-
-/**
- * Create citation objects from knowledge search results
- */
-const createCitationsFromResults = (results: KnowledgeSearchResult[]): Citation[] => {
-  return results.map((result, index) => {
-    const { chunk } = result;
-    
-    return {
-      id: `cite_${Date.now()}_${index}`,
-      label: `[${index + 1}]`,
-      filename: chunk.sourceTitle,
-      page: chunk.pageNumber,
-      section: chunk.sectionTitle,
-      highlight: chunk.content.substring(0, 150) + (chunk.content.length > 150 ? '...' : ''),
-      timestamp: new Date().toISOString()
-    };
-  });
-};
-
-/**
- * Process uploaded files for knowledge base indexing
- */
-export const processFilesForKnowledgeBase = async (
-  files: File[],
-  metadata: {
-    userId: string;
-    subject?: string;
-    topic?: string;
-    isPubliclyUsable?: boolean;
-  }
-): Promise<boolean> => {
+export const getRelevantFilesForSubject = async (userId: string, subject: string) => {
   try {
-    console.log(`Processing ${files.length} files for knowledge base`);
+    const uploadsRef = collection(db, 'uploads');
+    const q = query(
+      uploadsRef,
+      where('userId', '==', userId),
+      where('subject', '==', subject)
+    );
     
-    // In a real implementation, this would:
-    // 1. Parse each file based on type (PDF, DOCX, TXT)
-    // 2. Chunk the content
-    // 3. Add metadata
-    // 4. Store in vector database
+    const querySnapshot = await getDocs(q);
+    const files: any[] = [];
     
-    // For now, we'll just log the files
-    files.forEach(file => {
-      console.log(`Would process: ${file.name} (${file.type}), subject: ${metadata.subject || 'unknown'}`);
+    querySnapshot.forEach((doc) => {
+      files.push({
+        id: doc.id,
+        ...doc.data()
+      });
     });
     
-    return true;
+    return files;
   } catch (error) {
-    console.error('Error processing files for knowledge base:', error);
-    return false;
+    console.error('Error getting files for subject:', error);
+    return [];
   }
+};
+
+export default {
+  fetchKnowledgeForQuery,
+  getRelevantFilesForSubject
 };

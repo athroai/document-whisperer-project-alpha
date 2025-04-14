@@ -1,16 +1,20 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AthroSubject } from '@/types/athro';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAthro } from '@/contexts/AthroContext';
 import { getSubjectPath } from '@/utils/subjectRouteUtils';
 
 const AthroSubjectSelect: React.FC = () => {
   const { characters, setCurrentSubject } = useAthro();
+  const navigate = useNavigate();
   
   const handleSelectSubject = (subject: string) => {
     setCurrentSubject(subject);
+    const path = getSubjectPath(subject);
+    navigate(`/athro/${path}`);
   };
 
   return (
@@ -19,29 +23,47 @@ const AthroSubjectSelect: React.FC = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {characters.map((character) => (
-          <Link 
+          <Card 
             key={character.id} 
-            to={`/athro/${getSubjectPath(character.subject)}`}
+            className="hover:shadow-lg transition-shadow cursor-pointer h-full transform hover:scale-[1.02] transition-transform"
             onClick={() => handleSelectSubject(character.subject)}
           >
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <CardContent className="p-6 flex items-center space-x-4">
-                {character.avatar && (
-                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-                    <img 
-                      src={character.avatar} 
-                      alt={`${character.subject} icon`} 
-                      className="w-full h-full object-cover"
-                    />
+            <CardContent className="p-6 flex items-center space-x-4 h-full">
+              <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-purple-100">
+                {character.avatar ? (
+                  <img 
+                    src={character.avatar} 
+                    alt={`${character.subject} icon`} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Handle image load error
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null; // Prevent infinite loop
+                      target.src = '/lovable-uploads/athro-generic.png'; // Fallback image
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-purple-200 text-purple-700 font-bold text-lg">
+                    {character.subject.substring(0, 1)}
                   </div>
                 )}
-                <div>
-                  <h2 className="text-xl font-bold">{character.subject}</h2>
-                  <p className="text-gray-500">{character.description || `Study ${character.subject} with Athro`}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+              </div>
+              <div className="flex-grow">
+                <h2 className="text-xl font-bold">{character.subject}</h2>
+                <p className="text-gray-500">{character.description || `Study ${character.subject} with Athro`}</p>
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-sm text-purple-600 mt-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectSubject(character.subject);
+                  }}
+                >
+                  Select this subject
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

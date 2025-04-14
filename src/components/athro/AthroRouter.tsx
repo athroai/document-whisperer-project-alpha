@@ -5,28 +5,12 @@ import { useAthro } from '@/contexts/AthroContext';
 import AthroChat from './AthroChat';
 import AthroSubjectSelect from './AthroSubjectSelect';
 import { getSubjectFromPath } from '@/utils/subjectRouteUtils';
-
-interface KnowledgeResponse {
-  enhancedContext: string;
-  hasKnowledgeResults: boolean;
-  citations: any[];
-}
+import { fetchKnowledgeForQuery } from '@/services/fileAwareService';
 
 const AthroRouter: React.FC = () => {
   const { subject } = useParams<{ subject?: string }>();
   const navigate = useNavigate();
-  const { currentSubject, setCurrentSubject } = useAthro();
-
-  // Mock function to fetch knowledge for a query
-  const fetchKnowledgeForQuery = async (query: string): Promise<KnowledgeResponse> => {
-    // In a real implementation, this would call your knowledge search service
-    console.log('Fetching knowledge for:', query);
-    return {
-      enhancedContext: 'Enhanced context from knowledge base',
-      hasKnowledgeResults: Math.random() > 0.5, // Randomly have results or not for testing
-      citations: []
-    };
-  };
+  const { currentSubject, setCurrentSubject, characters } = useAthro();
   
   // Update current subject when route changes
   useEffect(() => {

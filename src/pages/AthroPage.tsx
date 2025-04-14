@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useNavigate, useLocation } from 'react-router-dom';
-import Navigation from '@/components/Navigation';
 import AthroSelectorPage from './athro/AthroSelectorPage';
 import AthroMathsPage from './athro/AthroMathsPage';
 import AthroSciencePage from './athro/AthroSciencePage';
@@ -72,7 +71,6 @@ const AthroPage: React.FC = () => {
   
   return (
     <>
-      <Navigation />
       <Routes>
         <Route path="/" element={<Navigate to="/athro/select" replace />} />
         <Route path="/select" element={<AthroSelectorPage />} />
