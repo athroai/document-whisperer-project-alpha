@@ -15,7 +15,7 @@ type SimpleFilter = Record<string, any>;
 /**
  * A custom hook for making Supabase queries with loading and error handling
  */
-export function useSupabaseQuery<T>(
+export function useSupabaseQuery<T = any>(
   tableName: ValidTableName,
   options: {
     select?: string;
@@ -84,15 +84,15 @@ export function useSupabaseQuery<T>(
         query = query.limit(limit);
       }
       
-      // Execute the query, using type assertions instead of deep generic inference
+      // Flatten the query execution to avoid excessive type inference
       if (single) {
-        const { data: responseData, error: responseError } = await query.maybeSingle();
-        if (responseError) throw responseError;
-        setData(responseData as T);
+        const result = await query.maybeSingle();
+        if (result.error) throw result.error;
+        setData(result.data as T);
       } else {
-        const { data: responseData, error: responseError } = await query;
-        if (responseError) throw responseError;
-        setData(responseData as T);
+        const result = await query;
+        if (result.error) throw result.error;
+        setData(result.data as T);
       }
     } catch (err: any) {
       console.error(`Error fetching data from ${tableName}:`, err);
@@ -114,7 +114,7 @@ export function useSupabaseQuery<T>(
 /**
  * A custom hook for real-time subscriptions to Supabase tables
  */
-export function useSupabaseRealtime<T>(
+export function useSupabaseRealtime<T = any>(
   tableName: ValidTableName,
   options: {
     event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
@@ -153,18 +153,17 @@ export function useSupabaseRealtime<T>(
     
     fetchInitialData();
     
-    // Set up real-time subscription using the correct Supabase v2 pattern
-    // Fix the TS2769 error by specifying the event as a literal string
+    // Fixed: Correct implementation of Supabase realtime channel subscription
     const channel = supabase
       .channel(`table-changes-${tableName}`)
       .on(
-        'postgres_changes', // This is now a literal string, not a generic parameter
+        'postgres_changes', 
         {
           event: options.event || '*',
           schema: 'public',
           table: tableName,
         },
-        (payload: RealtimePostgresChangesPayload<any>) => {
+        (payload: RealtimePostgresChangesPayload<T>) => {
           // Handle different event types
           if (payload.eventType === 'INSERT') {
             setData(prevData => [...prevData, payload.new as T]);
