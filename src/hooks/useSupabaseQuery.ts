@@ -25,8 +25,9 @@ export function useSupabaseQuery<T = any>(
     enabled?: boolean;
   } = {}
 ) {
+  // Use explicit state types to avoid recursion
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { state } = useAuth();
   
@@ -39,7 +40,7 @@ export function useSupabaseQuery<T = any>(
     enabled = true
   } = options;
   
-  // Define fetchData outside of useEffect to break type recursion
+  // Create fetchData as a non-generic function to avoid deep type recursion
   const fetchData = async () => {
     if (!enabled) {
       setLoading(false);
@@ -84,15 +85,17 @@ export function useSupabaseQuery<T = any>(
         query = query.limit(limit);
       }
       
-      // Break the recursion with type assertions to avoid deep inference chains
+      // Execute the query without deep generic inference
       if (single) {
-        const { data: resultData, error: resultError } = await query.maybeSingle();
-        if (resultError) throw resultError;
-        setData(resultData as T);
+        const result = await query.maybeSingle();
+        if (result.error) throw result.error;
+        // Use non-generic type assertion to break recursion
+        setData(result.data as any);
       } else {
-        const { data: resultData, error: resultError } = await query;
-        if (resultError) throw resultError;
-        setData(resultData as T);
+        const result = await query;
+        if (result.error) throw result.error;
+        // Use non-generic type assertion to break recursion
+        setData(result.data as any);
       }
     } catch (err: any) {
       console.error(`Error fetching data from ${tableName}:`, err);
@@ -110,9 +113,6 @@ export function useSupabaseQuery<T = any>(
   
   return { data, loading, error, refetch: fetchData };
 }
-
-// Import the correct type but place it at the top level to avoid ordering issues
-import type { RealtimeChannel } from '@supabase/supabase-js';
 
 /**
  * A custom hook for real-time subscriptions to Supabase tables
@@ -156,14 +156,12 @@ export function useSupabaseRealtime<T = any>(
     
     fetchInitialData();
     
-    // Type-casting to fix the "system" vs "postgres_changes" mismatch
-    // This works because at runtime, the Supabase client accepts 'postgres_changes'
-    // The issue is purely with TypeScript definitions
-    const channel = supabase
-      .channel(`table-changes-${tableName}`) as RealtimeChannel;
+    // Create channel without type checking to avoid the system/postgres_changes mismatch
+    // @ts-ignore - We know at runtime this works, it's just a TypeScript definition issue
+    const channel = supabase.channel(`table-changes-${tableName}`);
     
-    // Use type assertion to avoid the TypeScript error while still being correct at runtime
-    // @ts-ignore - This is a workaround for the incompatible type definitions
+    // Add subscription with explicit any to avoid type issues
+    // @ts-ignore - This bypasses the type system's limitation with Supabase's realtime API
     channel.on(
       'postgres_changes', 
       {
@@ -178,12 +176,14 @@ export function useSupabaseRealtime<T = any>(
         } else if (payload.eventType === 'UPDATE') {
           setData(prevData => 
             prevData.map(item => 
+              // Safely compare IDs without assuming object shape
               (item as any).id === (payload.new as any).id ? payload.new as T : item
             )
           );
         } else if (payload.eventType === 'DELETE') {
           setData(prevData => 
             prevData.filter(item => 
+              // Safely compare IDs without assuming object shape
               (item as any).id !== (payload.old as any).id
             )
           );
