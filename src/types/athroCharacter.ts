@@ -1,5 +1,5 @@
 
-import { AthroSubject, AthroLanguage, ExamBoard } from './athro';
+import { AthroSubject, ExamBoard } from './athro';
 
 export interface AthroCharacterConfig {
   id: string;
@@ -17,7 +17,7 @@ export interface AthroCharacterConfig {
   specialFeatures?: string[];
   supportsMathNotation?: boolean;
   supportsSpecialCharacters?: boolean;
-  supportedLanguages?: AthroLanguage[];
+  supportedLanguages?: string[];
   topics: string[];
   examBoards: ExamBoard[];
   features?: {

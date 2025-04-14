@@ -18,6 +18,7 @@ export interface AthroCharacter {
   supportsSpecialCharacters?: boolean;
   supportedLanguages?: string[];
   referencedResources?: string[];
+  avatar?: string; // For backward compatibility
 }
 
 export interface AthroMessage {
@@ -63,8 +64,14 @@ export interface AthroLanguage {
 }
 
 export interface ModelAnswer {
+  id?: string;       // Making id optional to fix existing code
+  questionId?: string;
   grade: string;
   text: string;
+  workingSteps?: string[];
+  markScheme?: string;
+  marks?: number;
+  latexNotation?: string;
 }
 
 export interface PastPaper {
@@ -74,4 +81,10 @@ export interface PastPaper {
   year: number;
   subject: string;
   board: string;
+  title?: string;    // Making title optional to fix existing code
+  unit?: string;     // Making unit optional to fix existing code
+  examBoard?: string;
+  questions?: any[];
+  difficulty?: string;
+  topics?: string[];
 }

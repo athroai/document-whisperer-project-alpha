@@ -348,19 +348,19 @@ Please provide a helpful response that stays in character, addresses the student
     if (subject === 'French') {
       filteredPapers = frenchPastPapers.filter((paper) =>
         keywords.every((keyword) =>
-          paper.title.toLowerCase().includes(keyword.toLowerCase())
+          paper.question.toLowerCase().includes(keyword.toLowerCase())
         )
       );
     } else if (subject === 'German') {
       filteredPapers = germanPastPapers.filter((paper) =>
         keywords.every((keyword) =>
-          paper.title.toLowerCase().includes(keyword.toLowerCase())
+          paper.question.toLowerCase().includes(keyword.toLowerCase())
         )
       );
     } else if (subject === 'Spanish') {
       filteredPapers = spanishPastPapers.filter((paper) =>
         keywords.every((keyword) =>
-          paper.title.toLowerCase().includes(keyword.toLowerCase())
+          paper.question.toLowerCase().includes(keyword.toLowerCase())
         )
       );
     } else {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AthroCharacter, AthroMessage, AthroLanguage, ExamBoard } from '@/types/athro';
+import { AthroCharacter, AthroMessage, ExamBoard } from '@/types/athro';
 import { AthroCharacterConfig, SubjectData } from '@/types/athroCharacter';
 import { athroCharacters } from '@/config/athrosConfig';
 import { pastPapers } from '@/data/athro-maths/past-papers';
