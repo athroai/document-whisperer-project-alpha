@@ -66,29 +66,40 @@ export interface AthroLanguage {
 }
 
 export interface ModelAnswer {
-  id?: string;       // Making id optional to fix existing code
+  id?: string;
   questionId?: string;
   grade: string;
   text?: string;
-  answer?: string;   // Adding answer as an alternative to text
+  answer?: string;
   workingSteps?: string[];
   markScheme?: string;
   marks?: number;
   latexNotation?: string;
+  translation?: string;
+  grammarExplanation?: string;
+  culturalNote?: string;
 }
 
 export interface PastPaper {
   id: string;
-  question: string;
-  markScheme: string;
-  year: number;
   subject: string;
-  board: string;
-  title?: string;    // Making title optional to fix existing code
-  unit?: string;     // Making unit optional to fix existing code
+  unit?: string;
+  title?: string;
   examBoard?: string;
-  questions?: any[];
+  year: number;
+  season?: string;
+  questions?: {
+    id: string;
+    topic: string;
+    subtopic: string;
+    text: string;
+    marks: number;
+    difficulty: string;
+  }[];
   difficulty?: string;
   topics?: string[];
-  season?: 'Summer' | 'Winter' | 'Autumn' | 'Spring' | string;
+  // These fields are kept for backward compatibility
+  question?: string;
+  markScheme?: string;
+  board?: string;
 }
