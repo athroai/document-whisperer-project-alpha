@@ -1,32 +1,32 @@
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getFirestore, initializeFirestore, enableIndexedDbPersistence, doc, getDoc } from "firebase/firestore";
+import { getFirestore, initializeFirestore, enableIndexedDbPersistence, collection, doc, getDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getAnalytics } from "firebase/analytics";
 
-// ✅ Your web app's Firebase configuration
+// ✅ Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBVRq9wWs-Osrh4TN84www4tViKsd9lxAc",
   authDomain: "athro-ai-e33f9.firebaseapp.com",
   projectId: "athro-ai-e33f9",
-  storageBucket: "athro-ai-e33f9.firebasestorage.app",
+  storageBucket: "athro-ai-e33f9.appspot.com",
   messagingSenderId: "612165275676",
   appId: "1:612165275676:web:bf28bc1f7426b99b178fd9",
   measurementId: "G-0HGDXV9G3F"
 };
 
-// ✅ Initialize Firebase
+// ✅ Initialize Firebase services
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 console.log('[Firebase] App initialized:', app.name);
 
-// ✅ Initialize Firestore with WebSocket fallback support
+// ✅ Initialize Firestore
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: false,
   experimentalAutoDetectLongPolling: true,
 });
 console.log('[Firestore] Firestore instance created');
 
-// ✅ Enable offline persistence only when online
+// ✅ Enable offline persistence (only if online)
 if (navigator.onLine) {
   console.log('[Firestore] Browser reports online, enabling persistence...');
   enableIndexedDbPersistence(db).catch((err) => {
@@ -42,10 +42,10 @@ if (navigator.onLine) {
   console.warn("[Firestore] Browser appears to be offline, skipping persistence initialization");
 }
 
-// ✅ Initialize Storage
+// ✅ Storage
 const storage = getStorage(app);
 
-// ✅ Firestore connection check function
+// ✅ Connection check utility
 export const checkFirestoreConnection = async () => {
   try {
     console.log('[Firestore] Testing connection...');
