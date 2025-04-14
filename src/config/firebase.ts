@@ -6,7 +6,9 @@ import {
   enableIndexedDbPersistence,
   doc,
   getDoc,
-  CACHE_SIZE_UNLIMITED
+  CACHE_SIZE_UNLIMITED,
+  persistentLocalCache,
+  persistentSingleTabManager
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -32,39 +34,20 @@ try {
   console.warn("[Firebase] Analytics initialization skipped:", error);
 }
 
-// ✅ Initialize Firestore with persistence settings FIRST
-// This solves the "persistence can no longer be enabled" error
+// ✅ Create Firestore with persistence already built-in
+// This completely avoids the "persistence can no longer be enabled" error
+// by configuring persistence at initialization time
 const db = initializeFirestore(app, {
+  localCache: typeof window !== 'undefined' ? 
+    persistentLocalCache({
+      tabManager: persistentSingleTabManager,
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED
+    }) : undefined,
   experimentalForceLongPolling: false,
-  experimentalAutoDetectLongPolling: true,
-  cacheSizeBytes: CACHE_SIZE_UNLIMITED
+  experimentalAutoDetectLongPolling: true
 });
 
-console.log('[Firestore] Firestore instance created');
-
-// ✅ Enable persistence BEFORE any Firestore operations
-// Using a try-catch to handle errors without breaking the app
-if (typeof window !== 'undefined' && navigator.onLine) {
-  console.log('[Firestore] Browser online — enabling persistence...');
-  
-  // Wrap in async function to properly handle the promise
-  (async () => {
-    try {
-      await enableIndexedDbPersistence(db);
-      console.log('[Firestore] Persistence enabled successfully');
-    } catch (err: any) {
-      if (err.code === 'failed-precondition') {
-        console.warn("[Firestore] Persistence failed: multiple tabs open");
-      } else if (err.code === 'unimplemented') {
-        console.warn("[Firestore] Persistence not supported on this platform");
-      } else {
-        console.error("[Firestore] Unknown persistence error:", err);
-      }
-    }
-  })();
-} else {
-  console.warn("[Firestore] Offline or not in browser — skipping persistence");
-}
+console.log('[Firestore] Firestore instance created with built-in persistence');
 
 // ✅ Storage
 const storage = getStorage(app);
