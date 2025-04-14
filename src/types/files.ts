@@ -11,7 +11,7 @@ export interface UploadMetadata {
 }
 
 export interface UploadedFile {
-  id: string;
+  id?: string; // Make id optional to match fileService implementation
   uploadedBy: string;
   subject: string;
   fileType: string; // 'paper', 'notes', 'quiz', etc.

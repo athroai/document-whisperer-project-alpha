@@ -22,14 +22,15 @@ const FileReference: React.FC<FileReferenceProps> = ({ userId, subject, onFileSe
         setLoading(true);
         // In production, this would filter by subject
         const files = await getRecentFiles(userId);
-        // Convert files to match the expected type
-        const convertedFiles: UploadedFile[] = files.map(file => ({
+        // Convert files to match the expected type - cast as UploadedFile[] to ensure type compatibility
+        const convertedFiles = files.map(file => ({
           ...file,
           visibility: file.visibility || 'private',
           storagePath: file.storagePath || file.filename,
           timestamp: file.timestamp || new Date().toISOString(),
           url: file.url || file.fileURL
-        }));
+        })) as UploadedFile[];
+        
         setRelevantFiles(convertedFiles);
       } catch (error) {
         console.error('Error fetching files:', error);

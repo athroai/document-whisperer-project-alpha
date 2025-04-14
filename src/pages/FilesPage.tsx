@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FileUpload from '@/components/FileUpload';
 import FilesList from '@/components/FilesList';
 import { useAuth } from '@/contexts/AuthContext';
-import fileService, { UploadedFile } from '@/services/fileService';
+import fileService from '@/services/fileService';
 import { AlertTriangle, Loader2 } from 'lucide-react';
+import { UploadedFile } from '@/types/files';
 
 const FilesPage: React.FC = () => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -24,7 +24,8 @@ const FilesPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const userFiles = await fileService.getUserFiles(userId);
-      setFiles(userFiles);
+      // Cast the files to the UploadedFile type from types/files.ts
+      setFiles(userFiles as unknown as UploadedFile[]);
     } catch (error) {
       console.error('Error fetching files:', error);
       setError('Failed to load your files. Please try again later.');
@@ -43,9 +44,9 @@ const FilesPage: React.FC = () => {
   };
 
   // Filter files by type
-  const paperFiles = files.filter(file => file.fileType === 'paper');
-  const notesFiles = files.filter(file => file.fileType === 'notes');
-  const quizFiles = files.filter(file => file.fileType === 'quiz');
+  const paperFiles = files.filter(file => file.fileType === 'paper') as UploadedFile[];
+  const notesFiles = files.filter(file => file.fileType === 'notes') as UploadedFile[];
+  const quizFiles = files.filter(file => file.fileType === 'quiz') as UploadedFile[];
 
   // Loading state
   if (isLoading && files.length === 0) {
