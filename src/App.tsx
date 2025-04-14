@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import Navigation from "./components/Navigation";
+import CitationDemo from "./components/athro/CitationDemo";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -27,17 +27,8 @@ export default function App() {
   }
 
   return (
-    <div style={{
-      backgroundColor: "#000",
-      color: "#00ff00",
-      height: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      alignItems: "center"
-    }}>
-      ✅ Rendering Navigation component:
-      <Navigation />
+    <div className="bg-gray-100 min-h-screen">
+      <CitationDemo />
     </div>
   );
 }

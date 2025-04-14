@@ -8,6 +8,8 @@ import AthroSessionFirestoreService from '@/services/firestore/athroSessionServi
 import { getAthroById } from '@/config/athrosConfig';
 import { useTranslation } from '@/hooks/useTranslation';
 import { enhanceResponseWithKnowledge, shouldEnhanceWithKnowledge } from '@/services/athroServiceExtension';
+import { enhanceMessageWithCitations } from '@/services/citationService';
+import { Citation } from '@/types/citations';
 
 interface AthroRouterProps {
   character: AthroCharacter;
@@ -104,6 +106,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         // Check if the message would benefit from knowledge base enhancement
         let knowledgeContext = '';
         let hasKnowledgeResults = false;
+        let knowledgeSearchResults = [];
         
         if (shouldEnhanceWithKnowledge(message)) {
           console.log(`[AthroRouter] Enhancing response with knowledge for: "${message.substring(0, 50)}..."`);
@@ -146,6 +149,23 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         let finalResponse = { ...response };
         if (isMockEnrollment && !response.content.includes('mock')) {
           finalResponse.content = `[Mock Session] ${response.content}`;
+        }
+
+        // Enhance the message with citations if knowledge results were found
+        let citations: Citation[] = [];
+        if (hasKnowledgeResults) {
+          const { enhancedMessage, citations: messageCitations } = await enhanceMessageWithCitations(
+            finalResponse.content,
+            message,
+            character.subject.toLowerCase()
+          );
+          
+          // Add citations to the response
+          if (messageCitations.length > 0) {
+            finalResponse.content = enhancedMessage;
+            finalResponse.citations = messageCitations;
+            citations = messageCitations;
+          }
         }
         
         // If logged in, try to save the message to Firestore

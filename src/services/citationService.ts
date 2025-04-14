@@ -1,0 +1,92 @@
+
+import { Citation } from '@/types/citations';
+import { searchKnowledgeBase, KnowledgeSearchResult } from './knowledgeBaseService';
+import { createCitationMarker } from '@/utils/citationUtils';
+
+/**
+ * Processes a message and adds citations based on knowledge search results
+ */
+export const processCitedMessage = async (
+  message: string,
+  subject: string,
+  knowledgeResults: KnowledgeSearchResult[]
+): Promise<{
+  enhancedMessage: string;
+  citations: Citation[];
+}> => {
+  const citations: Citation[] = [];
+  let enhancedMessage = message;
+  
+  // Process knowledge results to create citations
+  knowledgeResults.forEach((result, index) => {
+    const { chunk, similarity } = result;
+    const citationIndex = index + 1;
+    const citationMarker = createCitationMarker(citationIndex);
+    
+    // Create citation object
+    const citation: Citation = {
+      id: `src_${Date.now()}_${citationIndex}`,
+      label: citationMarker,
+      filename: chunk.sourceTitle,
+      section: chunk.sectionTitle,
+      page: chunk.pageNumber,
+      highlight: extractHighlight(chunk.content),
+      timestamp: new Date().toISOString(),
+    };
+    
+    citations.push(citation);
+  });
+  
+  // For this implementation, we'll assume the message already contains citation markers
+  // In a real implementation, the LLM would need to be instructed to place citation markers
+  // or we would need to analyze the message to find where to place citations
+  
+  return {
+    enhancedMessage,
+    citations
+  };
+};
+
+/**
+ * Extract a relevant highlight from content
+ */
+const extractHighlight = (content: string): string => {
+  // For simplicity, we'll just take the first 100 characters
+  // In a real implementation, this could use NLP to find the most relevant section
+  if (content.length <= 100) return content;
+  return content.substring(0, 100) + '...';
+};
+
+/**
+ * Enhances a message with citations from knowledge search results
+ */
+export const enhanceMessageWithCitations = async (
+  message: string,
+  query: string,
+  subject?: string
+): Promise<{
+  enhancedMessage: string;
+  citations: Citation[];
+}> => {
+  try {
+    // Search knowledge base for relevant results
+    const knowledgeResults = await searchKnowledgeBase(query, subject, 3);
+    
+    // If no knowledge results, return the original message without citations
+    if (knowledgeResults.length === 0) {
+      return {
+        enhancedMessage: message,
+        citations: []
+      };
+    }
+    
+    // Process the message with citations
+    return processCitedMessage(message, subject || '', knowledgeResults);
+  } catch (error) {
+    console.error('Error enhancing message with citations:', error);
+    return {
+      enhancedMessage: message,
+      citations: []
+    };
+  }
+};
