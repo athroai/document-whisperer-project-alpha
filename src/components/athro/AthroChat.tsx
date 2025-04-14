@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAthro } from '@/contexts/AthroContext';
@@ -11,7 +12,6 @@ import FileUpload from '@/components/FileUpload';
 import { UploadMetadata } from '@/types/files';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { AthroSubject } from '@/types/athro';
 
 interface AthroMessage {
   id: string;
@@ -39,7 +39,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
   isCompactMode = false 
 }) => {
   const { subject } = useParams<{ subject: string }>();
-  const { characters, activeCharacter } = useAthro();
+  const { characters, activeCharacter, athroThemeForSubject } = useAthro();
   const { state } = useAuth();
   const { toast } = useToast();
   const [message, setMessage] = useState('');
@@ -51,47 +51,11 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Get theme colors based on current subject
-  const getThemeForSubject = (subjectName?: string) => {
-    // Default theme
-    const defaultTheme = { 
-      primary: 'blue-600',
-      secondary: 'green-500',
-      primaryHex: '#2563eb',
-      secondaryHex: '#22c55e'
-    };
-    
-    if (!subjectName) return defaultTheme;
-    
-    const themes: Record<string, {
-      primary: string;
-      secondary: string;
-      primaryHex: string;
-      secondaryHex: string;
-    }> = {
-      'Mathematics': {
-        primary: 'blue-600',
-        secondary: 'sky-500',
-        primaryHex: '#2563eb',
-        secondaryHex: '#0ea5e9'
-      },
-      'Science': {
-        primary: 'green-600',
-        secondary: 'emerald-500',
-        primaryHex: '#16a34a',
-        secondaryHex: '#10b981'
-      },
-      'English': {
-        primary: 'purple-600',
-        secondary: 'violet-500',
-        primaryHex: '#9333ea',
-        secondaryHex: '#8b5cf6'
-      }
-    };
-    
-    return themes[subjectName] || defaultTheme;
+  const currentSubject = subject ? subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase() : null;
+  const theme = currentSubject ? athroThemeForSubject(currentSubject) : {
+    primaryHex: '#2563eb',
+    secondaryHex: '#22c55e'
   };
-  
-  const theme = activeCharacter ? getThemeForSubject(activeCharacter.subject) : getThemeForSubject();
 
   // Scroll to bottom of chat when new messages are added
   useEffect(() => {
@@ -122,7 +86,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
   function renderMessage(msg: AthroMessage) {
     const bgColor = msg.sender === 'user' 
       ? 'bg-gray-100' 
-      : 'bg-blue-500 text-white';
+      : `bg-blue-500 text-white`;
     
     return (
       <div 
@@ -144,7 +108,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
     );
   };
 
-  function handleMessageSubmit(e: React.FormEvent) {
+  async function handleMessageSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!message.trim() || isLoading) return;
 
@@ -161,21 +125,25 @@ const AthroChat: React.FC<AthroChatProps> = ({
 
     try {
       // Fetch knowledge context for the query
-      fetchKnowledgeForQuery(message).then(knowledge => {
-        // Simulate AI response (in a real app, this would call your AI service)
-        setTimeout(() => {
-          // Create the AI response
-          const aiMessage: AthroMessage = {
-            id: `athro_${Date.now()}`,
-            text: simulateAiResponse(message, knowledge.enhancedContext),
-            sender: 'athro',
-            timestamp: new Date(),
-            citations: knowledge.hasKnowledgeResults ? knowledge.citations : undefined
-          };
-          
-          setConversation(prev => [...prev, aiMessage]);
-        }, 1500);
-      });
+      const knowledge = await fetchKnowledgeForQuery(message);
+      
+      // Create the AI response with citations if knowledge was found
+      const aiMessage: AthroMessage = {
+        id: `athro_${Date.now()}`,
+        text: simulateAiResponse(message, knowledge.enhancedContext),
+        sender: 'athro',
+        timestamp: new Date(),
+        citations: knowledge.hasKnowledgeResults ? knowledge.citations : undefined
+      };
+      
+      setConversation(prev => [...prev, aiMessage]);
+      
+      // Show citations if any were found
+      if (knowledge.citations?.length) {
+        setActiveCitations(knowledge.citations);
+        setCurrentMessageId(aiMessage.id);
+        setShowCitations(true);
+      }
     } catch (error) {
       console.error('Error generating AI response:', error);
       toast({

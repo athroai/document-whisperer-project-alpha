@@ -1,101 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { useAthro } from '@/contexts/AthroContext';
-import { useNavigate } from 'react-router-dom';
-import AthroChat from './AthroChat';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { isInStudySession } from '@/utils/studySessionManager';
-import ExitConfirmationModal from './ExitConfirmationModal';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Citation } from '@/types/citations';
-import { searchKnowledgeBase } from '@/services/knowledgeBaseService';
-import { createCitationsFromKnowledgeResults } from '@/services/fileAwareAiService';
 
-interface AthroBaseProps {
-  subject: string;
-  allowScience?: boolean; // For Science subject
-  allowLanguages?: boolean; // For Languages subject
+import React, { useState } from 'react';
+import { useAthro } from '@/contexts/AthroContext';
+import AthroChat from './AthroChat';
+import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+interface KnowledgeResponse {
+  enhancedContext: string;
+  hasKnowledgeResults: boolean;
+  citations: any[];
 }
 
-const AthroBase: React.FC<AthroBaseProps> = ({ subject, allowScience, allowLanguages }) => {
-  const { activeCharacter, setActiveCharacter } = useAthro();
-  const navigate = useNavigate();
-  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Initialize the active character based on subject if not already set
-  useEffect(() => {
-    // Set loading state
-    setIsLoading(true);
-    setError(null);
-    
-    // Initialize component
-    const initComponent = async () => {
-      try {
-        // Logic to initialize the character if needed
-        if (activeCharacter?.subject !== subject) {
-          console.log(`AthroBase: Initializing ${subject} character`);
-          // Initialize character logic would go here
-        }
-        
-        // Simulate a small delay for transition
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 300);
-      } catch (error) {
-        console.error(`Error initializing ${subject} Athro:`, error);
-        setError(`Could not initialize ${subject} Athro. Please try again.`);
-        setIsLoading(false);
-      }
-    };
-    
-    initComponent();
-  }, [subject, setActiveCharacter, activeCharacter]);
-
-  const handleBackClick = () => {
-    if (isInStudySession()) {
-      // If in a study session, show confirmation dialog
-      setIsExitDialogOpen(true);
-    } else {
-      // Otherwise just navigate back
-      navigate('/athro/select');
-    }
+const AthroBase: React.FC = () => {
+  const { isOpen, setIsOpen, activeCharacter } = useAthro();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleClose = () => {
+    setIsOpen(false);
   };
-
-  // Function to fetch knowledge for a given query
-  const fetchKnowledgeForQuery = async (query: string) => {
+  
+  // Mock function to fetch knowledge for a query
+  const fetchKnowledgeForQuery = async (query: string): Promise<KnowledgeResponse> => {
     setIsLoading(true);
+    
     try {
-      // Search the knowledge base
-      const searchResults = await searchKnowledgeBase(query, subject.toLowerCase());
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (searchResults.length === 0) {
-        return {
-          enhancedContext: '',
-          hasKnowledgeResults: false,
-          citations: []
-        };
-      }
-      
-      // Create citations from the search results
-      const citations = createCitationsFromKnowledgeResults(searchResults);
-      
-      // Create enhanced context from the search results
-      const enhancedContext = searchResults
-        .map(result => result.chunk.content)
-        .join('\n\n');
-      
+      // In a real implementation, this would call your knowledge search service
       return {
-        enhancedContext,
-        hasKnowledgeResults: true,
-        citations
-      };
-    } catch (error) {
-      console.error('Error fetching knowledge for query:', error);
-      return {
-        enhancedContext: '',
-        hasKnowledgeResults: false,
+        enhancedContext: 'Enhanced context from knowledge base',
+        hasKnowledgeResults: Math.random() > 0.5, // Randomly have results or not for testing
         citations: []
       };
     } finally {
@@ -103,78 +38,29 @@ const AthroBase: React.FC<AthroBaseProps> = ({ subject, allowScience, allowLangu
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="p-2 bg-background border-b">
-          <Button variant="ghost" size="sm" className="gap-1" disabled>
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Selector</span>
-          </Button>
-        </div>
-        <div className="flex items-center justify-center flex-grow">
-          <div className="text-center p-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <h3 className="mt-4 font-medium">Loading Athro {subject}...</h3>
-            <p className="text-sm text-muted-foreground mt-2">Preparing your study mentor</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="p-2 bg-background border-b">
-          <Button variant="ghost" size="sm" className="gap-1" onClick={handleBackClick}>
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Selector</span>
-          </Button>
-        </div>
-        <div className="flex items-center justify-center flex-grow">
-          <div className="max-w-md w-full p-4">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-            <div className="mt-4 flex justify-center">
-              <Button onClick={() => window.location.reload()}>Try Again</Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  if (!isOpen) return null;
+  
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-2 bg-background border-b">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1"
-          onClick={handleBackClick}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to Selector</span>
-        </Button>
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white sm:rounded-lg overflow-hidden w-full h-[80vh] sm:h-[600px] sm:max-w-3xl sm:max-h-[80vh]">
+        <div className="flex flex-col h-full">
+          <div className="flex justify-between items-center p-4 bg-blue-600 text-white">
+            <h2 className="font-bold text-xl">
+              {activeCharacter ? `Athro ${activeCharacter.subject}` : 'Athro AI'}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={handleClose} className="text-white">
+              <X size={24} />
+            </Button>
+          </div>
+          
+          <div className="flex-1 overflow-hidden">
+            <AthroChat 
+              fetchKnowledgeForQuery={fetchKnowledgeForQuery} 
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
       </div>
-      
-      <div className="flex-grow overflow-hidden">
-        <AthroChat 
-          fetchKnowledgeForQuery={fetchKnowledgeForQuery} 
-          isLoading={isLoading} 
-        />
-      </div>
-      
-      {/* Exit confirmation dialog */}
-      <ExitConfirmationModal 
-        isOpen={isExitDialogOpen}
-        onOpenChange={setIsExitDialogOpen}
-        destination="/study"
-      />
     </div>
   );
 };

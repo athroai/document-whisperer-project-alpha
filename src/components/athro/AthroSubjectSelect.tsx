@@ -1,53 +1,46 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useAthro } from '@/contexts/AthroContext';
+import { Link } from 'react-router-dom';
 import { AthroSubject } from '@/types/athro';
+import { Card, CardContent } from '@/components/ui/card';
+import { useAthro } from '@/contexts/AthroContext';
 
 const AthroSubjectSelect: React.FC = () => {
-  const navigate = useNavigate();
-  const { characters } = useAthro();
+  const { characters, setCurrentSubject } = useAthro();
   
-  const handleSubjectSelect = (subject: AthroSubject) => {
-    navigate(`/athro/${subject.toLowerCase()}`);
+  const handleSelectSubject = (subject: string) => {
+    setCurrentSubject(subject);
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-6">Select Your Study Mentor</h2>
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold text-center mb-6">Select a Subject</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {characters.map(character => (
-          <Card key={character.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4 mb-4">
-                {character.avatarUrl && (
-                  <div className="h-12 w-12 rounded-full overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {characters.map((character) => (
+          <Link 
+            key={character.id} 
+            to={`/athro/${character.subject.toLowerCase()}`}
+            onClick={() => handleSelectSubject(character.subject)}
+          >
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <CardContent className="p-6 flex items-center space-x-4">
+                {character.avatar && (
+                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
                     <img 
-                      src={character.avatarUrl} 
-                      alt={character.name} 
-                      className="h-full w-full object-cover"
+                      src={character.avatar} 
+                      alt={`${character.subject} icon`} 
+                      className="w-full h-full object-cover"
                     />
                   </div>
                 )}
                 <div>
-                  <h3 className="text-lg font-medium">{character.name}</h3>
-                  <p className="text-sm text-gray-500">{character.subject} Specialist</p>
+                  <h2 className="text-xl font-bold">{character.subject}</h2>
+                  <p className="text-gray-500">{character.description || `Study ${character.subject} with Athro`}</p>
                 </div>
-              </div>
-              
-              <p className="text-sm mb-4">{character.shortDescription}</p>
-              
-              <Button 
-                onClick={() => handleSubjectSelect(character.subject as AthroSubject)}
-                className="w-full"
-              >
-                Select {character.name}
-              </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
     </div>
