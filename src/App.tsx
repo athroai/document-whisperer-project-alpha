@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AthroPage from "./pages/AthroPage";
 import HomePage from "./pages/HomePage";
@@ -22,29 +22,6 @@ import StudySessionRouter from "./pages/study/StudySessionRouter";
 import KnowledgePage from './pages/KnowledgePage';
 
 export default function App() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setReady(true), 1000);
-    return () => clearTimeout(timeout);
-  }, []);
-
-  if (!ready) {
-    return (
-      <div style={{
-        backgroundColor: "#000",
-        color: "#00ff00",
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        fontSize: "2rem"
-      }}>
-        ✅ App layout is loading...
-      </div>
-    );
-  }
-
   return (
     <AuthProvider>
       <StudentClassProvider>
