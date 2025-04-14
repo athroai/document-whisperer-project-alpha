@@ -1,18 +1,21 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/ui/loading-spinner';
+import { toast } from '@/hooks/use-toast';
 
 const IndexPage = () => {
   const navigate = useNavigate();
   const { state } = useAuth();
   const { user, loading } = state;
+  const [localLoading, setLocalLoading] = useState(true);
   
   useEffect(() => {
-    // Handle redirection immediately when auth state is confirmed
+    // Handle redirection when auth state is confirmed
     if (!loading) {
+      setLocalLoading(false);
       redirectToUserDashboard();
     }
     
@@ -20,6 +23,7 @@ const IndexPage = () => {
     const redirectTimeout = setTimeout(() => {
       if (loading) {
         console.log("Redirect timeout triggered - navigating to login");
+        setLocalLoading(false);
         navigate('/login', { replace: true });
       }
     }, 3000);
@@ -46,6 +50,7 @@ const IndexPage = () => {
 
   // Handle manual redirect if needed
   const handleManualRedirect = () => {
+    setLocalLoading(false);
     redirectToUserDashboard();
   };
 
@@ -59,7 +64,7 @@ const IndexPage = () => {
         />
         <h1 className="text-2xl font-bold mb-2">Welcome to Athro AI</h1>
         <p className="text-gray-600 mb-6">
-          {loading ? (
+          {localLoading ? (
             <span className="flex items-center justify-center">
               <LoadingSpinner className="mr-2 h-4 w-4" /> 
               <span className="ml-2">Preparing your experience...</span>

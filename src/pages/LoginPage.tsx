@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, state } = useAuth();
   const navigate = useNavigate();
 
@@ -27,20 +28,27 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error("Missing information", {
-        description: "Please fill in all required fields"
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
       });
       return;
     }
     
     try {
+      setIsSubmitting(true);
       await login(email, password);
-      toast.success("Login successful!", {
-        description: "Welcome back to Athro AI"
+      toast({
+        title: "Login successful!",
+        description: "Welcome back to Athro AI",
+        variant: "success"
       });
       navigate('/home');
     } catch (error) {
       // Error is already handled in the AuthContext
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -88,6 +96,7 @@ const LoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -102,6 +111,7 @@ const LoginPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -111,6 +121,7 @@ const LoginPage: React.FC = () => {
                   id="remember-me" 
                   checked={rememberMe} 
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  disabled={isSubmitting}
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
                   Remember me
@@ -130,9 +141,14 @@ const LoginPage: React.FC = () => {
               <Button
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
-                disabled={state.loading}
+                disabled={isSubmitting || state.loading}
               >
-                {state.loading ? "Logging in..." : "Log in"}
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center">
+                    <LoadingSpinner className="mr-2 h-4 w-4" />
+                    <span>Logging in...</span>
+                  </span>
+                ) : "Log in"}
               </Button>
             </div>
           </form>
