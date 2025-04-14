@@ -1,13 +1,62 @@
 
 import { db } from '@/config/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { useAuth } from '@/contexts/AuthContext';
+import { UploadedFile } from '@/types/files';
+import { uploadFile } from '@/services/fileService';
 
 interface KnowledgeResponse {
   enhancedContext: string;
   hasKnowledgeResults: boolean;
   citations: any[];
 }
+
+/**
+ * Process files for the knowledge base
+ * @param files Array of files to process
+ * @param metadata Additional metadata
+ * @returns Promise resolving to processed files
+ */
+export const processFilesForKnowledgeBase = async (
+  files: File[],
+  metadata: {
+    userId: string;
+    subject?: string;
+    topic?: string;
+    isPubliclyUsable?: boolean;
+  }
+): Promise<any[]> => {
+  console.log('Processing files for knowledge base:', files.length);
+  
+  const results = [];
+  
+  // Process each file by uploading it
+  for (const file of files) {
+    try {
+      const uploadResult = await uploadFile(file, {
+        uploadedBy: metadata.userId,
+        subject: metadata.subject,
+        visibility: metadata.isPubliclyUsable ? 'public' : 'private',
+        type: 'notes'
+      });
+      
+      results.push({
+        filename: file.name,
+        status: 'processed',
+        metadata: uploadResult
+      });
+      
+    } catch (error) {
+      console.error(`Error processing file ${file.name}:`, error);
+      results.push({
+        filename: file.name,
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+  
+  return results;
+};
 
 /**
  * Fetch knowledge from uploaded files and other sources
@@ -59,7 +108,7 @@ export const fetchKnowledgeForQuery = async (queryText: string): Promise<Knowled
  * @param subject Subject name
  * @returns Array of file references
  */
-export const getRelevantFilesForSubject = async (userId: string, subject: string) => {
+export const getRelevantFilesForSubject = async (userId: string, subject: string): Promise<UploadedFile[]> => {
   try {
     const uploadsRef = collection(db, 'uploads');
     const q = query(
@@ -69,12 +118,24 @@ export const getRelevantFilesForSubject = async (userId: string, subject: string
     );
     
     const querySnapshot = await getDocs(q);
-    const files: any[] = [];
+    const files: UploadedFile[] = [];
     
     querySnapshot.forEach((doc) => {
+      const data = doc.data();
       files.push({
         id: doc.id,
-        ...doc.data()
+        userId: data.userId,
+        filename: data.filename,
+        fileType: data.fileType || 'notes',
+        fileURL: data.fileURL || data.url,
+        originalName: data.originalName || data.filename,
+        subject: data.subject,
+        description: data.description,
+        size: data.size,
+        createdAt: data.createdAt?.toDate(),
+        url: data.url || data.fileURL,
+        mimeType: data.mimeType || 'application/octet-stream',
+        uploadedBy: data.uploadedBy || data.userId
       });
     });
     
@@ -87,5 +148,6 @@ export const getRelevantFilesForSubject = async (userId: string, subject: string
 
 export default {
   fetchKnowledgeForQuery,
-  getRelevantFilesForSubject
+  getRelevantFilesForSubject,
+  processFilesForKnowledgeBase
 };

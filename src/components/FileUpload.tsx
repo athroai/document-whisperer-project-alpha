@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
 import { Upload, File, FileText, X, Check } from 'lucide-react';
-import fileService, { UploadProgress, UploadedFile } from '@/services/fileService';
+import fileService, { UploadedFile } from '@/services/fileService';
 import { useAthro } from '@/contexts/AthroContext';
 
 export interface FileUploadProps {
@@ -21,10 +20,14 @@ export interface FileUploadProps {
 }
 
 export interface UploadMetadata {
+  url: string;
   filename: string;
-  fileType: 'paper' | 'notes' | 'quiz';
-  fileURL: string;
+  mimeType: string;
+  uploadedBy: string;
   subject?: string;
+  classId?: string;
+  uploadTime?: string;
+  visibility?: 'private' | 'class-only' | 'public';
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -39,7 +42,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const [fileType, setFileType] = useState<'paper' | 'notes' | 'quiz'>('notes');
   const [subject, setSubject] = useState<string>('');
   const [description, setDescription] = useState<string>('');
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ progress: number, status: string, error?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { characters } = useAthro();
@@ -131,7 +134,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
       
       // Notify parent component
       if (onFileUploaded) {
-        onFileUploaded(uploadedFile);
+        // Convert to compatible types before passing
+        onFileUploaded({
+          ...uploadedFile,
+          // Ensure all required fields are present
+          url: uploadedFile.fileURL,
+          mimeType: file.type,
+          uploadedBy: userId
+        });
       }
       
     } catch (error) {

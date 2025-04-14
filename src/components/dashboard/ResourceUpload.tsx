@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -85,7 +84,7 @@ const ResourceUpload: React.FC<ResourceUploadProps> = ({
       
       // Call the onUploadComplete callback if provided
       if (onUploadComplete) {
-        onUploadComplete(uploadMetadata);
+        onUploadComplete(uploadMetadata as UploadMetadata);
       }
     } catch (error) {
       console.error('Upload error:', error);

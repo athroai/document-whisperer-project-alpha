@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, FileImage, FilePdf, Download, Trash2 } from 'lucide-react';
+import { FileText, FileImage, File as FileIcon, Download, Trash2 } from 'lucide-react';
 import fileService, { UploadedFile } from '@/services/fileService';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
@@ -62,7 +61,7 @@ const FilesList: React.FC<FilesListProps> = ({
     if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(fileExt || '')) {
       return <FileImage className="h-8 w-8 text-blue-500" />;
     } else if (['pdf'].includes(fileExt || '')) {
-      return <FilePdf className="h-8 w-8 text-red-500" />;
+      return <FileIcon className="h-8 w-8 text-red-500" />;
     } else {
       return <FileText className="h-8 w-8 text-gray-500" />;
     }

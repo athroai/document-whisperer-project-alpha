@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,7 +45,6 @@ const FileReference: React.FC<FileReferenceProps> = ({ userId, subject, onFileSe
     }
   };
 
-  // Generate human-friendly reference
   const getAthroReference = (file: UploadedFile) => {
     const type = file.fileType === 'paper' ? 'past paper' : file.fileType;
     const timeReference = new Date(file.timestamp).getTime() > Date.now() - 86400000 * 2 

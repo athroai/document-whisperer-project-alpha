@@ -16,7 +16,7 @@ export const processMessageWithFileContext = async (
 ): Promise<CitedMessage> => {
   try {
     // Step 1: Get relevant files for this subject
-    const subjectFiles = await getFilesBySubject(subject);
+    const subjectFiles = await getFilesBySubject(userId, subject);
     
     // Step 2: Get user's recent files
     const userFiles = await getRecentFiles(userId);
@@ -98,3 +98,6 @@ const extractRelevantHighlight = (content: string): string => {
   if (content.length <= 150) return content;
   return content.substring(0, 150) + '...';
 };
+
+// Export functions that might be used elsewhere
+export { getFilesBySubject, getRecentFiles };
