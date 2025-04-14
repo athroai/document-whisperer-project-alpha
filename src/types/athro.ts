@@ -65,22 +65,9 @@ export interface ModelAnswer {
   culturalNote?: string;
 }
 
-export interface FeedbackSummary {
-  id: string;
-  score: number;
-  strengths: string[];
-  areasToImprove: string[];
-  nextSteps: string[];
-  confidence?: number;
-  feedback?: string;
-  encouragement?: string;
-  teacherComments?: string;
-  submittedAt?: string;
-  activityType?: 'goal' | 'assignment' | 'quiz' | 'exam';
-  activityId?: string;
-  activityName?: string;
-  subject?: string;
-}
+// Import and re-export FeedbackSummary from feedback.ts to maintain compatibility
+import { FeedbackSummary as FeedbackSummaryType } from './feedback';
+export type FeedbackSummary = FeedbackSummaryType;
 
 export interface AthroLanguage {
   code: string;

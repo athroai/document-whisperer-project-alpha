@@ -18,7 +18,8 @@ export const languagesModelAnswers: ModelAnswer[] = [
     markScheme: 'A complete answer should include a proper introduction with name and age, accurate description of family structure using appropriate vocabulary, correct use of possessive adjectives, accurate verb conjugation, and proper sentence structure. Aim to include at least three family members with descriptions.',
     marks: 10,
     latexNotation: '',
-    translation: 'I will describe my family and my relationships with different members.'
+    translation: 'I will describe my family and my relationships with different members.',
+    examBoard: 'WJEC'
   },
   {
     id: 's22-3810u10-1-q1',
@@ -35,7 +36,8 @@ export const languagesModelAnswers: ModelAnswer[] = [
     markScheme: 'Full marks require demonstrating comprehension of the text through accurate answers that include relevant details. Answers should be in complete sentences with correct grammar and spelling where required. Include direct evidence from the text to support your answers.',
     marks: 15,
     latexNotation: '',
-    translation: 'I am going to read the text carefully and answer the questions.'
+    translation: 'I am going to read the text carefully and answer the questions.',
+    examBoard: 'WJEC'
   }
 ];
 

@@ -19,7 +19,8 @@ export const germanModelAnswers: ModelAnswer[] = [
     latexNotation: '',
     translation: 'In my family there are four people: my father, my mother, my brother and me. My father is called Hans, he is 47 years old and works as an engineer. My mother is called Monika, she is 45 years old and works as a teacher. My brother is called Lukas, he is 20 years old and studies medicine.',
     grammarExplanation: 'This answer correctly uses possessive adjectives (mein, meine), present tense verbs (ist, arbeitet, studiert), and the structure "In meiner Familie gibt es..." to introduce family members.',
-    culturalNote: 'In Germany, family relationships are important, although adult children often live independently from their parents.'
+    culturalNote: 'In Germany, family relationships are important, although adult children often live independently from their parents.',
+    examBoard: 'WJEC'
   },
   {
     id: 'g22-3850u10-1-q2',
@@ -38,7 +39,8 @@ export const germanModelAnswers: ModelAnswer[] = [
     latexNotation: '',
     translation: 'Last year I went on holiday to Austria with my family. We stayed in a small hotel in the mountains near Salzburg. The weather was very good - sunny and warm every day. During our holiday, we went hiking in the mountains and visited some interesting museums in the city. The food was delicious, especially the Austrian cakes. I really enjoyed this holiday because I love the mountains and nature.',
     grammarExplanation: 'This answer correctly uses the simple past tense (ging, war) and the perfect tense (sind gewandert, haben besucht), prepositions with locations (in den Bergen, in der Stadt), and opinion phrases (Das Essen war köstlich).',
-    culturalNote: 'Mountain holidays in Alpine regions like Austria, Switzerland and southern Germany are very popular among German speakers. Hiking is considered an important cultural activity.'
+    culturalNote: 'Mountain holidays in Alpine regions like Austria, Switzerland and southern Germany are very popular among German speakers. Hiking is considered an important cultural activity.',
+    examBoard: 'WJEC'
   }
 ];
 

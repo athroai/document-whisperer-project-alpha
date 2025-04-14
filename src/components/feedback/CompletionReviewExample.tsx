@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CompletionReviewPanel from './CompletionReviewPanel';
-import { FeedbackSummary } from '@/types/athro';
+import { FeedbackSummary } from '@/types/feedback';
 import athroService from '@/services/athroService';
 
 interface CompletionReviewExampleProps {
@@ -17,13 +17,13 @@ const CompletionReviewExample: React.FC<CompletionReviewExampleProps> = ({ subje
   const mockSubmission = {
     id: 'mock-activity-1',
     title: `${subject} Practice Activity`,
-    activityType: 'quiz',
+    activityType: 'quiz' as const,
     subject,
     score: 85,
     submittedAt: new Date().toISOString()
   };
   
-  // Get feedback summary and add required properties
+  // Get feedback summary and ensure it has all required fields for FeedbackSummary
   const basicFeedback = athroService.getFeedbackSummary(mockSubmission);
   const feedbackSummary: FeedbackSummary = {
     ...basicFeedback,
