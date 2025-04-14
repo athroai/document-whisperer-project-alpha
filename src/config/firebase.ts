@@ -1,9 +1,7 @@
-
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import {
   initializeFirestore,
-  enableIndexedDbPersistence,
   doc,
   getDoc,
   CACHE_SIZE_UNLIMITED,
@@ -26,42 +24,37 @@ const firebaseConfig = {
 // ✅ Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Try to initialize Analytics only in browser environments
+// ✅ Analytics (safely for SSR)
 let analytics = null;
 try {
   analytics = getAnalytics(app);
 } catch (error) {
-  console.warn("[Firebase] Analytics initialization skipped:", error);
+  console.warn("[Firebase] Analytics skipped:", error);
 }
 
-// ✅ Create Firestore with persistence already built-in
-// This completely avoids the "persistence can no longer be enabled" error
-// by configuring persistence at initialization time
+// ✅ Firestore with proper persistence
 const db = initializeFirestore(app, {
-  localCache: typeof window !== 'undefined' ? 
-    persistentLocalCache({
-      tabManager: persistentSingleTabManager(),
-      cacheSizeBytes: CACHE_SIZE_UNLIMITED
-    }) : undefined,
+  localCache: persistentLocalCache({
+    tabManager: persistentSingleTabManager(),
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+  }),
   experimentalForceLongPolling: false,
-  experimentalAutoDetectLongPolling: true
+  experimentalAutoDetectLongPolling: true,
 });
-
-console.log('[Firestore] Firestore instance created with built-in persistence');
+console.log("[Firestore] Firestore initialized");
 
 // ✅ Storage
 const storage = getStorage(app);
 
-// ✅ Test connection (can be triggered elsewhere after setup)
+// ✅ Connection test
 export const checkFirestoreConnection = async () => {
   try {
-    console.log('[Firestore] Checking connection...');
-    const testDoc = doc(db, 'diagnostics', 'connection');
+    const testDoc = doc(db, "diagnostics", "connection");
     await getDoc(testDoc);
-    return 'connected';
+    return "connected";
   } catch (error) {
-    console.warn("[Firestore] Connection failed:", error);
-    return navigator.onLine ? 'error' : 'offline';
+    console.warn("[Firestore] Connection test failed:", error);
+    return navigator.onLine ? "error" : "offline";
   }
 };
 
