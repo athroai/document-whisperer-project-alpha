@@ -11,6 +11,8 @@ import AthroLanguagesPage from './athro/AthroLanguagesPage';
 import AthroHistoryPage from './athro/AthroHistoryPage';
 import AthroGeographyPage from './athro/AthroGeographyPage';
 import AthroREPage from './athro/AthroREPage';
+import AthroStudySkillsPage from './athro/AthroStudySkillsPage';
+import AthroComputerSciencePage from './athro/AthroComputerSciencePage';
 import AthroSystem from '@/components/AthroSystem';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
