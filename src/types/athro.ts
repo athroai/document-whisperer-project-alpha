@@ -1,5 +1,17 @@
-
-export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Languages' | 'Religious Education' | 'Welsh' | 'French' | 'German' | 'Spanish';
+export type AthroSubject = 
+  'Mathematics' | 
+  'Science' | 
+  'English' | 
+  'History' | 
+  'Geography' | 
+  'Languages' | 
+  'Religious Education' | 
+  'Welsh' | 
+  'French' | 
+  'German' | 
+  'Spanish' | 
+  'Study Skills' | 
+  'Computer Science';
 
 export type ExamBoard = 'WJEC' | 'AQA' | 'OCR' | 'Edexcel' | 'Cambridge' | 'CCEA';
 
