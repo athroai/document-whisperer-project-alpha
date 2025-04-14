@@ -7,6 +7,27 @@ import { Database } from '@/integrations/supabase/types';
 // Define a type for valid table names in our Supabase database
 type ValidTableName = keyof Database['public']['Tables'];
 
+// Create a constant with all valid table names for type assertion
+const VALID_TABLES = [
+  'ai_logs', 
+  'athro_characters', 
+  'calendar_events', 
+  'feedback',
+  'model_answers',
+  'past_papers',
+  'profiles',
+  'quiz_results',
+  'schools',
+  'sets',
+  'student_sets',
+  'task_submissions',
+  'tasks',
+  'uploads'
+] as const;
+
+// Type for the array of valid table names
+type ValidTableNameLiteral = typeof VALID_TABLES[number];
+
 /**
  * A custom hook for making Supabase queries with loading and error handling
  */
@@ -45,9 +66,11 @@ export function useSupabaseQuery<T extends Record<string, any>>(
     setError(null);
     
     try {
-      // Explicitly cast table name to string to avoid type recursion
+      // Assert tableName as a valid table literal to satisfy TypeScript
+      const tableNameLiteral = tableName as ValidTableNameLiteral;
+      
       let query = supabase
-        .from(tableName as string)
+        .from(tableNameLiteral)
         .select(select);
         
       // Apply filters if provided
@@ -124,10 +147,15 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
   useEffect(() => {
     if (!state.user) return;
     
+    // Assert tableName as a valid table literal to satisfy TypeScript
+    const tableNameLiteral = tableName as ValidTableNameLiteral;
+    
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
-        let query = supabase.from(tableName as string).select('*');
+        let query = supabase
+          .from(tableNameLiteral)
+          .select('*');
         
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {
@@ -151,11 +179,11 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     const channel = supabase
       .channel(`table-changes-${tableName}`)
       .on(
-        'postgres_changes' as unknown as "system",
+        'postgres_changes',
         {
           event: options.event || '*',
           schema: 'public',
-          table: tableName as string,
+          table: tableNameLiteral,
         },
         (payload: any) => {
           // Handle different event types
