@@ -9,6 +9,7 @@ interface UseFirestoreConnectionOptions {
   autoRetryOnNetworkChange?: boolean;
   retryInterval?: number;
   showToasts?: boolean;
+  suppressInitialToasts?: boolean;
 }
 
 /**
@@ -18,12 +19,14 @@ export function useFirestoreConnection(options?: UseFirestoreConnectionOptions) 
   const {
     autoRetryOnNetworkChange = true,
     retryInterval = 30000, // 30 seconds
-    showToasts = true
+    showToasts = true,
+    suppressInitialToasts = true
   } = options || {};
   
   const [status, setStatus] = useState<FirestoreConnectionStatus>('loading');
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
   const { toast } = useToast();
   
   const checkConnection = useCallback(async () => {
@@ -33,21 +36,27 @@ export function useFirestoreConnection(options?: UseFirestoreConnectionOptions) 
       setStatus(connectionStatus as FirestoreConnectionStatus);
       setLastCheck(new Date());
       
-      if (connectionStatus === 'connected' && retryCount > 0 && showToasts) {
-        toast({
-          title: "Connection Restored",
-          description: "Successfully connected to Firestore. Your data is now being synced.",
-          variant: "default",
-        });
-      } else if ((connectionStatus === 'error' || connectionStatus === 'offline') && showToasts) {
-        toast({
-          title: connectionStatus === 'offline' ? "You're Offline" : "Connection Error",
-          description: connectionStatus === 'offline' 
-            ? "Working in offline mode. Your changes will sync when you're back online."
-            : "Having trouble connecting to the database. Using local data for now.",
-          variant: "default",
-        });
+      // Only show toast if it's a retry or initial toasts aren't suppressed
+      if (showToasts && (!suppressInitialToasts || hasShownInitialToast || retryCount > 0)) {
+        if (connectionStatus === 'connected' && retryCount > 0) {
+          toast({
+            title: "Connection Restored",
+            description: "Successfully connected to Firestore. Your data is now being synced.",
+            variant: "default",
+          });
+        } else if ((connectionStatus === 'error' || connectionStatus === 'offline')) {
+          toast({
+            title: connectionStatus === 'offline' ? "You're Offline" : "Connection Error",
+            description: connectionStatus === 'offline' 
+              ? "Working in offline mode. Your changes will sync when you're back online."
+              : "Having trouble connecting to the database. Using local data for now.",
+            variant: "default",
+          });
+        }
       }
+      
+      // Mark that we've shown at least one toast
+      setHasShownInitialToast(true);
       
       // Reset retry count on success
       if (connectionStatus === 'connected') {
@@ -62,7 +71,7 @@ export function useFirestoreConnection(options?: UseFirestoreConnectionOptions) 
       setLastCheck(new Date());
       return newStatus;
     }
-  }, [retryCount, showToasts, toast]);
+  }, [retryCount, showToasts, suppressInitialToasts, hasShownInitialToast, toast]);
   
   // Handle retry
   const handleRetry = useCallback(async () => {

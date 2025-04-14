@@ -6,7 +6,6 @@ import {
   doc,
   getDoc,
   enableIndexedDbPersistence,
-  CACHE_SIZE_UNLIMITED,
   persistentLocalCache,
   persistentSingleTabManager
 } from "firebase/firestore";
@@ -34,31 +33,19 @@ try {
   console.warn("[Firebase] Analytics disabled or not supported in this environment:", err);
 }
 
-// ✅ Initialize Firestore with simpler persistence settings
-// Using memory-only cache to avoid persistence conflicts
+// ✅ Initialize Firestore with proper persistence settings
+// Using memory-only cache for now to avoid conflicts
 const db = initializeFirestore(app, {
-  // No local persistence config for now to avoid conflicts
+  // Using the simplest possible settings to avoid conflicts
+  localCache: persistentLocalCache({
+    settings: {
+      // Use single-tab mode which is more reliable
+      tabManager: persistentSingleTabManager({})
+    }
+  })
 });
 
-// Try to enable persistence, but don't fail if it errors
-try {
-  enableIndexedDbPersistence(db)
-    .then(() => {
-      console.log("[Firestore] IndexedDB persistence successfully enabled.");
-    })
-    .catch((error) => {
-      if (error.code === 'failed-precondition') {
-        console.warn("[Firestore] Multiple tabs open, using memory-only cache.");
-      } else if (error.code === 'unimplemented') {
-        console.warn("[Firestore] Browser doesn't support IndexedDB, using memory-only cache.");
-      } else {
-        console.error("[Firestore] Error enabling persistence:", error);
-      }
-    });
-} catch (err) {
-  console.warn("[Firestore] Error setting up persistence:", err);
-}
-
+// Don't try to enable persistence as we already configured it above
 console.log("[Firestore] Firestore initialized with built-in persistence");
 
 // ✅ Storage
@@ -74,7 +61,7 @@ export const checkFirestoreConnection = async () => {
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error("Firestore connection check timed out"));
-      }, 3000); // Reduced to 3 second timeout
+      }, 5000); // Increased to 5 second timeout for more reliability
     });
     
     // Race between the connection check and the timeout

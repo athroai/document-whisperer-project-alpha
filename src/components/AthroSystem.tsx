@@ -8,6 +8,7 @@ import { MessageCircle } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreConnection } from '@/hooks/useFirestoreConnection';
+import { FirestoreStatus } from './ui/firestore-status';
 
 interface KnowledgeResponse {
   enhancedContext: string;
@@ -20,8 +21,9 @@ const AthroSystem: React.FC = () => {
   const location = useLocation();
   const [isFloatingChat, setIsFloatingChat] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { status: firestoreStatus } = useFirestoreConnection({
-    showToasts: false // Don't show toasts from this component since it's always visible
+  const { status: firestoreStatus, handleRetry } = useFirestoreConnection({
+    showToasts: false, // Don't show toasts from this component since it's always visible
+    suppressInitialToasts: true // Don't show initial connection status
   });
   const { toast } = useToast();
 
@@ -64,12 +66,22 @@ const AthroSystem: React.FC = () => {
       <AthroBase />
       
       {!isOpen && (
-        <Button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 rounded-full h-14 w-14 shadow-lg"
-        >
-          <MessageCircle size={24} />
-        </Button>
+        <div className="fixed bottom-4 right-4 space-y-2">
+          {(firestoreStatus === 'offline' || firestoreStatus === 'error') && (
+            <FirestoreStatus 
+              status={firestoreStatus} 
+              compact={true} 
+              onRetry={handleRetry}
+              className="mb-2"
+            />
+          )}
+          <Button
+            onClick={() => setIsOpen(true)}
+            className="rounded-full h-14 w-14 shadow-lg"
+          >
+            <MessageCircle size={24} />
+          </Button>
+        </div>
       )}
     </>
   );
