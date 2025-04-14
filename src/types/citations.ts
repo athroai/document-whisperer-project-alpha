@@ -14,3 +14,4 @@ export interface CitedMessage {
   content: string;
   citations: Citation[];
 }
+

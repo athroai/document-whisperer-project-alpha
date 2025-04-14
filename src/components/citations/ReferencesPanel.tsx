@@ -1,65 +1,76 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Citation } from '@/types/citations';
-import { ChevronDown, ChevronUp, FileText, ExternalLink } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { FileText, ArrowRight } from 'lucide-react';
 
 interface ReferencesPanelProps {
   citations: Citation[];
   onCitationClick?: (citation: Citation) => void;
+  compact?: boolean;
 }
 
-const ReferencesPanel: React.FC<ReferencesPanelProps> = ({ citations, onCitationClick }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  if (citations.length === 0) {
+const ReferencesPanel: React.FC<ReferencesPanelProps> = ({ 
+  citations,
+  onCitationClick,
+  compact = false 
+}) => {
+  if (!citations || citations.length === 0) {
     return null;
   }
 
   return (
-    <div className="mt-4 border border-gray-200 rounded-md">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full p-3 text-sm font-medium text-left bg-gray-50 hover:bg-gray-100 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <FileText size={16} />
-          <span>AI References ({citations.length})</span>
-        </div>
-        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </button>
-
-      <div className={cn("overflow-hidden transition-all", 
-        isExpanded ? "max-h-96 overflow-y-auto" : "max-h-0")}>
-        <div className="p-3 bg-white">
-          <ul className="space-y-3">
-            {citations.map((citation) => (
-              <li key={citation.id} className="text-sm">
-                <div 
-                  className="flex gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-md"
-                  onClick={() => onCitationClick?.(citation)}
-                >
-                  <span className="font-medium text-blue-500 min-w-[24px]">{citation.label}</span>
-                  <div className="flex-1">
-                    <div className="font-medium">{citation.filename}</div>
-                    <div className="text-gray-600 text-xs">
-                      {citation.page && `Page ${citation.page}`}
-                      {citation.section && citation.page && ' • '}
-                      {citation.section && `Section: ${citation.section}`}
-                    </div>
-                    {citation.highlight && (
-                      <div className="mt-1 text-xs italic text-gray-500 border-l-2 border-gray-300 pl-2">
-                        "{citation.highlight}"
-                      </div>
-                    )}
-                  </div>
-                  <ExternalLink size={16} className="text-gray-400 self-center flex-shrink-0" />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <div className={`mt-3 pt-3 border-t border-gray-200 ${compact ? '' : 'space-y-2'}`}>
+      <div className="flex items-center justify-between">
+        <h5 className="text-sm font-medium text-gray-700">References</h5>
+        {citations.length > 3 && !compact && (
+          <Button variant="link" size="sm" className="p-0 h-auto text-xs">
+            View All
+          </Button>
+        )}
       </div>
+      
+      {compact ? (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {citations.map((citation) => (
+            <Button
+              key={citation.id}
+              variant="outline"
+              size="sm"
+              className="h-6 text-xs py-0 px-2 bg-gray-50"
+              onClick={() => onCitationClick?.(citation)}
+            >
+              <span className="font-mono">{citation.label}</span>
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2 mt-2">
+          {citations.slice(0, 3).map((citation) => (
+            <div 
+              key={citation.id}
+              className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-sm"
+            >
+              <div className="flex items-center space-x-2">
+                <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700">
+                  {citation.label}
+                </span>
+                <span className="text-gray-700 truncate max-w-[200px]">
+                  {citation.filename}
+                </span>
+              </div>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-7 w-7 p-0"
+                onClick={() => onCitationClick?.(citation)}
+              >
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
