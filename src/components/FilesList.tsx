@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UploadedFile } from '@/types/files';
-import { File, FileText, FileImage, FilePdf } from 'lucide-react';
+import { File, FileText, FileImage, FileDown } from 'lucide-react';
 
 interface FilesListProps {
   files: UploadedFile[];
@@ -18,7 +17,7 @@ const FilesList: React.FC<FilesListProps> = ({ files, title, onFileClick, onFile
     const mimeType = file.mimeType || '';
     
     if (mimeType.includes('pdf')) {
-      return <FilePdf className="h-5 w-5 text-red-500" />;
+      return <FileDown className="h-5 w-5 text-red-500" />;
     } else if (mimeType.includes('image')) {
       return <FileImage className="h-5 w-5 text-blue-500" />;
     } else if (mimeType.includes('text') || mimeType.includes('document')) {
