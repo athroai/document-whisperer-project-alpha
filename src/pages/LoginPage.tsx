@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
 import LoadingSpinner from '@/components/ui/loading-spinner';
+import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
+import { DatabaseStatus } from '@/components/ui/database-status';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +18,7 @@ const LoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, state } = useAuth();
   const navigate = useNavigate();
+  const { status: connectionStatus } = useDatabaseStatus();
 
   // Redirect if already logged in
   useEffect(() => {
@@ -31,6 +34,16 @@ const LoginPage: React.FC = () => {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Don't attempt to login if offline
+    if (connectionStatus === 'offline' || connectionStatus === 'error') {
+      toast({
+        title: "Connection Issue",
+        description: "Please check your internet connection and try again",
         variant: "destructive"
       });
       return;
@@ -88,6 +101,12 @@ const LoginPage: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {(connectionStatus === 'offline' || connectionStatus === 'error') && (
+            <div className="mb-6">
+              <DatabaseStatus />
+            </div>
+          )}
+          
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <Label htmlFor="email">Email address</Label>
@@ -100,7 +119,7 @@ const LoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
-                disabled={isSubmitting}
+                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error'}
               />
             </div>
 
@@ -115,7 +134,7 @@ const LoginPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
-                disabled={isSubmitting}
+                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error'}
               />
             </div>
 
@@ -125,7 +144,7 @@ const LoginPage: React.FC = () => {
                   id="remember-me" 
                   checked={rememberMe} 
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error'}
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
                   Remember me
@@ -145,7 +164,7 @@ const LoginPage: React.FC = () => {
               <Button
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
-                disabled={isSubmitting}
+                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error'}
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center">

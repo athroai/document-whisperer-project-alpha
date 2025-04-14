@@ -15,7 +15,7 @@ import { AthroProvider } from "./contexts/AthroContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { StudentClassProvider } from "./contexts/StudentClassContext";
 import { StudentRecordProvider } from "./contexts/StudentRecordContext";
-import { FirestoreStatusProvider } from "./contexts/FirestoreStatusContext";
+import { DatabaseStatusProvider } from "./contexts/DatabaseStatusContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AthroSystem from "./components/AthroSystem";
 import LicenseRequiredPage from "./pages/LicenseRequiredPage";
@@ -49,7 +49,7 @@ const TransitionWrapper: React.FC<{children: React.ReactNode}> = ({ children }) 
 export default function App() {
   return (
     <AuthProvider>
-      <FirestoreStatusProvider>
+      <DatabaseStatusProvider>
         <StudentClassProvider>
           <StudentRecordProvider>
             <AthroProvider>
@@ -154,7 +154,7 @@ export default function App() {
             </AthroProvider>
           </StudentRecordProvider>
         </StudentClassProvider>
-      </FirestoreStatusProvider>
+      </DatabaseStatusProvider>
     </AuthProvider>
   );
 }

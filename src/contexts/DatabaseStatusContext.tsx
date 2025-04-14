@@ -2,32 +2,32 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type FirestoreStatus = 'checking' | 'connected' | 'offline' | 'error';
+export type DatabaseStatus = 'checking' | 'connected' | 'offline' | 'error';
 
-interface FirestoreStatusContextType {
-  status: FirestoreStatus;
+interface DatabaseStatusContextType {
+  status: DatabaseStatus;
   lastCheck: Date | null;
-  retry: () => Promise<FirestoreStatus>;
+  retry: () => Promise<DatabaseStatus>;
 }
 
-const FirestoreStatusContext = createContext<FirestoreStatusContextType>({
+const DatabaseStatusContext = createContext<DatabaseStatusContextType>({
   status: 'checking',
   lastCheck: null,
   retry: async () => 'checking',
 });
 
-export const FirestoreStatusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [status, setStatus] = useState<FirestoreStatus>('checking');
+export const DatabaseStatusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [status, setStatus] = useState<DatabaseStatus>('checking');
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
 
-  const checkConnection = useCallback(async (): Promise<FirestoreStatus> => {
+  const checkConnection = useCallback(async (): Promise<DatabaseStatus> => {
     if (!navigator.onLine) {
       return 'offline';
     }
 
     try {
       // Simple test query to check if we can connect to Supabase
-      const timeoutPromise = new Promise<FirestoreStatus>((resolve) => {
+      const timeoutPromise = new Promise<DatabaseStatus>((resolve) => {
         setTimeout(() => resolve('error'), 5000); // 5 second timeout
       });
       
@@ -91,14 +91,14 @@ export const FirestoreStatusProvider: React.FC<{ children: React.ReactNode }> = 
   }, [checkConnection, status]);
 
   return (
-    <FirestoreStatusContext.Provider value={{
+    <DatabaseStatusContext.Provider value={{
       status,
       lastCheck,
       retry: checkConnection,
     }}>
       {children}
-    </FirestoreStatusContext.Provider>
+    </DatabaseStatusContext.Provider>
   );
 };
 
-export const useFirestoreStatus = () => useContext(FirestoreStatusContext);
+export const useDatabaseStatus = () => useContext(DatabaseStatusContext);

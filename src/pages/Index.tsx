@@ -4,15 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/ui/loading-spinner';
-import { useFirestoreStatus } from '@/contexts/FirestoreStatusContext';
-import { FirestoreStatus } from '@/components/ui/firestore-status';
+import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
+import { DatabaseStatus } from '@/components/ui/database-status';
 
 const IndexPage = () => {
   const navigate = useNavigate();
   const { state } = useAuth();
   const { user, loading } = state;
   const [localLoading, setLocalLoading] = useState(true);
-  const { status: connectionStatus } = useFirestoreStatus();
+  const { status: connectionStatus } = useDatabaseStatus();
   
   useEffect(() => {
     // Handle redirection when auth state is confirmed
@@ -82,7 +82,7 @@ const IndexPage = () => {
         
         {(connectionStatus === 'error' || connectionStatus === 'offline') && (
           <div className="mb-6 max-w-md mx-auto">
-            <FirestoreStatus />
+            <DatabaseStatus />
           </div>
         )}
         

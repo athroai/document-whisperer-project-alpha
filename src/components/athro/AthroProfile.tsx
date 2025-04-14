@@ -4,14 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
-import { FirestoreStatus } from '@/components/ui/firestore-status';
+import { DatabaseStatus } from '@/components/ui/database-status';
 import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
 import { getAthroBySubject } from '@/config/athrosConfig';
 import { Button } from '@/components/ui/button';
 import { Clock, User, BookOpen, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import persistentStorage from '@/services/persistentStorage';
-import { useFirestoreStatus } from '@/contexts/FirestoreStatusContext';
+import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
 
 interface SessionHistoryItem {
   subject: string;
@@ -24,7 +24,7 @@ const AthroProfile = () => {
   const { state } = useAuth();
   const navigate = useNavigate();
   const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>([]);
-  const { status: firestoreStatus, lastCheck: lastSuccessfulSync, retry: handleRetry } = useFirestoreStatus();
+  const { status: databaseStatus, lastCheck: lastSuccessfulSync, retry: handleRetry } = useDatabaseStatus();
   
   useEffect(() => {
     let isMounted = true;
@@ -51,7 +51,7 @@ const AthroProfile = () => {
         }
         
         // Only try to fetch from network if we are online
-        if (navigator.onLine && firestoreStatus !== 'error' && firestoreStatus !== 'offline') {
+        if (navigator.onLine && databaseStatus !== 'error' && databaseStatus !== 'offline') {
           const sessions = await AthroSessionFirestoreService.getUserSessions(state.user.id);
           
           if (!isMounted) return;
@@ -91,13 +91,13 @@ const AthroProfile = () => {
       }
     };
     
-    // Call fetch sessions when component mounts or when firestore status changes
+    // Call fetch sessions when component mounts or when database status changes
     fetchSessionHistory();
     
     return () => {
       isMounted = false;
     };
-  }, [state.user?.id, firestoreStatus]);
+  }, [state.user?.id, databaseStatus]);
   
   const handleNavigateToSubject = (subject: string) => {
     const lowerSubject = subject.toLowerCase();
@@ -147,10 +147,10 @@ const AthroProfile = () => {
           </div>
           
           <div className="mt-4">
-            <FirestoreStatus 
+            <DatabaseStatus 
               showSuccessStatus
             />
-            {firestoreStatus === 'connected' && lastSuccessfulSync && (
+            {databaseStatus === 'connected' && lastSuccessfulSync && (
               <p className="text-xs text-muted-foreground mt-1">
                 Last synced: {formatTimeAgo(lastSuccessfulSync)}
               </p>
@@ -168,7 +168,7 @@ const AthroProfile = () => {
           <CardDescription>Continue your study journey</CardDescription>
         </CardHeader>
         <CardContent>
-          {firestoreStatus === 'checking' && sessionHistory.length === 0 ? (
+          {databaseStatus === 'checking' && sessionHistory.length === 0 ? (
             <div className="py-4 text-center">
               <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
               <p className="mt-2 text-sm text-muted-foreground">Loading your sessions...</p>
@@ -212,7 +212,7 @@ const AthroProfile = () => {
             </div>
           )}
           
-          {(firestoreStatus === 'offline' || firestoreStatus === 'error') && sessionHistory.length > 0 && (
+          {(databaseStatus === 'offline' || databaseStatus === 'error') && sessionHistory.length > 0 && (
             <div className="mt-4 text-center">
               <Button 
                 variant="outline" 
@@ -223,7 +223,7 @@ const AthroProfile = () => {
                 <span className="mr-2">Sync Sessions</span>
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
-                {firestoreStatus === 'offline' 
+                {databaseStatus === 'offline' 
                   ? "You're currently viewing locally saved sessions" 
                   : "Using cached sessions due to connection issues"}
               </p>
