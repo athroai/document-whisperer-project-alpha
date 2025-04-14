@@ -1,5 +1,5 @@
-
-import { AthroCharacter, AthroSubject, ExamBoard, FeedbackSummary } from '@/types/athro';
+import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
+import { FeedbackSummary } from '@/types/feedback';
 
 // Mock service for Athro character management
 const athroService = {
@@ -56,14 +56,13 @@ const athroService = {
     // This would typically come from the backend
     // But for now, we'll generate a mock feedback
     return {
-      id: `feedback-${submission.id}`,
       score: submission.score || Math.floor(Math.random() * 100),
       strengths: [
         'Good understanding of core concepts',
         'Clear explanations of methods used',
         'Effective use of subject-specific terminology'
       ],
-      areasToImprove: [
+      improvements: [
         'Review formulas in section 3.2',
         'Practice more complex problem-solving',
         'Work on time management during assessments'
@@ -73,7 +72,13 @@ const athroService = {
         'Book a session with your Athro mentor',
         'Review feedback on previous assignments'
       ],
-      confidence: 7
+      confidence: 7,
+      feedback: `Feedback for ${submission.subject || 'activity'}`,
+      encouragement: 'Keep up the great work!',
+      activityType: 'quiz',
+      activityId: submission.id || 'default-activity',
+      activityName: submission.title || 'Practice Activity',
+      subject: submission.subject || 'Unknown'
     };
   },
   
