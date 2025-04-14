@@ -40,7 +40,7 @@ try {
 const db = initializeFirestore(app, {
   localCache: typeof window !== 'undefined' ? 
     persistentLocalCache({
-      tabManager: persistentSingleTabManager,
+      tabManager: persistentSingleTabManager(),
       cacheSizeBytes: CACHE_SIZE_UNLIMITED
     }) : undefined,
   experimentalForceLongPolling: false,
