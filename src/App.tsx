@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-// Import the component you want to test here
-// import ComponentName from "./components/ComponentName"; // Replace with actual path
+import Navigation from "./components/Navigation";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -37,9 +36,8 @@ export default function App() {
       justifyContent: "center",
       alignItems: "center"
     }}>
-      ✅ Rendering component below:
-      {/* <ComponentName /> */}
-      {/* Uncomment above line and replace ComponentName with the actual component */}
+      ✅ Rendering Navigation component:
+      <Navigation />
     </div>
   );
 }
