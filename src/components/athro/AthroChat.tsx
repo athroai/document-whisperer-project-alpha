@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAthro } from '@/contexts/AthroContext';
@@ -128,7 +127,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
 
     try {
       // Fetch knowledge context for the query
-      const knowledge = await fetchKnowledgeForQuery(message, currentSubject?.toLowerCase());
+      const knowledge = await fetchKnowledgeForQuery(message);
       
       // Create the AI response with citations if knowledge was found
       const aiMessage: AthroMessage = {
