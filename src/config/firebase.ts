@@ -1,7 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, initializeFirestore, enableIndexedDbPersistence, collection, doc, getDoc } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
+import {
+  initializeFirestore,
+  enableIndexedDbPersistence,
+  doc,
+  getDoc
+} from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // ✅ Firebase config
 const firebaseConfig = {
@@ -14,47 +19,45 @@ const firebaseConfig = {
   measurementId: "G-0HGDXV9G3F"
 };
 
-// ✅ Initialize Firebase services
+// ✅ Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-console.log('[Firebase] App initialized:', app.name);
 
-// ✅ Initialize Firestore
+// ✅ Initialize Firestore FIRST, before any operations
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: false,
   experimentalAutoDetectLongPolling: true,
 });
 console.log('[Firestore] Firestore instance created');
 
-// ✅ Enable offline persistence (only if online)
+// ✅ Persistence must come BEFORE any use of Firestore!
 if (navigator.onLine) {
-  console.log('[Firestore] Browser reports online, enabling persistence...');
+  console.log('[Firestore] Browser online — enabling persistence...');
   enableIndexedDbPersistence(db).catch((err) => {
     if (err.code === 'failed-precondition') {
-      console.warn("[Firestore] Persistence unavailable - multiple tabs open");
+      console.warn("[Firestore] Persistence failed: multiple tabs open");
     } else if (err.code === 'unimplemented') {
-      console.warn("[Firestore] Persistence not supported in this browser");
+      console.warn("[Firestore] Persistence not supported");
     } else {
-      console.error("[Firestore] Persistence error:", err);
+      console.error("[Firestore] Unknown persistence error:", err);
     }
   });
 } else {
-  console.warn("[Firestore] Browser appears to be offline, skipping persistence initialization");
+  console.warn("[Firestore] Offline — skipping persistence");
 }
 
 // ✅ Storage
 const storage = getStorage(app);
 
-// ✅ Connection check utility
+// ✅ Test connection (can be triggered elsewhere after setup)
 export const checkFirestoreConnection = async () => {
   try {
-    console.log('[Firestore] Testing connection...');
+    console.log('[Firestore] Checking connection...');
     const testDoc = doc(db, 'diagnostics', 'connection');
     await getDoc(testDoc);
-    console.log('[Firestore] Connection test successful');
     return 'connected';
   } catch (error) {
-    console.warn("[Firestore] Connection check failed:", error);
+    console.warn("[Firestore] Connection failed:", error);
     return navigator.onLine ? 'error' : 'offline';
   }
 };
