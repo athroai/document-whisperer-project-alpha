@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AthroCharacter, AthroSubject, AthroTheme } from '@/types/athro';
 import athroCharactersService from '@/services/athroCharactersService';
+import athrosConfig from '@/config/athrosConfig';
 
 export interface AthroContextProps {
   characters: AthroCharacter[];
@@ -43,14 +44,32 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeCharacter, setActiveCharacter] = useState<AthroCharacter | null>(null);
   const [characters, setCharacters] = useState<AthroCharacter[]>([]); 
 
-  // Initialize characters from service
+  // Initialize characters from service with fallback to config
   useEffect(() => {
-    setCharacters(athroCharactersService.getCharacters());
-  }, []);
+    const serviceCharacters = athroCharactersService.getCharacters();
+    
+    // If the service doesn't return characters, use the config as fallback
+    if (!serviceCharacters || serviceCharacters.length === 0) {
+      console.log('Using athrosConfig as fallback for characters');
+      setCharacters(athrosConfig);
+      if (athrosConfig.length > 0 && !activeCharacter) {
+        setActiveCharacter(athrosConfig[0]);
+      }
+    } else {
+      console.log(`Loaded ${serviceCharacters.length} characters from service`);
+      setCharacters(serviceCharacters);
+    }
+  }, [activeCharacter]);
 
   // Get theme colors based on subject using the service
   const athroThemeForSubject = (subject: string) => {
-    return athroCharactersService.getThemeForSubject(subject);
+    const theme = athroCharactersService.getThemeForSubject(subject);
+    return theme || {
+      primary: 'purple-600',
+      secondary: 'blue-500',
+      primaryHex: '#9333ea',
+      secondaryHex: '#3b82f6'
+    };
   };
 
   return (

@@ -18,10 +18,10 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
 }) => {
   // Get subject-specific icon
   const getSubjectIcon = () => {
-    switch (character.subject) {
-      case 'Mathematics':
+    switch (character.subject.toLowerCase()) {
+      case 'mathematics':
         return <Calculator className="h-5 w-5 text-purple-600" />;
-      case 'Science':
+      case 'science':
         return <Circle className="h-5 w-5 text-green-600" />;
       default:
         return <BookOpen className="h-5 w-5 text-blue-600" />;
@@ -30,7 +30,13 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
 
   // Get character avatar image with fallback
   const getCharacterAvatar = () => {
-    return character.avatarUrl || character.avatar || `/assets/images/athro-${character.subject.toLowerCase()}.png`;
+    if (character.avatar) {
+      return character.avatar;
+    }
+    if (character.avatarUrl) {
+      return character.avatarUrl;
+    }
+    return `/assets/images/athro-${character.subject.toLowerCase()}.png`;
   };
 
   // Get subject-specific capabilities
@@ -61,6 +67,19 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
               src={getCharacterAvatar()}
               alt={character.name || character.subject}
               className="h-full w-full object-cover"
+              onError={(e) => {
+                console.error(`Failed to load avatar for ${character.subject}:`, getCharacterAvatar());
+                const target = e.target as HTMLImageElement;
+                target.onerror = null; // Prevent infinite loop
+                
+                // Use character's first letter as fallback
+                const parent = target.parentElement;
+                if (parent) {
+                  parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-purple-200 text-purple-700 font-bold text-lg">
+                    ${character.subject.substring(0, 1)}
+                  </div>`;
+                }
+              }}
             />
           </div>
           <div>

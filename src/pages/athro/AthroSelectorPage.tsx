@@ -18,16 +18,19 @@ const AthroSelectorPage: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   
   useEffect(() => {
-    // Wait for both characters and enrolled subjects to be loaded
-    if (characters && characters.length > 0 && !classLoading) {
-      setIsInitializing(false);
+    // Initialize with athrosConfig if characters is empty
+    if (characters.length === 0 && athrosConfig.length > 0) {
+      console.log('Using athrosConfig as fallback for characters');
+      setActiveCharacter(athrosConfig[0]);
+    } else {
+      console.log(`Loaded ${characters.length} characters from context`);
     }
     
-    // Ensure we're using all characters from config if not enough are loaded
-    if (characters.length < athrosConfig.length) {
-      setActiveCharacter(athrosConfig[0]);
+    // Wait for both characters and enrolled subjects to be loaded
+    if (!classLoading) {
+      setIsInitializing(false);
     }
-  }, [characters, classLoading]);
+  }, [characters, classLoading, setActiveCharacter]);
   
   // If still loading, show a loading indicator
   if (isInitializing || classLoading) {
@@ -56,6 +59,7 @@ const AthroSelectorPage: React.FC = () => {
       );
 
   const handleSelectCharacter = (character) => {
+    console.log('Selected character:', character.subject);
     setActiveCharacter(character);
     setCurrentSubject(character.subject);
   };
