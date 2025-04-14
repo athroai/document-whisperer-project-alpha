@@ -1,15 +1,5 @@
 
-import { db } from '@/config/firebase';
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs, 
-  Timestamp,
-  serverTimestamp,
-  orderBy
-} from 'firebase/firestore';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface CalendarEvent {
   id?: string;
@@ -28,13 +18,22 @@ export const calendarService = {
   // Create a new calendar event
   async addEvent(event: Omit<CalendarEvent, 'id' | 'createdAt'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, 'calendarEvents'), {
-        ...event,
-        date: Timestamp.fromDate(event.date),
-        createdAt: serverTimestamp()
-      });
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .insert({
+          user_id: event.userId,
+          title: event.title,
+          description: event.description,
+          start_time: event.date.toISOString(),
+          end_time: new Date(event.date.getTime() + (event.duration || 60) * 60000).toISOString(),
+          event_type: event.type || 'study',
+        })
+        .select()
+        .single();
       
-      return docRef.id;
+      if (error) throw error;
+      
+      return data.id;
     } catch (error) {
       console.error('Error adding calendar event:', error);
       throw error;
@@ -44,33 +43,26 @@ export const calendarService = {
   // Get all events for a specific user
   async getUserEvents(userId: string): Promise<CalendarEvent[]> {
     try {
-      const eventsRef = collection(db, 'calendarEvents');
-      const q = query(
-        eventsRef, 
-        where('userId', '==', userId),
-        orderBy('date', 'asc')
-      );
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userId)
+        .order('start_time', { ascending: true });
       
-      const querySnapshot = await getDocs(q);
-      const events: CalendarEvent[] = [];
+      if (error) throw error;
       
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        events.push({
-          id: doc.id,
-          userId: data.userId,
-          title: data.title,
-          description: data.description,
-          date: data.date.toDate(),
-          time: data.time,
-          duration: data.duration,
-          mentor: data.mentor,
-          type: data.type,
-          createdAt: data.createdAt?.toDate()
-        });
-      });
-      
-      return events;
+      return data.map(event => ({
+        id: event.id,
+        userId: event.user_id,
+        title: event.title,
+        description: event.description,
+        date: new Date(event.start_time),
+        time: new Date(event.start_time).toLocaleTimeString(),
+        duration: (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000,
+        mentor: event.mentor,
+        type: event.event_type,
+        createdAt: new Date(event.created_at)
+      }));
     } catch (error) {
       console.error('Error getting calendar events:', error);
       throw error;
@@ -80,35 +72,28 @@ export const calendarService = {
   // Get events for a specific date range
   async getEventsInDateRange(userId: string, startDate: Date, endDate: Date): Promise<CalendarEvent[]> {
     try {
-      const eventsRef = collection(db, 'calendarEvents');
-      const q = query(
-        eventsRef,
-        where('userId', '==', userId),
-        where('date', '>=', Timestamp.fromDate(startDate)),
-        where('date', '<=', Timestamp.fromDate(endDate)),
-        orderBy('date', 'asc')
-      );
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString())
+        .order('start_time', { ascending: true });
       
-      const querySnapshot = await getDocs(q);
-      const events: CalendarEvent[] = [];
+      if (error) throw error;
       
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        events.push({
-          id: doc.id,
-          userId: data.userId,
-          title: data.title,
-          description: data.description,
-          date: data.date.toDate(),
-          time: data.time,
-          duration: data.duration,
-          mentor: data.mentor,
-          type: data.type,
-          createdAt: data.createdAt?.toDate()
-        });
-      });
-      
-      return events;
+      return data.map(event => ({
+        id: event.id,
+        userId: event.user_id,
+        title: event.title,
+        description: event.description,
+        date: new Date(event.start_time),
+        time: new Date(event.start_time).toLocaleTimeString(),
+        duration: (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000,
+        mentor: event.mentor,
+        type: event.event_type,
+        createdAt: new Date(event.created_at)
+      }));
     } catch (error) {
       console.error('Error getting calendar events:', error);
       throw error;

@@ -2,10 +2,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFirestoreStatus, FirestoreStatus } from '@/contexts/FirestoreStatusContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
-export type FirestoreConnectionStatus = 'checking' | 'connected' | 'offline' | 'error';
+export type DatabaseConnectionStatus = 'checking' | 'connected' | 'offline' | 'error';
 
-interface UseFirestoreConnectionOptions {
+interface UseDatabaseConnectionOptions {
   showToasts?: boolean;
   suppressInitialToasts?: boolean;
 }
@@ -14,7 +15,7 @@ interface UseFirestoreConnectionOptions {
  * @deprecated Use useFirestoreStatus from FirestoreStatusContext instead
  * Kept for backward compatibility
  */
-export function useFirestoreConnection(options?: UseFirestoreConnectionOptions) {
+export function useFirestoreConnection(options?: UseDatabaseConnectionOptions) {
   const {
     showToasts = true,
     suppressInitialToasts = true
@@ -32,7 +33,7 @@ export function useFirestoreConnection(options?: UseFirestoreConnectionOptions) 
     if (status === 'connected' && retryCount > 0) {
       toast({
         title: "Connection Restored",
-        description: "Successfully connected to Firestore. Your data is now being synced.",
+        description: "Successfully connected to the database. Your data is now being synced.",
         variant: "default",
       });
     } else if ((status === 'error' || status === 'offline') && (!suppressInitialToasts || hasShownInitialToast || retryCount > 0)) {
@@ -50,14 +51,19 @@ export function useFirestoreConnection(options?: UseFirestoreConnectionOptions) 
   
   const handleRetry = useCallback(async () => {
     setRetryCount(count => count + 1);
-    return retry();
-  }, [retry]);
+    try {
+      const { data } = await supabase.from('profiles').select('count').limit(1);
+      return data ? 'connected' : 'error';
+    } catch (error) {
+      return navigator.onLine ? 'error' : 'offline';
+    }
+  }, []);
   
   return {
     status,
     lastCheck,
     retryCount,
-    checkConnection: retry,
+    checkConnection: handleRetry,
     handleRetry,
     isOnline: navigator.onLine
   };

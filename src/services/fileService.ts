@@ -1,22 +1,5 @@
-import { db, storage } from '@/config/firebase';
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs, 
-  serverTimestamp,
-  orderBy,
-  doc,
-  deleteDoc,
-  setDoc
-} from 'firebase/firestore';
-import { 
-  ref, 
-  uploadBytesResumable, 
-  getDownloadURL, 
-  deleteObject 
-} from 'firebase/storage';
+
+import { supabase } from '@/integrations/supabase/client';
 
 export interface UploadedFile {
   id?: string;
@@ -53,13 +36,16 @@ export const saveMarkingStyle = async (
   style: TeacherPreference
 ): Promise<void> => {
   try {
-    const prefRef = doc(db, 'teacherPreferences', `${userId}_${classId}`);
-    await setDoc(prefRef, {
-      userId,
-      classId,
-      markingStyle: style,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
+    const { error } = await supabase
+      .from('teacherPreferences')
+      .upsert({
+        userId,
+        classId,
+        markingStyle: style,
+        updatedAt: new Date().toISOString()
+      }, { onConflict: 'userId, classId' });
+      
+    if (error) throw error;
   } catch (error) {
     console.error('Error saving marking style:', error);
     throw error;
@@ -69,41 +55,32 @@ export const saveMarkingStyle = async (
 // Get recent files for a user
 export const getRecentFiles = async (userId: string): Promise<UploadedFile[]> => {
   try {
-    const filesRef = collection(db, 'uploads');
-    const q = query(
-      filesRef, 
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
-      // Limit to last 10 files
-      // limit(10)
-    );
+    const { data, error } = await supabase
+      .from('uploads')
+      .select('*')
+      .eq('uploaded_by', userId)
+      .order('created_at', { ascending: false });
     
-    const querySnapshot = await getDocs(q);
-    const files: UploadedFile[] = [];
+    if (error) throw error;
     
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      files.push({
-        id: doc.id,
-        userId: data.userId,
-        filename: data.filename,
-        fileType: data.fileType,
-        fileURL: data.fileURL,
-        originalName: data.originalName,
-        subject: data.subject,
-        description: data.description,
-        size: data.size,
-        createdAt: data.createdAt?.toDate(),
-        url: data.fileURL, // Add for compatibility
-        mimeType: data.mimeType || 'application/octet-stream',
-        uploadedBy: data.userId,
-        visibility: data.visibility || 'private',
-        storagePath: data.filename,
-        timestamp: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString()
-      });
-    });
-    
-    return files;
+    return data.map(file => ({
+      id: file.id,
+      userId: file.uploaded_by,
+      filename: file.filename,
+      fileType: file.file_type,
+      fileURL: file.file_url,
+      originalName: file.original_name,
+      subject: file.subject,
+      description: file.description,
+      size: file.size,
+      createdAt: new Date(file.created_at),
+      url: file.file_url,
+      mimeType: file.mime_type || 'application/octet-stream',
+      uploadedBy: file.uploaded_by,
+      visibility: file.visibility || 'private',
+      storagePath: file.storage_path,
+      timestamp: file.created_at
+    }));
   } catch (error) {
     console.error('Error getting recent files:', error);
     throw error;
@@ -113,40 +90,33 @@ export const getRecentFiles = async (userId: string): Promise<UploadedFile[]> =>
 // Get files by subject for a user
 export const getFilesBySubject = async (userId: string, subject: string): Promise<UploadedFile[]> => {
   try {
-    const filesRef = collection(db, 'uploads');
-    const q = query(
-      filesRef, 
-      where('userId', '==', userId),
-      where('subject', '==', subject),
-      orderBy('createdAt', 'desc')
-    );
+    const { data, error } = await supabase
+      .from('uploads')
+      .select('*')
+      .eq('uploaded_by', userId)
+      .eq('subject', subject)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
     
-    const querySnapshot = await getDocs(q);
-    const files: UploadedFile[] = [];
-    
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      files.push({
-        id: doc.id,
-        userId: data.userId,
-        filename: data.filename,
-        fileType: data.fileType,
-        fileURL: data.fileURL,
-        originalName: data.originalName,
-        subject: data.subject,
-        description: data.description,
-        size: data.size,
-        createdAt: data.createdAt?.toDate(),
-        url: data.fileURL, // Add for compatibility
-        mimeType: data.mimeType || 'application/octet-stream',
-        uploadedBy: data.userId,
-        visibility: data.visibility || 'private',
-        storagePath: data.filename,
-        timestamp: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString()
-      });
-    });
-    
-    return files;
+    return data.map(file => ({
+      id: file.id,
+      userId: file.uploaded_by,
+      filename: file.filename,
+      fileType: file.file_type,
+      fileURL: file.file_url,
+      originalName: file.original_name,
+      subject: file.subject,
+      description: file.description,
+      size: file.size,
+      createdAt: new Date(file.created_at),
+      url: file.file_url,
+      mimeType: file.mime_type || 'application/octet-stream',
+      uploadedBy: file.uploaded_by,
+      visibility: file.visibility || 'private',
+      storagePath: file.storage_path,
+      timestamp: file.created_at
+    }));
   } catch (error) {
     console.error('Error getting files by subject:', error);
     throw error;
@@ -173,52 +143,53 @@ export const uploadFile = async (
     const fileExtension = file.name.split('.').pop();
     const uniqueFilename = `${metadata.uploadedBy}_${timestamp}.${fileExtension}`;
     
-    // Create a reference to the storage location
-    const storageRef = ref(storage, `uploads/${metadata.uploadedBy}/${uniqueFilename}`);
+    // Upload to Supabase Storage
+    const storagePath = `uploads/${metadata.uploadedBy}/${uniqueFilename}`;
     
-    // Start upload
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('student_uploads')
+      .upload(storagePath, file);
+      
+    if (uploadError) throw uploadError;
     
-    // Return a promise that resolves when the upload is complete
-    return new Promise((resolve, reject) => {
-      uploadTask.on(
-        'state_changed',
-        () => {
-          // Progress handling can be added here if needed
-        },
-        (error) => {
-          reject(error);
-        },
-        async () => {
-          try {
-            // Upload completed successfully, get download URL
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            
-            // Save file metadata to Firestore
-            const uploadMetadata = {
-              filename: file.name,
-              url: downloadURL,
-              mimeType: file.type,
-              uploadedBy: metadata.uploadedBy,
-              subject: metadata.subject,
-              classId: metadata.classId,
-              visibility: metadata.visibility,
-              uploadTime: new Date().toISOString(),
-            };
-            
-            await addDoc(collection(db, 'uploads'), {
-              ...uploadMetadata,
-              createdAt: serverTimestamp()
-            });
-            
-            resolve(uploadMetadata);
-          } catch (error) {
-            console.error('Error saving file metadata:', error);
-            reject(error);
-          }
-        }
-      );
-    });
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from('student_uploads')
+      .getPublicUrl(storagePath);
+      
+    const downloadURL = urlData?.publicUrl;
+    
+    // Save metadata to Supabase
+    const uploadMetadata = {
+      filename: uniqueFilename,
+      original_name: file.name,
+      file_url: downloadURL,
+      mime_type: file.type,
+      uploaded_by: metadata.uploadedBy,
+      subject: metadata.subject,
+      set_id: metadata.classId,
+      visibility: metadata.visibility || 'private',
+      file_type: metadata.type || 'notes',
+      storage_path: storagePath,
+      bucket_name: 'student_uploads',
+      size: file.size
+    };
+    
+    const { data: metadataData, error: metadataError } = await supabase
+      .from('uploads')
+      .insert(uploadMetadata)
+      .select()
+      .single();
+      
+    if (metadataError) throw metadataError;
+    
+    return {
+      ...uploadMetadata,
+      id: metadataData.id,
+      url: downloadURL,
+      uploadedBy: metadata.uploadedBy,
+      uploadTime: new Date().toISOString()
+    };
   } catch (error) {
     console.error('Error uploading file:', error);
     throw error;
@@ -226,7 +197,7 @@ export const uploadFile = async (
 };
 
 export const fileService = {
-  // Upload a file to Firebase Storage
+  // Upload a file to Supabase Storage
   uploadFile: async (
     file: File, 
     userId: string, 
@@ -244,71 +215,71 @@ export const fileService = {
       const timestamp = new Date().getTime();
       const fileExtension = file.name.split('.').pop();
       const uniqueFilename = `${userId}_${timestamp}.${fileExtension}`;
-      
-      // Create a reference to the storage location
-      const storageRef = ref(storage, `uploads/${userId}/${uniqueFilename}`);
+      const storagePath = `uploads/${userId}/${uniqueFilename}`;
       
       // Start upload
       onProgress?.({ progress: 0, status: 'uploading' });
       
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('student_uploads')
+        .upload(storagePath, file);
+        
+      if (uploadError) throw uploadError;
       
-      // Return a promise that resolves when the upload is complete
-      return new Promise((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            onProgress?.({ progress, status: 'uploading' });
-          },
-          (error) => {
-            onProgress?.({ progress: 0, status: 'error', error: error.message });
-            reject(error);
-          },
-          async () => {
-            try {
-              // Upload completed successfully, get download URL
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              
-              // Save file metadata to Firestore
-              const fileData: Omit<UploadedFile, 'id'> = {
-                userId,
-                filename: uniqueFilename,
-                fileURL: downloadURL,
-                originalName: file.name,
-                fileType: metadata.fileType,
-                subject: metadata.subject,
-                description: metadata.description,
-                size: file.size,
-                createdAt: new Date(),
-                url: downloadURL, // Add for compatibility
-                mimeType: file.type,
-                uploadedBy: userId
-              };
-              
-              const docRef = await addDoc(collection(db, 'uploads'), {
-                ...fileData,
-                createdAt: serverTimestamp()
-              });
-              
-              onProgress?.({ progress: 100, status: 'success' });
-              
-              resolve({
-                id: docRef.id,
-                ...fileData
-              });
-            } catch (error) {
-              console.error('Error saving file metadata:', error);
-              onProgress?.({ 
-                progress: 100, 
-                status: 'error', 
-                error: 'Upload succeeded but failed to save metadata' 
-              });
-              reject(error);
-            }
-          }
-        );
-      });
+      onProgress?.({ progress: 50, status: 'uploading' });
+      
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('student_uploads')
+        .getPublicUrl(storagePath);
+        
+      const downloadURL = urlData?.publicUrl;
+      
+      // Save metadata to Supabase
+      const fileData = {
+        uploaded_by: userId,
+        filename: uniqueFilename,
+        file_url: downloadURL,
+        original_name: file.name,
+        file_type: metadata.fileType,
+        subject: metadata.subject,
+        description: metadata.description,
+        size: file.size,
+        mime_type: file.type,
+        storage_path: storagePath,
+        bucket_name: 'student_uploads',
+        visibility: 'private'
+      };
+      
+      const { data: metadataData, error: metadataError } = await supabase
+        .from('uploads')
+        .insert(fileData)
+        .select()
+        .single();
+        
+      if (metadataError) throw metadataError;
+      
+      onProgress?.({ progress: 100, status: 'success' });
+      
+      return {
+        id: metadataData.id,
+        userId,
+        filename: uniqueFilename,
+        fileURL: downloadURL,
+        originalName: file.name,
+        fileType: metadata.fileType,
+        subject: metadata.subject,
+        description: metadata.description,
+        size: file.size,
+        url: downloadURL,
+        mimeType: file.type,
+        uploadedBy: userId,
+        visibility: 'private',
+        storagePath,
+        timestamp: new Date().toISOString(),
+        createdAt: new Date()
+      };
     } catch (error) {
       console.error('Error uploading file:', error);
       onProgress?.({ 
@@ -323,36 +294,32 @@ export const fileService = {
   // Get all files for a user
   getUserFiles: async (userId: string): Promise<UploadedFile[]> => {
     try {
-      const filesRef = collection(db, 'uploads');
-      const q = query(
-        filesRef, 
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
-      );
+      const { data, error } = await supabase
+        .from('uploads')
+        .select('*')
+        .eq('uploaded_by', userId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
       
-      const querySnapshot = await getDocs(q);
-      const files: UploadedFile[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        files.push({
-          id: doc.id,
-          userId: data.userId,
-          filename: data.filename,
-          fileType: data.fileType,
-          fileURL: data.fileURL,
-          originalName: data.originalName,
-          subject: data.subject,
-          description: data.description,
-          size: data.size,
-          createdAt: data.createdAt?.toDate(),
-          url: data.fileURL, // Add for compatibility
-          mimeType: data.mimeType || 'application/octet-stream',
-          uploadedBy: data.userId
-        });
-      });
-      
-      return files;
+      return data.map(file => ({
+        id: file.id,
+        userId: file.uploaded_by,
+        filename: file.filename,
+        fileType: file.file_type,
+        fileURL: file.file_url,
+        originalName: file.original_name,
+        subject: file.subject,
+        description: file.description,
+        size: file.size,
+        createdAt: new Date(file.created_at),
+        url: file.file_url,
+        mimeType: file.mime_type || 'application/octet-stream',
+        uploadedBy: file.uploaded_by,
+        visibility: file.visibility || 'private',
+        storagePath: file.storage_path,
+        timestamp: file.created_at
+      }));
     } catch (error) {
       console.error('Error getting files:', error);
       throw error;
@@ -364,13 +331,20 @@ export const fileService = {
     try {
       if (!file.id) throw new Error('File ID not provided');
       
-      // Delete from Firestore
-      await deleteDoc(doc(db, 'uploads', file.id));
+      // Delete from Supabase Storage
+      const { error: storageError } = await supabase.storage
+        .from(file.bucket_name || 'student_uploads')
+        .remove([file.storagePath]);
+        
+      if (storageError) throw storageError;
       
-      // Delete from Storage
-      const storageRef = ref(storage, `uploads/${file.userId}/${file.filename}`);
-      await deleteObject(storageRef);
-      
+      // Delete from Supabase Database
+      const { error: dbError } = await supabase
+        .from('uploads')
+        .delete()
+        .eq('id', file.id);
+        
+      if (dbError) throw dbError;
     } catch (error) {
       console.error('Error deleting file:', error);
       throw error;
@@ -380,37 +354,33 @@ export const fileService = {
   // Get files for a specific subject
   getFilesBySubject: async (userId: string, subject: string): Promise<UploadedFile[]> => {
     try {
-      const filesRef = collection(db, 'uploads');
-      const q = query(
-        filesRef, 
-        where('userId', '==', userId),
-        where('subject', '==', subject),
-        orderBy('createdAt', 'desc')
-      );
+      const { data, error } = await supabase
+        .from('uploads')
+        .select('*')
+        .eq('uploaded_by', userId)
+        .eq('subject', subject)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
       
-      const querySnapshot = await getDocs(q);
-      const files: UploadedFile[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        files.push({
-          id: doc.id,
-          userId: data.userId,
-          filename: data.filename,
-          fileType: data.fileType,
-          fileURL: data.fileURL,
-          originalName: data.originalName,
-          subject: data.subject,
-          description: data.description,
-          size: data.size,
-          createdAt: data.createdAt?.toDate(),
-          url: data.fileURL, // Add for compatibility
-          mimeType: data.mimeType || 'application/octet-stream',
-          uploadedBy: data.userId
-        });
-      });
-      
-      return files;
+      return data.map(file => ({
+        id: file.id,
+        userId: file.uploaded_by,
+        filename: file.filename,
+        fileType: file.file_type,
+        fileURL: file.file_url,
+        originalName: file.original_name,
+        subject: file.subject,
+        description: file.description,
+        size: file.size,
+        createdAt: new Date(file.created_at),
+        url: file.file_url,
+        mimeType: file.mime_type || 'application/octet-stream',
+        uploadedBy: file.uploaded_by,
+        visibility: file.visibility || 'private',
+        storagePath: file.storage_path,
+        timestamp: file.created_at
+      }));
     } catch (error) {
       console.error('Error getting files by subject:', error);
       throw error;

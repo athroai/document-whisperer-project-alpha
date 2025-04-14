@@ -165,7 +165,7 @@ export function useSupabaseRealtime<T>(
         
         const { data: initialData } = await query;
         if (initialData) {
-          setData(initialData as any);
+          setData(initialData as T[]);
         }
       } catch (error) {
         console.error(`Error fetching initial data from ${tableName}:`, error);
@@ -183,7 +183,7 @@ export function useSupabaseRealtime<T>(
           event: options.event || '*',
           schema: 'public',
           table: tableNameLiteral,
-        } as any,
+        },
         (payload: any) => {
           // Handle different event types
           if (payload.eventType === 'INSERT') {

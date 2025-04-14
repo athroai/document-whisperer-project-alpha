@@ -1,51 +1,34 @@
 
-import { 
-  collection, doc, query, where, getDocs, 
-  addDoc, updateDoc, deleteDoc, serverTimestamp, 
-  Timestamp, orderBy, getDoc 
-} from "firebase/firestore";
-import { db } from "@/config/firebase";
-import { StudyGoal, NewGoalData, GoalUpdateData } from "@/types/goals";
+import { supabase } from '@/integrations/supabase/client';
+import { StudyGoal, NewGoalData, GoalUpdateData } from '@/types/goals';
 import { v4 as uuidv4 } from 'uuid';
-
-const GOALS_COLLECTION = 'goals';
 
 export class GoalsService {
   // Get all goals for a user
   static async getGoalsForUser(userId: string): Promise<StudyGoal[]> {
     try {
-      const goalsQuery = query(
-        collection(db, GOALS_COLLECTION),
-        where("userId", "==", userId),
-        orderBy("createdAt", "desc")
-      );
-      
-      const querySnapshot = await getDocs(goalsQuery);
-      const goals: StudyGoal[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
+      const { data, error } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('userId', userId)
+        .order('createdAt', { ascending: false });
         
-        // Convert Firestore timestamp to string
-        const createdAt = data.createdAt instanceof Timestamp 
-          ? data.createdAt.toDate().toISOString() 
-          : data.createdAt;
-        
-        goals.push({
-          id: doc.id,
-          userId: data.userId,
-          subject: data.subject,
-          title: data.title,
-          description: data.description,
-          createdAt: createdAt,
-          targetDate: data.targetDate,
-          status: data.status,
-          completionRate: data.completionRate || 0,
-          aiSuggestions: data.aiSuggestions || []
-        });
-      });
+      if (error) throw error;
       
-      return goals;
+      if (!data) return [];
+      
+      return data.map(goal => ({
+        id: goal.id,
+        userId: goal.userId,
+        subject: goal.subject,
+        title: goal.title,
+        description: goal.description,
+        createdAt: goal.createdAt,
+        targetDate: goal.targetDate,
+        status: goal.status,
+        completionRate: goal.completionRate || 0,
+        aiSuggestions: goal.aiSuggestions || []
+      }));
     } catch (error) {
       console.error("Error getting goals:", error);
       return [];
@@ -55,16 +38,21 @@ export class GoalsService {
   // Create a new goal
   static async createGoal(userId: string, goalData: NewGoalData): Promise<string | null> {
     try {
-      const goalDoc = await addDoc(collection(db, GOALS_COLLECTION), {
-        userId,
-        ...goalData,
-        createdAt: serverTimestamp(),
-        status: 'active',
-        completionRate: 0,
-        aiSuggestions: []
-      });
+      const { data, error } = await supabase
+        .from('goals')
+        .insert({
+          userId,
+          ...goalData,
+          createdAt: new Date().toISOString(),
+          status: 'active',
+          completionRate: 0,
+          aiSuggestions: []
+        })
+        .select();
+        
+      if (error) throw error;
       
-      return goalDoc.id;
+      return data?.[0]?.id || null;
     } catch (error) {
       console.error("Error creating goal:", error);
       return null;
@@ -74,11 +62,15 @@ export class GoalsService {
   // Update an existing goal
   static async updateGoal(goalId: string, updateData: GoalUpdateData): Promise<boolean> {
     try {
-      const goalRef = doc(db, GOALS_COLLECTION, goalId);
-      await updateDoc(goalRef, {
-        ...updateData,
-        lastUpdated: serverTimestamp()
-      });
+      const { error } = await supabase
+        .from('goals')
+        .update({
+          ...updateData,
+          lastUpdated: new Date().toISOString()
+        })
+        .eq('id', goalId);
+        
+      if (error) throw error;
       
       return true;
     } catch (error) {
@@ -90,8 +82,13 @@ export class GoalsService {
   // Delete a goal
   static async deleteGoal(goalId: string): Promise<boolean> {
     try {
-      const goalRef = doc(db, GOALS_COLLECTION, goalId);
-      await deleteDoc(goalRef);
+      const { error } = await supabase
+        .from('goals')
+        .delete()
+        .eq('id', goalId);
+        
+      if (error) throw error;
+      
       return true;
     } catch (error) {
       console.error("Error deleting goal:", error);
@@ -102,37 +99,35 @@ export class GoalsService {
   // Get a single goal by id
   static async getGoal(goalId: string): Promise<StudyGoal | null> {
     try {
-      const goalRef = doc(db, GOALS_COLLECTION, goalId);
-      const goalDoc = await getDoc(goalRef);
-      
-      if (goalDoc.exists()) {
-        const data = goalDoc.data();
-        const createdAt = data.createdAt instanceof Timestamp 
-          ? data.createdAt.toDate().toISOString() 
-          : data.createdAt;
+      const { data, error } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('id', goalId)
+        .single();
         
-        return {
-          id: goalDoc.id,
-          userId: data.userId,
-          subject: data.subject,
-          title: data.title,
-          description: data.description,
-          createdAt: createdAt,
-          targetDate: data.targetDate,
-          status: data.status,
-          completionRate: data.completionRate || 0,
-          aiSuggestions: data.aiSuggestions || []
-        };
-      }
+      if (error) throw error;
       
-      return null;
+      if (!data) return null;
+      
+      return {
+        id: data.id,
+        userId: data.userId,
+        subject: data.subject,
+        title: data.title,
+        description: data.description,
+        createdAt: data.createdAt,
+        targetDate: data.targetDate,
+        status: data.status,
+        completionRate: data.completionRate || 0,
+        aiSuggestions: data.aiSuggestions || []
+      };
     } catch (error) {
       console.error("Error getting goal:", error);
       return null;
     }
   }
   
-  // Create a mock goal (for testing or when Firestore is unavailable)
+  // Create a mock goal (for testing or when Supabase is unavailable)
   static createLocalMockGoal(userId: string, goalData: NewGoalData): StudyGoal {
     const id = uuidv4();
     const now = new Date().toISOString();
