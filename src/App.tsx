@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
@@ -33,6 +34,8 @@ import StudentAssignmentViewPage from './pages/student/StudentAssignmentViewPage
 import StudentFeedbackPage from './pages/student/StudentFeedbackPage';
 import StudentProgressPage from './pages/student/StudentProgressPage';
 import StudentResourcesPage from './pages/student/StudentResourcesPage';
+import StudyRoutineSetupPage from './pages/student/StudyRoutineSetupPage';
+import TimetablePage from './pages/student/TimetablePage';
 
 // Study Pages
 import StudyStartPage from './pages/study/StudyStartPage';
@@ -110,6 +113,8 @@ function App() {
           <Route path="/student/feedback" element={<ProtectedRoute requiredRole="student"><StudentFeedbackPage /></ProtectedRoute>} />
           <Route path="/student/progress" element={<ProtectedRoute requiredRole="student"><StudentProgressPage /></ProtectedRoute>} />
           <Route path="/student/resources" element={<ProtectedRoute requiredRole="student"><StudentResourcesPage /></ProtectedRoute>} />
+          <Route path="/student/study-routine" element={<ProtectedRoute requiredRole="student"><StudyRoutineSetupPage /></ProtectedRoute>} />
+          <Route path="/student/timetable" element={<ProtectedRoute requiredRole="student"><TimetablePage /></ProtectedRoute>} />
 
           {/* Study Routes */}
           <Route path="/study" element={<ProtectedRoute><StudyStartPage /></ProtectedRoute>} />
