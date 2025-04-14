@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types/auth';
+import LoadingSpinner from './ui/loading-spinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
@@ -25,9 +26,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4">Loading...</h2>
-          <p className="text-gray-600 mb-4">Setting up your experience</p>
+        <div className="text-center animate-fade-in">
+          <LoadingSpinner className="mx-auto mb-4" size={36} />
+          <p className="text-gray-600 mt-2">Setting up your experience</p>
         </div>
       </div>
     );
@@ -63,7 +64,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return children({ user });
   }
   
-  return <>{children}</>;
+  return <div className="animate-fade-in">{children}</div>;
 };
 
 export default ProtectedRoute;

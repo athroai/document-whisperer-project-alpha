@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const IndexPage = () => {
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ const IndexPage = () => {
         <p className="text-gray-600 mb-6">
           {loading ? (
             <span className="flex items-center justify-center">
-              <Loader2 className="animate-spin mr-2 h-4 w-4" />
+              <LoadingSpinner className="mr-2 h-4 w-4" />
               Setting up your experience...
             </span>
           ) : (
@@ -66,7 +66,11 @@ const IndexPage = () => {
         </p>
         
         <div className="mt-8">
-          <Button onClick={handleManualRedirect} variant="default">
+          <Button 
+            onClick={handleManualRedirect} 
+            variant="default"
+            className="transition-all duration-300 hover:scale-105"
+          >
             {user ? "Go to Dashboard" : "Log In"}
           </Button>
         </div>
