@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { CloudOff, AlertCircle, Cloud, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFirestoreStatus } from "@/contexts/FirestoreStatusContext";
-import type { FirestoreStatus as FirestoreStatusType } from "@/contexts/FirestoreStatusContext";
 
 interface FirestoreStatusProps {
   className?: string;
@@ -18,7 +17,7 @@ export function FirestoreStatus({
   showSuccessStatus = false,
   compact = false,
 }: FirestoreStatusProps) {
-  const { status, lastCheck, retry } = useFirestoreStatus();
+  const { status, retry } = useFirestoreStatus();
   
   // If connected and we don't need to show success status, return null
   if (status === "connected" && !showSuccessStatus) {
@@ -34,7 +33,7 @@ export function FirestoreStatus({
             variant="outline" 
             className="bg-yellow-50 text-yellow-800 border-yellow-200 flex items-center gap-1"
           >
-            <CloudOff className="h-3 w-3" /> Offline Mode
+            <CloudOff className="h-3 w-3" /> Working Offline
           </Badge>
           <Button 
             variant="ghost" 
@@ -55,7 +54,7 @@ export function FirestoreStatus({
             variant="outline" 
             className="bg-red-50 text-red-800 border-red-200 flex items-center gap-1"
           >
-            <AlertCircle className="h-3 w-3" /> Sync Error
+            <AlertCircle className="h-3 w-3" /> Connection Issue
           </Badge>
           <Button 
             variant="ghost" 
@@ -75,7 +74,7 @@ export function FirestoreStatus({
           variant="outline" 
           className="bg-green-50 text-green-800 border-green-200 flex items-center gap-1"
         >
-          <Cloud className="h-3 w-3" /> Synced
+          <Cloud className="h-3 w-3" /> Connected
         </Badge>
       );
     }
@@ -87,7 +86,7 @@ export function FirestoreStatus({
           className="bg-blue-50 text-blue-800 border-blue-200 flex items-center gap-1"
         >
           <span className="h-3 w-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-1" />
-          Syncing...
+          Connecting...
         </Badge>
       );
     }
@@ -102,7 +101,7 @@ export function FirestoreStatus({
         <CloudOff className="h-4 w-4 text-yellow-600" />
         <AlertTitle className="text-yellow-800">Working Offline</AlertTitle>
         <AlertDescription className="text-yellow-700 flex flex-col">
-          <span>You're currently working offline. Your session data is stored locally and will sync when connectivity is restored.</span>
+          <span>You're currently working offline. Your data is stored locally and will sync when connectivity is restored.</span>
           {navigator.onLine && (
             <Button 
               variant="outline" 
@@ -122,9 +121,9 @@ export function FirestoreStatus({
     return (
       <Alert variant="default" className={`mb-4 bg-red-50 border-red-200 ${className}`}>
         <AlertCircle className="h-4 w-4 text-red-600" />
-        <AlertTitle className="text-red-800">Sync Error</AlertTitle>
+        <AlertTitle className="text-red-800">Connection Issue</AlertTitle>
         <AlertDescription className="text-red-700 flex flex-col">
-          <span>We're having trouble connecting to Firestore. Your session is running in local mode only.</span>
+          <span>We're having trouble connecting to our servers. Please check your connection.</span>
           <Button 
             variant="outline" 
             size="sm" 
@@ -142,9 +141,9 @@ export function FirestoreStatus({
     return (
       <Alert variant="default" className={`mb-4 bg-green-50 border-green-200 ${className}`}>
         <Cloud className="h-4 w-4 text-green-600" />
-        <AlertTitle className="text-green-800">Connected to Firestore</AlertTitle>
+        <AlertTitle className="text-green-800">Connected</AlertTitle>
         <AlertDescription className="text-green-700">
-          Your session data is being synced to the cloud. You can continue your studies on any device.
+          Your data is being synchronized with the cloud. You can continue your studies on any device.
         </AlertDescription>
       </Alert>
     );
@@ -154,9 +153,9 @@ export function FirestoreStatus({
     return (
       <Alert variant="default" className={`mb-4 bg-blue-50 border-blue-200 ${className}`}>
         <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-        <AlertTitle className="text-blue-800">Syncing Data</AlertTitle>
+        <AlertTitle className="text-blue-800">Connecting</AlertTitle>
         <AlertDescription className="text-blue-700">
-          Connecting to Firestore and syncing your session data...
+          Connecting to server...
         </AlertDescription>
       </Alert>
     );

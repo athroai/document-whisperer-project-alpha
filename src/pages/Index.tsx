@@ -4,24 +4,30 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/ui/loading-spinner';
-import { toast } from '@/hooks/use-toast';
+import { useFirestoreStatus } from '@/contexts/FirestoreStatusContext';
+import { FirestoreStatus } from '@/components/ui/firestore-status';
 
 const IndexPage = () => {
   const navigate = useNavigate();
   const { state } = useAuth();
   const { user, loading } = state;
   const [localLoading, setLocalLoading] = useState(true);
+  const { status: connectionStatus } = useFirestoreStatus();
   
   useEffect(() => {
     // Handle redirection when auth state is confirmed
     if (!loading) {
       setLocalLoading(false);
-      redirectToUserDashboard();
+      
+      // Only redirect if we have a connection or we know user is null
+      if (connectionStatus !== 'checking' || !user) {
+        redirectToUserDashboard();
+      }
     }
     
     // Set a maximum wait time before redirecting to login anyway
     const redirectTimeout = setTimeout(() => {
-      if (loading) {
+      if (loading || connectionStatus === 'checking') {
         console.log("Redirect timeout triggered - navigating to login");
         setLocalLoading(false);
         navigate('/login', { replace: true });
@@ -29,7 +35,7 @@ const IndexPage = () => {
     }, 3000);
     
     return () => clearTimeout(redirectTimeout);
-  }, [navigate, user, loading]);
+  }, [navigate, user, loading, connectionStatus]);
   
   // Handle redirection based on user role
   const redirectToUserDashboard = () => {
@@ -73,6 +79,12 @@ const IndexPage = () => {
             "Redirecting to your dashboard..."
           )}
         </p>
+        
+        {(connectionStatus === 'error' || connectionStatus === 'offline') && (
+          <div className="mb-6 max-w-md mx-auto">
+            <FirestoreStatus />
+          </div>
+        )}
         
         <div className="mt-8">
           <Button 

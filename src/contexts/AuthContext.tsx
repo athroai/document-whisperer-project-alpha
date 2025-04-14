@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthState, User, UserRole } from '../types/auth';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 type AuthAction = 
   | { type: 'AUTH_START' }
@@ -58,17 +58,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) {
+            try {
+              // Fetch additional user profile data
+              const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .maybeSingle();
+
+              if (error) {
+                console.error('Error fetching profile:', error);
+              }
+
+              const role = (profileData?.role || 'student') as UserRole;
+              
+              dispatch({ 
+                type: 'AUTH_SUCCESS', 
+                payload: {
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  role: role,
+                  displayName: profileData?.name || session.user.email?.split('@')[0] || '',
+                  createdAt: new Date(session.user.created_at),
+                  rememberMe: true,
+                  schoolId: profileData?.school_id || undefined,
+                  examBoard: (profileData?.exam_board as any) || undefined,
+                  confidenceScores: (profileData?.confidence_scores as any) || {},
+                  welshEligible: profileData?.welsh_eligible || false,
+                  preferredLanguage: (profileData?.preferred_language as any) || 'en'
+                }
+              });
+            } catch (err) {
+              console.error('Error in auth state change handler:', err);
+              dispatch({ type: 'AUTH_FAIL', payload: 'Failed to load user data' });
+            }
+          }
+        } else if (event === 'SIGNED_OUT') {
+          dispatch({ type: 'AUTH_LOGOUT' });
+        }
+      }
+    );
+
+    // Check initial session
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw error;
+        }
+        
         if (session?.user) {
-          // Fetch additional user profile data
-          const { data: profileData } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+          }
 
           const role = (profileData?.role || 'student') as UserRole;
-          
-          // Use optional chaining and provide fallback values for all profile fields
+
           dispatch({ 
             type: 'AUTH_SUCCESS', 
             payload: {
@@ -79,51 +133,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               createdAt: new Date(session.user.created_at),
               rememberMe: true,
               schoolId: profileData?.school_id || undefined,
-              // Safe fallbacks for potentially missing properties
-              examBoard: (profileData as any)?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined || undefined,
-              confidenceScores: (profileData as any)?.confidence_scores as {[subject: string]: number} | undefined || {},
-              welshEligible: (profileData as any)?.welsh_eligible as boolean | undefined || false,
-              preferredLanguage: (profileData as any)?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined || 'en'
+              examBoard: (profileData?.exam_board as any) || undefined,
+              confidenceScores: (profileData?.confidence_scores as any) || {},
+              welshEligible: profileData?.welsh_eligible || false,
+              preferredLanguage: (profileData?.preferred_language as any) || 'en'
             }
           });
         } else {
           dispatch({ type: 'AUTH_LOGOUT' });
         }
-      }
-    );
-
-    // Check initial session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        const role = (profileData?.role || 'student') as UserRole;
-
-        dispatch({ 
-          type: 'AUTH_SUCCESS', 
-          payload: {
-            id: session.user.id,
-            email: session.user.email || '',
-            role: role,
-            displayName: profileData?.name || session.user.email?.split('@')[0] || '',
-            createdAt: new Date(session.user.created_at),
-            rememberMe: true,
-            schoolId: profileData?.school_id || undefined,
-            // Safe fallbacks for potentially missing properties
-            examBoard: (profileData as any)?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined || undefined,
-            confidenceScores: (profileData as any)?.confidence_scores as {[subject: string]: number} | undefined || {},
-            welshEligible: (profileData as any)?.welsh_eligible as boolean | undefined || false,
-            preferredLanguage: (profileData as any)?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined || 'en'
-          }
-        });
-      } else {
-        dispatch({ type: 'AUTH_LOGOUT' });
+      } catch (error: any) {
+        console.error('Error checking session:', error);
+        dispatch({ type: 'AUTH_FAIL', payload: error.message || 'Authentication failed' });
       }
     };
 
@@ -139,15 +160,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     dispatch({ type: 'AUTH_START' });
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) throw error;
+      
+      // Auth state change listener will handle the rest
     } catch (error: any) {
       dispatch({ type: 'AUTH_FAIL', payload: error.message });
-      toast.error('Login failed', { description: error.message });
       throw error;
     }
   };
@@ -174,10 +196,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      toast.success('Signup successful', { description: 'Please check your email to verify your account' });
+      toast({
+        title: "Signup successful",
+        description: "Please check your email to verify your account",
+        variant: "success"
+      });
     } catch (error: any) {
       dispatch({ type: 'AUTH_FAIL', payload: error.message });
-      toast.error('Signup failed', { description: error.message });
       throw error;
     }
   };
@@ -185,11 +210,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout method
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       dispatch({ type: 'AUTH_LOGOUT' });
-      toast.success('Logged out successfully');
+      
+      toast({
+        title: "Logged out successfully",
+        variant: "default"
+      });
     } catch (error: any) {
-      toast.error('Logout failed', { description: error.message });
+      toast({
+        title: "Logout failed", 
+        description: error.message,
+        variant: "destructive"
+      });
       throw error;
     }
   };
@@ -212,9 +247,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         payload: userData 
       });
 
-      toast.success('Profile updated successfully');
+      toast({
+        title: "Profile updated successfully",
+        variant: "success"
+      });
     } catch (error: any) {
-      toast.error('Update failed', { description: error.message });
+      toast({
+        title: "Update failed", 
+        description: error.message,
+        variant: "destructive"
+      });
     }
   };
 

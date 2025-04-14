@@ -28,15 +28,16 @@ export const FirestoreStatusProvider: React.FC<{ children: React.ReactNode }> = 
     try {
       // Simple test query to check if we can connect to Supabase
       const timeoutPromise = new Promise<FirestoreStatus>((resolve) => {
-        setTimeout(() => resolve('error'), 10000); // 10 second timeout
+        setTimeout(() => resolve('error'), 5000); // 5 second timeout
       });
       
       const connectionPromise = (async () => {
         try {
-          const { data } = await supabase.from('profiles').select('count').limit(1);
+          const { data, error } = await supabase.from('profiles').select('count').limit(1);
+          if (error) throw error;
           return data ? 'connected' : 'error';
         } catch (error) {
-          console.warn("Database connection check failed:", error);
+          console.error("Database connection check failed:", error);
           return navigator.onLine ? 'error' : 'offline';
         }
       })();

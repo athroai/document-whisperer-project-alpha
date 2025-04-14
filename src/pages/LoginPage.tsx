@@ -45,15 +45,19 @@ const LoginPage: React.FC = () => {
         variant: "success"
       });
       navigate('/home');
-    } catch (error) {
-      // Error is already handled in the AuthContext
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   // Show loading while checking auth state
-  if (state.loading) {
+  if (state.loading && !isSubmitting) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-100 to-white">
         <div className="text-center">
@@ -141,7 +145,7 @@ const LoginPage: React.FC = () => {
               <Button
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
-                disabled={isSubmitting || state.loading}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center">

@@ -20,7 +20,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AthroSystem from "./components/AthroSystem";
 import LicenseRequiredPage from "./pages/LicenseRequiredPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
-import { Toaster } from "sonner";
+import { Toaster as SonnerToaster } from "sonner";
+import { Toaster } from "@/components/ui/toaster";
 import QuizPage from "./pages/QuizPage";
 import IndexPage from "./pages/Index";
 import StudySessionPage from "./pages/StudySessionPage";
@@ -148,7 +149,8 @@ export default function App() {
                 </div>
               </Suspense>
               <AthroSystem />
-              <Toaster position="top-right" />
+              <SonnerToaster position="top-right" />
+              <Toaster />
             </AthroProvider>
           </StudentRecordProvider>
         </StudentClassProvider>
