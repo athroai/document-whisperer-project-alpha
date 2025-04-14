@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
-import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
 // Define a type for valid table names in our Supabase database
 type ValidTableName = keyof Database['public']['Tables'];
@@ -46,9 +45,9 @@ export function useSupabaseQuery<T extends Record<string, any>>(
     setError(null);
     
     try {
-      // Use properly typed table name
+      // Explicitly cast table name to string to avoid type recursion
       let query = supabase
-        .from(tableName)
+        .from(tableName as string)
         .select(select);
         
       // Apply filters if provided
@@ -128,7 +127,7 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
-        let query = supabase.from(tableName).select('*');
+        let query = supabase.from(tableName as string).select('*');
         
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {
@@ -148,15 +147,15 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     
     fetchInitialData();
     
-    // Set up real-time subscription
+    // Set up real-time subscription using the correct Supabase JS v2 pattern
     const channel = supabase
-      .channel('db-changes')
+      .channel(`table-changes-${tableName}`)
       .on(
-        'postgres_changes',
+        'postgres_changes' as unknown as "system",
         {
           event: options.event || '*',
           schema: 'public',
-          table: tableName,
+          table: tableName as string,
         },
         (payload: any) => {
           // Handle different event types
