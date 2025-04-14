@@ -25,12 +25,28 @@ const AthroProfile = () => {
   const [firestoreStatus, setFirestoreStatus] = useState<'loading' | 'connected' | 'offline' | 'error'>('loading');
   
   useEffect(() => {
+    // Create a flag to track if component is mounted
+    let isMounted = true;
+    // Create a timeout to prevent stuck loading state
+    const timeoutId = setTimeout(() => {
+      if (isMounted && firestoreStatus === 'loading') {
+        console.warn("Firestore connection timed out");
+        setFirestoreStatus('offline');
+      }
+    }, 5000);
+    
     const fetchSessionHistory = async () => {
-      if (!state.user?.id) return;
+      // Don't attempt to fetch if we don't have a user yet
+      if (!state.user?.id) {
+        if (isMounted) setFirestoreStatus('offline');
+        return;
+      }
       
       try {
-        setFirestoreStatus('loading');
+        if (isMounted) setFirestoreStatus('loading');
         const sessions = await AthroSessionFirestoreService.getUserSessions(state.user.id);
+        
+        if (!isMounted) return;
         
         // Convert sessions to SessionHistoryItem format with lastUsed
         const enhancedSessions = sessions.map(session => {
@@ -43,15 +59,23 @@ const AthroProfile = () => {
           };
         });
         
-        setSessionHistory(enhancedSessions);
-        setFirestoreStatus('connected');
+        if (isMounted) {
+          setSessionHistory(enhancedSessions);
+          setFirestoreStatus('connected');
+        }
       } catch (error) {
         console.error("Error fetching session history:", error);
-        setFirestoreStatus('error');
+        if (isMounted) setFirestoreStatus('error');
       }
     };
     
     fetchSessionHistory();
+    
+    // Cleanup function to prevent memory leaks and state updates after unmount
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [state.user?.id]);
   
   const handleNavigateToSubject = (subject: string) => {

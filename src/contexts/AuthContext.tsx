@@ -75,15 +75,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   useEffect(() => {
+    let authCheckTimeout: NodeJS.Timeout;
+    
     const checkAuth = async () => {
       try {
         dispatch({ type: 'AUTH_START' });
         
         // Add timeout to ensure we don't get stuck in loading state
-        const authCheckTimeout = setTimeout(() => {
-          console.log("Auth check timed out after 5 seconds, forcing completion");
+        authCheckTimeout = setTimeout(() => {
+          console.log("Auth check timed out after 3 seconds, forcing completion");
           dispatch({ type: 'AUTH_LOGOUT' });
-        }, 5000);
+        }, 3000); // Reduced from 5s to 3s for faster feedback
         
         const savedUser = localStorage.getItem('athro_user') || sessionStorage.getItem('athro_user');
         
@@ -102,7 +104,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           try {
+            // Add a separate timeout just for the Firestore operation
+            const firestoreTimeout = setTimeout(() => {
+              console.warn("Firestore sync timed out, using local user data");
+              clearTimeout(authCheckTimeout); // Clear the main timeout
+              
+              // Ensure user object has all required fields
+              const safeUser = {
+                ...user,
+                examBoard: user.examBoard || 'none',
+                confidenceScores: user.confidenceScores || {
+                  maths: 5,
+                  science: 5,
+                  english: 5
+                },
+                welshEligible: user.welshEligible || false,
+                preferredLanguage: user.preferredLanguage || 'en'
+              };
+              
+              if (user.rememberMe) {
+                localStorage.setItem('athro_user', JSON.stringify(safeUser));
+              }
+              
+              dispatch({ type: 'AUTH_SUCCESS', payload: safeUser });
+            }, 2000);
+            
             const firestoreUser = await UserFirestoreService.getUser(user.id);
+            clearTimeout(firestoreTimeout); // Clear the Firestore timeout since it succeeded
+            
             if (firestoreUser) {
               const mergedUser = {
                 ...firestoreUser,
@@ -141,12 +170,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error("Auth check error:", error);
+        clearTimeout(authCheckTimeout);
         dispatch({ type: 'AUTH_FAIL', payload: 'Authentication check failed' });
         toast.error('Authentication error. Please try logging in again.');
       }
     };
     
     checkAuth();
+    
+    // Clean up timeouts when component unmounts
+    return () => {
+      if (authCheckTimeout) clearTimeout(authCheckTimeout);
+    };
   }, []);
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {

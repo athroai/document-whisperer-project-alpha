@@ -1,6 +1,6 @@
 
 import { initializeApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 // Firebase configuration
@@ -16,20 +16,15 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
 
-// Enable offline persistence
-try {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Firebase persistence could not be enabled: multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-      console.warn('Firebase persistence not available in this browser');
-    }
-  });
-} catch (err) {
-  console.warn('Error setting up Firebase persistence:', err);
-}
+// Initialize Firestore with persistence configuration
+// Using the new recommended approach instead of enableIndexedDbPersistence
+const db = initializeFirestore(app, {
+  cache: {
+    sizeBytes: CACHE_SIZE_UNLIMITED
+  }
+});
+
+const storage = getStorage(app);
 
 export { app, db, storage };

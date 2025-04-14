@@ -22,6 +22,7 @@ import StudySessionPage from "./pages/StudySessionPage";
 import StudySessionRouter from "./pages/study/StudySessionRouter";
 import KnowledgePage from './pages/KnowledgePage';
 import LoadingSpinner from "./components/ui/loading-spinner";
+import CalendarPage from "./pages/CalendarPage";
 
 // Simple loading fallback component
 const LoadingFallback: React.FC = () => (
@@ -45,7 +46,7 @@ export default function App() {
       <StudentClassProvider>
         <StudentRecordProvider>
           <AthroProvider>
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={<LoadingSpinner size={36} className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />}>
               <TransitionWrapper>
                 <Routes>
                   <Route path="/" element={<IndexPage />} />
@@ -77,6 +78,14 @@ export default function App() {
                     element={
                       <ProtectedRoute redirectPath="/login">
                         <SettingsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/calendar"
+                    element={
+                      <ProtectedRoute redirectPath="/login">
+                        <CalendarPage />
                       </ProtectedRoute>
                     }
                   />

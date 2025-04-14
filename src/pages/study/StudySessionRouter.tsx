@@ -14,6 +14,9 @@ const StudySessionRouter: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Defined outside to ensure we can clear it in cleanup
+    let assignmentTimeout: NodeJS.Timeout;
+    
     const checkAssignments = async () => {
       if (!state.user) {
         navigate('/login');
@@ -29,21 +32,26 @@ const StudySessionRouter: React.FC = () => {
 
       try {
         // Set a timeout to ensure we don't get stuck in loading state
-        const assignmentTimeout = setTimeout(() => {
+        assignmentTimeout = setTimeout(() => {
           console.log("Assignment check timed out, defaulting to self-study");
           navigate('/study/start');
           setIsLoading(false);
         }, 3000);
         
-        // Check if the student has assigned work
-        const assignments = await assignmentService.getStudentAssignments(state.user.id);
-        clearTimeout(assignmentTimeout);
-        
-        const hasAssignedWork = assignments.some(a => !a.isPastDue && !a.hasSubmitted);
-        
-        if (hasAssignedWork) {
-          navigate('/study/assigned');
+        // Only try to fetch assignments if we have a valid user ID
+        if (state.user?.id) {
+          // Check if the student has assigned work
+          const assignments = await assignmentService.getStudentAssignments(state.user.id);
+          
+          const hasAssignedWork = assignments.some(a => !a.isPastDue && !a.hasSubmitted);
+          
+          if (hasAssignedWork) {
+            navigate('/study/assigned');
+          } else {
+            navigate('/study/start');
+          }
         } else {
+          // No valid user ID, go to self-study
           navigate('/study/start');
         }
       } catch (error) {
@@ -53,13 +61,19 @@ const StudySessionRouter: React.FC = () => {
         // Set a timeout before redirecting to show the error message
         setTimeout(() => {
           navigate('/study/start');
-        }, 2000); // Reduced from 3000ms to 2000ms for faster feedback
+        }, 2000);
       } finally {
+        clearTimeout(assignmentTimeout);
         setIsLoading(false);
       }
     };
 
     checkAssignments();
+    
+    // Cleanup function to clear timeout if component unmounts
+    return () => {
+      if (assignmentTimeout) clearTimeout(assignmentTimeout);
+    };
   }, [navigate, state.user]);
 
   // Handle manual redirect
