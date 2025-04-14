@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +7,7 @@ import { FirestoreStatus } from '@/components/ui/firestore-status';
 import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
 import { getAthroBySubject } from '@/config/athrosConfig';
 import { Button } from '@/components/ui/button';
-import { Clock, User, BookOpen, History, Refresh } from 'lucide-react';
+import { Clock, User, BookOpen, History, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { checkFirestoreConnection } from '@/config/firebase';
 import persistentStorage from '@/services/persistentStorage';
@@ -43,18 +42,15 @@ const AthroProfile = () => {
   };
   
   useEffect(() => {
-    // Create a flag to track if component is mounted
     let isMounted = true;
-    // Create a timeout to prevent stuck loading state
     const timeoutId = setTimeout(() => {
       if (isMounted && firestoreStatus === 'loading') {
         console.warn("Firestore connection check timed out");
         setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
       }
-    }, 3000); // Reduced timeout for better UX
+    }, 3000);
     
     const fetchSessionHistory = async () => {
-      // Don't attempt to fetch if we don't have a user yet
       if (!state.user?.id) {
         if (isMounted) setFirestoreStatus('offline');
         return;
@@ -63,21 +59,17 @@ const AthroProfile = () => {
       try {
         if (isMounted) setFirestoreStatus('loading');
         
-        // Check if we're online first
         if (!navigator.onLine) {
           if (isMounted) setFirestoreStatus('offline');
           return;
         }
         
-        // First try to get sessions from IndexedDB for quick display
         try {
-          const cachedSessionsResult = await persistentStorage.retrieveData(state.user.id, 'chatHistory');
+          const cachedSessionsResult = await persistentStorage.getChatHistory(state.user.id);
           if (cachedSessionsResult.success && cachedSessionsResult.data) {
-            // Process cached sessions while waiting for network
+            console.log("Using cached session data while fetching from network");
             const cachedSessions = cachedSessionsResult.data;
-            // Only process if it's in the expected format
             if (Array.isArray(cachedSessions)) {
-              console.log("Using cached session data while fetching from network");
               // Process cached sessions here
             }
           }
@@ -85,19 +77,17 @@ const AthroProfile = () => {
           console.warn("Could not retrieve cached sessions:", cacheError);
         }
         
-        // Try to get sessions from Firestore
         const sessions = await AthroSessionFirestoreService.getUserSessions(state.user.id);
         
         if (!isMounted) return;
         
-        // Convert sessions to SessionHistoryItem format with lastUsed
         const enhancedSessions = sessions.map(session => {
           const athroCharacter = getAthroBySubject(session.subject);
           return {
             id: session.id,
             subject: session.subject,
             avatarUrl: athroCharacter?.avatarUrl,
-            lastUsed: new Date(session.createdAt) // Use createdAt as lastUsed date
+            lastUsed: new Date(session.createdAt)
           };
         });
         
@@ -106,9 +96,8 @@ const AthroProfile = () => {
           setFirestoreStatus('connected');
           setLastSuccessfulSync(new Date());
           
-          // Cache sessions in IndexedDB for offline use
           try {
-            await persistentStorage.storeData(state.user.id, 'chatHistory', enhancedSessions);
+            await persistentStorage.saveChatHistory(state.user.id, enhancedSessions);
           } catch (storageError) {
             console.warn("Failed to cache sessions:", storageError);
           }
@@ -116,9 +105,8 @@ const AthroProfile = () => {
       } catch (error) {
         console.error("Error fetching session history:", error);
         if (isMounted) {
-          // Try to get cached data if network request failed
           try {
-            const cachedSessionsResult = await persistentStorage.retrieveData(state.user.id, 'chatHistory');
+            const cachedSessionsResult = await persistentStorage.getChatHistory(state.user.id);
             if (cachedSessionsResult.success && cachedSessionsResult.data) {
               setSessionHistory(cachedSessionsResult.data);
             }
@@ -126,13 +114,11 @@ const AthroProfile = () => {
             console.warn("Could not retrieve cached sessions after network error:", cacheError);
           }
           
-          // Only mark as offline if browser reports offline, otherwise it's an error
           setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
         }
       }
     };
     
-    // Set up network status listener
     const handleOnlineStatus = () => {
       if (isMounted) {
         if (navigator.onLine) {
@@ -145,13 +131,11 @@ const AthroProfile = () => {
       }
     };
     
-    // Add network status listeners
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOnlineStatus);
     
     fetchSessionHistory();
     
-    // Cleanup function to prevent memory leaks and state updates after unmount
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
@@ -286,7 +270,7 @@ const AthroProfile = () => {
                 onClick={handleRetryConnection}
                 className="flex items-center"
               >
-                <Refresh className="h-3.5 w-3.5 mr-1" />
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
                 <span>Sync Sessions</span>
               </Button>
               <p className="text-xs text-muted-foreground mt-2">

@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { safeExitStudySession } from '@/utils/studySessionManager';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ExitConfirmationModalProps {
   isOpen: boolean;
@@ -26,17 +27,22 @@ const ExitConfirmationModal: React.FC<ExitConfirmationModalProps> = ({
   destination = '/study' 
 }) => {
   const navigate = useNavigate();
+  const { state } = useAuth();
   
-  const handleSaveProgress = () => {
+  const handleSaveProgress = async () => {
     // In a future implementation, this would save progress to Firestore
     // For now, we'll just show a success message and exit
-    safeExitStudySession();
+    if (state.user?.id) {
+      await safeExitStudySession(state.user.id);
+    }
     onOpenChange(false);
     navigate(destination);
   };
   
-  const handleExitAnyway = () => {
-    safeExitStudySession();
+  const handleExitAnyway = async () => {
+    if (state.user?.id) {
+      await safeExitStudySession(state.user.id);
+    }
     onOpenChange(false);
     navigate(destination);
   };

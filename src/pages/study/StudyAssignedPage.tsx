@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,7 +47,7 @@ const StudyAssignedPage: React.FC = () => {
 
   const handleStartSession = (assignment: StudentAssignmentView) => {
     // Save the study session context
-    startStudySession({
+    startStudySession(state.user?.id || 'anonymous', {
       subject: assignment.assignment.subject,
       entryMode: 'assigned',
       startedAt: Date.now(),

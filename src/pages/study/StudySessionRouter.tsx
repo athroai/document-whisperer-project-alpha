@@ -184,7 +184,7 @@ const StudySessionRouter: React.FC = () => {
             <Clock className="h-12 w-12 text-amber-500 mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Active Study Session Found</h2>
             
-            <Alert variant="warning" className="mb-4 max-w-md">
+            <Alert variant="default" className="mb-4 max-w-md">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Ongoing Session</AlertTitle>
               <AlertDescription>

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +18,7 @@ const StudyStartPage: React.FC = () => {
   // Custom handler for when an Athro is selected
   const handleSelectAthro = (character: any) => {
     // Save the study session context
-    startStudySession({
+    startStudySession(state.user?.id || 'anonymous', {
       subject: character.subject,
       entryMode: 'selfStudy',
       startedAt: Date.now(),
