@@ -1,7 +1,7 @@
 
 import { db } from '@/config/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { UploadedFile } from '@/types/files';
+import { UploadedFile, UploadMetadata } from '@/types/files';
 import { uploadFile } from '@/services/fileService';
 
 interface KnowledgeResponse {
@@ -124,18 +124,18 @@ export const getRelevantFilesForSubject = async (userId: string, subject: string
       const data = doc.data();
       files.push({
         id: doc.id,
-        userId: data.userId,
-        filename: data.filename,
-        fileType: data.fileType || 'notes',
-        fileURL: data.fileURL || data.url,
-        originalName: data.originalName || data.filename,
+        uploadedBy: data.uploadedBy || data.userId,
         subject: data.subject,
-        description: data.description,
-        size: data.size,
-        createdAt: data.createdAt?.toDate(),
+        fileType: data.fileType || 'notes',
+        visibility: data.visibility || 'private',
+        filename: data.filename,
+        storagePath: data.storagePath || data.filename,
+        timestamp: data.timestamp || data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         url: data.url || data.fileURL,
         mimeType: data.mimeType || 'application/octet-stream',
-        uploadedBy: data.uploadedBy || data.userId
+        userId: data.userId,
+        fileURL: data.fileURL || data.url,
+        originalName: data.originalName || data.filename
       });
     });
     

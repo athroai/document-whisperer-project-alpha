@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UploadedFile } from '@/types/auth';
+import { UploadedFile } from '@/types/files';
 import { FileText, BookOpen, HelpCircle } from 'lucide-react';
 import { getRecentFiles } from '@/services/fileService';
 
@@ -21,7 +22,15 @@ const FileReference: React.FC<FileReferenceProps> = ({ userId, subject, onFileSe
         setLoading(true);
         // In production, this would filter by subject
         const files = await getRecentFiles(userId);
-        setRelevantFiles(files);
+        // Convert files to match the expected type
+        const convertedFiles: UploadedFile[] = files.map(file => ({
+          ...file,
+          visibility: file.visibility || 'private',
+          storagePath: file.storagePath || file.filename,
+          timestamp: file.timestamp || new Date().toISOString(),
+          url: file.url || file.fileURL
+        }));
+        setRelevantFiles(convertedFiles);
       } catch (error) {
         console.error('Error fetching files:', error);
       } finally {

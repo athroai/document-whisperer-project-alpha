@@ -22,4 +22,11 @@ export interface UploadedFile {
   label?: string;
   mimeType?: string;
   url?: string;
+  // Adding properties needed for compatibility with fileService implementation
+  userId?: string;
+  fileURL?: string;
+  originalName?: string;
+  description?: string;
+  size?: number;
+  createdAt?: Date;
 }

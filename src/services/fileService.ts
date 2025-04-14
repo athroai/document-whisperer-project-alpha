@@ -1,4 +1,3 @@
-
 import { db, storage } from '@/config/firebase';
 import { 
   collection, 
@@ -34,6 +33,9 @@ export interface UploadedFile {
   url?: string;
   mimeType?: string;
   uploadedBy?: string;
+  visibility?: string;
+  storagePath?: string;
+  timestamp?: string;
 }
 
 export interface UploadProgress {
@@ -94,7 +96,10 @@ export const getRecentFiles = async (userId: string): Promise<UploadedFile[]> =>
         createdAt: data.createdAt?.toDate(),
         url: data.fileURL, // Add for compatibility
         mimeType: data.mimeType || 'application/octet-stream',
-        uploadedBy: data.userId
+        uploadedBy: data.userId,
+        visibility: data.visibility || 'private',
+        storagePath: data.filename,
+        timestamp: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString()
       });
     });
     
@@ -134,7 +139,10 @@ export const getFilesBySubject = async (userId: string, subject: string): Promis
         createdAt: data.createdAt?.toDate(),
         url: data.fileURL, // Add for compatibility
         mimeType: data.mimeType || 'application/octet-stream',
-        uploadedBy: data.userId
+        uploadedBy: data.userId,
+        visibility: data.visibility || 'private',
+        storagePath: data.filename,
+        timestamp: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString()
       });
     });
     

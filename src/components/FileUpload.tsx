@@ -10,24 +10,14 @@ import { useToast } from '@/components/ui/use-toast';
 import { Upload, File, FileText, X, Check } from 'lucide-react';
 import fileService, { UploadedFile } from '@/services/fileService';
 import { useAthro } from '@/contexts/AthroContext';
+import { UploadMetadata } from '@/types/files';
 
 export interface FileUploadProps {
   userId?: string;
   userRole?: string;
-  onFileUploaded?: (file: UploadedFile) => void;
+  onFileUploaded?: (file: UploadedFile | UploadMetadata) => void;
   maxSize?: number; // in MB
   allowedTypes?: string[];
-}
-
-export interface UploadMetadata {
-  url: string;
-  filename: string;
-  mimeType: string;
-  uploadedBy: string;
-  subject?: string;
-  classId?: string;
-  uploadTime?: string;
-  visibility?: 'private' | 'class-only' | 'public';
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -49,12 +39,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const subjects = characters.map(char => char.subject);
 
-  // Handle file selection
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       
-      // Check file size
       if (selectedFile.size > maxSize * 1024 * 1024) {
         toast({
           title: 'File too large',
@@ -64,7 +52,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
         return;
       }
       
-      // Check file type
       const fileExtension = '.' + selectedFile.name.split('.').pop()?.toLowerCase();
       if (!allowedTypes.includes(fileExtension)) {
         toast({
@@ -77,7 +64,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
       
       setFile(selectedFile);
       
-      // Create preview for image files
       if (selectedFile.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = () => {
@@ -88,7 +74,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
         setPreview(null);
       }
       
-      // Reset progress
       setUploadProgress(null);
     }
   };
@@ -126,22 +111,29 @@ const FileUpload: React.FC<FileUploadProps> = ({
         description: 'Your file has been uploaded successfully',
       });
       
-      // Reset form
       handleRemoveFile();
       setFileType('notes');
       setSubject('');
       setDescription('');
       
-      // Notify parent component
       if (onFileUploaded) {
-        // Convert to compatible types before passing
-        onFileUploaded({
-          ...uploadedFile,
-          // Ensure all required fields are present
-          url: uploadedFile.fileURL,
+        const compatibleFile: UploadMetadata & UploadedFile = {
+          id: uploadedFile.id || '',
+          url: uploadedFile.fileURL || uploadedFile.url || '',
           mimeType: file.type,
-          uploadedBy: userId
-        });
+          uploadedBy: userId,
+          filename: uploadedFile.filename,
+          fileURL: uploadedFile.fileURL || uploadedFile.url || '',
+          subject: uploadedFile.subject || subject,
+          fileType: uploadedFile.fileType || fileType,
+          visibility: 'private',
+          storagePath: uploadedFile.filename,
+          timestamp: new Date().toISOString(),
+          originalName: uploadedFile.originalName || file.name,
+          userId: userId
+        };
+        
+        onFileUploaded(compatibleFile);
       }
       
     } catch (error) {
@@ -201,7 +193,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* File Drop Area */}
         <div 
           className={`
             border-2 border-dashed rounded-md p-6 text-center cursor-pointer
@@ -252,7 +243,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
           </div>
         </div>
         
-        {/* Upload Progress */}
         {uploadProgress && (
           <div className="space-y-2">
             <div className="flex justify-between text-xs text-gray-500">
@@ -281,7 +271,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
           </div>
         )}
         
-        {/* File Details */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
