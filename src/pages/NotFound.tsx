@@ -24,7 +24,7 @@ const NotFound = () => {
 
   // Determine the appropriate home page based on user role
   const getHomePage = () => {
-    if (!user) return "/";
+    if (!user) return "/login";
     if (user.role === "teacher" || user.role === "admin") return "/teacher";
     return "/athro/select";
   };

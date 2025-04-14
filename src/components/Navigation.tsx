@@ -25,12 +25,11 @@ const Navigation: React.FC = () => {
   // Base nav items for students
   const studentNavItems = [
     { name: 'Home', path: '/home', icon: Home },
-    { name: 'Study', path: '/study', icon: BookOpen },
-    { name: 'Assignments', path: '/student/assignments', icon: BookOpen },
+    { name: 'Study', path: '/athro/select', icon: BookOpen },
+    { name: 'Quiz', path: '/quiz', icon: GraduationCap },
     { name: 'Progress', path: '/student/progress', icon: BarChart },
     { name: 'History', path: '/student/history', icon: History },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
-    { name: 'Quiz', path: '/quiz', icon: GraduationCap },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
 
@@ -57,6 +56,10 @@ const Navigation: React.FC = () => {
       console.error("Logout error:", error);
     }
   };
+
+  if (!user) {
+    return null; // Don't show navigation if user is not logged in
+  }
 
   return (
     <nav className="bg-white shadow-md py-4 px-6">
@@ -92,7 +95,7 @@ const Navigation: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Avatar>
                 <AvatarFallback className="bg-purple-200 text-purple-800">
-                  {user.displayName?.[0].toUpperCase() || user.email[0].toUpperCase()}
+                  {user.displayName?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <Button

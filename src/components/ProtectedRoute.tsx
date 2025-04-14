@@ -42,10 +42,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   // Check role-based access
-  if (requiredRole && user.role !== requiredRole) {
+  if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
     // Redirect based on user role
     if (user.role === 'teacher') {
-      return <Navigate to="/teacher-dashboard" replace />;
+      return <Navigate to="/teacher" replace />;
     } else {
       return <Navigate to="/athro/select" replace />;
     }
@@ -53,7 +53,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   // Check license status (skip for Nexastream users)
   if (requireLicense && !user.licenseExempt && user.role === 'teacher' && !user.schoolId) {
-    return <Navigate to="/required-license" replace />;
+    return <Navigate to="/license-required" replace />;
   }
   
   // Handle function children that need user data

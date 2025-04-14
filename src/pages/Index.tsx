@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
-const Index = () => {
+const IndexPage = () => {
   const navigate = useNavigate();
   const { state } = useAuth();
   const { user, loading } = state;
@@ -15,13 +15,13 @@ const Index = () => {
       if (user) {
         // If user is logged in, redirect based on role
         if (user.role === 'teacher' || user.role === 'admin') {
-          navigate('/teacher', { replace: true }); // Changed from '/teacher-dashboard' to '/teacher'
+          navigate('/teacher', { replace: true });
         } else {
           navigate('/athro/select', { replace: true });
         }
       } else {
-        // If not logged in, redirect to welcome page
-        navigate('/welcome', { replace: true });
+        // If not logged in, redirect to login page
+        navigate('/login', { replace: true });
       }
     }
   }, [navigate, user, loading]);
@@ -30,7 +30,7 @@ const Index = () => {
   const handleManualRedirect = () => {
     if (user) {
       if (user.role === 'teacher' || user.role === 'admin') {
-        navigate('/teacher', { replace: true }); // Changed from '/teacher-dashboard' to '/teacher'
+        navigate('/teacher', { replace: true });
       } else {
         navigate('/athro/select', { replace: true });
       }
@@ -57,4 +57,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default IndexPage;

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import AthroPage from "./pages/AthroPage";
 import HomePage from "./pages/HomePage";
 import NotFound from "./pages/NotFound";
@@ -16,6 +16,8 @@ import AthroSystem from "./components/AthroSystem";
 import LicenseRequiredPage from "./pages/LicenseRequiredPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import { Toaster } from "./components/ui/toaster";
+import QuizPage from "./pages/QuizPage";
+import IndexPage from "./pages/Index";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -47,7 +49,12 @@ export default function App() {
         <StudentRecordProvider>
           <AthroProvider>
             <Routes>
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<IndexPage />} />
+              <Route path="/home" element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              } />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route
@@ -55,6 +62,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <AthroPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz"
+                element={
+                  <ProtectedRoute>
+                    <QuizPage />
                   </ProtectedRoute>
                 }
               />
