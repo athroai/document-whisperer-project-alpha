@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { FileUp, Book } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { uploadKnowledgeDocument } from '@/services/knowledgeBaseService';
+import { uploadKnowledgeDocument, getKnowledgeDocuments } from '@/services/knowledgeBaseService';
 import { useAuth } from '@/contexts/AuthContext';
 import { Switch } from '@/components/ui/switch';
 import UploadList from './UploadList';
+import { UploadedDocument } from '@/types/knowledgeBase';
 
 const KnowledgeUploader: React.FC = () => {
   const { state } = useAuth();
@@ -25,6 +26,39 @@ const KnowledgeUploader: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showUploads, setShowUploads] = useState(false);
+  const [documents, setDocuments] = useState<UploadedDocument[]>([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
+
+  // Fetch user's documents when component mounts or when a new document is uploaded
+  useEffect(() => {
+    if (showUploads) {
+      fetchUserDocuments();
+    }
+  }, [showUploads, state.user?.id]);
+
+  const fetchUserDocuments = async () => {
+    if (!state.user?.id) return;
+    
+    setLoadingDocuments(true);
+    try {
+      const docs = await getKnowledgeDocuments();
+      // Filter for current user's documents if needed
+      const userDocs = state.user.role === 'admin' 
+        ? docs 
+        : docs.filter(doc => doc.uploadedBy === state.user?.id);
+      
+      setDocuments(userDocs);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your documents.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -84,6 +118,11 @@ const KnowledgeUploader: React.FC = () => {
       // Show the upload list after successful upload
       setShowUploads(true);
       
+      // Refresh the documents list
+      if (showUploads) {
+        fetchUserDocuments();
+      }
+      
     } catch (error) {
       console.error("Upload error:", error);
       toast({
@@ -94,6 +133,14 @@ const KnowledgeUploader: React.FC = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    // Implement document deletion logic here if needed
+    toast({
+      title: "Delete not implemented",
+      description: "Document deletion would be implemented in a production environment.",
+    });
   };
 
   return (
@@ -228,7 +275,13 @@ const KnowledgeUploader: React.FC = () => {
         </CardFooter>
       </Card>
 
-      {showUploads && <UploadList userId={state.user?.id} />}
+      {showUploads && (
+        <UploadList 
+          documents={documents} 
+          isLoading={loadingDocuments} 
+          onDelete={handleDeleteDocument}
+        />
+      )}
     </div>
   );
 };

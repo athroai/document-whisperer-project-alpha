@@ -15,6 +15,7 @@ interface UploadListProps {
   isLoading?: boolean;
   onDelete?: (docId: string) => void;
   onView?: (doc: UploadedDocument) => void;
+  userId?: string; // Add userId prop to match usage in KnowledgeUploader
 }
 
 const formatFileSize = (sizeInBytes: number): string => {
@@ -27,7 +28,7 @@ const formatFileSize = (sizeInBytes: number): string => {
   }
 };
 
-const formatDate = (timestamp: number | Date): string => {
+const formatDate = (timestamp: number | Date | string): string => {
   const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
@@ -84,7 +85,7 @@ const UploadItem = ({
           <p className="mb-1">{document.description}</p>
         )}
         <div className="flex items-center mt-2 space-x-2">
-          <span>Uploaded: {formatDate(document.createdAt)}</span>
+          <span>Uploaded: {formatDate(document.timestamp)}</span>
           {document.subject && getSubjectBadge(document.subject)}
           {document.topic && <Badge variant="outline">{document.topic}</Badge>}
           {document.fileSize && (
