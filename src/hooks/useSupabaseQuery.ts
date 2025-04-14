@@ -2,14 +2,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 // Define a type for valid table names in our Supabase database
 type ValidTableName = 'ai_logs' | 'athro_characters' | 'calendar_events' | 
   'feedback' | 'model_answers' | 'past_papers' | 'profiles' | 'quiz_results' | 
   'schools' | 'sets' | 'student_sets' | 'task_submissions' | 'tasks' | 'uploads';
 
-// Define a simpler filter type to avoid deep recursion
+// Define a simpler filter type without recursive structures
 type SimpleFilter = Record<string, any>;
 
 /**
@@ -84,7 +83,7 @@ export function useSupabaseQuery<T = any>(
         query = query.limit(limit);
       }
       
-      // Flatten the query execution to avoid excessive type inference
+      // Execute the query using direct awaits instead of nested type inference
       if (single) {
         const result = await query.maybeSingle();
         if (result.error) throw result.error;
@@ -111,8 +110,12 @@ export function useSupabaseQuery<T = any>(
   return { data, loading, error, refetch: fetchData };
 }
 
+// Import the correct type for Supabase realtime payloads
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
 /**
  * A custom hook for real-time subscriptions to Supabase tables
+ * with properly typed events and payloads
  */
 export function useSupabaseRealtime<T = any>(
   tableName: ValidTableName,
@@ -153,7 +156,7 @@ export function useSupabaseRealtime<T = any>(
     
     fetchInitialData();
     
-    // Fixed: Correct implementation of Supabase realtime channel subscription
+    // Create a properly typed channel subscription
     const channel = supabase
       .channel(`table-changes-${tableName}`)
       .on(
