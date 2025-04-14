@@ -35,12 +35,11 @@ try {
 }
 
 // ✅ Initialize Firestore with persistence settings
+// Using persistentLocalCache with default settings to avoid tab conflicts
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ 
     cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-    tabManager: persistentSingleTabManager({
-      forceOwningTab: true
-    }) 
+    tabManager: persistentSingleTabManager()
   })
 });
 
