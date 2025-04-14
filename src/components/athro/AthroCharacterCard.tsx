@@ -28,6 +28,11 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
     }
   };
 
+  // Get character avatar image with fallback
+  const getCharacterAvatar = () => {
+    return character.avatarUrl || character.avatar || `/assets/images/athro-${character.subject.toLowerCase()}.png`;
+  };
+
   // Get subject-specific capabilities
   const getSpecialCapabilities = () => {
     const capabilities = [];
@@ -51,9 +56,9 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
     <Card className={`overflow-hidden transition-all ${isActive ? 'border-purple-500 shadow-md' : 'hover:shadow-md'}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 overflow-hidden rounded-full">
+          <div className="h-16 w-16 overflow-hidden rounded-full bg-slate-100 flex items-center justify-center">
             <img
-              src={character.avatar || character.avatarUrl}
+              src={getCharacterAvatar()}
               alt={character.name || character.subject}
               className="h-full w-full object-cover"
             />

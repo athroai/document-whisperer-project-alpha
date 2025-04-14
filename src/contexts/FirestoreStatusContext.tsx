@@ -1,76 +1,76 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { checkFirestoreConnection } from '../config/firebase';
 
-export type FirestoreStatus = 'connected' | 'offline' | 'error' | 'checking';
+export type FirestoreStatus = 'checking' | 'connected' | 'offline' | 'error';
 
-interface FirestoreStatusContextValue {
+interface FirestoreStatusContextType {
   status: FirestoreStatus;
   lastCheck: Date | null;
   retry: () => Promise<FirestoreStatus>;
 }
 
-const defaultContextValue: FirestoreStatusContextValue = {
+const FirestoreStatusContext = createContext<FirestoreStatusContextType>({
   status: 'checking',
   lastCheck: null,
-  retry: async () => 'checking'
-};
+  retry: async () => 'checking',
+});
 
-const FirestoreStatusContext = createContext<FirestoreStatusContextValue>(defaultContextValue);
-
-export const FirestoreStatusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const FirestoreStatusProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [status, setStatus] = useState<FirestoreStatus>('checking');
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
 
-  const runCheck = async (): Promise<FirestoreStatus> => {
+  const checkConnection = useCallback(async () => {
+    setStatus('checking');
     try {
-      console.log("[FirestoreStatusContext] Checking connection...");
-      setStatus('checking');
       const result = await checkFirestoreConnection();
-      console.log(`[FirestoreStatusContext] Connection status: ${result}`);
-      setStatus(result as FirestoreStatus);
-      setLastCheck(new Date());
-      return result as FirestoreStatus;
+      setStatus(result);
+      if (result === 'connected') {
+        setLastCheck(new Date());
+      }
+      return result;
     } catch (error) {
-      console.error("[FirestoreStatusContext] Error checking connection:", error);
-      const newStatus = navigator.onLine ? 'error' : 'offline';
-      setStatus(newStatus);
-      setLastCheck(new Date());
-      return newStatus;
+      console.error('Error checking Firestore connection:', error);
+      setStatus('error');
+      return 'error' as FirestoreStatus;
     }
-  };
+  }, []);
 
-  // Initial check on mount
   useEffect(() => {
-    runCheck();
-
-    // Reconnect when browser comes back online
-    const handleOnline = () => {
-      console.log("[FirestoreStatusContext] Browser reports online, running connection check");
-      runCheck();
+    const runCheck = async () => {
+      await checkConnection();
     };
 
-    // Update status when browser goes offline
-    const handleOffline = () => {
-      console.log("[FirestoreStatusContext] Browser reports offline");
-      setStatus('offline');
-      setLastCheck(new Date());
+    runCheck();
+
+    // Check again if browser comes back online
+    const handleOnline = () => {
+      console.log('Browser is online, checking Firestore connection...');
+      checkConnection();
     };
 
     window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [checkConnection]);
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+  const retry = useCallback(async () => {
+    console.log('Manually retrying Firestore connection...');
+    return await checkConnection();
+  }, [checkConnection]);
+
+  const contextValue = {
+    status,
+    lastCheck,
+    retry
+  };
 
   return (
-    <FirestoreStatusContext.Provider value={{ status, lastCheck, retry: runCheck }}>
+    <FirestoreStatusContext.Provider value={contextValue}>
       {children}
     </FirestoreStatusContext.Provider>
   );
 };
 
 export const useFirestoreStatus = () => useContext(FirestoreStatusContext);
+
+export default FirestoreStatusContext;
