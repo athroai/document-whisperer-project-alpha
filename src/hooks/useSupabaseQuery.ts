@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
-import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
 // Define a type for valid table names in our Supabase database
 type ValidTableName = keyof Database['public']['Tables'];
@@ -70,7 +69,7 @@ export function useSupabaseQuery<T>(
       // Use type assertion for table name
       const tableNameAsLiteral = tableName as ValidTableNameLiteral;
       
-      // Fix: Use a type assertion to prevent excessive recursion
+      // Create the query
       let query = supabase
         .from(tableNameAsLiteral)
         .select(select);

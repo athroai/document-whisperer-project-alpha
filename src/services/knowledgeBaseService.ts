@@ -1,11 +1,6 @@
+import { supabase } from '@/integrations/supabase/client';
 
-import { collection, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '@/config/firebase';
-import { UploadedDocument, KnowledgeChunk, EmbeddingResponse, KnowledgeSearchResult, VectorSearchOptions, VectorSearchStats } from '@/types/knowledgeBase';
-import { AthroSubject } from '@/types/athro';
-
-// Mock data for development (will be replaced with actual Firebase implementation)
+// Mock data for development (will be replaced with actual Supabase implementation)
 const mockUploads: UploadedDocument[] = [];
 const mockChunks: KnowledgeChunk[] = [];
 
@@ -36,7 +31,7 @@ export const uploadKnowledgeDocument = async (
 ): Promise<UploadedDocument> => {
   try {
     // For now, we'll simulate the upload with a mock
-    // In a real implementation, this would upload to Firebase Storage
+    // In a real implementation, this would upload to Supabase Storage
     
     // Generate document ID
     const docId = `doc_${Date.now()}`;
@@ -231,7 +226,7 @@ const createEmbedding = async (text: string): Promise<number[]> => {
 
 // Get all uploaded documents
 export const getKnowledgeDocuments = async (): Promise<UploadedDocument[]> => {
-  // In a real implementation, this would query Firestore
+  // In a real implementation, this would query Supabase
   return [...mockUploads].sort((a, b) => 
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
@@ -240,7 +235,7 @@ export const getKnowledgeDocuments = async (): Promise<UploadedDocument[]> => {
 // Delete a document and its chunks
 export const deleteKnowledgeDocument = async (documentId: string): Promise<void> => {
   try {
-    // In a real implementation, this would delete from Firebase
+    // In a real implementation, this would delete from Supabase
     
     // Remove document from mock database
     const docIndex = mockUploads.findIndex(doc => doc.id === documentId);
@@ -340,7 +335,7 @@ export const searchKnowledgeBase = async (
 
 // Get chunks for a specific document
 export const getDocumentChunks = async (documentId: string): Promise<KnowledgeChunk[]> => {
-  // In a real implementation, this would query Firestore
+  // In a real implementation, this would query Supabase
   return mockChunks
     .filter(chunk => chunk.sourceDocumentId === documentId)
     .sort((a, b) => a.chunkIndex - b.chunkIndex);

@@ -10,6 +10,7 @@ export interface CalendarEvent {
   time?: string;
   duration?: number;
   type: 'study' | 'quiz' | 'revision';
+  mentor?: string; // Added mentor property
   createdAt?: Date;
 }
 
@@ -26,6 +27,7 @@ export const calendarService = {
           start_time: event.date.toISOString(),
           end_time: new Date(event.date.getTime() + (event.duration || 60) * 60000).toISOString(),
           event_type: event.type,
+          mentor: event.mentor, // Add the mentor field
         })
         .select()
         .single();
@@ -59,6 +61,7 @@ export const calendarService = {
         time: new Date(event.start_time).toLocaleTimeString(),
         duration: (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000,
         type: event.event_type as 'study' | 'quiz' | 'revision',
+        mentor: event.mentor || 'AthroMaths', // Provide default value
         createdAt: new Date(event.created_at)
       }));
     } catch (error) {
@@ -89,6 +92,7 @@ export const calendarService = {
         time: new Date(event.start_time).toLocaleTimeString(),
         duration: (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000,
         type: event.event_type as 'study' | 'quiz' | 'revision',
+        mentor: event.mentor || 'AthroMaths', // Provide default value
         createdAt: new Date(event.created_at)
       }));
     } catch (error) {

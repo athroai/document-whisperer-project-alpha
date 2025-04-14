@@ -9,7 +9,7 @@ export interface StudyGoal {
   description: string;
   createdAt: string;
   targetDate: string;
-  status: 'active' | 'completed' | 'abandoned';
+  status: 'active' | 'completed' | 'abandoned' | 'expired';
   completionRate: number;
   aiSuggestions?: string[];
   motivation?: string;
@@ -28,7 +28,7 @@ export interface GoalUpdateData {
   title?: string;
   description?: string;
   targetDate?: string;
-  status?: 'active' | 'completed' | 'abandoned';
+  status?: 'active' | 'completed' | 'abandoned' | 'expired';
   completionRate?: number;
   aiSuggestions?: string[];
   lastUpdated?: string;

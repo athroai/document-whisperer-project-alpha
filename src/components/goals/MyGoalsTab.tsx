@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,24 +23,19 @@ export function MyGoalsTab() {
   const { state } = useAuth();
   const { toast } = useToast();
   
-  // Fetch goals on component mount
   useEffect(() => {
     const fetchGoals = async () => {
       if (state.user) {
         setIsLoading(true);
         try {
-          // Try to get goals from Firestore
           let userGoals = await GoalsService.getGoalsForUser(state.user.id);
           
-          // If no goals from Firestore or offline, use mock data
           if (userGoals.length === 0) {
             userGoals = GoalsService.getLocalMockGoals(state.user.id);
           }
           
-          // Update goal progress for each goal
           const updatedGoals = await Promise.all(
             userGoals.map(async (goal) => {
-              // Calculate progress if not already completed
               if (goal.status !== 'completed') {
                 const progress = await GoalsService.calculateGoalProgress(goal.id, state.user!.id);
                 return { ...goal, completionRate: progress };
@@ -53,7 +47,6 @@ export function MyGoalsTab() {
           setGoals(updatedGoals);
         } catch (error) {
           console.error("Error fetching goals:", error);
-          // Fallback to mock data
           const mockGoals = GoalsService.getLocalMockGoals(state.user.id);
           setGoals(mockGoals);
         } finally {
@@ -65,7 +58,6 @@ export function MyGoalsTab() {
     fetchGoals();
   }, [state.user]);
   
-  // Filter goals by status whenever the goals list changes
   useEffect(() => {
     setActiveGoals(goals.filter(goal => goal.status === 'active'));
     setCompletedGoals(goals.filter(goal => goal.status === 'completed'));
@@ -75,17 +67,14 @@ export function MyGoalsTab() {
     if (!state.user) return;
     
     try {
-      // Try to create in Firestore first
       let goalId = await GoalsService.createGoal(state.user.id, goalData);
       
       if (!goalId) {
-        // Fallback to local storage if Firestore fails
         const mockGoal = GoalsService.createLocalMockGoal(state.user.id, goalData);
         setGoals(prev => [mockGoal, ...prev]);
         return;
       }
       
-      // Fetch all goals again to ensure they're up to date
       const userGoals = await GoalsService.getGoalsForUser(state.user.id);
       setGoals(userGoals);
       
@@ -105,15 +94,12 @@ export function MyGoalsTab() {
   
   const handleUpdateGoal = async (goalId: string, goalData: NewGoalData) => {
     try {
-      // Try to update in Firestore
       const success = await GoalsService.updateGoal(goalId, goalData as GoalUpdateData);
       
       if (!success) {
-        // Fallback to local storage
         GoalsService.updateLocalMockGoal(goalId, goalData as GoalUpdateData);
       }
       
-      // Update local state
       setGoals(prev => prev.map(goal => 
         goal.id === goalId ? { ...goal, ...goalData } : goal
       ));
@@ -136,17 +122,14 @@ export function MyGoalsTab() {
   
   const handleDeleteGoal = async (goalId: string) => {
     try {
-      // Try to delete from Firestore
       const success = await GoalsService.deleteGoal(goalId);
       
       if (!success) {
-        // Implement local deletion logic if needed
         const localGoals = JSON.parse(localStorage.getItem('athro_goals') || '[]');
         const updatedLocalGoals = localGoals.filter((goal: StudyGoal) => goal.id !== goalId);
         localStorage.setItem('athro_goals', JSON.stringify(updatedLocalGoals));
       }
       
-      // Update local state
       setGoals(prev => prev.filter(goal => goal.id !== goalId));
       
       toast({
@@ -163,25 +146,22 @@ export function MyGoalsTab() {
     }
   };
   
-  const handleStatusChange = async (goalId: string, newStatus: 'active' | 'completed' | 'expired') => {
+  const handleStatusChange = async (goalId: string, newStatus: 'active' | 'completed' | 'abandoned' | 'expired') => {
     try {
-      // Update in Firestore
       const updateData: GoalUpdateData = { status: newStatus };
       if (newStatus === 'completed') updateData.completionRate = 100;
       
       const success = await GoalsService.updateGoal(goalId, updateData);
       
       if (!success) {
-        // Fallback to local storage
         GoalsService.updateLocalMockGoal(goalId, updateData);
       }
       
-      // Update local state
       setGoals(prev => prev.map(goal => 
         goal.id === goalId 
           ? { ...goal, status: newStatus, completionRate: newStatus === 'completed' ? 100 : goal.completionRate } 
           : goal
-      ));
+      ) as StudyGoal[]);
       
       toast({
         title: newStatus === 'completed' ? "Goal Completed!" : "Status Updated",
@@ -207,7 +187,6 @@ export function MyGoalsTab() {
     }
   };
   
-  // Render skeleton loading state
   const renderSkeletons = (count: number) => {
     return Array(count)
       .fill(0)
@@ -344,7 +323,6 @@ export function MyGoalsTab() {
         </TabsContent>
       </Tabs>
       
-      {/* Create/Edit Goal Modal */}
       <CreateGoalModal
         onCreateGoal={handleCreateGoal}
         onUpdateGoal={handleUpdateGoal}
@@ -353,7 +331,6 @@ export function MyGoalsTab() {
         onOpenChange={setCreateModalOpen}
       />
       
-      {/* Suggest Goals Modal */}
       <SuggestGoalsModal
         open={suggestModalOpen}
         onOpenChange={setSuggestModalOpen}

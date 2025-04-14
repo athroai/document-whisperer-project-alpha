@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +22,7 @@ interface GoalCardProps {
   goal: StudyGoal;
   onEdit: (goalId: string) => void;
   onDelete: (goalId: string) => void;
-  onStatusChange: (goalId: string, newStatus: 'active' | 'completed' | 'expired') => void;
+  onStatusChange: (goalId: string, newStatus: 'active' | 'completed' | 'abandoned' | 'expired') => void;
 }
 
 export function GoalCard({ goal, onEdit, onDelete, onStatusChange }: GoalCardProps) {
@@ -69,6 +68,8 @@ export function GoalCard({ goal, onEdit, onDelete, onStatusChange }: GoalCardPro
       return <Badge className="bg-green-500">Completed</Badge>;
     } else if (goal.status === 'expired') {
       return <Badge variant="destructive">Expired</Badge>;
+    } else if (goal.status === 'abandoned') {
+      return <Badge variant="outline" className="text-red-500 border-red-500">Abandoned</Badge>;
     } else if (daysLeft < 0) {
       return <Badge variant="outline" className="text-red-500 border-red-500">Overdue</Badge>;
     } else if (daysLeft <= 3) {
@@ -215,3 +216,5 @@ export function GoalCard({ goal, onEdit, onDelete, onStatusChange }: GoalCardPro
     </Card>
   );
 }
+
+export default GoalCard;
