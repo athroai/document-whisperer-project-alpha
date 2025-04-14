@@ -8,9 +8,9 @@ const athroService = {
   // Get available Athro characters - from Supabase
   getCharacters: async (): Promise<AthroCharacter[]> => {
     try {
-      // Using explicit type assertion for the table name
+      // Using type assertions for table names
       const { data, error } = await supabase
-        .from('athro_characters' as any)
+        .from('athro_characters')
         .select('*');
         
       if (error) {

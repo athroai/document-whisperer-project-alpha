@@ -6,13 +6,14 @@ import { Database } from '@/integrations/supabase/types';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
 // Define a type for table names in our database
-type TableName = keyof Database['public']['Tables'];
+type Tables = Database['public']['Tables'];
+type TableName = keyof Tables;
 
 /**
  * A custom hook for making Supabase queries with loading and error handling
  */
 export function useSupabaseQuery<T extends Record<string, any>>(
-  tableName: TableName | string,
+  tableName: TableName,
   options: {
     select?: string;
     filter?: Record<string, any>;
@@ -46,9 +47,9 @@ export function useSupabaseQuery<T extends Record<string, any>>(
     setError(null);
     
     try {
-      // Type assertion to handle dynamic table names
+      // Use type assertion to tell TypeScript this is a valid table name
       let query = supabase
-        .from(tableName)
+        .from(tableName as TableName)
         .select(select);
         
       // Apply filters if provided
@@ -89,7 +90,8 @@ export function useSupabaseQuery<T extends Record<string, any>>(
         
       if (responseError) throw responseError;
       
-      setData(responseData as T);
+      // Use type assertion to ensure correct return type
+      setData(responseData as unknown as T);
     } catch (err: any) {
       console.error(`Error fetching data from ${tableName}:`, err);
       setError(new Error(err.message || 'An error occurred'));
@@ -111,7 +113,7 @@ export function useSupabaseQuery<T extends Record<string, any>>(
  * A custom hook for real-time subscriptions to Supabase tables
  */
 export function useSupabaseRealtime<T extends Record<string, any>>(
-  tableName: string,
+  tableName: TableName,
   options: {
     event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
     filter?: Record<string, any>;
@@ -127,7 +129,7 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
-        let query = supabase.from(tableName).select('*');
+        let query = supabase.from(tableName as TableName).select('*');
         
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {
@@ -147,15 +149,15 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     
     fetchInitialData();
     
-    // Set up real-time subscription with proper type definition for postgres_changes
+    // Set up real-time subscription
     const channel = supabase
       .channel('db-changes')
-      .on<any>(
+      .on(
         'postgres_changes',
         {
           event: options.event || '*',
           schema: 'public',
-          table: tableName,
+          table: tableName as string,
         },
         (payload: any) => {
           // Handle different event types

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserRole } from "@/types/auth";
 
@@ -34,7 +35,6 @@ export const authService = {
         createdAt: new Date(session.user.created_at),
         rememberMe: true,
         schoolId: profileData?.school_id || undefined,
-        // Use the newly added fields with safe defaults
         examBoard: profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined || undefined,
         confidenceScores: profileData?.confidence_scores as Record<string, number> || {},
         welshEligible: profileData?.welsh_eligible || false,
