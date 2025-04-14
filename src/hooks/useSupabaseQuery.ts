@@ -31,7 +31,7 @@ type ValidTableNameLiteral = typeof VALID_TABLES[number];
 /**
  * A custom hook for making Supabase queries with loading and error handling
  */
-export function useSupabaseQuery<T extends Record<string, any>>(
+export function useSupabaseQuery<T>(
   tableName: ValidTableName,
   options: {
     select?: string;
@@ -111,8 +111,7 @@ export function useSupabaseQuery<T extends Record<string, any>>(
         
       if (responseError) throw responseError;
       
-      // Use explicit type assertion to handle the response data
-      setData(responseData as unknown as T);
+      setData(responseData as T);
     } catch (err: any) {
       console.error(`Error fetching data from ${tableName}:`, err);
       setError(new Error(err.message || 'An error occurred'));
@@ -133,7 +132,7 @@ export function useSupabaseQuery<T extends Record<string, any>>(
 /**
  * A custom hook for real-time subscriptions to Supabase tables
  */
-export function useSupabaseRealtime<T extends Record<string, any>>(
+export function useSupabaseRealtime<T>(
   tableName: ValidTableName,
   options: {
     event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
@@ -166,7 +165,7 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
         
         const { data: initialData } = await query;
         if (initialData) {
-          setData(initialData as unknown as T[]);
+          setData(initialData as any);
         }
       } catch (error) {
         console.error(`Error fetching initial data from ${tableName}:`, error);
@@ -184,7 +183,7 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
           event: options.event || '*',
           schema: 'public',
           table: tableNameLiteral,
-        },
+        } as any,
         (payload: any) => {
           // Handle different event types
           if (payload.eventType === 'INSERT') {
