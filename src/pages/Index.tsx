@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 const IndexPage = () => {
   const navigate = useNavigate();
@@ -16,8 +17,11 @@ const IndexPage = () => {
         // If user is logged in, redirect based on role
         if (user.role === 'teacher' || user.role === 'admin') {
           navigate('/teacher', { replace: true });
-        } else {
+        } else if (user.role === 'student') {
           navigate('/athro/select', { replace: true });
+        } else {
+          // Default for other roles
+          navigate('/home', { replace: true });
         }
       } else {
         // If not logged in, redirect to login page
@@ -31,8 +35,10 @@ const IndexPage = () => {
     if (user) {
       if (user.role === 'teacher' || user.role === 'admin') {
         navigate('/teacher', { replace: true });
-      } else {
+      } else if (user.role === 'student') {
         navigate('/athro/select', { replace: true });
+      } else {
+        navigate('/home', { replace: true });
       }
     } else {
       navigate('/login', { replace: true });
@@ -40,11 +46,23 @@ const IndexPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-purple-100 to-white">
       <div className="text-center mb-6">
+        <img
+          src="/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png"
+          alt="Athro Logo"
+          className="h-24 mx-auto mb-6"
+        />
         <h1 className="text-2xl font-bold mb-2">Welcome to Athro AI</h1>
         <p className="text-gray-600 mb-6">
-          {loading ? "Setting up your experience..." : "Redirecting to your dashboard..."}
+          {loading ? (
+            <span className="flex items-center justify-center">
+              <Loader2 className="animate-spin mr-2 h-4 w-4" />
+              Setting up your experience...
+            </span>
+          ) : (
+            "Redirecting to your dashboard..."
+          )}
         </p>
         
         <div className="mt-8">

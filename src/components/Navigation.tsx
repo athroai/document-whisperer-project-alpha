@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
@@ -11,16 +11,20 @@ import {
   Presentation,
   BarChart,
   Clock,
-  History
+  History,
+  Menu,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { state, logout } = useAuth();
   const { user } = state;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Base nav items for students
   const studentNavItems = [
@@ -70,6 +74,7 @@ const Navigation: React.FC = () => {
         
         {user ? (
           <div className="flex items-center space-x-6">
+            {/* Desktop Navigation */}
             <div className="hidden md:flex space-x-4">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -92,6 +97,60 @@ const Navigation: React.FC = () => {
               })}
             </div>
             
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[240px] p-0">
+                  <div className="p-4 border-b">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">Menu</span>
+                      <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="py-4">
+                    {navItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+                      
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.path}
+                          className={`flex items-center px-4 py-3 ${
+                            isActive
+                              ? 'bg-purple-50 text-purple-700'
+                              : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <Icon size={18} className="mr-3" />
+                          <span>{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                    <div className="border-t mt-4 pt-4 px-4">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-red-600"
+                        onClick={handleLogout}
+                      >
+                        <LogOut size={18} className="mr-3" />
+                        <span>Logout</span>
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+            
             <div className="flex items-center space-x-2">
               <Avatar>
                 <AvatarFallback className="bg-purple-200 text-purple-800">
@@ -100,11 +159,11 @@ const Navigation: React.FC = () => {
               </Avatar>
               <Button
                 variant="ghost"
-                className="text-gray-600"
+                className="text-gray-600 hidden md:flex"
                 onClick={handleLogout}
               >
                 <LogOut size={18} className="mr-1" />
-                <span className="hidden md:inline">Logout</span>
+                <span>Logout</span>
               </Button>
             </div>
           </div>
@@ -120,7 +179,7 @@ const Navigation: React.FC = () => {
         )}
       </div>
       
-      {/* Mobile Navigation */}
+      {/* Bottom Navigation for Mobile */}
       {user && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t py-2 px-6 flex justify-around items-center z-50">
           {navItems.slice(0, 5).map((item) => {

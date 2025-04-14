@@ -8,12 +8,14 @@ interface ProtectedRouteProps {
   children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
   requiredRole?: UserRole;
   requireLicense?: boolean;
+  redirectPath?: string;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requiredRole,
-  requireLicense = false
+  requireLicense = false,
+  redirectPath
 }) => {
   const { state } = useAuth();
   const { user, loading } = state;
@@ -33,7 +35,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   // Redirect to login if no user
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={redirectPath || "/login"} replace />;
   }
   
   // Ensure the session persists if rememberMe is true

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { assignmentService } from '@/services/assignmentService';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const StudySessionRouter: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +17,13 @@ const StudySessionRouter: React.FC = () => {
     const checkAssignments = async () => {
       if (!state.user) {
         navigate('/login');
+        return;
+      }
+
+      // Check role first
+      if (state.user.role === 'teacher' || state.user.role === 'admin') {
+        setError("Teacher accounts don't have access to study sessions");
+        setIsLoading(false);
         return;
       }
 
@@ -50,6 +58,11 @@ const StudySessionRouter: React.FC = () => {
     navigate('/study/start');
   };
 
+  // Return to dashboard if teacher
+  const handleReturnToDashboard = () => {
+    navigate(state.user?.role === 'teacher' ? '/teacher' : '/home');
+  };
+
   // Show a loading indicator while checking assignments
   return (
     <div className="container mx-auto px-4 py-8">
@@ -64,9 +77,25 @@ const StudySessionRouter: React.FC = () => {
           <>
             <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Study Session Setup</h2>
-            <p className="text-amber-600 mb-4">{error}</p>
-            <Button onClick={handleManualRedirect}>
-              Continue to Self-Study
+            
+            {state.user?.role === 'teacher' || state.user?.role === 'admin' ? (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Access Restricted</AlertTitle>
+                <AlertDescription>
+                  Teacher accounts don't have access to student study sessions.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <p className="text-amber-600 mb-4">{error}</p>
+            )}
+            
+            <Button 
+              onClick={state.user?.role === 'teacher' || state.user?.role === 'admin' ? 
+                handleReturnToDashboard : handleManualRedirect}
+            >
+              {state.user?.role === 'teacher' || state.user?.role === 'admin' ? 
+                'Return to Dashboard' : 'Continue to Self-Study'}
             </Button>
           </>
         ) : null}

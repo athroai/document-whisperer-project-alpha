@@ -18,6 +18,8 @@ import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import { Toaster } from "./components/ui/toaster";
 import QuizPage from "./pages/QuizPage";
 import IndexPage from "./pages/Index";
+import StudySessionPage from "./pages/StudySessionPage";
+import StudySessionRouter from "./pages/study/StudySessionRouter";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -51,7 +53,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<IndexPage />} />
               <Route path="/home" element={
-                <ProtectedRoute>
+                <ProtectedRoute redirectPath="/login">
                   <HomePage />
                 </ProtectedRoute>
               } />
@@ -60,7 +62,7 @@ export default function App() {
               <Route
                 path="/athro/*"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute redirectPath="/login">
                     <AthroPage />
                   </ProtectedRoute>
                 }
@@ -68,7 +70,7 @@ export default function App() {
               <Route
                 path="/quiz"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute redirectPath="/login">
                     <QuizPage />
                   </ProtectedRoute>
                 }
@@ -76,7 +78,7 @@ export default function App() {
               <Route
                 path="/settings"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute redirectPath="/login">
                     <SettingsPage />
                   </ProtectedRoute>
                 }
@@ -84,8 +86,24 @@ export default function App() {
               <Route
                 path="/teacher/*"
                 element={
-                  <ProtectedRoute requiredRole="teacher">
+                  <ProtectedRoute requiredRole="teacher" redirectPath="/login">
                     <TeacherDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/study-session"
+                element={
+                  <ProtectedRoute redirectPath="/login">
+                    <StudySessionPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/study/*"
+                element={
+                  <ProtectedRoute redirectPath="/login">
+                    <StudySessionRouter />
                   </ProtectedRoute>
                 }
               />

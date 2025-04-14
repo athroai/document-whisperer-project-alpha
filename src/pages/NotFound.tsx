@@ -29,24 +29,42 @@ const NotFound = () => {
     return "/athro/select";
   };
 
+  const getErrorMessage = () => {
+    if (!user) {
+      return "You need to be logged in to access this page.";
+    }
+    
+    // Check for potential permission issues based on URL and role
+    if (location.pathname.startsWith('/teacher') && user.role === 'student') {
+      return "You don't have permission to access teacher pages.";
+    }
+    
+    return "We couldn't find the page you're looking for. The page might have been removed, renamed, or is temporarily unavailable.";
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="max-w-md w-full text-center">
         <div className="rounded-full bg-red-100 p-3 w-16 h-16 flex items-center justify-center mx-auto mb-4">
           <AlertCircle className="h-8 w-8 text-red-600" />
         </div>
-        <h1 className="text-4xl font-bold mb-2 text-gray-900">404</h1>
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">Page Not Found</h2>
+        <h1 className="text-4xl font-bold mb-2 text-gray-900">
+          {!user ? "401" : "404"}
+        </h1>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">
+          {!user ? "Unauthorized Access" : "Page Not Found"}
+        </h2>
         <p className="text-gray-600 mb-6">
-          We couldn't find the page you're looking for. The page might have been removed,
-          renamed, or is temporarily unavailable.
+          {getErrorMessage()}
         </p>
         <div className="space-y-3">
           <Button onClick={goBack} variant="outline" className="w-full">
             <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
           </Button>
           <Link to={getHomePage()}>
-            <Button className="w-full">Return to Dashboard</Button>
+            <Button className="w-full">
+              {!user ? "Log In" : "Return to Dashboard"}
+            </Button>
           </Link>
           {user && user.role === "student" && (
             <Link to="/athro/select">
