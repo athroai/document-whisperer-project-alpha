@@ -8,8 +8,10 @@ import { FirestoreStatus } from '@/components/ui/firestore-status';
 import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
 import { getAthroBySubject } from '@/config/athrosConfig';
 import { Button } from '@/components/ui/button';
-import { Clock, User, BookOpen, History } from 'lucide-react';
+import { Clock, User, BookOpen, History, Refresh } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { checkFirestoreConnection } from '@/config/firebase';
+import persistentStorage from '@/services/persistentStorage';
 
 interface SessionHistoryItem {
   subject: string;
@@ -23,6 +25,22 @@ const AthroProfile = () => {
   const navigate = useNavigate();
   const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>([]);
   const [firestoreStatus, setFirestoreStatus] = useState<'loading' | 'connected' | 'offline' | 'error'>('loading');
+  const [lastSuccessfulSync, setLastSuccessfulSync] = useState<Date | null>(null);
+  
+  const checkConnectivity = async () => {
+    setFirestoreStatus('loading');
+    try {
+      const connectionStatus = await checkFirestoreConnection();
+      setFirestoreStatus(connectionStatus);
+      
+      if (connectionStatus === 'connected') {
+        setLastSuccessfulSync(new Date());
+      }
+    } catch (error) {
+      console.error("Error checking Firestore connection:", error);
+      setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
+    }
+  };
   
   useEffect(() => {
     // Create a flag to track if component is mounted
@@ -51,6 +69,23 @@ const AthroProfile = () => {
           return;
         }
         
+        // First try to get sessions from IndexedDB for quick display
+        try {
+          const cachedSessionsResult = await persistentStorage.retrieveData(state.user.id, 'chatHistory');
+          if (cachedSessionsResult.success && cachedSessionsResult.data) {
+            // Process cached sessions while waiting for network
+            const cachedSessions = cachedSessionsResult.data;
+            // Only process if it's in the expected format
+            if (Array.isArray(cachedSessions)) {
+              console.log("Using cached session data while fetching from network");
+              // Process cached sessions here
+            }
+          }
+        } catch (cacheError) {
+          console.warn("Could not retrieve cached sessions:", cacheError);
+        }
+        
+        // Try to get sessions from Firestore
         const sessions = await AthroSessionFirestoreService.getUserSessions(state.user.id);
         
         if (!isMounted) return;
@@ -69,10 +104,28 @@ const AthroProfile = () => {
         if (isMounted) {
           setSessionHistory(enhancedSessions);
           setFirestoreStatus('connected');
+          setLastSuccessfulSync(new Date());
+          
+          // Cache sessions in IndexedDB for offline use
+          try {
+            await persistentStorage.storeData(state.user.id, 'chatHistory', enhancedSessions);
+          } catch (storageError) {
+            console.warn("Failed to cache sessions:", storageError);
+          }
         }
       } catch (error) {
         console.error("Error fetching session history:", error);
         if (isMounted) {
+          // Try to get cached data if network request failed
+          try {
+            const cachedSessionsResult = await persistentStorage.retrieveData(state.user.id, 'chatHistory');
+            if (cachedSessionsResult.success && cachedSessionsResult.data) {
+              setSessionHistory(cachedSessionsResult.data);
+            }
+          } catch (cacheError) {
+            console.warn("Could not retrieve cached sessions after network error:", cacheError);
+          }
+          
           // Only mark as offline if browser reports offline, otherwise it's an error
           setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
         }
@@ -110,6 +163,10 @@ const AthroProfile = () => {
   const handleNavigateToSubject = (subject: string) => {
     const lowerSubject = subject.toLowerCase();
     navigate(`/athro/${lowerSubject}`);
+  };
+  
+  const handleRetryConnection = () => {
+    checkConnectivity();
   };
   
   const formatTimeAgo = (date: Date) => {
@@ -155,7 +212,15 @@ const AthroProfile = () => {
           </div>
           
           <div className="mt-4">
-            <FirestoreStatus status={firestoreStatus} />
+            <FirestoreStatus 
+              status={firestoreStatus} 
+              onRetry={handleRetryConnection}
+            />
+            {firestoreStatus === 'connected' && lastSuccessfulSync && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Last synced: {formatTimeAgo(lastSuccessfulSync)}
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -210,6 +275,25 @@ const AthroProfile = () => {
               <Button onClick={() => navigate('/athro')}>
                 Choose a Subject
               </Button>
+            </div>
+          )}
+          
+          {(firestoreStatus === 'offline' || firestoreStatus === 'error') && sessionHistory.length > 0 && (
+            <div className="mt-4 text-center">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleRetryConnection}
+                className="flex items-center"
+              >
+                <Refresh className="h-3.5 w-3.5 mr-1" />
+                <span>Sync Sessions</span>
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                {firestoreStatus === 'offline' 
+                  ? "You're currently viewing locally saved sessions" 
+                  : "Using cached sessions due to connection issues"}
+              </p>
             </div>
           )}
         </CardContent>

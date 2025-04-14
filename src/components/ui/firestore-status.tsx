@@ -31,23 +31,47 @@ export function FirestoreStatus({
   if (compact) {
     if (status === "offline") {
       return (
-        <Badge 
-          variant="outline" 
-          className="bg-yellow-50 text-yellow-800 border-yellow-200 flex items-center gap-1"
-        >
-          <CloudOff className="h-3 w-3" /> Offline Mode
-        </Badge>
+        <div className="flex items-center">
+          <Badge 
+            variant="outline" 
+            className="bg-yellow-50 text-yellow-800 border-yellow-200 flex items-center gap-1"
+          >
+            <CloudOff className="h-3 w-3" /> Offline Mode
+          </Badge>
+          {onRetry && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onRetry} 
+              className="h-6 px-2 ml-1"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
       );
     }
     
     if (status === "error") {
       return (
-        <Badge 
-          variant="outline" 
-          className="bg-red-50 text-red-800 border-red-200 flex items-center gap-1"
-        >
-          <AlertCircle className="h-3 w-3" /> Sync Error
-        </Badge>
+        <div className="flex items-center">
+          <Badge 
+            variant="outline" 
+            className="bg-red-50 text-red-800 border-red-200 flex items-center gap-1"
+          >
+            <AlertCircle className="h-3 w-3" /> Sync Error
+          </Badge>
+          {onRetry && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onRetry} 
+              className="h-6 px-2 ml-1"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
       );
     }
     

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAthro } from '@/contexts/AthroContext';
 import { Citation } from '@/types/citations';
@@ -6,21 +6,16 @@ import { renderWithCitations } from '@/utils/citationUtils';
 import CitationSidebar from '@/components/citations/CitationSidebar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Upload, X, Info, Book } from 'lucide-react';
+import { Send, Upload, X, Info, Book, AlertOctagon } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import { UploadMetadata } from '@/types/files';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import KnowledgeIntegration from '@/components/knowledge/KnowledgeIntegration';
 import { fetchKnowledgeForQuery } from '@/services/fileAwareService';
-
-interface AthroMessage {
-  id: string;
-  text: string;
-  sender: 'user' | 'athro';
-  timestamp: Date;
-  citations?: Citation[];
-}
+import useTabSync from '@/hooks/useTabSync';
+import persistentStorage from '@/services/persistentStorage';
+import { AthroMessage } from '@/types/athro';
 
 interface Knowledge {
   enhancedContext: string;
@@ -33,6 +28,8 @@ export interface AthroChatProps {
   isLoading: boolean;
   isCompactMode?: boolean;
 }
+
+const generateMessageId = () => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
 const AthroChat: React.FC<AthroChatProps> = ({ 
   fetchKnowledgeForQuery, 
@@ -50,16 +47,122 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const [showCitations, setShowCitations] = useState(false);
   const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
   const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
+  const [draftSaved, setDraftSaved] = useState<boolean>(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+  const [isRestoringSession, setIsRestoringSession] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const { 
+    hasMultipleTabs, 
+    lastMessage: syncMessage, 
+    sendMessage: syncChatHistory,
+    tabId 
+  } = useTabSync('CHAT_HISTORY_UPDATE', {
+    onConflict: () => {
+      toast({
+        title: "Multiple tabs detected",
+        description: "Be careful when making changes in multiple tabs as they may conflict.",
+        variant: "warning",
+      });
+    }
+  });
 
-  // Get theme colors based on current subject
   const currentSubject = subject ? subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase() : null;
   const theme = currentSubject ? athroThemeForSubject(currentSubject) : {
     primaryHex: '#2563eb',
     secondaryHex: '#22c55e'
   };
 
-  // Scroll to bottom of chat when new messages are added
+  useEffect(() => {
+    const restoreSession = async () => {
+      if (state.user?.id && currentSubject) {
+        setIsRestoringSession(true);
+        try {
+          const userId = `${state.user.id}_${currentSubject.toLowerCase()}`;
+          
+          const chatResult = await persistentStorage.getChatHistory<AthroMessage[]>(userId);
+          
+          if (chatResult.success && chatResult.data && chatResult.data.length > 0) {
+            setConversation(chatResult.data);
+            toast({
+              title: "Session restored",
+              description: "Your previous conversation has been loaded.",
+            });
+          }
+          
+          const draftResult = await persistentStorage.getDraftResponse(userId);
+          
+          if (draftResult.success && draftResult.data) {
+            setMessage(draftResult.data);
+            setDraftSaved(true);
+          }
+        } catch (error) {
+          console.error("Failed to restore session:", error);
+        } finally {
+          setIsRestoringSession(false);
+        }
+      }
+    };
+    
+    restoreSession();
+  }, [state.user?.id, currentSubject, toast]);
+  
+  useEffect(() => {
+    const saveSession = async () => {
+      if (state.user?.id && currentSubject && !isRestoringSession && conversation.length > 0) {
+        try {
+          const userId = `${state.user.id}_${currentSubject.toLowerCase()}`;
+          
+          await persistentStorage.saveChatHistory(userId, conversation);
+          
+          syncChatHistory({ conversation });
+          
+          setHasUnsavedChanges(false);
+        } catch (error) {
+          console.error("Failed to save session:", error);
+          setHasUnsavedChanges(true);
+        }
+      }
+    };
+    
+    saveSession();
+  }, [conversation, state.user?.id, currentSubject, isRestoringSession, syncChatHistory]);
+  
+  useEffect(() => {
+    if (syncMessage && syncMessage.tabId !== tabId && syncMessage.payload) {
+      const { conversation: syncedConversation } = syncMessage.payload;
+      
+      if (syncedConversation && 
+          JSON.stringify(syncedConversation) !== JSON.stringify(conversation)) {
+        setConversation(syncedConversation);
+        toast({
+          title: "Conversation updated",
+          description: "Chat history has been synchronized from another tab.",
+        });
+      }
+    }
+  }, [syncMessage, tabId, conversation, toast]);
+  
+  useEffect(() => {
+    const saveDraft = async () => {
+      if (state.user?.id && currentSubject && message) {
+        try {
+          const userId = `${state.user.id}_${currentSubject.toLowerCase()}`;
+          await persistentStorage.saveDraftResponse(userId, message);
+          setDraftSaved(true);
+        } catch (error) {
+          console.error("Failed to save draft:", error);
+        }
+      }
+    };
+    
+    const timeoutId = setTimeout(saveDraft, 1000);
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [message, state.user?.id, currentSubject]);
+
   useEffect(() => {
     scrollToBottom();
   }, [conversation]);
@@ -85,62 +188,43 @@ const AthroChat: React.FC<AthroChatProps> = ({
     setShowCitations(!showCitations);
   };
 
-  function renderMessage(msg: AthroMessage) {
-    const bgColor = msg.sender === 'user' 
-      ? 'bg-gray-100' 
-      : `bg-blue-500 text-white`;
-    
-    return (
-      <div 
-        key={msg.id}
-        className={`p-4 rounded-lg mb-4 ${bgColor} ${msg.sender === 'user' ? 'ml-auto max-w-[80%]' : 'mr-auto max-w-[80%]'}`}
-        onClick={() => {
-          if (msg.citations?.length) {
-            setCurrentMessageId(msg.id);
-            setActiveCitations(msg.citations);
-            setShowCitations(true);
-          }
-        }}
-      >
-        {msg.citations 
-          ? renderWithCitations(msg.text, msg.citations, handleCitationClick)
-          : <p>{msg.text}</p>
-        }
-      </div>
-    );
-  };
-
-  async function handleMessageSubmit(e: React.FormEvent) {
+  const handleMessageSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || isLoading) return;
-
-    // Add user message to conversation
+    
     const userMessage: AthroMessage = {
-      id: `user_${Date.now()}`,
-      text: message,
-      sender: 'user',
+      id: generateMessageId(),
+      content: message,
+      role: 'user',
       timestamp: new Date()
     };
     
-    setConversation([...conversation, userMessage]);
+    const newConversation = [...conversation, userMessage];
+    setConversation(newConversation);
     setMessage('');
+    setHasUnsavedChanges(true);
+    
+    if (state.user?.id && currentSubject) {
+      const userId = `${state.user.id}_${currentSubject.toLowerCase()}`;
+      await persistentStorage.saveDraftResponse(userId, '');
+      setDraftSaved(false);
+    }
 
     try {
-      // Fetch knowledge context for the query
       const knowledge = await fetchKnowledgeForQuery(message);
       
-      // Create the AI response with citations if knowledge was found
       const aiMessage: AthroMessage = {
-        id: `athro_${Date.now()}`,
-        text: simulateAiResponse(message, knowledge.enhancedContext),
-        sender: 'athro',
+        id: generateMessageId(),
+        content: simulateAiResponse(message, knowledge.enhancedContext),
+        role: 'assistant',
         timestamp: new Date(),
         citations: knowledge.hasKnowledgeResults ? knowledge.citations : undefined
       };
       
-      setConversation(prev => [...prev, aiMessage]);
+      const finalConversation = [...newConversation, aiMessage];
+      setConversation(finalConversation);
+      setHasUnsavedChanges(true);
       
-      // Show citations if any were found
       if (knowledge.citations?.length) {
         setActiveCitations(knowledge.citations);
         setCurrentMessageId(aiMessage.id);
@@ -154,12 +238,9 @@ const AthroChat: React.FC<AthroChatProps> = ({
         variant: 'destructive',
       });
     }
-  };
+  }, [message, isLoading, conversation, state.user?.id, currentSubject, fetchKnowledgeForQuery, toast]);
 
-  // This is a placeholder to simulate AI responses
-  // In a real implementation, this would call an actual AI service
   function simulateAiResponse(query: string, context?: string): string {
-    // Simple response based on query
     if (query.toLowerCase().includes('hello') || query.toLowerCase().includes('hi')) {
       return "Hello! I'm Athro, your AI study assistant. How can I help you today?";
     }
@@ -171,10 +252,37 @@ const AthroChat: React.FC<AthroChatProps> = ({
     return `I'm here to help you study. What specific topic would you like to explore?`;
   };
 
+  function renderMessage(msg: AthroMessage) {
+    const bgColor = msg.role === 'user' 
+      ? 'bg-gray-100 text-gray-900' 
+      : `bg-blue-500 text-white`;
+    
+    return (
+      <div 
+        key={msg.id}
+        className={`p-4 rounded-lg mb-4 ${bgColor} ${msg.role === 'user' ? 'ml-auto max-w-[80%]' : 'mr-auto max-w-[80%]'}`}
+        onClick={() => {
+          if (msg.citations?.length) {
+            setCurrentMessageId(msg.id);
+            setActiveCitations(msg.citations);
+            setShowCitations(true);
+          }
+        }}
+      >
+        {msg.citations 
+          ? renderWithCitations(msg.content, msg.citations, handleCitationClick)
+          : <p>{msg.content}</p>
+        }
+        <div className="text-xs mt-2 opacity-70">
+          {msg.timestamp.toLocaleTimeString()}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex h-full`}>
       <div className={`flex-1 flex flex-col h-full ${showCitations ? 'pr-4' : ''}`}>
-        {/* Chat header */}
         <div 
           className="p-4 text-white flex justify-between items-center"
           style={{ backgroundColor: theme.primaryHex }}
@@ -183,6 +291,13 @@ const AthroChat: React.FC<AthroChatProps> = ({
             {activeCharacter ? `Athro ${activeCharacter.subject}` : 'Athro AI'}
           </h2>
           <div className="flex items-center space-x-2">
+            {hasMultipleTabs && (
+              <div className="flex items-center mr-2 px-2 py-1 bg-yellow-500 text-white rounded-md text-xs">
+                <AlertOctagon size={14} className="mr-1" />
+                Multiple tabs open
+              </div>
+            )}
+            
             <Button 
               variant="ghost" 
               size="sm" 
@@ -225,44 +340,36 @@ const AthroChat: React.FC<AthroChatProps> = ({
           </div>
         </div>
         
-        {/* Knowledge panel */}
-        {showKnowledgePanel && (
-          <div className="p-4 border-b">
-            <KnowledgeIntegration 
-              subject={currentSubject?.toLowerCase()}
-              onClose={() => setShowKnowledgePanel(false)}
-            />
-          </div>
-        )}
+        <div className="p-4 border-b">
+          <KnowledgeIntegration 
+            subject={currentSubject?.toLowerCase()}
+            onClose={() => setShowKnowledgePanel(false)}
+          />
+        </div>
         
-        {/* File upload area */}
-        {showFileUpload && (
-          <div className="p-4 border-b">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium">Upload Study Materials</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowFileUpload(false)}
-              >
-                <X size={16} />
-              </Button>
-            </div>
-            <FileUpload
-              userId={state.user?.id}
-              userRole={state.user?.role}
-              onFileUploaded={handleFileUpload}
-            />
+        <div className="p-4 border-b">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-medium">Upload Study Materials</h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowFileUpload(false)}
+            >
+              <X size={16} />
+            </Button>
           </div>
-        )}
+          <FileUpload
+            userId={state.user?.id}
+            userRole={state.user?.role}
+            onFileUploaded={handleFileUpload}
+          />
+        </div>
         
-        {/* Chat messages */}
         <div className="flex-1 overflow-auto p-4">
           {conversation.map(renderMessage)}
           <div ref={messagesEndRef} />
         </div>
         
-        {/* Message input */}
         <div className="p-4 border-t">
           <form onSubmit={handleMessageSubmit} className="flex space-x-2">
             <Textarea 
@@ -285,10 +392,15 @@ const AthroChat: React.FC<AthroChatProps> = ({
               <Send size={18} />
             </Button>
           </form>
+          {draftSaved && message && (
+            <p className="text-xs text-gray-500 mt-1">Draft saved</p>
+          )}
+          {hasUnsavedChanges && (
+            <p className="text-xs text-yellow-600 mt-1">Saving conversation...</p>
+          )}
         </div>
       </div>
       
-      {/* Citation sidebar */}
       {showCitations && (
         <CitationSidebar 
           citations={activeCitations} 
