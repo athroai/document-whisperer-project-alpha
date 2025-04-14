@@ -61,8 +61,8 @@ const IndexPage = () => {
         <p className="text-gray-600 mb-6">
           {loading ? (
             <span className="flex items-center justify-center">
-              <LoadingSpinner className="mr-2 h-4 w-4" />
-              Preparing your experience...
+              <LoadingSpinner className="mr-2 h-4 w-4" /> 
+              <span className="ml-2">Preparing your experience...</span>
             </span>
           ) : (
             "Redirecting to your dashboard..."
