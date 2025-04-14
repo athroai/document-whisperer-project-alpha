@@ -8,10 +8,10 @@ import { FirestoreStatus } from '@/components/ui/firestore-status';
 import AthroSessionFirestoreService from '@/services/firestore/athroSessionService';
 import { getAthroBySubject } from '@/config/athrosConfig';
 import { Button } from '@/components/ui/button';
-import { Clock, User, BookOpen, History, RefreshCw } from 'lucide-react';
+import { Clock, User, BookOpen, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { checkFirestoreConnection } from '@/config/firebase';
 import persistentStorage from '@/services/persistentStorage';
+import { useFirestoreConnection } from '@/hooks/useFirestoreConnection';
 
 interface SessionHistoryItem {
   subject: string;
@@ -24,54 +24,23 @@ const AthroProfile = () => {
   const { state } = useAuth();
   const navigate = useNavigate();
   const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>([]);
-  const [firestoreStatus, setFirestoreStatus] = useState<'loading' | 'connected' | 'offline' | 'error'>('loading');
-  const [lastSuccessfulSync, setLastSuccessfulSync] = useState<Date | null>(null);
-  
-  const checkConnectivity = async () => {
-    setFirestoreStatus('loading');
-    try {
-      const connectionStatus = await checkFirestoreConnection();
-      setFirestoreStatus(connectionStatus);
-      
-      if (connectionStatus === 'connected') {
-        setLastSuccessfulSync(new Date());
-      }
-    } catch (error) {
-      console.error("Error checking Firestore connection:", error);
-      setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
-    }
-  };
+  const { status: firestoreStatus, lastCheck: lastSuccessfulSync, handleRetry } = useFirestoreConnection();
   
   useEffect(() => {
     let isMounted = true;
-    const timeoutId = setTimeout(() => {
-      if (isMounted && firestoreStatus === 'loading') {
-        console.warn("Firestore connection check timed out");
-        setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
-      }
-    }, 3000);
     
     const fetchSessionHistory = async () => {
       if (!state.user?.id) {
-        if (isMounted) setFirestoreStatus('offline');
         return;
       }
       
       try {
-        if (isMounted) setFirestoreStatus('loading');
-        
-        if (!navigator.onLine) {
-          if (isMounted) setFirestoreStatus('offline');
-          return;
-        }
-        
         try {
           const cachedSessionsResult = await persistentStorage.getChatHistory(state.user.id);
           if (cachedSessionsResult.success && cachedSessionsResult.data) {
             console.log("Using cached session data while fetching from network");
             const cachedSessions = cachedSessionsResult.data;
             if (Array.isArray(cachedSessions)) {
-              // Process cached sessions here if needed
               if (isMounted) {
                 setSessionHistory(cachedSessions as SessionHistoryItem[]);
               }
@@ -81,29 +50,30 @@ const AthroProfile = () => {
           console.warn("Could not retrieve cached sessions:", cacheError);
         }
         
-        const sessions = await AthroSessionFirestoreService.getUserSessions(state.user.id);
-        
-        if (!isMounted) return;
-        
-        const enhancedSessions = sessions.map(session => {
-          const athroCharacter = getAthroBySubject(session.subject);
-          return {
-            id: session.id,
-            subject: session.subject,
-            avatarUrl: athroCharacter?.avatarUrl,
-            lastUsed: new Date(session.createdAt)
-          };
-        });
-        
-        if (isMounted) {
-          setSessionHistory(enhancedSessions);
-          setFirestoreStatus('connected');
-          setLastSuccessfulSync(new Date());
+        // Only try to fetch from network if we are online
+        if (navigator.onLine && firestoreStatus !== 'error' && firestoreStatus !== 'offline') {
+          const sessions = await AthroSessionFirestoreService.getUserSessions(state.user.id);
           
-          try {
-            await persistentStorage.saveChatHistory(state.user.id, enhancedSessions);
-          } catch (storageError) {
-            console.warn("Failed to cache sessions:", storageError);
+          if (!isMounted) return;
+          
+          const enhancedSessions = sessions.map(session => {
+            const athroCharacter = getAthroBySubject(session.subject);
+            return {
+              id: session.id,
+              subject: session.subject,
+              avatarUrl: athroCharacter?.avatarUrl,
+              lastUsed: new Date(session.createdAt)
+            };
+          });
+          
+          if (isMounted) {
+            setSessionHistory(enhancedSessions);
+            
+            try {
+              await persistentStorage.saveChatHistory(state.user.id, enhancedSessions);
+            } catch (storageError) {
+              console.warn("Failed to cache sessions:", storageError);
+            }
           }
         }
       } catch (error) {
@@ -117,44 +87,21 @@ const AthroProfile = () => {
           } catch (cacheError) {
             console.warn("Could not retrieve cached sessions after network error:", cacheError);
           }
-          
-          setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
         }
       }
     };
     
-    const handleOnlineStatus = () => {
-      if (isMounted) {
-        if (navigator.onLine) {
-          console.log("Browser reports online status, refreshing data");
-          fetchSessionHistory();
-        } else {
-          console.warn("Browser reports offline status");
-          setFirestoreStatus('offline');
-        }
-      }
-    };
-    
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOnlineStatus);
-    
+    // Call fetch sessions when component mounts or when firestore status changes
     fetchSessionHistory();
     
     return () => {
       isMounted = false;
-      clearTimeout(timeoutId);
-      window.removeEventListener('online', handleOnlineStatus);
-      window.removeEventListener('offline', handleOnlineStatus);
     };
-  }, [state.user?.id]);
+  }, [state.user?.id, firestoreStatus]);
   
   const handleNavigateToSubject = (subject: string) => {
     const lowerSubject = subject.toLowerCase();
     navigate(`/athro/${lowerSubject}`);
-  };
-  
-  const handleRetryConnection = () => {
-    checkConnectivity();
   };
   
   const formatTimeAgo = (date: Date) => {
@@ -202,7 +149,7 @@ const AthroProfile = () => {
           <div className="mt-4">
             <FirestoreStatus 
               status={firestoreStatus} 
-              onRetry={handleRetryConnection}
+              onRetry={handleRetry}
             />
             {firestoreStatus === 'connected' && lastSuccessfulSync && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -222,7 +169,7 @@ const AthroProfile = () => {
           <CardDescription>Continue your study journey</CardDescription>
         </CardHeader>
         <CardContent>
-          {firestoreStatus === 'loading' ? (
+          {firestoreStatus === 'loading' && sessionHistory.length === 0 ? (
             <div className="py-4 text-center">
               <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
               <p className="mt-2 text-sm text-muted-foreground">Loading your sessions...</p>
@@ -271,11 +218,10 @@ const AthroProfile = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={handleRetryConnection}
+                onClick={handleRetry}
                 className="flex items-center"
               >
-                <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                <span>Sync Sessions</span>
+                <span className="mr-2">Sync Sessions</span>
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
                 {firestoreStatus === 'offline' 

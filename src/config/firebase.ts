@@ -34,21 +34,37 @@ try {
   console.warn("[Firebase] Analytics disabled or not supported in this environment:", err);
 }
 
-// ✅ Initialize Firestore with persistence settings
-// Using persistentLocalCache with default settings to avoid tab conflicts
+// ✅ Initialize Firestore with simpler persistence settings
+// Using memory-only cache to avoid persistence conflicts
 const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ 
-    cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-    tabManager: persistentSingleTabManager({})  // Pass an empty object as the required parameter
-  })
+  // No local persistence config for now to avoid conflicts
 });
+
+// Try to enable persistence, but don't fail if it errors
+try {
+  enableIndexedDbPersistence(db)
+    .then(() => {
+      console.log("[Firestore] IndexedDB persistence successfully enabled.");
+    })
+    .catch((error) => {
+      if (error.code === 'failed-precondition') {
+        console.warn("[Firestore] Multiple tabs open, using memory-only cache.");
+      } else if (error.code === 'unimplemented') {
+        console.warn("[Firestore] Browser doesn't support IndexedDB, using memory-only cache.");
+      } else {
+        console.error("[Firestore] Error enabling persistence:", error);
+      }
+    });
+} catch (err) {
+  console.warn("[Firestore] Error setting up persistence:", err);
+}
 
 console.log("[Firestore] Firestore initialized with built-in persistence");
 
 // ✅ Storage
 const storage = getStorage(app);
 
-// ✅ Connection check utility
+// ✅ Connection check utility with improved timeout handling
 export const checkFirestoreConnection = async () => {
   try {
     console.log("[Firestore] Checking connectivity...");
@@ -58,7 +74,7 @@ export const checkFirestoreConnection = async () => {
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error("Firestore connection check timed out"));
-      }, 5000); // 5 second timeout
+      }, 3000); // Reduced to 3 second timeout
     });
     
     // Race between the connection check and the timeout
@@ -70,7 +86,11 @@ export const checkFirestoreConnection = async () => {
     console.log("[Firestore] Connected successfully.");
     return "connected";
   } catch (error) {
-    console.warn("[Firestore] Connection check failed:", error);
+    if (error.message === "Firestore connection check timed out") {
+      console.warn("[Firestore] Connection check timed out");
+    } else {
+      console.warn("[Firestore] Connection check failed:", error);
+    }
     return navigator.onLine ? "error" : "offline";
   }
 };
