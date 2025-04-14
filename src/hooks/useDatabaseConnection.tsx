@@ -66,6 +66,3 @@ export function useDatabaseConnection(options?: UseDatabaseConnectionOptions) {
 }
 
 export default useDatabaseConnection;
-
-// For backward compatibility
-export const useFirestoreConnection = useDatabaseConnection;
