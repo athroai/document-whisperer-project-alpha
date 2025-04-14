@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { MessageCircle } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestoreStatus } from '@/contexts/FirestoreStatusContext';
-import { FirestoreStatus } from './ui/firestore-status';
+import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
+import { DatabaseStatus } from './ui/database-status';
 
 interface KnowledgeResponse {
   enhancedContext: string;
@@ -21,7 +21,7 @@ const AthroSystem: React.FC = () => {
   const location = useLocation();
   const [isFloatingChat, setIsFloatingChat] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { status: firestoreStatus, retry: handleRetry } = useFirestoreStatus();
+  const { status: databaseStatus, retry: handleRetry } = useDatabaseStatus();
   const { toast } = useToast();
 
   // Use hotkey to toggle Athro
@@ -64,8 +64,8 @@ const AthroSystem: React.FC = () => {
       
       {!isOpen && (
         <div className="fixed bottom-4 right-4 space-y-2">
-          {(firestoreStatus === 'offline' || firestoreStatus === 'error') && (
-            <FirestoreStatus 
+          {(databaseStatus === 'offline' || databaseStatus === 'error') && (
+            <DatabaseStatus 
               compact={true}
               className="mb-2"
             />

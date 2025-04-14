@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { useFirestoreStatus } from '@/contexts/FirestoreStatusContext';
+import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
 
 const SystemDiagnostics = () => {
   const [databasePing, setDatabasePing] = useState<number | null>(null);
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
-  const { status } = useFirestoreStatus();
+  const { status } = useDatabaseStatus();
 
   useEffect(() => {
     // Check database connectivity
