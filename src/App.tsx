@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AthroPage from "./pages/AthroPage";
@@ -20,6 +19,7 @@ import QuizPage from "./pages/QuizPage";
 import IndexPage from "./pages/Index";
 import StudySessionPage from "./pages/StudySessionPage";
 import StudySessionRouter from "./pages/study/StudySessionRouter";
+import KnowledgePage from './pages/KnowledgePage';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -108,6 +108,7 @@ export default function App() {
                 }
               />
               <Route path="/license-required" element={<LicenseRequiredPage />} />
+              <Route path="/knowledge" element={<KnowledgePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AthroSystem />

@@ -7,11 +7,13 @@ import { renderWithCitations } from '@/utils/citationUtils';
 import CitationSidebar from '@/components/citations/CitationSidebar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Upload, X, Info } from 'lucide-react';
+import { Send, Upload, X, Info, Book } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import { UploadMetadata } from '@/types/files';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import KnowledgeIntegration from '@/components/knowledge/KnowledgeIntegration';
+import { fetchKnowledgeForQuery } from '@/services/fileAwareService';
 
 interface AthroMessage {
   id: string;
@@ -45,6 +47,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const [message, setMessage] = useState('');
   const [conversation, setConversation] = useState<AthroMessage[]>([]);
   const [showFileUpload, setShowFileUpload] = useState(false);
+  const [showKnowledgePanel, setShowKnowledgePanel] = useState(false);
   const [showCitations, setShowCitations] = useState(false);
   const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
   const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
@@ -125,7 +128,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
 
     try {
       // Fetch knowledge context for the query
-      const knowledge = await fetchKnowledgeForQuery(message);
+      const knowledge = await fetchKnowledgeForQuery(message, currentSubject?.toLowerCase());
       
       // Create the AI response with citations if knowledge was found
       const aiMessage: AthroMessage = {
@@ -180,12 +183,28 @@ const AthroChat: React.FC<AthroChatProps> = ({
           <h2 className="text-xl font-bold">
             {activeCharacter ? `Athro ${activeCharacter.subject}` : 'Athro AI'}
           </h2>
-          <div>
+          <div className="flex items-center space-x-2">
             <Button 
               variant="ghost" 
               size="sm" 
               className="text-white"
-              onClick={() => setShowFileUpload(!showFileUpload)}
+              onClick={() => {
+                setShowFileUpload(false);
+                setShowKnowledgePanel(!showKnowledgePanel);
+              }}
+            >
+              <Book size={18} />
+              <span className="ml-1">Knowledge</span>
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-white"
+              onClick={() => {
+                setShowKnowledgePanel(false);
+                setShowFileUpload(!showFileUpload);
+              }}
             >
               <Upload size={18} />
               <span className="ml-1">Upload Files</span>
@@ -195,7 +214,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-white ml-2"
+                className="text-white"
                 onClick={toggleCitationSidebar}
               >
                 <Info size={18} />
@@ -206,6 +225,16 @@ const AthroChat: React.FC<AthroChatProps> = ({
             )}
           </div>
         </div>
+        
+        {/* Knowledge panel */}
+        {showKnowledgePanel && (
+          <div className="p-4 border-b">
+            <KnowledgeIntegration 
+              subject={currentSubject?.toLowerCase()}
+              onClose={() => setShowKnowledgePanel(false)}
+            />
+          </div>
+        )}
         
         {/* File upload area */}
         {showFileUpload && (
