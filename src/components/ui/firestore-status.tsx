@@ -2,7 +2,8 @@
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { CloudOff, AlertCircle, Cloud } from "lucide-react";
+import { CloudOff, AlertCircle, Cloud, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type FirestoreStatusType = "loading" | "connected" | "offline" | "error";
 
@@ -11,13 +12,15 @@ interface FirestoreStatusProps {
   className?: string;
   showSuccessStatus?: boolean;
   compact?: boolean;
+  onRetry?: () => void;
 }
 
 export function FirestoreStatus({
   status,
   className = "",
   showSuccessStatus = false,
-  compact = false
+  compact = false,
+  onRetry
 }: FirestoreStatusProps) {
   // If connected and we don't need to show success status, return null
   if (status === "connected" && !showSuccessStatus) {
@@ -80,8 +83,18 @@ export function FirestoreStatus({
       <Alert className={`mb-4 bg-yellow-50 border-yellow-200 ${className}`}>
         <CloudOff className="h-4 w-4 text-yellow-600" />
         <AlertTitle className="text-yellow-800">Working Offline</AlertTitle>
-        <AlertDescription className="text-yellow-700">
-          You're currently working offline. Your session data is stored locally and will sync when connectivity is restored.
+        <AlertDescription className="text-yellow-700 flex flex-col">
+          <span>You're currently working offline. Your session data is stored locally and will sync when connectivity is restored.</span>
+          {onRetry && navigator.onLine && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 self-start" 
+              onClick={onRetry}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" /> Retry Connection
+            </Button>
+          )}
         </AlertDescription>
       </Alert>
     );
@@ -92,8 +105,18 @@ export function FirestoreStatus({
       <Alert className={`mb-4 bg-red-50 border-red-200 ${className}`}>
         <AlertCircle className="h-4 w-4 text-red-600" />
         <AlertTitle className="text-red-800">Sync Error</AlertTitle>
-        <AlertDescription className="text-red-700">
-          We're having trouble connecting to Firestore. Your session is running in local mode only.
+        <AlertDescription className="text-red-700 flex flex-col">
+          <span>We're having trouble connecting to Firestore. Your session is running in local mode only.</span>
+          {onRetry && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 self-start" 
+              onClick={onRetry}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" /> Retry Connection
+            </Button>
+          )}
         </AlertDescription>
       </Alert>
     );
@@ -125,4 +148,3 @@ export function FirestoreStatus({
   
   return null;
 }
-

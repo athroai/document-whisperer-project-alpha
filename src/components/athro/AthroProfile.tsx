@@ -30,10 +30,10 @@ const AthroProfile = () => {
     // Create a timeout to prevent stuck loading state
     const timeoutId = setTimeout(() => {
       if (isMounted && firestoreStatus === 'loading') {
-        console.warn("Firestore connection timed out");
-        setFirestoreStatus('offline');
+        console.warn("Firestore connection check timed out");
+        setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
       }
-    }, 5000);
+    }, 3000); // Reduced timeout for better UX
     
     const fetchSessionHistory = async () => {
       // Don't attempt to fetch if we don't have a user yet
@@ -44,6 +44,13 @@ const AthroProfile = () => {
       
       try {
         if (isMounted) setFirestoreStatus('loading');
+        
+        // Check if we're online first
+        if (!navigator.onLine) {
+          if (isMounted) setFirestoreStatus('offline');
+          return;
+        }
+        
         const sessions = await AthroSessionFirestoreService.getUserSessions(state.user.id);
         
         if (!isMounted) return;
@@ -65,9 +72,29 @@ const AthroProfile = () => {
         }
       } catch (error) {
         console.error("Error fetching session history:", error);
-        if (isMounted) setFirestoreStatus('error');
+        if (isMounted) {
+          // Only mark as offline if browser reports offline, otherwise it's an error
+          setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
+        }
       }
     };
+    
+    // Set up network status listener
+    const handleOnlineStatus = () => {
+      if (isMounted) {
+        if (navigator.onLine) {
+          console.log("Browser reports online status, refreshing data");
+          fetchSessionHistory();
+        } else {
+          console.warn("Browser reports offline status");
+          setFirestoreStatus('offline');
+        }
+      }
+    };
+    
+    // Add network status listeners
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
     
     fetchSessionHistory();
     
@@ -75,6 +102,8 @@ const AthroProfile = () => {
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
     };
   }, [state.user?.id]);
   

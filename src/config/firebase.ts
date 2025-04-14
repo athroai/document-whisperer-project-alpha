@@ -17,16 +17,43 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with indexed DB persistence
+// Initialize Firestore with settings optimized for web
 const db = initializeFirestore(app, {
-  // Remove the 'cache' property and use enableIndexedDbPersistence instead
+  experimentalForceLongPolling: false, // Use WebSockets when available
+  experimentalAutoDetectLongPolling: true,
 });
 
-// Enable IndexedDB persistence
-enableIndexedDbPersistence(db).catch((err) => {
-  console.error("Firestore persistence error:", err);
-});
+// Only enable persistence if we're online
+// This prevents unnecessary offline mode activation
+if (navigator.onLine) {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      // Multiple tabs open, persistence can only be enabled in one tab
+      console.warn("Firestore persistence unavailable - multiple tabs open");
+    } else if (err.code === 'unimplemented') {
+      // Current browser doesn't support persistence
+      console.warn("Firestore persistence not supported in this browser");
+    } else {
+      console.error("Firestore persistence error:", err);
+    }
+  });
+} else {
+  console.warn("Browser appears to be offline, skipping persistence initialization");
+}
 
 const storage = getStorage(app);
+
+// Export connection status checker
+export const checkFirestoreConnection = async () => {
+  try {
+    // Perform a simple test read to verify connection
+    const testRef = db.collection('_connection_test').doc('test');
+    await testRef.get({ source: 'server' });
+    return 'connected';
+  } catch (error) {
+    console.warn("Firestore connection check failed:", error);
+    return navigator.onLine ? 'error' : 'offline';
+  }
+};
 
 export { app, db, storage };
