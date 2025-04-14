@@ -290,28 +290,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          confidence_scores: Json | null
           created_at: string
           email: string
+          exam_board: string | null
           id: string
           name: string | null
+          preferred_language: string | null
           role: string
           school_id: string | null
+          welsh_eligible: boolean | null
         }
         Insert: {
+          confidence_scores?: Json | null
           created_at?: string
           email: string
+          exam_board?: string | null
           id: string
           name?: string | null
+          preferred_language?: string | null
           role: string
           school_id?: string | null
+          welsh_eligible?: boolean | null
         }
         Update: {
+          confidence_scores?: Json | null
           created_at?: string
           email?: string
+          exam_board?: string | null
           id?: string
           name?: string | null
+          preferred_language?: string | null
           role?: string
           school_id?: string | null
+          welsh_eligible?: boolean | null
         }
         Relationships: [
           {

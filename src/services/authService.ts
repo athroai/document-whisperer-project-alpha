@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserRole } from "@/types/auth";
 
@@ -20,14 +19,13 @@ export const authService = {
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
         
       if (error) throw error;
       
       const role = (profileData?.role || 'student') as UserRole;
       
       // Map Supabase user and profile data to our User type
-      // Using type assertion to provide values for fields that might not exist in the DB yet
       return {
         id: session.user.id,
         email: session.user.email || '',
@@ -36,11 +34,11 @@ export const authService = {
         createdAt: new Date(session.user.created_at),
         rememberMe: true,
         schoolId: profileData?.school_id || undefined,
-        // Create safe defaults for missing fields in the database
-        examBoard: undefined,
-        confidenceScores: {},
-        welshEligible: false,
-        preferredLanguage: 'en'
+        // Use the newly added fields with safe defaults
+        examBoard: profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined || undefined,
+        confidenceScores: profileData?.confidence_scores as Record<string, number> || {},
+        welshEligible: profileData?.welsh_eligible || false,
+        preferredLanguage: profileData?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' || 'en'
       };
     } catch (error) {
       console.error('Error fetching user profile:', error);
