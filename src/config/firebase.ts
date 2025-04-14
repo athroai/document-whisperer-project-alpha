@@ -1,10 +1,12 @@
+
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import {
   initializeFirestore,
   enableIndexedDbPersistence,
   doc,
-  getDoc
+  getDoc,
+  CACHE_SIZE_UNLIMITED
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -21,29 +23,47 @@ const firebaseConfig = {
 
 // ✅ Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 
-// ✅ Initialize Firestore FIRST, before any operations
+// Try to initialize Analytics only in browser environments
+let analytics = null;
+try {
+  analytics = getAnalytics(app);
+} catch (error) {
+  console.warn("[Firebase] Analytics initialization skipped:", error);
+}
+
+// ✅ Initialize Firestore with persistence settings FIRST
+// This solves the "persistence can no longer be enabled" error
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: false,
   experimentalAutoDetectLongPolling: true,
+  cacheSizeBytes: CACHE_SIZE_UNLIMITED
 });
+
 console.log('[Firestore] Firestore instance created');
 
-// ✅ Persistence must come BEFORE any use of Firestore!
-if (navigator.onLine) {
+// ✅ Enable persistence BEFORE any Firestore operations
+// Using a try-catch to handle errors without breaking the app
+if (typeof window !== 'undefined' && navigator.onLine) {
   console.log('[Firestore] Browser online — enabling persistence...');
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn("[Firestore] Persistence failed: multiple tabs open");
-    } else if (err.code === 'unimplemented') {
-      console.warn("[Firestore] Persistence not supported");
-    } else {
-      console.error("[Firestore] Unknown persistence error:", err);
+  
+  // Wrap in async function to properly handle the promise
+  (async () => {
+    try {
+      await enableIndexedDbPersistence(db);
+      console.log('[Firestore] Persistence enabled successfully');
+    } catch (err: any) {
+      if (err.code === 'failed-precondition') {
+        console.warn("[Firestore] Persistence failed: multiple tabs open");
+      } else if (err.code === 'unimplemented') {
+        console.warn("[Firestore] Persistence not supported on this platform");
+      } else {
+        console.error("[Firestore] Unknown persistence error:", err);
+      }
     }
-  });
+  })();
 } else {
-  console.warn("[Firestore] Offline — skipping persistence");
+  console.warn("[Firestore] Offline or not in browser — skipping persistence");
 }
 
 // ✅ Storage
@@ -62,4 +82,4 @@ export const checkFirestoreConnection = async () => {
   }
 };
 
-export { app, db, storage };
+export { app, db, storage, analytics };
