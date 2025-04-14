@@ -6,7 +6,7 @@ import { AthroCharacter, AthroSubject } from '@/types/athro';
 import AthroCharacterCard from './AthroCharacterCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Loader2 } from 'lucide-react';
 
 interface AthroSelectorProps {
   onSelectAthro?: (character: AthroCharacter) => void; // Optional custom handler
@@ -17,8 +17,8 @@ const AthroSelector: React.FC<AthroSelectorProps> = ({
   onSelectAthro,
   mode = 'standard'
 }) => {
-  const { characters, activeCharacter, setActiveCharacter } = useAthro();
-  const { enrolledSubjects, isEnrolledInSubject, loading } = useStudentClass();
+  const { characters, activeCharacter, setActiveCharacter, loading: athroLoading } = useAthro();
+  const { enrolledSubjects, isEnrolledInSubject, loading: classLoading } = useStudentClass();
 
   // Filter characters based on student's enrolled subjects
   const filteredCharacters = characters.filter(character => 
@@ -49,10 +49,11 @@ const AthroSelector: React.FC<AthroSelectorProps> = ({
     }
   };
 
-  if (loading) {
+  if (athroLoading || classLoading) {
     return (
       <div className="flex h-40 items-center justify-center rounded-lg border border-dashed p-8 text-center">
-        <div>
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-lg font-medium">Loading your study mentors...</p>
         </div>
       </div>

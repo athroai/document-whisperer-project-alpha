@@ -1,10 +1,46 @@
+
 import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
 import { FeedbackSummary } from '@/types/feedback';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock service for Athro character management
+// Service for Athro character management
 const athroService = {
-  // Get available Athro characters
-  getCharacters(): AthroCharacter[] {
+  // Get available Athro characters - now from Supabase
+  getCharacters: async (): Promise<AthroCharacter[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('athro_characters')
+        .select('*');
+        
+      if (error) {
+        console.error('Error fetching Athro characters:', error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        console.warn('No Athro characters found, returning fallback data');
+        return athroService.getFallbackCharacters();
+      }
+      
+      // Map database fields to our AthroCharacter type
+      return data.map(char => ({
+        id: char.id,
+        name: char.name,
+        subject: char.subject as AthroSubject,
+        avatar: char.avatar_url,
+        description: char.description,
+        topics: char.strengths || [],
+        examBoards: ['WJEC', 'AQA', 'OCR'],
+        supportsMathNotation: char.subject === 'Mathematics'
+      }));
+    } catch (error) {
+      console.error('Error in getCharacters:', error);
+      return athroService.getFallbackCharacters();
+    }
+  },
+  
+  // Fallback characters in case of database connection issues
+  getFallbackCharacters: (): AthroCharacter[] => {
     return [
       {
         id: 'athro-math',
@@ -38,21 +74,71 @@ const athroService = {
   },
   
   // Get a character by ID
-  getCharacterById(id: string): AthroCharacter | null {
-    const characters = this.getCharacters();
-    return characters.find(character => character.id === id) || null;
+  getCharacterById: async (id: string): Promise<AthroCharacter | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('athro_characters')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) {
+        console.error(`Error fetching character with ID ${id}:`, error);
+        return null;
+      }
+      
+      if (!data) return null;
+      
+      return {
+        id: data.id,
+        name: data.name,
+        subject: data.subject as AthroSubject,
+        avatar: data.avatar_url,
+        description: data.description,
+        topics: data.strengths || [],
+        examBoards: ['WJEC', 'AQA', 'OCR'],
+        supportsMathNotation: data.subject === 'Mathematics'
+      };
+    } catch (error) {
+      console.error(`Error in getCharacterById for ID ${id}:`, error);
+      return null;
+    }
   },
   
   // Get a character by subject
-  getCharacterBySubject(subject: string): AthroCharacter | null {
-    const characters = this.getCharacters();
-    return characters.find(character => 
-      character.subject.toLowerCase() === subject.toLowerCase()
-    ) || null;
+  getCharacterBySubject: async (subject: string): Promise<AthroCharacter | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('athro_characters')
+        .select('*')
+        .ilike('subject', subject)
+        .maybeSingle();
+        
+      if (error) {
+        console.error(`Error fetching character for subject ${subject}:`, error);
+        return null;
+      }
+      
+      if (!data) return null;
+      
+      return {
+        id: data.id,
+        name: data.name,
+        subject: data.subject as AthroSubject,
+        avatar: data.avatar_url,
+        description: data.description,
+        topics: data.strengths || [],
+        examBoards: ['WJEC', 'AQA', 'OCR'],
+        supportsMathNotation: data.subject === 'Mathematics'
+      };
+    } catch (error) {
+      console.error(`Error in getCharacterBySubject for subject ${subject}:`, error);
+      return null;
+    }
   },
   
   // Get a feedback summary for a submission
-  getFeedbackSummary(submission: any): FeedbackSummary {
+  getFeedbackSummary: (submission: any): FeedbackSummary => {
     // This would typically come from the backend
     // But for now, we'll generate a mock feedback
     return {
@@ -83,7 +169,7 @@ const athroService = {
   },
   
   // Get recent activity for a student
-  getRecentActivity(studentId: string) {
+  getRecentActivity: (studentId: string) => {
     // Simulated data - would come from database
     return [
       {
@@ -107,13 +193,13 @@ const athroService = {
   },
   
   // Track a study session
-  trackStudySession(sessionData: {
+  trackStudySession: (sessionData: {
     studentId: string;
     subject: AthroSubject;
     topic: string;
     duration: number;
     confidence?: number;
-  }) {
+  }) => {
     // In a real implementation, this would send data to a backend
     console.log('Study session tracked:', sessionData);
     return {

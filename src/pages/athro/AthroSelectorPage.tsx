@@ -11,29 +11,29 @@ import { useAuth } from '@/contexts/AuthContext';
 import athrosConfig from '@/config/athrosConfig';
 
 const AthroSelectorPage: React.FC = () => {
-  const { characters, setActiveCharacter, setCurrentSubject } = useAthro();
+  const { characters, setActiveCharacter, setCurrentSubject, loading: athroLoading } = useAthro();
   const { enrolledSubjects, isMockEnrollment, loading: classLoading } = useStudentClass();
   const { state } = useAuth();
   const { t } = useTranslation();
   const [isInitializing, setIsInitializing] = useState(true);
   
   useEffect(() => {
-    // Initialize with athrosConfig if characters is empty
-    if (characters.length === 0 && athrosConfig.length > 0) {
+    // Initialize with athrosConfig if characters is empty and not still loading
+    if (characters.length === 0 && !athroLoading && athrosConfig.length > 0) {
       console.log('Using athrosConfig as fallback for characters');
       setActiveCharacter(athrosConfig[0]);
-    } else {
+    } else if (characters.length > 0) {
       console.log(`Loaded ${characters.length} characters from context`);
     }
     
     // Wait for both characters and enrolled subjects to be loaded
-    if (!classLoading) {
+    if (!classLoading && !athroLoading) {
       setIsInitializing(false);
     }
-  }, [characters, classLoading, setActiveCharacter]);
+  }, [characters, classLoading, athroLoading, setActiveCharacter]);
   
   // If still loading, show a loading indicator
-  if (isInitializing || classLoading) {
+  if (isInitializing || classLoading || athroLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
@@ -51,8 +51,8 @@ const AthroSelectorPage: React.FC = () => {
   
   // Use all available subjects from config if no enrollment or for testing
   const availableSubjects = enrolledSubjects.length === 0 
-    ? athrosConfig 
-    : athrosConfig.filter(character => 
+    ? characters
+    : characters.filter(character => 
         enrolledSubjects.some(subject => 
           subject.subject.toLowerCase() === character.subject.toLowerCase()
         )
@@ -121,7 +121,7 @@ const AthroSelectorPage: React.FC = () => {
             <div><strong>Available Subjects:</strong> {availableSubjects.length}</div>
             <div><strong>Mock Enrollment:</strong> {isMockEnrollment ? 'Yes' : 'No'}</div>
             <div><strong>Characters Loaded:</strong> {characters?.length || 0}</div>
-            <div><strong>Config Characters:</strong> {athrosConfig?.length || 0}</div>
+            <div><strong>DB Characters:</strong> {characters?.length || 0}</div>
           </div>
         </div>
       )}
