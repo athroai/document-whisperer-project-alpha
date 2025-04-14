@@ -67,17 +67,14 @@ import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from './contexts/AuthContext';
 
 function App() {
-  const { state, dispatch, initializeAuth } = useAuth();
+  const { state } = useAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initialize = async () => {
-      await initializeAuth();
+    if (!state.loading) {
       setLoading(false);
-    };
-
-    initialize();
-  }, [initializeAuth]);
+    }
+  }, [state.loading]);
 
   if (loading) {
     return <div>Loading...</div>;

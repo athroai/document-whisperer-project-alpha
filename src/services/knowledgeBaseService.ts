@@ -1,5 +1,4 @@
-
-import { collection, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/config/firebase';
 import { UploadedDocument, KnowledgeChunk, EmbeddingResponse, KnowledgeSearchResult } from '@/types/knowledgeBase';

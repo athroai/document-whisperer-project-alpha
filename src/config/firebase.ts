@@ -1,6 +1,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // Firebase configuration
 // Note: These are client-side public keys, so it's safe to include them in the code
@@ -16,6 +17,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Enable offline persistence
 try {
@@ -30,4 +32,4 @@ try {
   console.warn('Error setting up Firebase persistence:', err);
 }
 
-export { app, db };
+export { app, db, storage };
