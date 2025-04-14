@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -26,27 +27,16 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+      toast.error("Missing information", "Please fill in all required fields");
       return;
     }
     
     try {
-      await login(email, password, rememberMe);
-      toast({
-        title: "Login successful!",
-        description: "Welcome back to Athro AI",
-      });
+      await login(email, password);
+      toast.success("Login successful!", "Welcome back to Athro AI");
       navigate('/home');
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "Please check your credentials and try again",
-        variant: "destructive",
-      });
+      // Error is already handled in the AuthContext
     }
   };
 
@@ -55,7 +45,7 @@ const LoginPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-100 to-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
+          <LoadingSpinner className="mx-auto" />
           <p className="mt-4 text-purple-800">Loading...</p>
         </div>
       </div>

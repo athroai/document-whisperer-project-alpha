@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import AthroPage from "./pages/AthroPage";
 import HomePage from "./pages/HomePage";
+import MyWorkPage from "./pages/MyWorkPage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
@@ -19,13 +20,14 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AthroSystem from "./components/AthroSystem";
 import LicenseRequiredPage from "./pages/LicenseRequiredPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
-import { Toaster } from "./components/ui/toaster";
+import { Toaster } from "sonner";
 import QuizPage from "./pages/QuizPage";
 import IndexPage from "./pages/Index";
 import StudySessionPage from "./pages/StudySessionPage";
 import StudySessionRouter from "./pages/study/StudySessionRouter";
 import KnowledgePage from './pages/KnowledgePage';
 import LoadingSpinner from "./components/ui/loading-spinner";
+import Navigation from "./components/Navigation";
 
 // Simple loading fallback component
 const LoadingFallback: React.FC = () => (
@@ -51,94 +53,102 @@ export default function App() {
           <StudentRecordProvider>
             <AthroProvider>
               <Suspense fallback={<LoadingSpinner size={36} className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />}>
-                <Layout>
-                  <TransitionWrapper>
-                    <Routes>
-                      <Route path="/" element={<IndexPage />} />
-                      <Route path="/home" element={
-                        <ProtectedRoute redirectPath="/login">
-                          <HomePage />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/signup" element={<SignupPage />} />
-                      <Route
-                        path="/athro/*"
-                        element={
+                <div className="min-h-screen flex flex-col">
+                  <Navigation />
+                  <div className="flex-1">
+                    <TransitionWrapper>
+                      <Routes>
+                        <Route path="/" element={<IndexPage />} />
+                        <Route path="/home" element={
                           <ProtectedRoute redirectPath="/login">
-                            <AthroPage />
+                            <HomePage />
                           </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/quiz"
-                        element={
+                        } />
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/signup" element={<SignupPage />} />
+                        <Route path="/my-work" element={
                           <ProtectedRoute redirectPath="/login">
-                            <QuizPage />
+                            <MyWorkPage />
                           </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/settings"
-                        element={
-                          <ProtectedRoute redirectPath="/login">
-                            <SettingsPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/calendar"
-                        element={
-                          <ProtectedRoute redirectPath="/login">
-                            <CalendarPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/files"
-                        element={
-                          <ProtectedRoute redirectPath="/login">
-                            <FilesPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/teacher/*"
-                        element={
-                          <ProtectedRoute 
-                            requiredRole="teacher" 
-                            redirectPath="/login"
-                            loadingComponent={<LoadingFallback />}
-                          >
-                            <TeacherDashboardPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/study-session"
-                        element={
-                          <ProtectedRoute redirectPath="/login">
-                            <StudySessionPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/study/*"
-                        element={
-                          <ProtectedRoute redirectPath="/login">
-                            <StudySessionRouter />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route path="/license-required" element={<LicenseRequiredPage />} />
-                      <Route path="/knowledge" element={<KnowledgePage />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </TransitionWrapper>
-                </Layout>
+                        } />
+                        <Route
+                          path="/athro/*"
+                          element={
+                            <ProtectedRoute redirectPath="/login">
+                              <AthroPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/quiz"
+                          element={
+                            <ProtectedRoute redirectPath="/login">
+                              <QuizPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/settings"
+                          element={
+                            <ProtectedRoute redirectPath="/login">
+                              <SettingsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/calendar"
+                          element={
+                            <ProtectedRoute redirectPath="/login">
+                              <CalendarPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/files"
+                          element={
+                            <ProtectedRoute redirectPath="/login">
+                              <FilesPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/teacher/*"
+                          element={
+                            <ProtectedRoute 
+                              requiredRole="teacher" 
+                              redirectPath="/login"
+                              loadingComponent={<LoadingFallback />}
+                            >
+                              <TeacherDashboardPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/study-session"
+                          element={
+                            <ProtectedRoute redirectPath="/login">
+                              <StudySessionPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/study/*"
+                          element={
+                            <ProtectedRoute redirectPath="/login">
+                              <StudySessionRouter />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route path="/license-required" element={<LicenseRequiredPage />} />
+                        <Route path="/knowledge" element={<KnowledgePage />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </TransitionWrapper>
+                  </div>
+                </div>
               </Suspense>
               <AthroSystem />
-              <Toaster />
+              <Toaster position="top-right" />
             </AthroProvider>
           </StudentRecordProvider>
         </StudentClassProvider>

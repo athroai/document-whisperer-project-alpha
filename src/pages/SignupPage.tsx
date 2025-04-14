@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useTranslation } from '@/hooks/useTranslation';
+import { UserRole } from '@/types/auth';
 
 const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'student' | 'parent' | 'teacher'>('student');
+  const [role, setRole] = useState<UserRole>('student');
   const [welshEligible, setWelshEligible] = useState(false);
   const { signup, state } = useAuth();
   const navigate = useNavigate();
@@ -23,32 +24,20 @@ const SignupPage: React.FC = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+      toast.error("Missing information", "Please fill in all required fields");
       return;
     }
     
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
+      toast.error("Invalid email", "Please enter a valid email address");
       return;
     }
     
     // Validate password length
     if (password.length < 8) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 8 characters long",
-        variant: "destructive",
-      });
+      toast.error("Password too short", "Password must be at least 8 characters long");
       return;
     }
     
@@ -58,17 +47,10 @@ const SignupPage: React.FC = () => {
         preferredLanguage: 'en' // Default to English
       });
       
-      toast({
-        title: "Account created!",
-        description: "Welcome to Athro AI",
-      });
+      toast.success("Account created!", "Welcome to Athro AI");
       navigate('/home');
     } catch (error) {
-      toast({
-        title: "Signup failed",
-        description: "Please try again",
-        variant: "destructive",
-      });
+      // Error is already handled in the AuthContext
     }
   };
 
@@ -130,7 +112,7 @@ const SignupPage: React.FC = () => {
               </Label>
               <RadioGroup 
                 value={role}
-                onValueChange={(value) => setRole(value as 'student' | 'parent' | 'teacher')}
+                onValueChange={(value) => setRole(value as UserRole)}
                 className="flex flex-col space-y-1"
               >
                 <div className="flex items-center space-x-2">

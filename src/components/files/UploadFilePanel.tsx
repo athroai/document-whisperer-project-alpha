@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { FileUp, X } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { processFilesForKnowledgeBase } from '@/services/fileAwareService';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 interface UploadFilePanelProps {
   onClose?: () => void;
@@ -26,7 +28,7 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
   const [files, setFiles] = useState<File[]>([]);
   const [subject, setSubject] = useState<string>(defaultSubject || '');
   const [topic, setTopic] = useState<string>('');
-  const [isPublic, setIsPublic] = useState<boolean>(false);
+  const [visibility, setVisibility] = useState<'private' | 'class-only' | 'public'>('private');
   const [uploading, setUploading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -39,43 +41,89 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
 
   const handleUpload = async () => {
     if (!files.length) {
-      toast({
-        title: "No Files Selected",
-        description: "Please select files to upload.",
-        variant: "destructive",
-      });
+      toast.error("No Files Selected", "Please select files to upload.");
+      return;
+    }
+
+    if (!subject) {
+      toast.error("Subject Required", "Please select a subject for your uploads.");
+      return;
+    }
+
+    if (!state.user) {
+      toast.error("Authentication Error", "Please log in to upload files.");
       return;
     }
 
     setUploading(true);
-    setProgress(0);
+    setProgress(10);
 
     try {
-      // Simulate progress
-      const updateProgress = () => {
-        setProgress(prev => {
-          if (prev >= 95) return prev;
-          return prev + 5;
-        });
-      };
+      // Determine appropriate bucket based on user role
+      const bucketName = state.user.role === 'teacher' ? 
+        'teacher_materials' : 
+        'student_uploads';
       
-      const progressInterval = setInterval(updateProgress, 200);
+      let uploadedCount = 0;
+      const totalFiles = files.length;
+      
+      // Process each file
+      for (const file of files) {
+        // Create a unique path for the file
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        const filePath = `${subject}/${fileName}`;
+        
+        // Upload file to Supabase Storage
+        const { data: storageData, error: storageError } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (storageError) {
+          throw new Error(`Storage error: ${storageError.message}`);
+        }
 
-      // Process files for knowledge base
-      await processFilesForKnowledgeBase(files, {
-        userId: state.user?.id || 'anonymous',
-        subject,
-        topic,
-        isPubliclyUsable: isPublic
-      });
+        // Create a public URL for the file
+        const { data: publicUrlData } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(filePath);
 
-      clearInterval(progressInterval);
+        // Insert record into the uploads table
+        const { error: dbError } = await supabase
+          .from('uploads')
+          .insert({
+            filename: fileName,
+            original_name: file.name,
+            storage_path: filePath,
+            file_url: publicUrlData?.publicUrl,
+            bucket_name: bucketName,
+            subject,
+            topic: topic || null,
+            visibility,
+            mime_type: file.type,
+            size: file.size,
+            file_type: topic || 'general',
+            uploaded_by: state.user.id
+          });
+
+        if (dbError) {
+          throw new Error(`Database error: ${dbError.message}`);
+        }
+
+        // Update progress
+        uploadedCount++;
+        setProgress(Math.round((uploadedCount / totalFiles) * 90) + 10);
+      }
+
       setProgress(100);
 
-      toast({
-        title: "Files Uploaded",
-        description: `${files.length} files have been uploaded and processed for AI reference.`,
-      });
+      toast.success(
+        "Files Uploaded Successfully", 
+        `${files.length} ${files.length === 1 ? 'file has' : 'files have'} been uploaded`
+      );
 
       // Reset form
       setFiles([]);
@@ -86,13 +134,10 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
       // Notify parent component
       if (onUploadComplete) onUploadComplete();
       if (onClose) onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      toast({
-        title: "Upload Failed",
-        description: "There was an error uploading your files. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Upload Failed", error.message);
+      setProgress(0);
     } finally {
       setUploading(false);
     }
@@ -178,13 +223,27 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
           />
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="public"
-            checked={isPublic}
-            onCheckedChange={setIsPublic}
-          />
-          <Label htmlFor="public">Make available to all users</Label>
+        <div className="space-y-2">
+          <Label>Visibility</Label>
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={visibility === 'public'}
+                onCheckedChange={(checked) => checked ? setVisibility('public') : setVisibility('private')}
+                id="public"
+              />
+              <Label htmlFor="public">Make available to all users</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={visibility === 'class-only'}
+                onCheckedChange={(checked) => checked ? setVisibility('class-only') : setVisibility('private')}
+                id="class-only"
+              />
+              <Label htmlFor="class-only">Share with my classes only</Label>
+            </div>
+          </div>
         </div>
 
         {uploading && (

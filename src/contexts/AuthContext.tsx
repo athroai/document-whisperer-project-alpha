@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthState, User } from '../types/auth';
+import { AuthState, User, UserRole } from '../types/auth';
 import { toast } from 'sonner';
 
 type AuthAction = 
@@ -20,7 +20,7 @@ const initialState: AuthState = {
 const AuthContext = createContext<{
   state: AuthState;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, role?: 'student' | 'teacher' | 'parent') => Promise<void>;
+  signup: (email: string, password: string, role?: UserRole, additionalData?: Record<string, any>) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
 }>({
@@ -66,16 +66,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('id', session.user.id)
             .single();
 
+          const role = (profileData?.role || 'student') as UserRole;
+
           dispatch({ 
             type: 'AUTH_SUCCESS', 
             payload: {
               id: session.user.id,
               email: session.user.email || '',
-              role: profileData?.role || 'student',
+              role: role,
               displayName: profileData?.name || session.user.email?.split('@')[0] || '',
               createdAt: new Date(session.user.created_at),
               rememberMe: true,
-              schoolId: profileData?.school_id || undefined
+              schoolId: profileData?.school_id || undefined,
+              examBoard: profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined,
+              confidenceScores: profileData?.confidence_scores as {[subject: string]: number} | undefined,
+              welshEligible: profileData?.welsh_eligible as boolean | undefined,
+              preferredLanguage: profileData?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined
             }
           });
         } else {
@@ -95,16 +101,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('id', session.user.id)
           .single();
 
+        const role = (profileData?.role || 'student') as UserRole;
+
         dispatch({ 
           type: 'AUTH_SUCCESS', 
           payload: {
             id: session.user.id,
             email: session.user.email || '',
-            role: profileData?.role || 'student',
+            role: role,
             displayName: profileData?.name || session.user.email?.split('@')[0] || '',
             createdAt: new Date(session.user.created_at),
             rememberMe: true,
-            schoolId: profileData?.school_id || undefined
+            schoolId: profileData?.school_id || undefined,
+            examBoard: profileData?.exam_board as 'wjec' | 'ocr' | 'aqa' | 'none' | undefined,
+            confidenceScores: profileData?.confidence_scores as {[subject: string]: number} | undefined,
+            welshEligible: profileData?.welsh_eligible as boolean | undefined,
+            preferredLanguage: profileData?.preferred_language as 'en' | 'cy' | 'es' | 'fr' | 'de' | undefined
           }
         });
       } else {
@@ -141,7 +153,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (
     email: string, 
     password: string, 
-    role: 'student' | 'teacher' | 'parent' = 'student'
+    role: UserRole = 'student',
+    additionalData?: Record<string, any>
   ) => {
     dispatch({ type: 'AUTH_START' });
     try {
@@ -150,7 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
         options: {
           data: {
-            role
+            role,
+            ...additionalData
           }
         }
       });
