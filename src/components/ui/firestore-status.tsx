@@ -4,7 +4,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { CloudOff, AlertCircle, Cloud, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useFirestoreStatus, FirestoreStatus } from "@/contexts/FirestoreStatusContext";
+import { useFirestoreStatus } from "@/contexts/FirestoreStatusContext";
+import type { FirestoreStatus as FirestoreStatusType } from "@/contexts/FirestoreStatusContext";
 
 interface FirestoreStatusProps {
   className?: string;

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -167,7 +168,7 @@ const AthroProfile = () => {
           <CardDescription>Continue your study journey</CardDescription>
         </CardHeader>
         <CardContent>
-          {firestoreStatus === 'loading' && sessionHistory.length === 0 ? (
+          {firestoreStatus === 'checking' && sessionHistory.length === 0 ? (
             <div className="py-4 text-center">
               <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
               <p className="mt-2 text-sm text-muted-foreground">Loading your sessions...</p>

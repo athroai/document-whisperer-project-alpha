@@ -1,9 +1,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useFirestoreStatus } from '@/contexts/FirestoreStatusContext';
+import { useFirestoreStatus, FirestoreStatus } from '@/contexts/FirestoreStatusContext';
 import { useToast } from '@/hooks/use-toast';
 
-export type FirestoreConnectionStatus = 'loading' | 'connected' | 'offline' | 'error';
+export type FirestoreConnectionStatus = 'checking' | 'connected' | 'offline' | 'error';
 
 interface UseFirestoreConnectionOptions {
   showToasts?: boolean;
@@ -54,7 +54,7 @@ export function useFirestoreConnection(options?: UseFirestoreConnectionOptions) 
   }, [retry]);
   
   return {
-    status: status as FirestoreConnectionStatus,
+    status,
     lastCheck,
     retryCount,
     checkConnection: retry,
