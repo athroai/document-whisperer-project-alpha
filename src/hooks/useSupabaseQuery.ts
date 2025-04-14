@@ -47,9 +47,9 @@ export function useSupabaseQuery<T extends Record<string, any>>(
     setError(null);
     
     try {
-      // Use type assertion for the table name
+      // Cast tableName to string to avoid deep type issues
       let query = supabase
-        .from(tableName)
+        .from(tableName as string)
         .select(select);
         
       // Apply filters if provided
@@ -90,7 +90,7 @@ export function useSupabaseQuery<T extends Record<string, any>>(
         
       if (responseError) throw responseError;
       
-      // Use type assertion to ensure correct return type
+      // Use explicit type assertion to handle the response data
       setData(responseData as unknown as T);
     } catch (err: any) {
       console.error(`Error fetching data from ${tableName}:`, err);
@@ -129,7 +129,7 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
-        let query = supabase.from(tableName).select('*');
+        let query = supabase.from(tableName as string).select('*');
         
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {
@@ -149,11 +149,11 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     
     fetchInitialData();
     
-    // Set up real-time subscription
-    // Fixed: Use the correct type for the channel subscription
+    // Set up real-time subscription using the correct type
     const channel = supabase
       .channel('db-changes')
-      .on('postgres_changes', 
+      .on(
+        'postgres_changes' as any, // Use type assertion to fix type mismatch
         {
           event: options.event || '*',
           schema: 'public',
