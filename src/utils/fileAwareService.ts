@@ -26,7 +26,7 @@ export const mapFileToUploadedFile = (file: File, uploadedBy: string, subject: s
     filename: file.name,
     storagePath: `uploads/${uploadedBy}/${file.name}`, // Example path
     timestamp: timestamp,
-    size: file.size, // Convert to number if needed
+    size: file.size, // File size is already a number
     mimeType: file.type,
     original_name: file.name,
   };
@@ -55,11 +55,15 @@ export const fetchKnowledgeForQuery = async (query: string): Promise<Knowledge> 
     
     // Create citations from the search results
     const citations: Citation[] = searchResults.map((result, index) => {
+      const pageNumber = result.chunk.pageNumber 
+        ? Number(result.chunk.pageNumber) // Ensure page number is a number
+        : undefined;
+        
       return {
         id: `cite-${Date.now()}-${index}`,
         label: `[${index + 1}]`,
         filename: result.chunk.sourceTitle || 'Unknown Source',
-        page: Number(result.chunk.pageNumber || 0), // Convert to number
+        page: pageNumber, 
         section: result.chunk.sectionTitle,
         highlight: result.chunk.content.substring(0, 150) + '...',
         timestamp: new Date().toISOString()

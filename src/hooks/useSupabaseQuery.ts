@@ -5,17 +5,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
-type Tables = Database['public']['Tables'];
-type TableNames = keyof Tables;
+type TableName = keyof Database['public']['Tables'];
 
 /**
  * A custom hook for making Supabase queries with loading and error handling
  */
-export function useSupabaseQuery<
-  T extends Record<string, any>,
-  TName extends TableNames | string = string
->(
-  tableName: TName,
+export function useSupabaseQuery<T extends Record<string, any>>(
+  tableName: TableName | string,
   options: {
     select?: string;
     filter?: Record<string, any>;
@@ -49,11 +45,10 @@ export function useSupabaseQuery<
     setError(null);
     
     try {
-      // Use type assertion to allow dynamic table names
+      // Use type casting to handle dynamic table names
       let query = supabase
-        .from(tableName as string);
-        
-      query = query.select(select);
+        .from(tableName as any)
+        .select(select);
         
       // Apply filters if provided
       if (filter) {
@@ -61,33 +56,35 @@ export function useSupabaseQuery<
           if (value === undefined || value === null) continue;
           
           if (Array.isArray(value)) {
-            query = query.in(key, value);
+            query = query.in(key, value) as any;
           } else if (typeof value === 'object' && 'gte' in value) {
-            query = query.gte(key, value.gte);
+            query = query.gte(key, value.gte) as any;
           } else if (typeof value === 'object' && 'lte' in value) {
-            query = query.lte(key, value.lte);
+            query = query.lte(key, value.lte) as any;
           } else if (typeof value === 'object' && 'contains' in value) {
-            query = query.contains(key, value.contains);
+            query = query.contains(key, value.contains) as any;
           } else {
-            query = query.eq(key, value);
+            query = query.eq(key, value) as any;
           }
         }
       }
       
       // Apply ordering if provided
       if (order) {
-        query = query.order(order.column, { ascending: order.ascending ?? true });
+        query = query.order(order.column, { ascending: order.ascending ?? true }) as any;
       }
       
       // Apply limit if provided
       if (limit) {
-        query = query.limit(limit);
+        query = query.limit(limit) as any;
       }
       
       // Execute the query
-      const { data: responseData, error: responseError } = single 
+      const result = single 
         ? await query.single() 
         : await query;
+        
+      const { data: responseData, error: responseError } = result;
         
       if (responseError) throw responseError;
       
@@ -130,13 +127,12 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     const fetchInitialData = async () => {
       try {
         // Use type assertion to bypass TypeScript constraints
-        let query = supabase.from(tableName as string);
-        query = query.select('*');
+        let query = supabase.from(tableName as any).select('*');
         
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {
             if (value === undefined || value === null) continue;
-            query = query.eq(key, value);
+            query = query.eq(key, value) as any;
           }
         }
         
@@ -151,7 +147,7 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     
     fetchInitialData();
     
-    // Set up real-time subscription
+    // Set up real-time subscription with proper type definition for postgres_changes
     const channel = supabase
       .channel('db-changes')
       .on(

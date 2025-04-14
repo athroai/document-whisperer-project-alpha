@@ -27,6 +27,7 @@ export const authService = {
       const role = (profileData?.role || 'student') as UserRole;
       
       // Map Supabase user and profile data to our User type
+      // Using type assertion to provide values for fields that might not exist in the DB yet
       return {
         id: session.user.id,
         email: session.user.email || '',
@@ -35,7 +36,7 @@ export const authService = {
         createdAt: new Date(session.user.created_at),
         rememberMe: true,
         schoolId: profileData?.school_id || undefined,
-        // Create safe defaults for missing fields
+        // Create safe defaults for missing fields in the database
         examBoard: undefined,
         confidenceScores: {},
         welshEligible: false,

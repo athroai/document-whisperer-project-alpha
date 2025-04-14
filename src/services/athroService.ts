@@ -1,3 +1,4 @@
+
 import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
 import { FeedbackSummary } from '@/types/feedback';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +8,7 @@ const athroService = {
   // Get available Athro characters - from Supabase
   getCharacters: async (): Promise<AthroCharacter[]> => {
     try {
-      // Using type assertion to bypass TypeScript constraints
+      // Using explicit type assertion for the table name
       const { data, error } = await supabase
         .from('athro_characters' as any)
         .select('*');
@@ -22,7 +23,7 @@ const athroService = {
         return athroService.getFallbackCharacters();
       }
       
-      // Map database fields to our AthroCharacter type
+      // Map database fields to our AthroCharacter type with explicit type assertions
       return data.map((char: any) => ({
         id: char.id,
         name: char.name,
@@ -76,7 +77,7 @@ const athroService = {
   // Get a character by ID
   getCharacterById: async (id: string): Promise<AthroCharacter | null> => {
     try {
-      // Using type assertion to bypass TypeScript constraints
+      // Using explicit type assertion for the table name
       const { data, error } = await supabase
         .from('athro_characters' as any)
         .select('*')
@@ -90,7 +91,7 @@ const athroService = {
       
       if (!data) return null;
       
-      // Type assertion to access properties
+      // Explicit type assertion for database fields
       const char = data as any;
       return {
         id: char.id,
