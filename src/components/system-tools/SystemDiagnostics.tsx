@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { SystemToolsService } from '@/services/systemToolsService';
 import { useToast } from '@/hooks/use-toast';
+import { checkFirestoreConnection } from '@/config/firebase';
 
 const SystemDiagnostics: React.FC = () => {
   const { toast } = useToast();
@@ -21,8 +22,26 @@ const SystemDiagnostics: React.FC = () => {
   const [useMockData, setUseMockData] = useState(false);
   const [testAIMode, setTestAIMode] = useState(false);
   const [systemInfo, setSystemInfo] = useState(() => SystemToolsService.getSystemDiagnostics());
+  const [firestoreStatus, setFirestoreStatus] = useState<'loading' | 'connected' | 'offline' | 'error'>('loading');
+  const [lastConnectionCheck, setLastConnectionCheck] = useState<Date | null>(null);
   
   useEffect(() => {
+    // Test Firestore connection on component mount
+    const testConnection = async () => {
+      try {
+        setFirestoreStatus('loading');
+        const status = await checkFirestoreConnection();
+        setFirestoreStatus(status);
+        setLastConnectionCheck(new Date());
+      } catch (error) {
+        console.error("Error testing Firestore connection:", error);
+        setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
+        setLastConnectionCheck(new Date());
+      }
+    };
+    
+    testConnection();
+    
     // Add network status listeners for debugging
     const handleOnline = () => {
       console.log('[Network] Browser reports online status');
@@ -31,10 +50,13 @@ const SystemDiagnostics: React.FC = () => {
         description: "Your device is now online. Syncing data...",
         variant: "default"
       });
+      testConnection();
     };
     
     const handleOffline = () => {
       console.log('[Network] Browser reports offline status');
+      setFirestoreStatus('offline');
+      setLastConnectionCheck(new Date());
       toast({
         title: "Network Disconnected",
         description: "Your device is offline. Working in local mode.",
@@ -83,8 +105,21 @@ const SystemDiagnostics: React.FC = () => {
   };
   
   // Refresh system status
-  const refreshSystemInfo = () => {
+  const refreshSystemInfo = async () => {
     setSystemInfo(SystemToolsService.getSystemDiagnostics());
+    
+    // Also check Firestore connection
+    try {
+      setFirestoreStatus('loading');
+      const status = await checkFirestoreConnection();
+      setFirestoreStatus(status);
+      setLastConnectionCheck(new Date());
+    } catch (error) {
+      console.error("Error testing Firestore connection:", error);
+      setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
+      setLastConnectionCheck(new Date());
+    }
+    
     toast({
       title: "System Information Updated",
       description: "Latest system status retrieved",
@@ -114,8 +149,10 @@ const SystemDiagnostics: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Firestore Connection:</span>
-              <Badge variant={systemInfo.firestoreStatus === 'connected' ? 'outline' : 'destructive'}>
-                {systemInfo.firestoreStatus === 'connected' ? 'Connected' : systemInfo.firestoreStatus === 'mock' ? 'Mock Mode' : 'Disconnected'}
+              <Badge variant={firestoreStatus === 'connected' ? 'outline' : (firestoreStatus === 'loading' ? 'secondary' : 'destructive')}>
+                {firestoreStatus === 'connected' ? 'Connected' : 
+                 firestoreStatus === 'loading' ? 'Checking...' : 
+                 firestoreStatus === 'offline' ? 'Offline' : 'Error'}
               </Badge>
             </div>
             
@@ -142,6 +179,13 @@ const SystemDiagnostics: React.FC = () => {
               <span className="text-muted-foreground">System Version:</span>
               <span>1.0.25-a</span>
             </div>
+            
+            {lastConnectionCheck && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Last Connection Check:</span>
+                <span>{lastConnectionCheck.toLocaleTimeString()}</span>
+              </div>
+            )}
           </div>
         </div>
         
@@ -195,12 +239,15 @@ const SystemDiagnostics: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Last Sync:</span>
-              <span>{new Date().toLocaleString()}</span>
+              <span>{lastConnectionCheck ? lastConnectionCheck.toLocaleString() : 'Never'}</span>
             </div>
             
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Connection Type:</span>
-              <Badge variant="outline">ReadWrite</Badge>
+              <Badge variant="outline">
+                {firestoreStatus === 'connected' ? 'ReadWrite' : 
+                 firestoreStatus === 'offline' ? 'LocalOnly' : 'Pending'}
+              </Badge>
             </div>
             
             <div className="flex justify-between items-center text-sm">
@@ -209,6 +256,32 @@ const SystemDiagnostics: React.FC = () => {
                 {useMockData ? 'Mock' : 'Live'}
               </Badge>
             </div>
+            
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Network Status:</span>
+              <Badge variant={navigator.onLine ? 'outline' : 'destructive'}>
+                {navigator.onLine ? 'Online' : 'Offline'}
+              </Badge>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => checkFirestoreConnection().then(status => {
+                setFirestoreStatus(status);
+                setLastConnectionCheck(new Date());
+                toast({
+                  title: `Firestore Test ${status === 'connected' ? 'Successful' : 'Failed'}`,
+                  description: status === 'connected' ? 
+                    "Connection to Firestore is working properly" : 
+                    `Connection status: ${status}`,
+                  variant: "default"
+                });
+              })}
+              className="w-full mt-2"
+            >
+              Test Firestore Connection
+            </Button>
           </div>
         </div>
       </CardContent>

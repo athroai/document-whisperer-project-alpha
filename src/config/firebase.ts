@@ -14,16 +14,18 @@ const firebaseConfig = {
   appId: "1:123456789012:web:abcdef1234567890"
 };
 
-console.log('[Firestore] Initializing Firebase app and services...');
+console.log('[Firebase] Initializing app...');
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+console.log('[Firebase] App initialized:', app.name);
 
 // Initialize Firestore with settings optimized for web
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: false, // Use WebSockets when available
   experimentalAutoDetectLongPolling: true,
 });
+console.log('[Firestore] Firestore instance created');
 
 // Only enable persistence if we're online
 // This prevents unnecessary offline mode activation
@@ -51,7 +53,7 @@ export const checkFirestoreConnection = async () => {
   try {
     console.log('[Firestore] Testing connection...');
     // Perform a simple test read to verify connection
-    const testDoc = doc(db, '_connection_test', 'test');
+    const testDoc = doc(db, 'diagnostics', 'connection');
     await getDoc(testDoc);
     console.log('[Firestore] Connection test successful');
     return 'connected';

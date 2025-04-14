@@ -71,7 +71,10 @@ const AthroProfile = () => {
             console.log("Using cached session data while fetching from network");
             const cachedSessions = cachedSessionsResult.data;
             if (Array.isArray(cachedSessions)) {
-              // Process cached sessions here
+              // Process cached sessions here if needed
+              if (isMounted) {
+                setSessionHistory(cachedSessions as SessionHistoryItem[]);
+              }
             }
           }
         } catch (cacheError) {
@@ -98,7 +101,7 @@ const AthroProfile = () => {
           setLastSuccessfulSync(new Date());
           
           try {
-            await persistentStorage.saveChatHistory(state.user.id, enhancedSessions as SessionHistoryItem[]);
+            await persistentStorage.saveChatHistory(state.user.id, enhancedSessions);
           } catch (storageError) {
             console.warn("Failed to cache sessions:", storageError);
           }
