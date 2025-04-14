@@ -59,8 +59,8 @@ export const calendarService = {
         date: new Date(event.start_time),
         time: new Date(event.start_time).toLocaleTimeString(),
         duration: (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000,
-        mentor: event.mentor,
-        type: event.event_type,
+        // Fix: Remove mentor property since it doesn't exist in database
+        type: event.event_type as 'study' | 'quiz' | 'revision',
         createdAt: new Date(event.created_at)
       }));
     } catch (error) {
@@ -90,8 +90,8 @@ export const calendarService = {
         date: new Date(event.start_time),
         time: new Date(event.start_time).toLocaleTimeString(),
         duration: (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000,
-        mentor: event.mentor,
-        type: event.event_type,
+        // Fix: Remove mentor property since it doesn't exist in database
+        type: event.event_type as 'study' | 'quiz' | 'revision',
         createdAt: new Date(event.created_at)
       }));
     } catch (error) {

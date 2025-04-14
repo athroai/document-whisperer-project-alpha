@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -84,7 +85,18 @@ const ResourceUpload: React.FC<ResourceUploadProps> = ({
       
       // Call the onUploadComplete callback if provided
       if (onUploadComplete) {
-        onUploadComplete(uploadMetadata as UploadMetadata);
+        // Fix: Add explicit type conversion to match UploadMetadata
+        const metadata: UploadMetadata = {
+          url: uploadMetadata.url || uploadMetadata.file_url || '',
+          filename: uploadMetadata.filename || uploadMetadata.original_name || '',
+          mimeType: uploadMetadata.mime_type || '',
+          uploadedBy: uploadMetadata.uploadedBy || uploadMetadata.uploaded_by || '',
+          subject: uploadMetadata.subject,
+          classId: uploadMetadata.set_id,
+          uploadTime: uploadMetadata.uploadTime || new Date().toISOString(),
+          visibility: uploadMetadata.visibility as 'private' | 'class-only' | 'public',
+        };
+        onUploadComplete(metadata);
       }
     } catch (error) {
       console.error('Upload error:', error);

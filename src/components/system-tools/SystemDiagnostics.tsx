@@ -1,299 +1,261 @@
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Terminal, Database, Info } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { SystemToolsService } from '@/services/systemToolsService';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { AlertTriangle, CheckCircle, Database, Loader2, RefreshCw, Server, Wifi, WifiOff } from 'lucide-react';
+import { useFirestoreStatus } from '@/contexts/FirestoreStatusContext';
 import { useToast } from '@/hooks/use-toast';
-import { checkFirestoreConnection } from '@/config/firebase';
+import { supabase } from '@/integrations/supabase/client';
 
 const SystemDiagnostics: React.FC = () => {
+  const { status: dbStatus, retry: checkDbConnection } = useFirestoreStatus();
   const { toast } = useToast();
-  const [debugMode, setDebugMode] = useState(false);
-  const [useMockData, setUseMockData] = useState(false);
-  const [testAIMode, setTestAIMode] = useState(false);
-  const [systemInfo, setSystemInfo] = useState(() => SystemToolsService.getSystemDiagnostics());
-  const [firestoreStatus, setFirestoreStatus] = useState<'loading' | 'connected' | 'offline' | 'error'>('loading');
-  const [lastConnectionCheck, setLastConnectionCheck] = useState<Date | null>(null);
-  
+  const [checking, setChecking] = useState(false);
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [storageStatus, setStorageStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [networkLatency, setNetworkLatency] = useState<number | null>(null);
+
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
   useEffect(() => {
-    // Test Firestore connection on component mount
-    const testConnection = async () => {
-      try {
-        setFirestoreStatus('loading');
-        const status = await checkFirestoreConnection();
-        setFirestoreStatus(status);
-        setLastConnectionCheck(new Date());
-      } catch (error) {
-        console.error("Error testing Firestore connection:", error);
-        setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
-        setLastConnectionCheck(new Date());
-      }
-    };
-    
-    testConnection();
-    
-    // Add network status listeners for debugging
-    const handleOnline = () => {
-      console.log('[Network] Browser reports online status');
-      toast({
-        title: "Network Connected",
-        description: "Your device is now online. Syncing data...",
-        variant: "default"
-      });
-      testConnection();
-    };
-    
-    const handleOffline = () => {
-      console.log('[Network] Browser reports offline status');
-      setFirestoreStatus('offline');
-      setLastConnectionCheck(new Date());
-      toast({
-        title: "Network Disconnected",
-        description: "Your device is offline. Working in local mode.",
-        variant: "default"
-      });
-    };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [toast]);
-  
-  // Enable debug mode
-  const toggleDebugMode = () => {
-    setDebugMode(!debugMode);
-    console.log(`Debug mode ${!debugMode ? 'enabled' : 'disabled'}`);
+    checkSystemStatus();
+  }, []);
+
+  const checkSystemStatus = async () => {
+    setChecking(true);
+    checkNetworkLatency();
+    await Promise.all([
+      checkApiStatus(),
+      checkStorageStatus(),
+      checkDbConnection()
+    ]);
+    setChecking(false);
+
     toast({
-      title: `Debug Mode ${!debugMode ? 'Enabled' : 'Disabled'}`,
-      description: !debugMode ? 'Additional logging is now active' : 'Standard logging restored',
-      variant: "default"
+      title: "System Check Complete",
+      description: "System diagnostics have been updated."
     });
   };
-  
-  // Toggle mock data
-  const toggleMockData = () => {
-    setUseMockData(!useMockData);
-    toast({
-      title: `Mock Data ${!useMockData ? 'Enabled' : 'Disabled'}`,
-      description: !useMockData ? 'Using simulated data responses' : 'Using live data sources',
-      variant: "default"
-    });
-  };
-  
-  // Test AI responses
-  const toggleTestAI = () => {
-    setTestAIMode(!testAIMode);
-    toast({
-      title: `AI Test Mode ${!testAIMode ? 'Enabled' : 'Disabled'}`,
-      description: !testAIMode ? 'Using test data for AI responses' : 'Using standard AI behavior',
-      variant: "default"
-    });
-  };
-  
-  // Refresh system status
-  const refreshSystemInfo = async () => {
-    setSystemInfo(SystemToolsService.getSystemDiagnostics());
-    
-    // Also check Firestore connection
+
+  const checkApiStatus = async () => {
+    setApiStatus('checking');
     try {
-      setFirestoreStatus('loading');
-      const status = await checkFirestoreConnection();
-      setFirestoreStatus(status);
-      setLastConnectionCheck(new Date());
+      // Simple test to check if Supabase functions are accessible
+      const startTime = Date.now();
+      const { data } = await supabase.from('profiles').select('count').limit(1);
+      const endTime = Date.now();
+      setNetworkLatency(endTime - startTime);
+      
+      setApiStatus(data ? 'online' : 'offline');
     } catch (error) {
-      console.error("Error testing Firestore connection:", error);
-      setFirestoreStatus(navigator.onLine ? 'error' : 'offline');
-      setLastConnectionCheck(new Date());
+      console.error("API check error:", error);
+      setApiStatus('offline');
     }
-    
-    toast({
-      title: "System Information Updated",
-      description: "Latest system status retrieved",
-      variant: "default"
-    });
   };
-  
+
+  const checkStorageStatus = async () => {
+    setStorageStatus('checking');
+    try {
+      // Test if storage is accessible
+      const { data } = await supabase.storage.getBucket('student_uploads');
+      setStorageStatus(data ? 'online' : 'offline');
+    } catch (error) {
+      console.error("Storage check error:", error);
+      setStorageStatus('offline');
+    }
+  };
+
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-purple-600" />
-          System Diagnostics
+        <CardTitle className="flex items-center">
+          <Server className="mr-2 h-5 w-5" /> System Diagnostics
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="ml-auto"
+            onClick={checkSystemStatus}
+            disabled={checking}
+          >
+            {checking ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Checking...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh Status
+              </>
+            )}
+          </Button>
         </CardTitle>
-        <CardDescription>
-          View system status and enable developer tools
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* System Status Section */}
-        <div className="rounded-md border p-4 space-y-3">
-          <h3 className="font-medium text-sm flex items-center gap-2">
-            <Info className="h-4 w-4 text-blue-500" />
-            System Status
-          </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center justify-between p-4 border rounded-md">
+            <div className="flex items-center">
+              <Wifi className="h-5 w-5 mr-2 text-gray-500" />
+              <span>Network Status</span>
+            </div>
+            {isOnline ? (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                Online
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                Offline
+              </Badge>
+            )}
+          </div>
           
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Firestore Connection:</span>
-              <Badge variant={firestoreStatus === 'connected' ? 'outline' : (firestoreStatus === 'loading' ? 'secondary' : 'destructive')}>
-                {firestoreStatus === 'connected' ? 'Connected' : 
-                 firestoreStatus === 'loading' ? 'Checking...' : 
-                 firestoreStatus === 'offline' ? 'Offline' : 'Error'}
+          <div className="flex items-center justify-between p-4 border rounded-md">
+            <div className="flex items-center">
+              <Database className="h-5 w-5 mr-2 text-gray-500" />
+              <span>Database Connection</span>
+            </div>
+            {dbStatus === 'checking' ? (
+              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                Checking...
               </Badge>
-            </div>
-            
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Environment:</span>
-              <Badge variant="outline">
-                {systemInfo.environment}
+            ) : dbStatus === 'connected' ? (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                Connected
               </Badge>
-            </div>
-            
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">System Time:</span>
-              <span>{new Date(systemInfo.systemTime).toLocaleString()}</span>
-            </div>
-            
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">User Session:</span>
-              <Badge variant={systemInfo.userSessionActive ? 'outline' : 'destructive'}>
-                {systemInfo.userSessionActive ? 'Active' : 'Inactive'}
+            ) : (
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                {dbStatus === 'offline' ? 'Offline' : 'Error'}
               </Badge>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between p-4 border rounded-md">
+            <div className="flex items-center">
+              <Server className="h-5 w-5 mr-2 text-gray-500" />
+              <span>API Services</span>
             </div>
-            
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">System Version:</span>
-              <span>1.0.25-a</span>
+            {apiStatus === 'checking' ? (
+              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                Checking...
+              </Badge>
+            ) : apiStatus === 'online' ? (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                Online
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                Offline
+              </Badge>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between p-4 border rounded-md">
+            <div className="flex items-center">
+              <Database className="h-5 w-5 mr-2 text-gray-500" />
+              <span>Storage Services</span>
             </div>
-            
-            {lastConnectionCheck && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Last Connection Check:</span>
-                <span>{lastConnectionCheck.toLocaleTimeString()}</span>
-              </div>
+            {storageStatus === 'checking' ? (
+              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                Checking...
+              </Badge>
+            ) : storageStatus === 'online' ? (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                Online
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                Offline
+              </Badge>
             )}
           </div>
         </div>
         
-        {/* Developer Tools Section */}
-        <div className="rounded-md border p-4 space-y-3">
-          <h3 className="font-medium text-sm flex items-center gap-2">
-            <Terminal className="h-4 w-4 text-green-500" />
-            Developer Tools
-          </h3>
-          
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <label className="text-sm font-medium">Debug Mode</label>
-                <div className="text-xs text-muted-foreground">
-                  Logs additional information to the console
-                </div>
-              </div>
-              <Switch checked={debugMode} onCheckedChange={toggleDebugMode} />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <label className="text-sm font-medium">Use Mock Data</label>
-                <div className="text-xs text-muted-foreground">
-                  Uses simulated data instead of firestore
-                </div>
-              </div>
-              <Switch checked={useMockData} onCheckedChange={toggleMockData} />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <label className="text-sm font-medium">Test AI Responses</label>
-                <div className="text-xs text-muted-foreground">
-                  Uses test data for Athro AI responses
-                </div>
-              </div>
-              <Switch checked={testAIMode} onCheckedChange={toggleTestAI} />
-            </div>
+        <div className="p-4 border rounded-md">
+          <h3 className="text-sm font-medium mb-2">Network Latency</h3>
+          <div className="flex items-center">
+            {networkLatency === null ? (
+              <span className="text-gray-500">Not measured</span>
+            ) : networkLatency < 300 ? (
+              <>
+                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                <span className="font-medium">{networkLatency}ms</span>
+                <span className="text-sm text-gray-500 ml-2">(Good)</span>
+              </>
+            ) : networkLatency < 1000 ? (
+              <>
+                <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />
+                <span className="font-medium">{networkLatency}ms</span>
+                <span className="text-sm text-gray-500 ml-2">(Moderate)</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-4 w-4 text-red-500 mr-2" />
+                <span className="font-medium">{networkLatency}ms</span>
+                <span className="text-sm text-gray-500 ml-2">(Poor)</span>
+              </>
+            )}
           </div>
         </div>
         
-        {/* Database Section */}
-        <div className="rounded-md border p-4 space-y-3">
-          <h3 className="font-medium text-sm flex items-center gap-2">
-            <Database className="h-4 w-4 text-amber-500" />
-            Database Status
-          </h3>
+        <Tabs defaultValue="current">
+          <TabsList className="mb-2">
+            <TabsTrigger value="current">Current Session</TabsTrigger>
+            <TabsTrigger value="system">System Info</TabsTrigger>
+          </TabsList>
           
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Last Sync:</span>
-              <span>{lastConnectionCheck ? lastConnectionCheck.toLocaleString() : 'Never'}</span>
+          <TabsContent value="current" className="space-y-4">
+            <div className="text-sm space-y-2">
+              <div className="flex justify-between py-1 border-b">
+                <span className="text-gray-500">Browser</span>
+                <span>{typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b">
+                <span className="text-gray-500">Language</span>
+                <span>{typeof navigator !== 'undefined' ? navigator.language : 'Unknown'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b">
+                <span className="text-gray-500">Screen Resolution</span>
+                <span>
+                  {typeof window !== 'undefined' 
+                    ? `${window.screen.width}x${window.screen.height}` 
+                    : 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b">
+                <span className="text-gray-500">Database Connection</span>
+                <span>{dbStatus}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-gray-500">API Status</span>
+                <span>{apiStatus}</span>
+              </div>
             </div>
-            
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Connection Type:</span>
-              <Badge variant="outline">
-                {firestoreStatus === 'connected' ? 'ReadWrite' : 
-                 firestoreStatus === 'offline' ? 'LocalOnly' : 'Pending'}
-              </Badge>
+          </TabsContent>
+          
+          <TabsContent value="system">
+            <div className="text-sm space-y-2">
+              <div className="flex justify-between py-1 border-b">
+                <span className="text-gray-500">Database Provider</span>
+                <span>Supabase</span>
+              </div>
+              <div className="flex justify-between py-1 border-b">
+                <span className="text-gray-500">Storage Provider</span>
+                <span>Supabase Storage</span>
+              </div>
+              <div className="flex justify-between py-1 border-b">
+                <span className="text-gray-500">Authentication</span>
+                <span>Supabase Auth</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-gray-500">Environment</span>
+                <span>{import.meta.env.MODE || 'development'}</span>
+              </div>
             </div>
-            
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Data Mode:</span>
-              <Badge variant={useMockData ? 'secondary' : 'outline'}>
-                {useMockData ? 'Mock' : 'Live'}
-              </Badge>
-            </div>
-            
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Network Status:</span>
-              <Badge variant={navigator.onLine ? 'outline' : 'destructive'}>
-                {navigator.onLine ? 'Online' : 'Offline'}
-              </Badge>
-            </div>
-            
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => checkFirestoreConnection().then(status => {
-                setFirestoreStatus(status);
-                setLastConnectionCheck(new Date());
-                toast({
-                  title: `Firestore Test ${status === 'connected' ? 'Successful' : 'Failed'}`,
-                  description: status === 'connected' ? 
-                    "Connection to Firestore is working properly" : 
-                    `Connection status: ${status}`,
-                  variant: "default"
-                });
-              })}
-              className="w-full mt-2"
-            >
-              Test Firestore Connection
-            </Button>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
-      <CardFooter>
-        <Button 
-          variant="outline" 
-          className="w-full"
-          onClick={refreshSystemInfo}
-        >
-          Refresh System Info
-        </Button>
-      </CardFooter>
     </Card>
   );
 };

@@ -5,7 +5,7 @@ export interface UploadedFile {
   id?: string;
   userId: string;
   filename: string;
-  fileType: 'paper' | 'notes' | 'quiz';
+  fileType: 'paper' | 'notes' | 'quiz' | string; // Allow string to accommodate more types
   fileURL: string;
   originalName: string;
   subject?: string;
@@ -19,6 +19,7 @@ export interface UploadedFile {
   visibility?: string;
   storagePath?: string;
   timestamp?: string;
+  bucket_name?: string; // Add this since it's used in the code
 }
 
 export interface UploadProgress {
@@ -36,14 +37,13 @@ export const saveMarkingStyle = async (
   style: TeacherPreference
 ): Promise<void> => {
   try {
+    // Fix: Replace with a teacher_preferences table in Supabase
     const { error } = await supabase
-      .from('teacherPreferences')
-      .upsert({
-        userId,
-        classId,
-        markingStyle: style,
-        updatedAt: new Date().toISOString()
-      }, { onConflict: 'userId, classId' });
+      .from('profiles')
+      .update({
+        marking_style: style,
+      })
+      .eq('id', userId);
       
     if (error) throw error;
   } catch (error) {
@@ -67,7 +67,7 @@ export const getRecentFiles = async (userId: string): Promise<UploadedFile[]> =>
       id: file.id,
       userId: file.uploaded_by,
       filename: file.filename,
-      fileType: file.file_type,
+      fileType: file.file_type as 'paper' | 'notes' | 'quiz',
       fileURL: file.file_url,
       originalName: file.original_name,
       subject: file.subject,
@@ -79,7 +79,8 @@ export const getRecentFiles = async (userId: string): Promise<UploadedFile[]> =>
       uploadedBy: file.uploaded_by,
       visibility: file.visibility || 'private',
       storagePath: file.storage_path,
-      timestamp: file.created_at
+      timestamp: file.created_at,
+      bucket_name: file.bucket_name,
     }));
   } catch (error) {
     console.error('Error getting recent files:', error);
@@ -103,7 +104,7 @@ export const getFilesBySubject = async (userId: string, subject: string): Promis
       id: file.id,
       userId: file.uploaded_by,
       filename: file.filename,
-      fileType: file.file_type,
+      fileType: file.file_type as 'paper' | 'notes' | 'quiz',
       fileURL: file.file_url,
       originalName: file.original_name,
       subject: file.subject,
@@ -115,7 +116,8 @@ export const getFilesBySubject = async (userId: string, subject: string): Promis
       uploadedBy: file.uploaded_by,
       visibility: file.visibility || 'private',
       storagePath: file.storage_path,
-      timestamp: file.created_at
+      timestamp: file.created_at,
+      bucket_name: file.bucket_name,
     }));
   } catch (error) {
     console.error('Error getting files by subject:', error);
@@ -278,7 +280,8 @@ export const fileService = {
         visibility: 'private',
         storagePath,
         timestamp: new Date().toISOString(),
-        createdAt: new Date()
+        createdAt: new Date(),
+        bucket_name: 'student_uploads'
       };
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -306,7 +309,7 @@ export const fileService = {
         id: file.id,
         userId: file.uploaded_by,
         filename: file.filename,
-        fileType: file.file_type,
+        fileType: file.file_type as 'paper' | 'notes' | 'quiz',
         fileURL: file.file_url,
         originalName: file.original_name,
         subject: file.subject,
@@ -318,7 +321,8 @@ export const fileService = {
         uploadedBy: file.uploaded_by,
         visibility: file.visibility || 'private',
         storagePath: file.storage_path,
-        timestamp: file.created_at
+        timestamp: file.created_at,
+        bucket_name: file.bucket_name
       }));
     } catch (error) {
       console.error('Error getting files:', error);
@@ -334,7 +338,7 @@ export const fileService = {
       // Delete from Supabase Storage
       const { error: storageError } = await supabase.storage
         .from(file.bucket_name || 'student_uploads')
-        .remove([file.storagePath]);
+        .remove([file.storagePath as string]);
         
       if (storageError) throw storageError;
       
@@ -367,7 +371,7 @@ export const fileService = {
         id: file.id,
         userId: file.uploaded_by,
         filename: file.filename,
-        fileType: file.file_type,
+        fileType: file.file_type as 'paper' | 'notes' | 'quiz',
         fileURL: file.file_url,
         originalName: file.original_name,
         subject: file.subject,
@@ -379,7 +383,8 @@ export const fileService = {
         uploadedBy: file.uploaded_by,
         visibility: file.visibility || 'private',
         storagePath: file.storage_path,
-        timestamp: file.created_at
+        timestamp: file.created_at,
+        bucket_name: file.bucket_name
       }));
     } catch (error) {
       console.error('Error getting files by subject:', error);

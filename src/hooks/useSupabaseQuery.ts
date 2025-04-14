@@ -66,11 +66,11 @@ export function useSupabaseQuery<T>(
     setError(null);
     
     try {
-      // Assert tableName as a valid table literal to satisfy TypeScript
-      const tableNameLiteral = tableName as ValidTableNameLiteral;
+      // Fix: Use type assertion instead of trying to infer type
+      const tableNameAsLiteral = tableName as ValidTableNameLiteral;
       
       let query = supabase
-        .from(tableNameLiteral)
+        .from(tableNameAsLiteral)
         .select(select);
         
       // Apply filters if provided
@@ -146,14 +146,14 @@ export function useSupabaseRealtime<T>(
   useEffect(() => {
     if (!state.user) return;
     
-    // Assert tableName as a valid table literal to satisfy TypeScript
-    const tableNameLiteral = tableName as ValidTableNameLiteral;
+    // Fix: Use type assertion for tableName
+    const tableNameAsLiteral = tableName as ValidTableNameLiteral;
     
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
         let query = supabase
-          .from(tableNameLiteral)
+          .from(tableNameAsLiteral)
           .select('*');
         
         if (options.filter) {
@@ -174,7 +174,7 @@ export function useSupabaseRealtime<T>(
     
     fetchInitialData();
     
-    // Set up real-time subscription using the correct Supabase JS v2 pattern
+    // Fix: Update subscription pattern to match Supabase v2 API
     const channel = supabase
       .channel(`table-changes-${tableName}`)
       .on(
@@ -182,7 +182,7 @@ export function useSupabaseRealtime<T>(
         {
           event: options.event || '*',
           schema: 'public',
-          table: tableNameLiteral,
+          table: tableNameAsLiteral,
         },
         (payload: any) => {
           // Handle different event types
