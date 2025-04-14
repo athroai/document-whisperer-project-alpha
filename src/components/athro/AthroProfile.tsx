@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -97,7 +98,7 @@ const AthroProfile = () => {
           setLastSuccessfulSync(new Date());
           
           try {
-            await persistentStorage.saveChatHistory(state.user.id, enhancedSessions);
+            await persistentStorage.saveChatHistory(state.user.id, enhancedSessions as SessionHistoryItem[]);
           } catch (storageError) {
             console.warn("Failed to cache sessions:", storageError);
           }
@@ -108,7 +109,7 @@ const AthroProfile = () => {
           try {
             const cachedSessionsResult = await persistentStorage.getChatHistory(state.user.id);
             if (cachedSessionsResult.success && cachedSessionsResult.data) {
-              setSessionHistory(cachedSessionsResult.data);
+              setSessionHistory(cachedSessionsResult.data as SessionHistoryItem[]);
             }
           } catch (cacheError) {
             console.warn("Could not retrieve cached sessions after network error:", cacheError);

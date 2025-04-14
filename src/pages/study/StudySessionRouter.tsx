@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -169,7 +168,6 @@ const StudySessionRouter: React.FC = () => {
     return `${hours} hour${hours !== 1 ? 's' : ''} ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
   };
 
-  // Show a loading indicator while checking assignments
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col items-center justify-center min-h-[60vh]">

@@ -52,7 +52,8 @@ const StudyAssignedPage: React.FC = () => {
       entryMode: 'assigned',
       startedAt: Date.now(),
       taskId: assignment.assignment.id,
-      taskTitle: assignment.assignment.title
+      taskTitle: assignment.assignment.title,
+      lastActive: Date.now() // Add the required lastActive property
     });
     
     // Navigate to the appropriate Athro page based on subject

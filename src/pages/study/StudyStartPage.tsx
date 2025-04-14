@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +24,8 @@ const StudyStartPage: React.FC = () => {
       entryMode: 'selfStudy',
       startedAt: Date.now(),
       taskId: null,
-      taskTitle: null
+      taskTitle: null,
+      lastActive: Date.now() // Add the required lastActive property
     });
     
     // Set the active character in the AthroContext

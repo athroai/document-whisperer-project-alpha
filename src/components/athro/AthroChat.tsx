@@ -58,7 +58,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
     sendMessage: syncChatHistory,
     tabId 
   } = useTabSync('CHAT_HISTORY_UPDATE', {
-    onConflict: (options) => {
+    onConflict: () => {
       toast({
         title: "Multiple tabs detected",
         description: "Be careful when making changes in multiple tabs as they may conflict.",
