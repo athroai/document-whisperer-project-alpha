@@ -115,11 +115,12 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
           const knowledgeSubject = character.subject.toLowerCase();
           
           // Enhance with knowledge
-          const { enhancedContext: knowledgeEnhancement, hasKnowledgeResults: hasResults } = 
+          const { enhancedContext: knowledgeEnhancement, hasKnowledgeResults: hasResults, searchResults } = 
             await enhanceResponseWithKnowledge(message, knowledgeSubject);
           
           knowledgeContext = knowledgeEnhancement;
           hasKnowledgeResults = hasResults;
+          knowledgeSearchResults = searchResults || [];
           
           if (hasKnowledgeResults) {
             console.log('[AthroRouter] Successfully retrieved relevant knowledge');
@@ -153,18 +154,23 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
 
         // Enhance the message with citations if knowledge results were found
         let citations: Citation[] = [];
-        if (hasKnowledgeResults) {
-          const { enhancedMessage, citations: messageCitations } = await enhanceMessageWithCitations(
-            finalResponse.content,
-            message,
-            character.subject.toLowerCase()
-          );
-          
-          // Add citations to the response
-          if (messageCitations.length > 0) {
-            finalResponse.content = enhancedMessage;
-            finalResponse.citations = messageCitations;
-            citations = messageCitations;
+        if (hasKnowledgeResults && knowledgeSearchResults.length > 0) {
+          try {
+            const { enhancedMessage, citations: messageCitations } = await enhanceMessageWithCitations(
+              finalResponse.content,
+              message,
+              character.subject.toLowerCase()
+            );
+            
+            // Add citations to the response
+            if (messageCitations.length > 0) {
+              console.log('[AthroRouter] Adding citations to response:', messageCitations.length);
+              finalResponse.content = enhancedMessage;
+              finalResponse.citations = messageCitations;
+              citations = messageCitations;
+            }
+          } catch (citationError) {
+            console.error('[AthroRouter] Error adding citations:', citationError);
           }
         }
         
