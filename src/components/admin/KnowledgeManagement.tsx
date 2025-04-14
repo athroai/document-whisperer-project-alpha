@@ -197,7 +197,7 @@ const KnowledgeManagement: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <KnowledgeUpload onDocumentUploaded={() => loadDocuments()} />
+              <KnowledgeUpload onDocumentUploaded={loadDocuments} />
             </CardContent>
           </Card>
         </TabsContent>

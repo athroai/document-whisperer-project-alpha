@@ -14,7 +14,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 
-const KnowledgeUpload: React.FC = () => {
+interface KnowledgeUploadProps {
+  onDocumentUploaded?: () => void | Promise<void>;
+}
+
+const KnowledgeUpload: React.FC<KnowledgeUploadProps> = ({ onDocumentUploaded }) => {
   const { state } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
   const [title, setTitle] = useState<string>('');
@@ -135,6 +139,11 @@ const KnowledgeUpload: React.FC = () => {
       
       // Reset progress after a short delay
       setTimeout(() => setProgress(0), 2000);
+      
+      // Call the onDocumentUploaded callback if provided
+      if (onDocumentUploaded) {
+        await onDocumentUploaded();
+      }
     } catch (error) {
       console.error("Upload error:", error);
       toast({
