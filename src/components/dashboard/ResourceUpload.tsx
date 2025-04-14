@@ -66,7 +66,7 @@ const ResourceUpload: React.FC<ResourceUploadProps> = ({
 
     try {
       // Upload file using fileService
-      const uploadMetadata = await uploadFile(selectedFile, {
+      const uploadResult = await uploadFile(selectedFile, {
         uploadedBy: user.id,
         role: user.role,
         subject,
@@ -85,16 +85,16 @@ const ResourceUpload: React.FC<ResourceUploadProps> = ({
       
       // Call the onUploadComplete callback if provided
       if (onUploadComplete) {
-        // Fix: Add explicit type conversion to match UploadMetadata
+        // Create metadata object with correct types
         const metadata: UploadMetadata = {
-          url: uploadMetadata.url || uploadMetadata.file_url || '',
-          filename: uploadMetadata.filename || uploadMetadata.original_name || '',
-          mimeType: uploadMetadata.mime_type || '',
-          uploadedBy: uploadMetadata.uploadedBy || uploadMetadata.uploaded_by || '',
-          subject: uploadMetadata.subject,
-          classId: uploadMetadata.set_id,
-          uploadTime: uploadMetadata.uploadTime || new Date().toISOString(),
-          visibility: uploadMetadata.visibility as 'private' | 'class-only' | 'public',
+          url: uploadResult.url || uploadResult.file_url || '',
+          filename: uploadResult.filename || uploadResult.original_name || '',
+          mimeType: uploadResult.mime_type || '',
+          uploadedBy: uploadResult.uploadedBy || uploadResult.uploaded_by || '',
+          subject: uploadResult.subject,
+          classId: uploadResult.set_id,
+          uploadTime: uploadResult.uploadTime || new Date().toISOString(),
+          visibility: uploadResult.visibility as 'private' | 'class-only' | 'public',
         };
         onUploadComplete(metadata);
       }

@@ -1,4 +1,6 @@
 
+// Define proper types for the goals functionality
+
 export interface StudyGoal {
   id: string;
   userId: string;
@@ -7,14 +9,12 @@ export interface StudyGoal {
   description: string;
   createdAt: string;
   targetDate: string;
-  status: 'active' | 'completed' | 'expired';
-  completionRate?: number; // AI-estimated progress percentage
-  aiSuggestions?: string[]; // Generated support tips
+  status: 'active' | 'completed' | 'abandoned';
+  completionRate: number;
+  aiSuggestions?: string[];
+  motivation?: string;
 }
 
-export type GoalStatus = 'active' | 'completed' | 'expired';
-
-// Used for creating new goals
 export interface NewGoalData {
   subject: string;
   title: string;
@@ -23,12 +23,13 @@ export interface NewGoalData {
   motivation?: string;
 }
 
-// Used for managing goals
 export interface GoalUpdateData {
+  subject?: string;
   title?: string;
   description?: string;
   targetDate?: string;
-  status?: GoalStatus;
+  status?: 'active' | 'completed' | 'abandoned';
   completionRate?: number;
   aiSuggestions?: string[];
+  lastUpdated?: string;
 }

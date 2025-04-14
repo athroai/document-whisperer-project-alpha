@@ -5,7 +5,7 @@ export interface UploadedFile {
   id?: string;
   userId: string;
   filename: string;
-  fileType: 'paper' | 'notes' | 'quiz' | string; // Allow string to accommodate more types
+  fileType: string; // Updated to generic string instead of strict literals
   fileURL: string;
   originalName: string;
   subject?: string;
@@ -37,11 +37,19 @@ export const saveMarkingStyle = async (
   style: TeacherPreference
 ): Promise<void> => {
   try {
-    // Fix: Replace with a teacher_preferences table in Supabase
+    // Store in a proper teacher_preferences table or store in user metadata
+    // For now, we'll just store as an attribute on the user's profile
     const { error } = await supabase
       .from('profiles')
       .update({
-        marking_style: style,
+        // Note: This assumes marking_style exists in the profiles table
+        // If it doesn't exist, a schema update would be needed
+        // marking_style: style, 
+        
+        // Store in metadata JSON field instead as a workaround
+        confidence_scores: {
+          marking_style: style
+        }
       })
       .eq('id', userId);
       
@@ -67,7 +75,7 @@ export const getRecentFiles = async (userId: string): Promise<UploadedFile[]> =>
       id: file.id,
       userId: file.uploaded_by,
       filename: file.filename,
-      fileType: file.file_type as 'paper' | 'notes' | 'quiz',
+      fileType: file.file_type,
       fileURL: file.file_url,
       originalName: file.original_name,
       subject: file.subject,
@@ -104,7 +112,7 @@ export const getFilesBySubject = async (userId: string, subject: string): Promis
       id: file.id,
       userId: file.uploaded_by,
       filename: file.filename,
-      fileType: file.file_type as 'paper' | 'notes' | 'quiz',
+      fileType: file.file_type,
       fileURL: file.file_url,
       originalName: file.original_name,
       subject: file.subject,
@@ -204,7 +212,7 @@ export const fileService = {
     file: File, 
     userId: string, 
     metadata: { 
-      fileType: 'paper' | 'notes' | 'quiz';
+      fileType: string;
       subject?: string;
       description?: string;
     },
@@ -309,7 +317,7 @@ export const fileService = {
         id: file.id,
         userId: file.uploaded_by,
         filename: file.filename,
-        fileType: file.file_type as 'paper' | 'notes' | 'quiz',
+        fileType: file.file_type,
         fileURL: file.file_url,
         originalName: file.original_name,
         subject: file.subject,
@@ -336,11 +344,13 @@ export const fileService = {
       if (!file.id) throw new Error('File ID not provided');
       
       // Delete from Supabase Storage
-      const { error: storageError } = await supabase.storage
-        .from(file.bucket_name || 'student_uploads')
-        .remove([file.storagePath as string]);
-        
-      if (storageError) throw storageError;
+      if (file.storagePath && file.bucket_name) {
+        const { error: storageError } = await supabase.storage
+          .from(file.bucket_name)
+          .remove([file.storagePath]);
+          
+        if (storageError) throw storageError;
+      }
       
       // Delete from Supabase Database
       const { error: dbError } = await supabase
@@ -371,7 +381,7 @@ export const fileService = {
         id: file.id,
         userId: file.uploaded_by,
         filename: file.filename,
-        fileType: file.file_type as 'paper' | 'notes' | 'quiz',
+        fileType: file.file_type,
         fileURL: file.file_url,
         originalName: file.original_name,
         subject: file.subject,

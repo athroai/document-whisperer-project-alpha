@@ -3,32 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { StudyGoal, NewGoalData, GoalUpdateData } from '@/types/goals';
 import { v4 as uuidv4 } from 'uuid';
 
+// TODO: Create a goals table in Supabase when possible
+// For now, this service will use local storage as fallback
+
 export class GoalsService {
   // Get all goals for a user
   static async getGoalsForUser(userId: string): Promise<StudyGoal[]> {
     try {
-      const { data, error } = await supabase
-        .from('goals')
-        .select('*')
-        .eq('userId', userId)
-        .order('createdAt', { ascending: false });
-        
-      if (error) throw error;
-      
-      if (!data) return [];
-      
-      return data.map(goal => ({
-        id: goal.id,
-        userId: goal.userId,
-        subject: goal.subject,
-        title: goal.title,
-        description: goal.description,
-        createdAt: goal.createdAt,
-        targetDate: goal.targetDate,
-        status: goal.status,
-        completionRate: goal.completionRate || 0,
-        aiSuggestions: goal.aiSuggestions || []
-      }));
+      // TODO: Replace with actual Supabase table query when goals table is created
+      // For now, return mock data from localStorage
+      return this.getLocalMockGoals(userId);
     } catch (error) {
       console.error("Error getting goals:", error);
       return [];
@@ -38,21 +22,10 @@ export class GoalsService {
   // Create a new goal
   static async createGoal(userId: string, goalData: NewGoalData): Promise<string | null> {
     try {
-      const { data, error } = await supabase
-        .from('goals')
-        .insert({
-          userId,
-          ...goalData,
-          createdAt: new Date().toISOString(),
-          status: 'active',
-          completionRate: 0,
-          aiSuggestions: []
-        })
-        .select();
-        
-      if (error) throw error;
-      
-      return data?.[0]?.id || null;
+      // TODO: Replace with actual Supabase table insert when goals table is created
+      // For now, create a local mock goal
+      const goal = this.createLocalMockGoal(userId, goalData);
+      return goal.id;
     } catch (error) {
       console.error("Error creating goal:", error);
       return null;
@@ -62,17 +35,9 @@ export class GoalsService {
   // Update an existing goal
   static async updateGoal(goalId: string, updateData: GoalUpdateData): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('goals')
-        .update({
-          ...updateData,
-          lastUpdated: new Date().toISOString()
-        })
-        .eq('id', goalId);
-        
-      if (error) throw error;
-      
-      return true;
+      // TODO: Replace with actual Supabase table update when goals table is created
+      // For now, update local storage
+      return this.updateLocalMockGoal(goalId, updateData);
     } catch (error) {
       console.error("Error updating goal:", error);
       return false;
@@ -82,13 +47,11 @@ export class GoalsService {
   // Delete a goal
   static async deleteGoal(goalId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('goals')
-        .delete()
-        .eq('id', goalId);
-        
-      if (error) throw error;
-      
+      // TODO: Replace with actual Supabase table delete when goals table is created
+      // For now, delete from local storage
+      const allGoals = JSON.parse(localStorage.getItem('athro_goals') || '[]');
+      const filteredGoals = allGoals.filter((goal: StudyGoal) => goal.id !== goalId);
+      localStorage.setItem('athro_goals', JSON.stringify(filteredGoals));
       return true;
     } catch (error) {
       console.error("Error deleting goal:", error);
@@ -99,28 +62,11 @@ export class GoalsService {
   // Get a single goal by id
   static async getGoal(goalId: string): Promise<StudyGoal | null> {
     try {
-      const { data, error } = await supabase
-        .from('goals')
-        .select('*')
-        .eq('id', goalId)
-        .single();
-        
-      if (error) throw error;
-      
-      if (!data) return null;
-      
-      return {
-        id: data.id,
-        userId: data.userId,
-        subject: data.subject,
-        title: data.title,
-        description: data.description,
-        createdAt: data.createdAt,
-        targetDate: data.targetDate,
-        status: data.status,
-        completionRate: data.completionRate || 0,
-        aiSuggestions: data.aiSuggestions || []
-      };
+      // TODO: Replace with actual Supabase table query when goals table is created
+      // For now, get from local storage
+      const allGoals = JSON.parse(localStorage.getItem('athro_goals') || '[]');
+      const goal = allGoals.find((goal: StudyGoal) => goal.id === goalId);
+      return goal || null;
     } catch (error) {
       console.error("Error getting goal:", error);
       return null;

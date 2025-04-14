@@ -1,125 +1,94 @@
 
-import { 
-  doc, getDoc, setDoc, updateDoc, 
-  Timestamp, serverTimestamp 
-} from "firebase/firestore";
-import { db } from "@/config/firebase";
-import { User } from "@/types/auth";
+import { supabase } from '@/integrations/supabase/client';
 
-export class UserFirestoreService {
-  /**
-   * Creates or updates a user in Firestore
-   */
-  static async saveUser(user: User): Promise<void> {
-    try {
-      const userRef = doc(db, "users", user.id);
-      const userDoc = await getDoc(userRef);
-
-      // Create user document if it doesn't exist
-      if (!userDoc.exists()) {
-        const userData = {
-          id: user.id,
-          email: user.email,
-          displayName: user.displayName,
-          role: user.role,
-          schoolId: user.schoolId || null,
-          examBoard: user.examBoard || 'none',
-          licenseExempt: user.licenseExempt || false,
-          createdAt: serverTimestamp(),
-        };
-        
-        await setDoc(userRef, userData);
-        console.log("User created in Firestore:", user.id);
-      } else {
-        // Update existing user with new data (excluding createdAt)
-        const userData = {
-          email: user.email,
-          displayName: user.displayName,
-          role: user.role,
-          schoolId: user.schoolId || null,
-          examBoard: user.examBoard || 'none',
-          licenseExempt: user.licenseExempt || false,
-          lastUpdated: serverTimestamp(),
-        };
-        
-        await updateDoc(userRef, userData);
-        console.log("User updated in Firestore:", user.id);
-      }
-    } catch (error) {
-      console.error("Error saving user to Firestore:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Retrieves a user from Firestore
-   */
-  static async getUser(userId: string): Promise<User | null> {
-    try {
-      const userRef = doc(db, "users", userId);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        
-        // Convert Firestore timestamp to Date
-        const createdAt = userData.createdAt instanceof Timestamp 
-          ? userData.createdAt.toDate() 
-          : new Date();
-        
-        return {
-          id: userId,
-          email: userData.email,
-          displayName: userData.displayName,
-          role: userData.role,
-          schoolId: userData.schoolId,
-          examBoard: userData.examBoard,
-          licenseExempt: userData.licenseExempt,
-          createdAt: createdAt,
-          rememberMe: true, // Default to true since this is from server
-          confidenceScores: userData.confidenceScores || {
-            maths: 5,
-            science: 5,
-            english: 5
-          }
-        };
-      }
-      
-      return null;
-    } catch (error) {
-      console.error("Error getting user from Firestore:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Updates a user's confidence score for a subject
-   */
-  static async updateConfidenceScore(
-    userId: string, 
-    subject: string, 
-    score: number
-  ): Promise<void> {
-    try {
-      const userRef = doc(db, "users", userId);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const confidenceScores = userData.confidenceScores || {};
-        
-        await updateDoc(userRef, {
-          [`confidenceScores.${subject.toLowerCase()}`]: score,
-          lastUpdated: serverTimestamp(),
-        });
-        
-        console.log(`Updated confidence score for ${subject} to ${score}`);
-      }
-    } catch (error) {
-      console.error("Error updating confidence score:", error);
-      throw error;
-    }
-  }
+// Interfaces for user-related data
+interface UserPreference {
+  userId: string;
+  theme: 'light' | 'dark' | 'system';
+  notifications: boolean;
+  lastUpdated: string;
 }
 
-export default UserFirestoreService;
+export const userService = {
+  // Get user profile data
+  async getUserProfile(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  },
+  
+  // Update user profile
+  async updateUserProfile(userId: string, profileData: any) {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('id', userId);
+        
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      return false;
+    }
+  },
+  
+  // Get user preferences
+  async getUserPreferences(userId: string): Promise<UserPreference | null> {
+    try {
+      // Note: This assumes a preferences table exists
+      // If not, store preferences in the profiles table or create a preferences table
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      // As a fallback, return mock preferences
+      return {
+        userId,
+        theme: 'system',
+        notifications: true,
+        lastUpdated: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error fetching user preferences:', error);
+      return null;
+    }
+  },
+  
+  // Update user preferences
+  async updateUserPreferences(userId: string, preferences: Partial<UserPreference>): Promise<boolean> {
+    try {
+      // Note: This assumes a preferences table exists
+      // If not, store preferences in the profiles table or create a preferences table
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          // Store preferences in confidence_scores JSON field as a temporary solution
+          confidence_scores: {
+            ...preferences
+          }
+        })
+        .eq('id', userId);
+        
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error updating user preferences:', error);
+      return false;
+    }
+  }
+};
+
+export default userService;

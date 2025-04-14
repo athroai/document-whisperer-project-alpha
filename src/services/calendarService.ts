@@ -9,8 +9,7 @@ export interface CalendarEvent {
   date: Date;
   time?: string;
   duration?: number;
-  mentor?: string;
-  type?: 'study' | 'quiz' | 'revision';
+  type: 'study' | 'quiz' | 'revision';
   createdAt?: Date;
 }
 
@@ -26,7 +25,7 @@ export const calendarService = {
           description: event.description,
           start_time: event.date.toISOString(),
           end_time: new Date(event.date.getTime() + (event.duration || 60) * 60000).toISOString(),
-          event_type: event.type || 'study',
+          event_type: event.type,
         })
         .select()
         .single();
@@ -59,7 +58,6 @@ export const calendarService = {
         date: new Date(event.start_time),
         time: new Date(event.start_time).toLocaleTimeString(),
         duration: (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000,
-        // Fix: Remove mentor property since it doesn't exist in database
         type: event.event_type as 'study' | 'quiz' | 'revision',
         createdAt: new Date(event.created_at)
       }));
@@ -90,7 +88,6 @@ export const calendarService = {
         date: new Date(event.start_time),
         time: new Date(event.start_time).toLocaleTimeString(),
         duration: (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000,
-        // Fix: Remove mentor property since it doesn't exist in database
         type: event.event_type as 'study' | 'quiz' | 'revision',
         createdAt: new Date(event.created_at)
       }));

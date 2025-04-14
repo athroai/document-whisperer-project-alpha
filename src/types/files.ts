@@ -27,7 +27,7 @@ export interface UploadedFile {
   
   // Properties needed for compatibility with existing code
   uploadedBy?: string;
-  fileType?: 'paper' | 'notes' | 'quiz' | string;  // Update to match fileService
+  fileType?: string;  // Update to match fileService
   storagePath?: string;
   timestamp?: string;
   subject?: string;

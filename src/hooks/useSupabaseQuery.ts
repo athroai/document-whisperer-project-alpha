@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
+import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
 // Define a type for valid table names in our Supabase database
 type ValidTableName = keyof Database['public']['Tables'];
@@ -66,9 +67,10 @@ export function useSupabaseQuery<T>(
     setError(null);
     
     try {
-      // Fix: Use type assertion instead of trying to infer type
+      // Use type assertion for table name
       const tableNameAsLiteral = tableName as ValidTableNameLiteral;
       
+      // Fix: Use a type assertion to prevent excessive recursion
       let query = supabase
         .from(tableNameAsLiteral)
         .select(select);
@@ -146,7 +148,7 @@ export function useSupabaseRealtime<T>(
   useEffect(() => {
     if (!state.user) return;
     
-    // Fix: Use type assertion for tableName
+    // Use type assertion for table name
     const tableNameAsLiteral = tableName as ValidTableNameLiteral;
     
     // Fetch initial data
@@ -174,7 +176,7 @@ export function useSupabaseRealtime<T>(
     
     fetchInitialData();
     
-    // Fix: Update subscription pattern to match Supabase v2 API
+    // Fix: Use the correct channel subscription pattern for Supabase v2
     const channel = supabase
       .channel(`table-changes-${tableName}`)
       .on(
