@@ -1,12 +1,12 @@
-
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import {
   initializeFirestore,
   doc,
   getDoc,
+  CACHE_SIZE_UNLIMITED,
   persistentLocalCache,
-  persistentMultipleTabManager
+  persistentSingleTabManager
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -24,53 +24,36 @@ const firebaseConfig = {
 // ✅ Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// ✅ Analytics (only runs in browser)
-let analytics = null;
+// ✅ Analytics (guarded for SSR)
+let analytics: ReturnType<typeof getAnalytics> | null = null;
 try {
   analytics = getAnalytics(app);
-} catch (err) {
-  console.warn("[Firebase] Analytics disabled or not supported in this environment:", err);
+} catch (error) {
+  console.warn("[Firebase] Analytics skipped in non-browser environment:", error);
 }
 
-// ✅ Initialize Firestore with proper persistence settings
+// ✅ Firestore with built-in persistence (no `settings` key — it's invalid!)
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
+    tabManager: persistentSingleTabManager(),
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED
+  }),
+  experimentalAutoDetectLongPolling: true
 });
+console.log("[Firestore] Firestore initialized with persistence");
 
-console.log("[Firestore] Firestore initialized with built-in persistence");
-
-// ✅ Storage
+// ✅ Firebase Storage
 const storage = getStorage(app);
 
-// ✅ Connection check utility with improved timeout handling
+// ✅ Connection check
 export const checkFirestoreConnection = async () => {
   try {
-    console.log("[Firestore] Checking connectivity...");
     const testDoc = doc(db, "diagnostics", "connection");
-    
-    // Set a timeout to avoid waiting too long
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error("Firestore connection check timed out"));
-      }, 5000); // Increased to 5 second timeout for more reliability
-    });
-    
-    // Race between the connection check and the timeout
-    await Promise.race([
-      getDoc(testDoc),
-      timeoutPromise
-    ]);
-    
-    console.log("[Firestore] Connected successfully.");
+    await getDoc(testDoc);
+    console.log("[Firestore] Connection successful");
     return "connected";
   } catch (error) {
-    if (error.message === "Firestore connection check timed out") {
-      console.warn("[Firestore] Connection check timed out");
-    } else {
-      console.warn("[Firestore] Connection check failed:", error);
-    }
+    console.warn("[Firestore] Connection check failed:", error);
     return navigator.onLine ? "error" : "offline";
   }
 };
