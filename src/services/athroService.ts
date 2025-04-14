@@ -2,13 +2,14 @@
 import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
 import { FeedbackSummary } from '@/types/feedback';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 // Service for Athro character management
 const athroService = {
   // Get available Athro characters - from Supabase
   getCharacters: async (): Promise<AthroCharacter[]> => {
     try {
-      // Using type assertions for table names
+      // Using properly typed table name
       const { data, error } = await supabase
         .from('athro_characters')
         .select('*');
@@ -77,9 +78,9 @@ const athroService = {
   // Get a character by ID
   getCharacterById: async (id: string): Promise<AthroCharacter | null> => {
     try {
-      // Using explicit type assertion for the table name
+      // Using properly typed table name
       const { data, error } = await supabase
-        .from('athro_characters' as any)
+        .from('athro_characters')
         .select('*')
         .eq('id', id)
         .single();
@@ -92,7 +93,7 @@ const athroService = {
       if (!data) return null;
       
       // Explicit type assertion for database fields
-      const char = data as any;
+      const char = data;
       return {
         id: char.id,
         name: char.name,
@@ -112,9 +113,9 @@ const athroService = {
   // Get a character by subject
   getCharacterBySubject: async (subject: string): Promise<AthroCharacter | null> => {
     try {
-      // Using type assertion to bypass TypeScript constraints
+      // Using properly typed table name
       const { data, error } = await supabase
-        .from('athro_characters' as any)
+        .from('athro_characters')
         .select('*')
         .ilike('subject', subject)
         .maybeSingle();
@@ -127,7 +128,7 @@ const athroService = {
       if (!data) return null;
       
       // Type assertion to access properties
-      const char = data as any;
+      const char = data;
       return {
         id: char.id,
         name: char.name,

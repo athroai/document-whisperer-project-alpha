@@ -5,15 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
-// Define a type for table names in our database
-type Tables = Database['public']['Tables'];
-type TableName = keyof Tables;
+// Define a type for valid table names in our Supabase database
+type ValidTableName = keyof Database['public']['Tables'];
 
 /**
  * A custom hook for making Supabase queries with loading and error handling
  */
 export function useSupabaseQuery<T extends Record<string, any>>(
-  tableName: TableName,
+  tableName: ValidTableName,
   options: {
     select?: string;
     filter?: Record<string, any>;
@@ -47,9 +46,9 @@ export function useSupabaseQuery<T extends Record<string, any>>(
     setError(null);
     
     try {
-      // Cast tableName to string to avoid deep type issues
+      // Use properly typed table name
       let query = supabase
-        .from(tableName as string)
+        .from(tableName)
         .select(select);
         
       // Apply filters if provided
@@ -113,7 +112,7 @@ export function useSupabaseQuery<T extends Record<string, any>>(
  * A custom hook for real-time subscriptions to Supabase tables
  */
 export function useSupabaseRealtime<T extends Record<string, any>>(
-  tableName: TableName,
+  tableName: ValidTableName,
   options: {
     event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
     filter?: Record<string, any>;
@@ -129,7 +128,7 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     // Fetch initial data
     const fetchInitialData = async () => {
       try {
-        let query = supabase.from(tableName as string).select('*');
+        let query = supabase.from(tableName).select('*');
         
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {
@@ -149,15 +148,15 @@ export function useSupabaseRealtime<T extends Record<string, any>>(
     
     fetchInitialData();
     
-    // Set up real-time subscription using the correct type
+    // Set up real-time subscription
     const channel = supabase
       .channel('db-changes')
       .on(
-        'postgres_changes' as any, // Use type assertion to fix type mismatch
+        'postgres_changes',
         {
           event: options.event || '*',
           schema: 'public',
-          table: tableName as string,
+          table: tableName,
         },
         (payload: any) => {
           // Handle different event types

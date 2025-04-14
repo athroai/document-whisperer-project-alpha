@@ -15,7 +15,7 @@ export const authService = {
     if (!session?.user) return null;
     
     try {
-      // Fetch user profile data
+      // Fetch user profile data with proper typing
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
