@@ -4,9 +4,8 @@ import {
   initializeFirestore,
   doc,
   getDoc,
-  CACHE_SIZE_UNLIMITED,
-  persistentLocalCache,
-  persistentSingleTabManager
+  experimentalForceLongPolling,
+  experimentalAutoDetectLongPolling
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -24,36 +23,33 @@ const firebaseConfig = {
 // ✅ Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// ✅ Analytics (safely for SSR)
+// ✅ Analytics (only runs in browser)
 let analytics = null;
 try {
   analytics = getAnalytics(app);
-} catch (error) {
-  console.warn("[Firebase] Analytics skipped:", error);
+} catch (err) {
+  console.warn("[Firebase] Analytics disabled or not supported in this environment:", err);
 }
 
-// ✅ Firestore with proper persistence
+// ✅ Simplified Firestore (no persistence for now to avoid tab conflicts)
 const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentSingleTabManager(),
-    cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-  }),
-  experimentalForceLongPolling: false,
-  experimentalAutoDetectLongPolling: true,
+  experimentalAutoDetectLongPolling: true
 });
 console.log("[Firestore] Firestore initialized");
 
 // ✅ Storage
 const storage = getStorage(app);
 
-// ✅ Connection test
+// ✅ Connection check utility
 export const checkFirestoreConnection = async () => {
   try {
+    console.log("[Firestore] Checking connectivity...");
     const testDoc = doc(db, "diagnostics", "connection");
     await getDoc(testDoc);
+    console.log("[Firestore] Connected successfully.");
     return "connected";
   } catch (error) {
-    console.warn("[Firestore] Connection test failed:", error);
+    console.warn("[Firestore] Connection check failed:", error);
     return navigator.onLine ? "error" : "offline";
   }
 };
