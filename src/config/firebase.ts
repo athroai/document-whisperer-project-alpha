@@ -3,18 +3,27 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, initializeFirestore, enableIndexedDbPersistence, collection, doc, getDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// Firebase configuration
-// Note: These are client-side public keys, so it's safe to include them in the code
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDummyKeyForNowReplaceWithActual",
-  authDomain: "athro-ai.firebaseapp.com",
-  projectId: "athro-ai",
-  storageBucket: "athro-ai.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890"
+  apiKey: "AIzaSyBVRq9wWs-Osrh4TN84www4tViKsd9lxAc",
+  authDomain: "athro-ai-e33f9.firebaseapp.com",
+  projectId: "athro-ai-e33f9",
+  storageBucket: "athro-ai-e33f9.firebasestorage.app",
+  messagingSenderId: "612165275676",
+  appId: "1:612165275676:web:bf28bc1f7426b99b178fd9",
+  measurementId: "G-0HGDXV9G3F"
 };
 
-console.log('[Firebase] Initializing app...');
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
