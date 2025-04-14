@@ -31,8 +31,27 @@ const AthroRouter: React.FC = () => {
   // Update current subject when route changes
   useEffect(() => {
     if (subject) {
-      // Convert first letter to uppercase and rest to lowercase
-      const formattedSubject = subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase();
+      // Handle special cases for URL paths
+      let formattedSubject: string;
+      
+      switch(subject.toLowerCase()) {
+        case 'maths':
+          formattedSubject = 'Mathematics';
+          break;
+        case 're':
+          formattedSubject = 'Religious Education';
+          break;
+        case 'study-skills':
+          formattedSubject = 'Study Skills';
+          break;
+        case 'computer-science':
+          formattedSubject = 'Computer Science';
+          break;
+        default:
+          // Convert first letter to uppercase and rest to lowercase
+          formattedSubject = subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase();
+      }
+      
       setCurrentSubject(formattedSubject);
     }
   }, [subject, setCurrentSubject]);

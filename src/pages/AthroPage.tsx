@@ -83,6 +83,8 @@ const AthroPage: React.FC = () => {
         <Route path="/history" element={<AthroHistoryPage />} />
         <Route path="/geography" element={<AthroGeographyPage />} />
         <Route path="/re" element={<AthroREPage />} />
+        <Route path="/study-skills" element={<AthroStudySkillsPage />} />
+        <Route path="/computer-science" element={<AthroComputerSciencePage />} />
         <Route path="*" element={<Navigate to="/athro/select" replace />} />
       </Routes>
       <AthroSystem />

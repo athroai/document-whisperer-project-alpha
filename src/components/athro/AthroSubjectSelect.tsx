@@ -12,6 +12,18 @@ const AthroSubjectSelect: React.FC = () => {
     setCurrentSubject(subject);
   };
 
+  // Helper function to get route path from subject
+  const getSubjectPath = (subject: string): string => {
+    const pathMap: Record<string, string> = {
+      'Mathematics': 'maths',
+      'Religious Education': 're',
+      'Study Skills': 'study-skills',
+      'Computer Science': 'computer-science'
+    };
+    
+    return pathMap[subject] || subject.toLowerCase();
+  };
+
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-bold text-center mb-6">Select a Subject</h1>
@@ -20,7 +32,7 @@ const AthroSubjectSelect: React.FC = () => {
         {characters.map((character) => (
           <Link 
             key={character.id} 
-            to={`/athro/${character.subject.toLowerCase()}`}
+            to={`/athro/${getSubjectPath(character.subject)}`}
             onClick={() => handleSelectSubject(character.subject)}
           >
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
