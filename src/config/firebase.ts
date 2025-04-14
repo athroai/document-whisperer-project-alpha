@@ -1,3 +1,4 @@
+
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import {
@@ -6,7 +7,7 @@ import {
   getDoc,
   CACHE_SIZE_UNLIMITED,
   persistentLocalCache,
-  persistentSingleTabManager
+  persistentMultipleTabManager
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -32,10 +33,10 @@ try {
   console.warn("[Firebase] Analytics skipped in non-browser environment:", error);
 }
 
-// ✅ Firestore with built-in persistence (no `settings` key — it's invalid!)
+// ✅ Firestore with built-in persistence using multiple tab manager
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
-    tabManager: persistentSingleTabManager(),
+    tabManager: persistentMultipleTabManager(),
     cacheSizeBytes: CACHE_SIZE_UNLIMITED
   }),
   experimentalAutoDetectLongPolling: true
@@ -45,16 +46,30 @@ console.log("[Firestore] Firestore initialized with persistence");
 // ✅ Firebase Storage
 const storage = getStorage(app);
 
-// ✅ Connection check
+// ✅ Connection check with timeout
 export const checkFirestoreConnection = async () => {
+  const timeoutPromise = new Promise<'error'>((resolve) => {
+    setTimeout(() => resolve('error'), 10000); // 10 second timeout
+  });
+  
   try {
-    const testDoc = doc(db, "diagnostics", "connection");
-    await getDoc(testDoc);
-    console.log("[Firestore] Connection successful");
-    return "connected";
+    const connectionPromise = (async () => {
+      try {
+        const testDoc = doc(db, "diagnostics", "connection");
+        await getDoc(testDoc);
+        console.log("[Firestore] Connection successful");
+        return 'connected' as const;
+      } catch (error) {
+        console.warn("[Firestore] Connection check failed:", error);
+        return navigator.onLine ? 'error' as const : 'offline' as const;
+      }
+    })();
+    
+    // Race between connection check and timeout
+    return await Promise.race([connectionPromise, timeoutPromise]);
   } catch (error) {
-    console.warn("[Firestore] Connection check failed:", error);
-    return navigator.onLine ? "error" : "offline";
+    console.error("[Firestore] Connection check unexpected error:", error);
+    return navigator.onLine ? 'error' : 'offline';
   }
 };
 

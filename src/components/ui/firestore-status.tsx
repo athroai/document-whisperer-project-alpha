@@ -4,24 +4,21 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { CloudOff, AlertCircle, Cloud, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-type FirestoreStatusType = "loading" | "connected" | "offline" | "error";
+import { useFirestoreStatus, FirestoreStatus } from "@/contexts/FirestoreStatusContext";
 
 interface FirestoreStatusProps {
-  status: FirestoreStatusType;
   className?: string;
   showSuccessStatus?: boolean;
   compact?: boolean;
-  onRetry?: () => void;
 }
 
 export function FirestoreStatus({
-  status,
   className = "",
   showSuccessStatus = false,
   compact = false,
-  onRetry
 }: FirestoreStatusProps) {
+  const { status, lastCheck, retry } = useFirestoreStatus();
+  
   // If connected and we don't need to show success status, return null
   if (status === "connected" && !showSuccessStatus) {
     return null;
@@ -38,16 +35,14 @@ export function FirestoreStatus({
           >
             <CloudOff className="h-3 w-3" /> Offline Mode
           </Badge>
-          {onRetry && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onRetry} 
-              className="h-6 px-2 ml-1"
-            >
-              <RefreshCw className="h-3 w-3" />
-            </Button>
-          )}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => retry()} 
+            className="h-6 px-2 ml-1"
+          >
+            <RefreshCw className="h-3 w-3" />
+          </Button>
         </div>
       );
     }
@@ -61,16 +56,14 @@ export function FirestoreStatus({
           >
             <AlertCircle className="h-3 w-3" /> Sync Error
           </Badge>
-          {onRetry && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onRetry} 
-              className="h-6 px-2 ml-1"
-            >
-              <RefreshCw className="h-3 w-3" />
-            </Button>
-          )}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => retry()} 
+            className="h-6 px-2 ml-1"
+          >
+            <RefreshCw className="h-3 w-3" />
+          </Button>
         </div>
       );
     }
@@ -86,7 +79,7 @@ export function FirestoreStatus({
       );
     }
     
-    if (status === "loading") {
+    if (status === "checking") {
       return (
         <Badge 
           variant="outline" 
@@ -109,12 +102,12 @@ export function FirestoreStatus({
         <AlertTitle className="text-yellow-800">Working Offline</AlertTitle>
         <AlertDescription className="text-yellow-700 flex flex-col">
           <span>You're currently working offline. Your session data is stored locally and will sync when connectivity is restored.</span>
-          {onRetry && navigator.onLine && (
+          {navigator.onLine && (
             <Button 
               variant="outline" 
               size="sm" 
               className="mt-2 self-start" 
-              onClick={onRetry}
+              onClick={() => retry()}
             >
               <RefreshCw className="h-3 w-3 mr-1" /> Retry Connection
             </Button>
@@ -131,16 +124,14 @@ export function FirestoreStatus({
         <AlertTitle className="text-red-800">Sync Error</AlertTitle>
         <AlertDescription className="text-red-700 flex flex-col">
           <span>We're having trouble connecting to Firestore. Your session is running in local mode only.</span>
-          {onRetry && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2 self-start" 
-              onClick={onRetry}
-            >
-              <RefreshCw className="h-3 w-3 mr-1" /> Retry Connection
-            </Button>
-          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-2 self-start" 
+            onClick={() => retry()}
+          >
+            <RefreshCw className="h-3 w-3 mr-1" /> Retry Connection
+          </Button>
         </AlertDescription>
       </Alert>
     );
@@ -158,7 +149,7 @@ export function FirestoreStatus({
     );
   }
   
-  if (status === "loading") {
+  if (status === "checking") {
     return (
       <Alert variant="default" className={`mb-4 bg-blue-50 border-blue-200 ${className}`}>
         <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Clock, User, BookOpen, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import persistentStorage from '@/services/persistentStorage';
-import { useFirestoreConnection } from '@/hooks/useFirestoreConnection';
+import { useFirestoreStatus } from '@/contexts/FirestoreStatusContext';
 
 interface SessionHistoryItem {
   subject: string;
@@ -24,7 +23,7 @@ const AthroProfile = () => {
   const { state } = useAuth();
   const navigate = useNavigate();
   const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>([]);
-  const { status: firestoreStatus, lastCheck: lastSuccessfulSync, handleRetry } = useFirestoreConnection();
+  const { status: firestoreStatus, lastCheck: lastSuccessfulSync, retry: handleRetry } = useFirestoreStatus();
   
   useEffect(() => {
     let isMounted = true;
@@ -148,8 +147,7 @@ const AthroProfile = () => {
           
           <div className="mt-4">
             <FirestoreStatus 
-              status={firestoreStatus} 
-              onRetry={handleRetry}
+              showSuccessStatus
             />
             {firestoreStatus === 'connected' && lastSuccessfulSync && (
               <p className="text-xs text-muted-foreground mt-1">
