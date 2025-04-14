@@ -69,7 +69,7 @@ export default function App() {
               <Route
                 path="/teacher/*"
                 element={
-                  <ProtectedRoute requiresTeacher={true}>
+                  <ProtectedRoute requiredRole="teacher">
                     <TeacherDashboardPage />
                   </ProtectedRoute>
                 }

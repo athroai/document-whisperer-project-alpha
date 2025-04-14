@@ -114,18 +114,25 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
           // Get the subject in lowercase format for knowledge search
           const knowledgeSubject = character.subject.toLowerCase();
           
-          // Enhance with knowledge
-          const { enhancedContext: knowledgeEnhancement, hasKnowledgeResults: hasResults, searchResults } = 
-            await enhanceResponseWithKnowledge(message, knowledgeSubject);
-          
-          knowledgeContext = knowledgeEnhancement;
-          hasKnowledgeResults = hasResults;
-          knowledgeSearchResults = searchResults || [];
-          
-          if (hasKnowledgeResults) {
-            console.log('[AthroRouter] Successfully retrieved relevant knowledge');
-          } else {
-            console.log('[AthroRouter] No relevant knowledge found');
+          try {
+            // Enhance with knowledge - modified to properly extract search results
+            const knowledgeEnhancement = await enhanceResponseWithKnowledge(message, knowledgeSubject);
+            
+            knowledgeContext = knowledgeEnhancement.enhancedContext;
+            hasKnowledgeResults = knowledgeEnhancement.hasKnowledgeResults;
+            
+            // Search for knowledge again to get the results for citations
+            // This is a workaround as enhanceResponseWithKnowledge doesn't return searchResults directly
+            if (hasKnowledgeResults) {
+              const { searchKnowledgeBase } = await import('@/services/knowledgeBaseService');
+              knowledgeSearchResults = await searchKnowledgeBase(message, knowledgeSubject, 3);
+              
+              console.log('[AthroRouter] Successfully retrieved relevant knowledge');
+            } else {
+              console.log('[AthroRouter] No relevant knowledge found');
+            }
+          } catch (knowledgeError) {
+            console.error('[AthroRouter] Error enhancing with knowledge:', knowledgeError);
           }
         }
         
