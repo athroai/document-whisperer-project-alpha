@@ -1,4 +1,3 @@
-
 import { format, addDays, parse, isAfter, isBefore, areIntervalsOverlapping } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -14,7 +13,7 @@ import { quizService } from './quizService';
 import { assignmentService } from './assignmentService';
 import { progressService } from './progressService';
 import { SubjectData } from '@/contexts/StudentRecordContext';
-import { StudentProgress } from '@/types/progress';
+import { StudentProgress, SubjectProgress } from '@/types/progress';
 
 // Default study routine if user hasn't set one
 const DEFAULT_ROUTINE: StudyRoutine = {
@@ -259,12 +258,14 @@ class TimetableService {
       }
       
       // Factor in progress data if available
-      if (progressData && progressData.subjectProgress) {
-        Object.entries(progressData.subjectProgress).forEach(([subject, progress]) => {
-          // If the subject is below target, increase priority
-          if (progress.currentLevel < progress.targetLevel) {
-            const gap = progress.targetLevel - progress.currentLevel;
-            subjectPriorities[subject] = (subjectPriorities[subject] || 5) + Math.min(3, gap);
+      if (progressData && progressData.subjects) {
+        progressData.subjects.forEach((subjectProgress: SubjectProgress) => {
+          const subject = subjectProgress.subject.toLowerCase();
+          
+          // Use completion rate as a proxy for level - lower completion = higher priority
+          if (subjectProgress.completionRate < 70) {
+            const gap = 70 - subjectProgress.completionRate;
+            subjectPriorities[subject] = (subjectPriorities[subject] || 5) + Math.min(3, Math.floor(gap / 20));
           }
         });
       }
