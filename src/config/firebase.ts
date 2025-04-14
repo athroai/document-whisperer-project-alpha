@@ -1,11 +1,14 @@
+
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import {
   initializeFirestore,
   doc,
   getDoc,
-  experimentalForceLongPolling,
-  experimentalAutoDetectLongPolling
+  enableIndexedDbPersistence,
+  CACHE_SIZE_UNLIMITED,
+  persistentLocalCache,
+  persistentSingleTabManager
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -31,11 +34,17 @@ try {
   console.warn("[Firebase] Analytics disabled or not supported in this environment:", err);
 }
 
-// ✅ Simplified Firestore (no persistence for now to avoid tab conflicts)
+// ✅ Initialize Firestore with persistence settings
 const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true
+  localCache: persistentLocalCache({ 
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    tabManager: persistentSingleTabManager({
+      forceOwningTab: true
+    }) 
+  })
 });
-console.log("[Firestore] Firestore initialized");
+
+console.log("[Firestore] Firestore initialized with built-in persistence");
 
 // ✅ Storage
 const storage = getStorage(app);
@@ -45,7 +54,20 @@ export const checkFirestoreConnection = async () => {
   try {
     console.log("[Firestore] Checking connectivity...");
     const testDoc = doc(db, "diagnostics", "connection");
-    await getDoc(testDoc);
+    
+    // Set a timeout to avoid waiting too long
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("Firestore connection check timed out"));
+      }, 5000); // 5 second timeout
+    });
+    
+    // Race between the connection check and the timeout
+    await Promise.race([
+      getDoc(testDoc),
+      timeoutPromise
+    ]);
+    
     console.log("[Firestore] Connected successfully.");
     return "connected";
   } catch (error) {
