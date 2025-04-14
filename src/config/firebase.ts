@@ -5,9 +5,8 @@ import {
   initializeFirestore,
   doc,
   getDoc,
-  enableIndexedDbPersistence,
   persistentLocalCache,
-  persistentSingleTabManager
+  persistentMultipleTabManager
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -34,18 +33,12 @@ try {
 }
 
 // ✅ Initialize Firestore with proper persistence settings
-// Using memory-only cache for now to avoid conflicts
 const db = initializeFirestore(app, {
-  // Using the simplest possible settings to avoid conflicts
   localCache: persistentLocalCache({
-    settings: {
-      // Use single-tab mode which is more reliable
-      tabManager: persistentSingleTabManager({})
-    }
+    tabManager: persistentMultipleTabManager()
   })
 });
 
-// Don't try to enable persistence as we already configured it above
 console.log("[Firestore] Firestore initialized with built-in persistence");
 
 // ✅ Storage
