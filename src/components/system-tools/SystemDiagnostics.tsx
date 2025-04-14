@@ -22,6 +22,35 @@ const SystemDiagnostics: React.FC = () => {
   const [testAIMode, setTestAIMode] = useState(false);
   const [systemInfo, setSystemInfo] = useState(() => SystemToolsService.getSystemDiagnostics());
   
+  useEffect(() => {
+    // Add network status listeners for debugging
+    const handleOnline = () => {
+      console.log('[Network] Browser reports online status');
+      toast({
+        title: "Network Connected",
+        description: "Your device is now online. Syncing data...",
+        variant: "default"
+      });
+    };
+    
+    const handleOffline = () => {
+      console.log('[Network] Browser reports offline status');
+      toast({
+        title: "Network Disconnected",
+        description: "Your device is offline. Working in local mode.",
+        variant: "default"
+      });
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [toast]);
+  
   // Enable debug mode
   const toggleDebugMode = () => {
     setDebugMode(!debugMode);

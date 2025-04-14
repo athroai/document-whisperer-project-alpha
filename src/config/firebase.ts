@@ -14,6 +14,8 @@ const firebaseConfig = {
   appId: "1:123456789012:web:abcdef1234567890"
 };
 
+console.log('[Firestore] Initializing Firebase app and services...');
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
@@ -26,19 +28,20 @@ const db = initializeFirestore(app, {
 // Only enable persistence if we're online
 // This prevents unnecessary offline mode activation
 if (navigator.onLine) {
+  console.log('[Firestore] Browser reports online, enabling persistence...');
   enableIndexedDbPersistence(db).catch((err) => {
     if (err.code === 'failed-precondition') {
       // Multiple tabs open, persistence can only be enabled in one tab
-      console.warn("Firestore persistence unavailable - multiple tabs open");
+      console.warn("[Firestore] Persistence unavailable - multiple tabs open");
     } else if (err.code === 'unimplemented') {
       // Current browser doesn't support persistence
-      console.warn("Firestore persistence not supported in this browser");
+      console.warn("[Firestore] Persistence not supported in this browser");
     } else {
-      console.error("Firestore persistence error:", err);
+      console.error("[Firestore] Persistence error:", err);
     }
   });
 } else {
-  console.warn("Browser appears to be offline, skipping persistence initialization");
+  console.warn("[Firestore] Browser appears to be offline, skipping persistence initialization");
 }
 
 const storage = getStorage(app);
@@ -46,12 +49,14 @@ const storage = getStorage(app);
 // Export connection status checker
 export const checkFirestoreConnection = async () => {
   try {
+    console.log('[Firestore] Testing connection...');
     // Perform a simple test read to verify connection
     const testDoc = doc(db, '_connection_test', 'test');
     await getDoc(testDoc);
+    console.log('[Firestore] Connection test successful');
     return 'connected';
   } catch (error) {
-    console.warn("Firestore connection check failed:", error);
+    console.warn("[Firestore] Connection check failed:", error);
     return navigator.onLine ? 'error' : 'offline';
   }
 };

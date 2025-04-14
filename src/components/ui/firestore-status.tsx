@@ -104,7 +104,7 @@ export function FirestoreStatus({
   // Full alert mode
   if (status === "offline") {
     return (
-      <Alert className={`mb-4 bg-yellow-50 border-yellow-200 ${className}`}>
+      <Alert variant="default" className={`mb-4 bg-yellow-50 border-yellow-200 ${className}`}>
         <CloudOff className="h-4 w-4 text-yellow-600" />
         <AlertTitle className="text-yellow-800">Working Offline</AlertTitle>
         <AlertDescription className="text-yellow-700 flex flex-col">
@@ -126,7 +126,7 @@ export function FirestoreStatus({
   
   if (status === "error") {
     return (
-      <Alert className={`mb-4 bg-red-50 border-red-200 ${className}`}>
+      <Alert variant="default" className={`mb-4 bg-red-50 border-red-200 ${className}`}>
         <AlertCircle className="h-4 w-4 text-red-600" />
         <AlertTitle className="text-red-800">Sync Error</AlertTitle>
         <AlertDescription className="text-red-700 flex flex-col">
@@ -148,7 +148,7 @@ export function FirestoreStatus({
   
   if (status === "connected" && showSuccessStatus) {
     return (
-      <Alert className={`mb-4 bg-green-50 border-green-200 ${className}`}>
+      <Alert variant="default" className={`mb-4 bg-green-50 border-green-200 ${className}`}>
         <Cloud className="h-4 w-4 text-green-600" />
         <AlertTitle className="text-green-800">Connected to Firestore</AlertTitle>
         <AlertDescription className="text-green-700">
@@ -160,7 +160,7 @@ export function FirestoreStatus({
   
   if (status === "loading") {
     return (
-      <Alert className={`mb-4 bg-blue-50 border-blue-200 ${className}`}>
+      <Alert variant="default" className={`mb-4 bg-blue-50 border-blue-200 ${className}`}>
         <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
         <AlertTitle className="text-blue-800">Syncing Data</AlertTitle>
         <AlertDescription className="text-blue-700">
