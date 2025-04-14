@@ -2,11 +2,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 // Define a type for valid table names in our Supabase database
 type ValidTableName = 'ai_logs' | 'athro_characters' | 'calendar_events' | 
   'feedback' | 'model_answers' | 'past_papers' | 'profiles' | 'quiz_results' | 
   'schools' | 'sets' | 'student_sets' | 'task_submissions' | 'tasks' | 'uploads';
+
+// Define a simpler filter type to avoid deep recursion
+type SimpleFilter = Record<string, any>;
 
 /**
  * A custom hook for making Supabase queries with loading and error handling
@@ -15,7 +19,7 @@ export function useSupabaseQuery<T>(
   tableName: ValidTableName,
   options: {
     select?: string;
-    filter?: Record<string, any>;
+    filter?: SimpleFilter;
     order?: { column: string; ascending?: boolean };
     limit?: number;
     single?: boolean;
@@ -80,16 +84,16 @@ export function useSupabaseQuery<T>(
         query = query.limit(limit);
       }
       
-      // Execute the query
-      const result = single 
-        ? await query.maybeSingle() 
-        : await query;
-        
-      const { data: responseData, error: responseError } = result;
-        
-      if (responseError) throw responseError;
-      
-      setData(responseData as T);
+      // Execute the query, using type assertions instead of deep generic inference
+      if (single) {
+        const { data: responseData, error: responseError } = await query.maybeSingle();
+        if (responseError) throw responseError;
+        setData(responseData as T);
+      } else {
+        const { data: responseData, error: responseError } = await query;
+        if (responseError) throw responseError;
+        setData(responseData as T);
+      }
     } catch (err: any) {
       console.error(`Error fetching data from ${tableName}:`, err);
       setError(new Error(err.message || 'An error occurred'));
@@ -150,16 +154,17 @@ export function useSupabaseRealtime<T>(
     fetchInitialData();
     
     // Set up real-time subscription using the correct Supabase v2 pattern
+    // Fix the TS2769 error by specifying the event as a literal string
     const channel = supabase
       .channel(`table-changes-${tableName}`)
       .on(
-        'postgres_changes',
+        'postgres_changes', // This is now a literal string, not a generic parameter
         {
           event: options.event || '*',
           schema: 'public',
           table: tableName,
         },
-        (payload: any) => {
+        (payload: RealtimePostgresChangesPayload<any>) => {
           // Handle different event types
           if (payload.eventType === 'INSERT') {
             setData(prevData => [...prevData, payload.new as T]);
