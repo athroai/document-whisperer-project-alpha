@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,9 +51,8 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       setError(null);
 
       let query = supabase
-        .from('uploads')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from('uploads' as any)
+        .select('*') as any;
 
       if (tab === 'my-files') {
         query = query.eq('uploaded_by', user.id);
@@ -74,7 +72,6 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
 
       if (error) throw error;
       
-      // Explicitly cast the data to UploadedFile[] since we've updated our type
       setFiles(data as unknown as UploadedFile[]);
     } catch (err: any) {
       console.error('Error fetching files:', err);
@@ -91,14 +88,12 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
 
   const handleDownload = async (file: UploadedFile) => {
     try {
-      // Get bucket name from file record
       const { data, error } = await supabase.storage
         .from(file.bucket_name || 'uploads')
         .download(file.storage_path || '');
         
       if (error) throw error;
       
-      // Create a download link
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
@@ -119,22 +114,19 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
     if (!confirm('Are you sure you want to delete this file?')) return;
     
     try {
-      // Delete from storage
       const { error: storageError } = await supabase.storage
         .from(file.bucket_name || 'uploads')
         .remove([file.storage_path || '']);
         
       if (storageError) throw storageError;
       
-      // Delete from database
       const { error: dbError } = await supabase
-        .from('uploads')
+        .from('uploads' as any)
         .delete()
-        .eq('id', file.id || '');
+        .eq('id', file.id || '') as any;
         
       if (dbError) throw dbError;
       
-      // Update UI
       setFiles(files.filter(f => f.id !== file.id));
       toast.success('File deleted');
     } catch (err: any) {
@@ -148,13 +140,12 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       const newVisibility = file.visibility === 'private' ? 'public' : 'private';
       
       const { error } = await supabase
-        .from('uploads')
-        .update({ visibility: newVisibility })
-        .eq('id', file.id || '');
+        .from('uploads' as any)
+        .update({ visibility: newVisibility } as any)
+        .eq('id', file.id || '') as any;
         
       if (error) throw error;
       
-      // Update UI
       setFiles(files.map(f => 
         f.id === file.id 
           ? { ...f, visibility: newVisibility } 

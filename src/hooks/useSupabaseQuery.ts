@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Valid Supabase table names
+// Valid Supabase table names - including our new tables
 export const validTableNames = [
   'ai_logs', 'athro_characters', 'calendar_events', 'feedback',
   'model_answers', 'past_papers', 'profiles', 'quiz_results',
   'schools', 'sets', 'student_sets', 'task_submissions',
-  'tasks', 'uploads'
+  'tasks', 'uploads', 'recall_entries', 'study_sessions'
 ] as const;
 
 export type ValidTableName = typeof validTableNames[number];
@@ -55,7 +55,7 @@ export function useSupabaseQuery<T = any>(
     setError(null);
 
     try {
-      // Use type assertion to break potential infinite type recursion
+      // Use type assertion to avoid infinite type recursion issues
       let query = supabase.from(tableName).select(select) as any;
 
       if (filter) {

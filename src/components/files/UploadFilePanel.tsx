@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,7 +92,7 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
           .getPublicUrl(filePath);
 
         const { error: dbError } = await supabase
-          .from('uploads')
+          .from('uploads' as any)
           .insert({
             filename: fileName,
             original_name: file.name,
@@ -107,7 +106,7 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
             size: file.size,
             file_type: topic || 'general',
             uploaded_by: state.user.id
-          });
+          } as any);
 
         if (dbError) {
           throw new Error(`Database error: ${dbError.message}`);
