@@ -61,7 +61,18 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
 const generateMockResponse = (message: string, character: AthroCharacter): string => {
   const lowerMessage = message.toLowerCase();
   
+  // Basic arithmetic handling for Math subject
   if (character.subject === 'Mathematics') {
+    // Check for simple arithmetic operations
+    if (/\d+\s*[\+\-\*\/]\s*\d+/.test(lowerMessage)) {
+      // Check specifically for "2-1" pattern
+      if (lowerMessage.includes('2-1')) {
+        return "2-1 = 1. This is a simple subtraction. Would you like to try more complex problems?";
+      }
+      
+      return "I can help with that calculation. Let's work through this step by step.";
+    }
+    
     if (lowerMessage.includes('equation') || lowerMessage.includes('solve')) {
       // Include LaTeX formatting for math
       return "Let's solve this step by step. If we have the equation:\n\n$x^2 + 3x - 4 = 0$\n\nWe can use the quadratic formula:\n\n$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$\n\nWould you like me to continue with the solution?";
@@ -72,6 +83,11 @@ const generateMockResponse = (message: string, character: AthroCharacter): strin
     if (lowerMessage.includes('atom') || lowerMessage.includes('element')) {
       return "The atom is the basic unit of matter. It consists of a nucleus (protons and neutrons) with electrons orbiting around it. The number of protons defines which element it is. Would you like to explore a specific element or learn more about atomic structure?";
     }
+  }
+  
+  // Handle non-mathematical questions that might be personal
+  if (lowerMessage.includes('old') || lowerMessage.includes('age')) {
+    return "I'm here to help with your GCSE Mathematics studies. Let's focus on a specific math topic you'd like to explore or practice. Would you like to work on algebra, geometry, or something else?";
   }
   
   // Generic response

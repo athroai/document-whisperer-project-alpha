@@ -171,8 +171,21 @@ export function useAthroMessages() {
   const generateMockResponse = (message: string, character: AthroCharacter): string => {
     const lowerMessage = message.toLowerCase();
     
-    if (lowerMessage.includes('2+2') || lowerMessage.includes('2 + 2')) {
-      return "2 + 2 = 4. That's a simple arithmetic question! Would you like to try something more challenging?";
+    // Handle basic arithmetic operations
+    if (/\d+\s*[\+\-\*\/]\s*\d+/.test(lowerMessage)) {
+      // Check specifically for "2-1" pattern
+      if (lowerMessage.includes('2-1')) {
+        return "2-1 = 1. This is a simple subtraction. Would you like to try more complex problems?";
+      }
+      
+      if (lowerMessage.includes('2+2') || lowerMessage.includes('2 + 2')) {
+        return "2 + 2 = 4. That's a simple arithmetic question! Would you like to try something more challenging?";
+      }
+    }
+    
+    // Handle non-mathematical questions that might be personal
+    if (lowerMessage.includes('old') || lowerMessage.includes('age')) {
+      return "I'm here to help with your GCSE studies. Let's focus on a specific topic you'd like to explore or practice in " + character.subject + ".";
     }
     
     if (character.subject === 'Mathematics') {

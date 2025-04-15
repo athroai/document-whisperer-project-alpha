@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Send, AlertTriangle, Wifi, WifiOff, Bug } from 'lucide-react';
+import { Send, AlertTriangle, Wifi, WifiOff, Bug, Info } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
@@ -78,6 +78,23 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     sendMessage("2+2=?", activeCharacter);
   };
 
+  // Add a check functionality to test math expressions
+  const sendMathTest = () => {
+    console.log('🧮 Testing math response');
+    if (!activeCharacter) {
+      console.log('❌ No active character for math test');
+      toast({
+        title: "No Character Selected",
+        description: "Please select a subject mentor first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Send a simple subtraction that had issues
+    sendMessage("2-1", activeCharacter);
+  };
+
   const handleSend = () => {
     if (!inputMessage.trim() || !activeCharacter) {
       if (!activeCharacter) {
@@ -124,6 +141,15 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
           <span>Status: {isOnline ? 'Connected' : 'Offline'}</span>
         </div>
         <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-6 text-xs" 
+            onClick={sendMathTest}
+          >
+            <Info className="h-3 w-3 mr-1" />
+            Test 2-1
+          </Button>
           <Button 
             variant="outline" 
             size="sm" 
