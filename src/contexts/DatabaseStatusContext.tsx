@@ -25,10 +25,10 @@ export const DatabaseStatusProvider: React.FC<{ children: React.ReactNode }> = (
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
   
-  const CONNECTION_TIMEOUT = 20000;
+  const CONNECTION_TIMEOUT = 15000; // 15 seconds timeout
 
   const checkConnection = useCallback(async (): Promise<DatabaseStatus> => {
-    console.log('Checking database connection...');
+    console.log('Checking Supabase connection...');
     
     // Check if device is offline first
     if (!navigator.onLine) {
@@ -50,7 +50,7 @@ export const DatabaseStatusProvider: React.FC<{ children: React.ReactNode }> = (
         if (status === 'error' || status === 'timeout') {
           toast({
             title: "Connection Restored",
-            description: "Successfully connected to database.",
+            description: "Successfully connected to Supabase.",
             variant: "success",
           });
         }

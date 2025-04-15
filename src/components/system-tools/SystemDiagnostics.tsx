@@ -5,23 +5,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
 
 const SystemDiagnostics = () => {
-  const [databasePing, setDatabasePing] = useState<number | null>(null);
+  const [databaseLatency, setDatabaseLatency] = useState<number | null>(null);
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
   const { status } = useDatabaseStatus();
 
   useEffect(() => {
     // Check database connectivity
-    const checkDatabaseConnection = async () => {
+    const checkDatabaseLatency = async () => {
       const start = performance.now();
       try {
         const { data } = await supabase.from('profiles').select('count').limit(1);
         const end = performance.now();
-        setDatabasePing(Math.round(end - start));
+        setDatabaseLatency(Math.round(end - start));
         setOfflineMode(false);
       } catch (error) {
-        console.error('Error pinging database:', error);
-        setDatabasePing(null);
+        console.error('Error measuring database latency:', error);
+        setDatabaseLatency(null);
         setOfflineMode(true);
       }
     };
@@ -39,12 +39,12 @@ const SystemDiagnostics = () => {
       }
     };
 
-    checkDatabaseConnection();
+    checkDatabaseLatency();
     checkNetworkLatency();
 
     // Set up interval to check periodically
     const interval = setInterval(() => {
-      checkDatabaseConnection();
+      checkDatabaseLatency();
       checkNetworkLatency();
     }, 60000); // Check every minute
 
@@ -68,7 +68,7 @@ const SystemDiagnostics = () => {
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-500">Database Latency:</span>
             <span className="text-sm font-medium">
-              {databasePing ? `${databasePing}ms` : 'Unavailable'}
+              {databaseLatency ? `${databaseLatency}ms` : 'Unavailable'}
             </span>
           </div>
           <div className="flex justify-between items-center">

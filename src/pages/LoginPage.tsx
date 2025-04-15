@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -75,6 +75,7 @@ const LoginPage: React.FC = () => {
       });
       navigate('/home');
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: error.message || "Please check your credentials and try again",
@@ -105,7 +106,7 @@ const LoginPage: React.FC = () => {
         const statusMessages = {
           'offline': "You are currently offline",
           'timeout': "Connection timed out after 20 seconds",
-          'error': result.error?.message || "Could not connect to Supabase"
+          'error': result.error?.message || "Could not connect to database"
         };
         
         toast({
@@ -201,7 +202,7 @@ const LoginPage: React.FC = () => {
                 <h3 className="font-medium text-orange-800">Connection Timeout</h3>
               </div>
               <p className="mt-1 text-sm text-orange-700">
-                Connection to Supabase timed out. This may be due to high server load or network issues.
+                Connection to the database timed out. This may be due to network issues.
               </p>
               <Button 
                 onClick={handleTestConnection} 
@@ -227,10 +228,10 @@ const LoginPage: React.FC = () => {
             <div className="p-4 mb-4 bg-red-50 border border-red-200 rounded-md">
               <div className="flex items-center">
                 <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                <h3 className="font-medium text-red-800">Supabase Unreachable</h3>
+                <h3 className="font-medium text-red-800">Database Unreachable</h3>
               </div>
               <p className="mt-1 text-sm text-red-700">
-                {connectionError ? connectionError.message : "Unable to connect to Supabase."}
+                {connectionError ? connectionError.message : "Unable to connect to the database."}
               </p>
               <div className="flex flex-col mt-2 space-y-2">
                 <Button 

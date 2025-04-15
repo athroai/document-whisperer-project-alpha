@@ -16,7 +16,7 @@ export function useDatabaseConnection(options?: UseDatabaseConnectionOptions) {
   const {
     showToasts = true,
     suppressInitialToasts = true,
-    timeoutMs = 20000
+    timeoutMs = 15000
   } = options || {};
   
   const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
@@ -44,11 +44,11 @@ export function useDatabaseConnection(options?: UseDatabaseConnectionOptions) {
         },
         'error': {
           title: "Supabase Unreachable",
-          description: "Having trouble connecting to Supabase. Using local data for now."
+          description: "Having trouble connecting to database. Using local data for now."
         },
         'timeout': {
           title: "Connection Timed Out",
-          description: "Connection to Supabase timed out. Using local data for now."
+          description: "Connection to database timed out. Using local data for now."
         }
       };
       

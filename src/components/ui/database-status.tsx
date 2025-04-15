@@ -1,206 +1,96 @@
 
 import React from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { CloudOff, AlertCircle, Cloud, RefreshCw, Wifi, WifiOff, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useDatabaseStatus } from "@/contexts/DatabaseStatusContext";
+import { Badge } from "./badge";
+import { AlertCircle, CheckCircle, Clock, WifiOff } from "lucide-react";
+import { Button } from "./button";
 
-interface DatabaseStatusProps {
-  className?: string;
-  showSuccessStatus?: boolean;
-  compact?: boolean;
-}
+export const DatabaseStatus = () => {
+  const { status, lastCheck, retry, error } = useDatabaseStatus();
 
-export function DatabaseStatus({
-  className = "",
-  showSuccessStatus = false,
-  compact = false,
-}: DatabaseStatusProps) {
-  const { status, retry, error } = useDatabaseStatus();
-  
-  // If connected and we don't need to show success status, return null
-  if (status === "connected" && !showSuccessStatus) {
-    return null;
-  }
-  
-  // For compact mode, show badges
-  if (compact) {
-    if (status === "offline") {
-      return (
-        <div className="flex items-center">
-          <Badge 
-            variant="outline" 
-            className="bg-yellow-50 text-yellow-800 border-yellow-200 flex items-center gap-1"
-          >
-            <WifiOff className="h-3 w-3" /> Working Offline
-          </Badge>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => retry()} 
-            className="h-6 px-2 ml-1"
-          >
-            <RefreshCw className="h-3 w-3" />
-          </Button>
-        </div>
-      );
+  const getBadgeColor = () => {
+    switch (status) {
+      case 'connected':
+        return "bg-green-100 text-green-800 hover:bg-green-200";
+      case 'checking':
+        return "bg-blue-100 text-blue-800 hover:bg-blue-200";
+      case 'offline':
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
+      case 'timeout':
+        return "bg-orange-100 text-orange-800 hover:bg-orange-200";
+      case 'error':
+        return "bg-red-100 text-red-800 hover:bg-red-200";
+      default:
+        return "bg-gray-100 text-gray-800 hover:bg-gray-200";
     }
-    
-    if (status === "error") {
-      return (
-        <div className="flex items-center">
-          <Badge 
-            variant="outline" 
-            className="bg-red-50 text-red-800 border-red-200 flex items-center gap-1"
-          >
-            <AlertCircle className="h-3 w-3" /> Supabase Unreachable
-          </Badge>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => retry()} 
-            className="h-6 px-2 ml-1"
-          >
-            <RefreshCw className="h-3 w-3" />
-          </Button>
-        </div>
-      );
+  };
+
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'connected':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'checking':
+        return <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>;
+      case 'offline':
+        return <WifiOff className="h-4 w-4" />;
+      case 'timeout':
+        return <Clock className="h-4 w-4" />;
+      case 'error':
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return null;
     }
-    
-    if (status === "timeout") {
-      return (
-        <div className="flex items-center">
-          <Badge 
-            variant="outline" 
-            className="bg-orange-50 text-orange-800 border-orange-200 flex items-center gap-1"
-          >
-            <Clock className="h-3 w-3" /> Connection Timeout
-          </Badge>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => retry()} 
-            className="h-6 px-2 ml-1"
-          >
-            <RefreshCw className="h-3 w-3" />
-          </Button>
-        </div>
-      );
+  };
+
+  const getStatusText = () => {
+    switch (status) {
+      case 'connected':
+        return "Connected";
+      case 'checking':
+        return "Checking";
+      case 'offline':
+        return "Offline";
+      case 'timeout':
+        return "Timeout";
+      case 'error':
+        return "Error";
+      default:
+        return "Unknown";
     }
-    
-    if (status === "connected" && showSuccessStatus) {
-      return (
-        <Badge 
-          variant="outline" 
-          className="bg-green-50 text-green-800 border-green-200 flex items-center gap-1"
+  };
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center space-x-2">
+        <Badge
+          variant="outline"
+          className={`cursor-default flex items-center space-x-1 ${getBadgeColor()}`}
         >
-          <Cloud className="h-3 w-3" /> Connected
+          {getStatusIcon()}
+          <span>{getStatusText()}</span>
         </Badge>
-      );
-    }
-    
-    if (status === "checking") {
-      return (
-        <Badge 
-          variant="outline" 
-          className="bg-blue-50 text-blue-800 border-blue-200 flex items-center gap-1"
-        >
-          <span className="h-3 w-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-1" />
-          Connecting...
-        </Badge>
-      );
-    }
-    
-    return null;
-  }
-  
-  // Full alert mode
-  if (status === "offline") {
-    return (
-      <Alert variant="default" className={`mb-4 bg-yellow-50 border-yellow-200 ${className}`}>
-        <WifiOff className="h-4 w-4 text-yellow-600" />
-        <AlertTitle className="text-yellow-800">Working Offline</AlertTitle>
-        <AlertDescription className="text-yellow-700 flex flex-col">
-          <span>You're currently working offline. Your data is stored locally and will sync when connectivity is restored.</span>
-          {navigator.onLine && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2 self-start" 
-              onClick={() => retry()}
-            >
-              <RefreshCw className="h-3 w-3 mr-1" /> Retry Connection
-            </Button>
-          )}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  if (status === "error") {
-    return (
-      <Alert variant="default" className={`mb-4 bg-red-50 border-red-200 ${className}`}>
-        <AlertCircle className="h-4 w-4 text-red-600" />
-        <AlertTitle className="text-red-800">Supabase Unreachable</AlertTitle>
-        <AlertDescription className="text-red-700 flex flex-col">
-          <span>We're having trouble connecting to our database servers. {error?.message || "Please try again later."}</span>
+        
+        {status !== 'connected' && status !== 'checking' && (
           <Button 
-            variant="outline" 
+            variant="ghost" 
             size="sm" 
-            className="mt-2 self-start" 
             onClick={() => retry()}
+            className="h-7 px-2"
           >
-            <RefreshCw className="h-3 w-3 mr-1" /> Retry Connection
+            Retry
           </Button>
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  if (status === "timeout") {
-    return (
-      <Alert variant="default" className={`mb-4 bg-orange-50 border-orange-200 ${className}`}>
-        <Clock className="h-4 w-4 text-orange-600" />
-        <AlertTitle className="text-orange-800">Connection Timed Out</AlertTitle>
-        <AlertDescription className="text-orange-700 flex flex-col">
-          <span>The connection to Supabase timed out. This may be due to high server load or network issues.</span>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-2 self-start" 
-            onClick={() => retry()}
-          >
-            <RefreshCw className="h-3 w-3 mr-1" /> Retry Connection
-          </Button>
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  if (status === "connected" && showSuccessStatus) {
-    return (
-      <Alert variant="default" className={`mb-4 bg-green-50 border-green-200 ${className}`}>
-        <Cloud className="h-4 w-4 text-green-600" />
-        <AlertTitle className="text-green-800">Connected</AlertTitle>
-        <AlertDescription className="text-green-700">
-          Your data is being synchronized with the cloud. You can continue your studies on any device.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  if (status === "checking") {
-    return (
-      <Alert variant="default" className={`mb-4 bg-blue-50 border-blue-200 ${className}`}>
-        <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-        <AlertTitle className="text-blue-800">Connecting</AlertTitle>
-        <AlertDescription className="text-blue-700">
-          Connecting to Supabase...
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  return null;
-}
+        )}
+      </div>
+      
+      {status === 'error' && error && (
+        <p className="text-xs text-red-600 mt-1">{error.message}</p>
+      )}
+      
+      {status !== 'checking' && lastCheck && (
+        <p className="text-xs text-gray-500 mt-1">
+          Last check: {lastCheck.toLocaleTimeString()}
+        </p>
+      )}
+    </div>
+  );
+};

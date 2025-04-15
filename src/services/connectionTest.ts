@@ -24,17 +24,19 @@ export const testSupabaseConnection = async (timeoutMs = 10000): Promise<Connect
   }
 
   const startTime = Date.now();
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
+  
   try {
+    // Set timeout for the request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
     // Run a simple Supabase query
     const { data, error } = await supabase
       .from('profiles')
-      .select('id')
-      .limit(1);
-
-    clearTimeout(timeout);
+      .select('count')
+      .abortSignal(controller.signal);
+    
+    clearTimeout(timeoutId);
     const duration = Date.now() - startTime;
 
     if (error) {
@@ -43,7 +45,7 @@ export const testSupabaseConnection = async (timeoutMs = 10000): Promise<Connect
         status: 'error',
         error,
         duration,
-        message: `Database query failed: ${error.message}`
+        message: `Database error: ${error.message}`
       };
     }
 
@@ -55,7 +57,6 @@ export const testSupabaseConnection = async (timeoutMs = 10000): Promise<Connect
       message: `Connected successfully in ${duration}ms`
     };
   } catch (error: any) {
-    clearTimeout(timeout);
     const duration = Date.now() - startTime;
     const isAbort = error.name === 'AbortError';
 

@@ -23,16 +23,5 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Simple utility function to test connection
-export const testConnection = async () => {
-  try {
-    const { data, error } = await supabase.from('profiles').select('count');
-    if (error) throw error;
-    return { success: true, message: 'Connected to Supabase' };
-  } catch (error) {
-    console.error('Error connecting to Supabase:', error);
-    return { success: false, error };
-  }
-};
-
+// Export a default instance
 export default supabase;
