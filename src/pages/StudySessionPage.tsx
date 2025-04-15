@@ -94,9 +94,6 @@ const StudySessionPage: React.FC = () => {
         tone: athroCharacters[subject as keyof typeof athroCharacters].tone
       };
       
-      setTimeout(() => {
-        sendMessage(`Hello! I'm ${activeCharacter.name}, your ${subject} mentor. How can I help you today?`, activeCharacter);
-      }, 100);
       
       setShowOptions(true);
       setActiveSession(null);
@@ -108,20 +105,7 @@ const StudySessionPage: React.FC = () => {
       setShowOptions(false);
       setActiveSession('ai');
       
-      const activeCharacter: AthroCharacter = {
-        id: currentSubject.toLowerCase(),
-        name: currentAthro.name,
-        subject: currentSubject as AthroSubject,
-        topics: currentAthro.topics,
-        examBoards: ['wjec', 'aqa', 'ocr'],
-        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
-        avatarUrl: currentAthro.avatar,
-        shortDescription: `Your ${currentSubject} study mentor`,
-        fullDescription: currentAthro.fullDescription,
-        tone: currentAthro.tone
-      };
       
-      sendMessage(`What would you like help with in ${currentSubject} today? I'm here to answer any questions about your studies.`, activeCharacter);
     },
 
     startManualSession: () => {
@@ -150,29 +134,16 @@ const StudySessionPage: React.FC = () => {
         tone: currentAthro.tone
       };
       
-      sendMessage(`Let's review ${topic}. What specific aspect would you like to focus on?`, activeCharacter);
+      
     },
 
     continueWithoutTopic: () => {
-      const activeCharacter: AthroCharacter = {
-        id: currentSubject.toLowerCase(),
-        name: currentAthro.name,
-        subject: currentSubject as AthroSubject,
-        topics: currentAthro.topics,
-        examBoards: ['wjec', 'aqa', 'ocr'],
-        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
-        avatarUrl: currentAthro.avatar,
-        shortDescription: `Your ${currentSubject} study mentor`,
-        fullDescription: currentAthro.fullDescription,
-        tone: currentAthro.tone
-      };
       
-      sendMessage(`What would you like to learn about in ${currentSubject} today? I'm here to help with any questions you might have.`, activeCharacter);
     },
 
     handleModalClose: () => {
       setActiveSession(null);
-      handleActions.continueWithoutTopic();
+      
     },
 
     handlePaperSelection: (paper: string) => {
@@ -191,7 +162,7 @@ const StudySessionPage: React.FC = () => {
         tone: currentAthro.tone
       };
       
-      sendMessage(`I've loaded ${paper}. Let's work through it together. Ask me about any question you find challenging.`, activeCharacter);
+      
     },
 
     handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,7 +182,7 @@ const StudySessionPage: React.FC = () => {
           tone: currentAthro.tone
         };
         
-        sendMessage(`I've received your file "${fileName}". Let's work through it together. What question would you like to start with?`, activeCharacter);
+        
       }
     },
 
@@ -236,7 +207,7 @@ const StudySessionPage: React.FC = () => {
         tone: currentAthro.tone
       };
       
-      sendMessage(`Let's take a look at ${fileReference}. What specific part would you like to focus on?`, activeCharacter);
+      
     },
     
     handlePomodoroComplete: () => {
@@ -275,6 +246,7 @@ const StudySessionPage: React.FC = () => {
     }
   };
 
+  
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>

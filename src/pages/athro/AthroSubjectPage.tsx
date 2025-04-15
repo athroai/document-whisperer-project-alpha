@@ -26,8 +26,7 @@ const AthroSubjectPage: React.FC = () => {
       // If we're changing characters or loading fresh, clear messages
       clearMessages();
       
-      // CRITICAL: Do not send any automatic welcome messages here
-      // Previous automatic message was removed from here
+      // Removed automatic welcome message here
     } else {
       // If no matching character found, redirect to Athro selector page
       navigate('/athro');
