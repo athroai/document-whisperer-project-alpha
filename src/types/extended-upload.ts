@@ -1,7 +1,11 @@
 
 import type { Database } from "@/integrations/supabase/types";
 
-export interface ExtendedUpload extends Database['public']['Tables']['uploads']['Row'] {
+// Define the base type from Supabase schema
+type UploadRow = Database['public']['Tables']['uploads']['Row'];
+
+// Create ExtendedUpload using type intersection instead of extends
+export interface ExtendedUpload extends UploadRow {
   bucket_name?: string;
   file_URL?: string;
   fileURL?: string;
@@ -9,7 +13,7 @@ export interface ExtendedUpload extends Database['public']['Tables']['uploads'][
 }
 
 // Function to convert database record to extended upload type
-export const toExtendedUpload = (data: Database['public']['Tables']['uploads']['Row']): ExtendedUpload => {
+export const toExtendedUpload = (data: UploadRow): ExtendedUpload => {
   return {
     ...data,
     bucket_name: 'student_uploads', // Default bucket name
