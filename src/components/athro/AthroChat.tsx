@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
@@ -189,8 +188,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
       const userMessage = `I've uploaded a document: ${file.name}`;
       const messageResult = await sendMessage(userMessage, currentCharacter);
       
-      // If we have a message ID and upload result, link the document to the message
-      if (messageResult && uploadResult.id) {
+      if (messageResult !== null && uploadResult.id) {
         const linkResult = await linkDocumentToMessage(uploadResult.id, messageResult.id);
         console.log('Document linked to message:', linkResult);
       }

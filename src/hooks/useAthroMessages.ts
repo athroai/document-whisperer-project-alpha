@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
@@ -112,6 +113,9 @@ export function useAthroMessages() {
       }
       
       // Make the actual API call to OpenAI for non-welcome messages
+      // Fix for TS2304: Define the systemPrompt variable properly
+      const systemPrompt = buildSystemPrompt(activeCharacter);
+      
       const response = await getOpenAIResponse({
         systemPrompt: systemPrompt,
         userMessage: content,
