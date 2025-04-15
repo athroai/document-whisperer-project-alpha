@@ -52,23 +52,27 @@ export function useAthroMessages() {
     const requestId = Date.now().toString();
     activeRequests.current.add(requestId);
     
-    // Add user message to chat
-    const userMessage: AthroMessage = {
-      id: requestId,
-      senderId: 'user',
-      content,
-      timestamp: new Date().toISOString(),
-    };
+    // Add user message to chat (except for welcome message)
+    const isWelcomeMessage = content.toLowerCase() === "welcome";
     
-    setMessages(prevMessages => {
-      const updatedMessages = [...prevMessages, userMessage];
-      console.log('✅ Adding user message', { 
-        prevMessageCount: prevMessages.length, 
-        newMessageCount: updatedMessages.length,
-        newMessageContent: content 
+    if (!isWelcomeMessage) {
+      const userMessage: AthroMessage = {
+        id: requestId,
+        senderId: 'user',
+        content,
+        timestamp: new Date().toISOString(),
+      };
+      
+      setMessages(prevMessages => {
+        const updatedMessages = [...prevMessages, userMessage];
+        console.log('✅ Adding user message', { 
+          prevMessageCount: prevMessages.length, 
+          newMessageCount: updatedMessages.length,
+          newMessageContent: content 
+        });
+        return updatedMessages;
       });
-      return updatedMessages;
-    });
+    }
     
     setIsTyping(true);
     

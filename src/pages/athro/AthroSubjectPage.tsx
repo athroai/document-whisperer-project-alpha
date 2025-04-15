@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 const AthroSubjectPage: React.FC = () => {
   const { subject } = useParams<{ subject: string }>();
-  const { characters, setActiveCharacter } = useAthro();
+  const { characters, setActiveCharacter, sendMessage, messages } = useAthro();
   const navigate = useNavigate();
 
   // Find the character that matches the subject from the URL
@@ -22,11 +22,20 @@ const AthroSubjectPage: React.FC = () => {
     // If character exists, set it as active
     if (character) {
       setActiveCharacter(character);
+      
+      // Check if there are no messages and send a welcome message
+      if (messages.length === 0) {
+        const welcomeMessage = `Hello, I'm ${character.name}. How can I help with your ${character.subject} studies today?`;
+        // Small delay to ensure character is set
+        setTimeout(() => {
+          sendMessage("welcome", character);
+        }, 100);
+      }
     } else {
       // If no matching character found, redirect to Athro selector page
       navigate('/athro');
     }
-  }, [character, setActiveCharacter, navigate]);
+  }, [character, setActiveCharacter, navigate, messages.length, sendMessage]);
 
   if (!character) {
     return (
