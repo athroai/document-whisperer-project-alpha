@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,19 +10,13 @@ import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { toast } from 'sonner';
-
-// Define Athro characters with proper subjects and avatars
-const subjects = [
-  { name: 'Mathematics', mentor: 'AthroMaths', image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png', progress: 65 },
-  { name: 'Science', mentor: 'AthroScience', image: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png', progress: 42 },
-  { name: 'History', mentor: 'AthroHistory', image: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png', progress: 78 },
-  { name: 'English', mentor: 'AthroEnglish', image: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png', progress: 54 },
-];
+import { useAthro } from '@/contexts/AthroContext';
 
 const HomePage: React.FC = () => {
   const { state } = useAuth();
   const { user } = state;
   const navigate = useNavigate();
+  const { characters } = useAthro();
   const [isConfidenceModalOpen, setIsConfidenceModalOpen] = useState(false);
   const [confidenceScore, setConfidenceScore] = useState(5);
   const [currentAthro, setCurrentAthro] = useState({
@@ -31,8 +24,22 @@ const HomePage: React.FC = () => {
     subject: 'Mathematics',
     image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
   });
+
+  const subjectCharacters = characters.filter(char => 
+    !['AthroAI', 'Timekeeper', 'System'].includes(char.subject)
+  );
   
-  // Get greeting based on time of day
+  const subjectProgress = {
+    'Mathematics': 65,
+    'Science': 42,
+    'History': 78,
+    'English': 54,
+    'Welsh': 30,
+    'Geography': 45,
+    'Languages': 60,
+    'Religious Education': 51
+  };
+  
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
@@ -41,7 +48,6 @@ const HomePage: React.FC = () => {
   };
 
   const handleConfidenceSubmit = () => {
-    // In a real implementation, this would store the data in a database
     console.log(`User confidence score: ${confidenceScore} for ${currentAthro.subject}`);
     toast.success(`Your confidence score of ${confidenceScore}/10 has been recorded!`);
     setIsConfidenceModalOpen(false);
@@ -56,7 +62,6 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-12 md:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Hero Section with Daily Greeting */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-xl p-6 mb-8 text-white">
           <div className="flex flex-col md:flex-row items-center md:items-start">
             <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
@@ -73,7 +78,6 @@ const HomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Feature Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Button 
             onClick={() => navigate('/study')}
@@ -104,18 +108,18 @@ const HomePage: React.FC = () => {
           <div className="md:col-span-2 space-y-6">
             <h2 className="text-xl font-bold text-gray-800">Your Subjects</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {subjects.map((subject) => (
-                <Card key={subject.name} className="hover:shadow-md transition-shadow">
+              {subjectCharacters.map((character) => (
+                <Card key={character.id} className="hover:shadow-md transition-shadow">
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle>{subject.name}</CardTitle>
-                        <CardDescription>with {subject.mentor}</CardDescription>
+                        <CardTitle>{character.subject}</CardTitle>
+                        <CardDescription>with {character.name}</CardDescription>
                       </div>
                       <div className="w-12 h-12 rounded-full overflow-hidden">
                         <img 
-                          src={subject.image} 
-                          alt={subject.mentor} 
+                          src={character.avatarUrl} 
+                          alt={character.name} 
                           className="w-full h-full object-cover" 
                         />
                       </div>
@@ -125,13 +129,13 @@ const HomePage: React.FC = () => {
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
                       <div 
                         className="bg-purple-600 h-2.5 rounded-full" 
-                        style={{ width: `${subject.progress}%` }}
+                        style={{ width: `${subjectProgress[character.subject] || 0}%` }}
                       ></div>
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">{subject.progress}% complete</p>
+                    <p className="text-sm text-gray-500 mt-2">{subjectProgress[character.subject] || 0}% complete</p>
                   </CardContent>
                   <CardFooter className="pt-0">
-                    <Link to="/study" className="w-full">
+                    <Link to={`/athro/${character.subject.toLowerCase()}`} className="w-full">
                       <Button variant="outline" className="w-full">
                         <BookOpen className="mr-2 h-4 w-4" /> Continue
                       </Button>
@@ -277,7 +281,6 @@ const HomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Floating Athro Avatar */}
         <div className="fixed bottom-8 right-8 z-10">
           <Popover>
             <PopoverTrigger asChild>
@@ -293,25 +296,25 @@ const HomePage: React.FC = () => {
                 <h3 className="font-medium">Change your Athro</h3>
                 <p className="text-sm text-gray-500">Select your subject mentor:</p>
                 <div className="grid grid-cols-2 gap-2 mt-2">
-                  {subjects.map((subject) => (
+                  {subjectCharacters.slice(0, 6).map((character) => (
                     <Button 
-                      key={subject.mentor}
+                      key={character.id}
                       variant="outline" 
                       className="flex flex-col h-auto p-2 items-center justify-center"
                       onClick={() => {
                         setCurrentAthro({
-                          name: subject.mentor,
-                          subject: subject.name,
-                          image: subject.image
+                          name: character.name,
+                          subject: character.subject,
+                          image: character.avatarUrl
                         });
-                        toast.success(`${subject.mentor} is now your active mentor!`);
+                        toast.success(`${character.name} is now your active mentor!`);
                       }}
                     >
                       <Avatar className="h-8 w-8 mb-1">
-                        <AvatarImage src={subject.image} />
-                        <AvatarFallback>{subject.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={character.avatarUrl} />
+                        <AvatarFallback>{character.name.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <span className="text-xs">{subject.mentor}</span>
+                      <span className="text-xs">{character.name}</span>
                     </Button>
                   ))}
                 </div>
@@ -321,7 +324,6 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Confidence Check Modal */}
       <Dialog open={isConfidenceModalOpen} onOpenChange={setIsConfidenceModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
