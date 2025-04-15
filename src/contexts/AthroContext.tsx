@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
 import { getOpenAIResponse } from '@/lib/openai';
 import { athroCharacters, getAthroById } from '@/config/athrosConfig';
+import { SubjectData } from '@/types/athroCharacter';
 
 // Define the shape of our context
 interface AthroContextType {
@@ -150,9 +150,14 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
       // Temporary hardcoded OpenAI API key for direct usage
       const openAIApiKey = "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";
       
-      // Call OpenAI with the API key
+      // Call OpenAI with the API key and updated system prompt
       const response = await getOpenAIResponse({
-        systemPrompt: `You are ${activeCharacter.name}, an AI mentor for ${activeCharacter.subject}. Respond helpfully and professionally.`,
+        systemPrompt: `You are ${activeCharacter.name}, an AI mentor for the subject ${activeCharacter.subject}.
+You are currently helping a student studying for the ${activeCharacter.examBoards?.[0] || 'UK'} exam board.
+Your tone is ${activeCharacter.tone || 'supportive and helpful'}.
+
+Respond clearly and concisely, aiming to build confidence in the student.
+You may use examples where useful, and your answer should always relate directly to the topic asked.`,
         userMessage: content,
         apiKey: openAIApiKey
       });
