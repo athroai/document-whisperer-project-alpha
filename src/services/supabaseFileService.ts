@@ -151,22 +151,25 @@ export const supabaseFileService = {
       
       if (error) throw error;
       
-      return data.map(file => ({
-        id: file.id,
-        uploadedBy: file.uploaded_by,
-        subject: file.subject,
-        fileType: file.file_type || file.mime_type,
-        visibility: file.visibility,
-        filename: file.filename,
-        original_name: file.original_name,
-        storagePath: file.storage_path,
-        timestamp: file.created_at,
-        size: file.size,
-        mimeType: file.mime_type,
-        url: file.file_url,
-        bucket_name: file.bucket_name,
-        file_url: file.file_url
-      }));
+      return data.map(file => {
+        const extendedFile = toExtendedUpload(file);
+        return {
+          id: file.id,
+          uploadedBy: file.uploaded_by,
+          subject: file.subject,
+          fileType: file.file_type || file.mime_type,
+          visibility: file.visibility,
+          filename: file.filename,
+          original_name: file.original_name,
+          storagePath: file.storage_path,
+          timestamp: file.created_at,
+          size: file.size,
+          mimeType: file.mime_type,
+          url: file.file_url,
+          bucket_name: extendedFile.bucket_name,
+          file_url: file.file_url
+        };
+      });
     } catch (error: any) {
       console.error('Error fetching shared files:', error);
       throw error;
