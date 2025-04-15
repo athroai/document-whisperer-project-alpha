@@ -1,5 +1,3 @@
-// src/services/connectionTest.ts
-
 import { supabase } from '@/integrations/supabase/client';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -18,63 +16,86 @@ export interface ConnectionTestResult {
 }
 
 export const testSupabaseConnection = async (timeoutMs = 10000): Promise<ConnectionTestResult> => {
-  if (!navigator.onLine) {
-    return {
-      success: false,
-      status: 'offline',
-      message: 'Your device is offline',
-    };
-  }
-
-  const startTime = Date.now();
-
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .limit(1)
-      .abortSignal(controller.signal);
-
-    clearTimeout(timeout);
-
-    const duration = Date.now() - startTime;
-
-    if (error) {
+    // Step 1: Check local network state
+    if (!navigator.onLine) {
+      console.log('🚫 Device is offline');
       return {
         success: false,
-        status: 'error',
-        error,
-        message: `Database query failed: ${error.message}`,
-        duration,
-        diagnosticInfo: {
-          errorCode: error.code,
-          details: error.details,
-          hint: error.hint,
-        },
+        status: 'offline',
+        message: 'You are offline. Please check your internet connection.'
       };
     }
 
-    return {
-      success: true,
-      status: 'connected',
-      data,
-      duration,
-      message: `Connected successfully in ${duration}ms`,
-    };
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    const isAbort = error.name === 'AbortError';
+    const startTime = Date.now();
 
+    // Step 2: Check Supabase session
+    console.log('🔍 Checking Supabase session...');
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error('⚠️ Supabase session error:', sessionError);
+    }
+    if (!sessionData || !sessionData.session) {
+      console.warn('🛑 No active Supabase session. Are you logged in?');
+    } else {
+      console.log('✅ Supabase session exists:', sessionData.session.user);
+    }
+
+    // Step 3: Create timeout fallback
+    const timeoutPromise = new Promise<ConnectionTestResult>((resolve) => {
+      setTimeout(() => {
+        console.log(`⏱️ Connection timed out after ${timeoutMs}ms`);
+        resolve({
+          success: false,
+          status: 'timeout',
+          message: `Connection timed out after ${timeoutMs / 1000} seconds`
+        });
+      }, timeoutMs);
+    });
+
+    // Step 4: Execute actual Supabase query
+    const queryPromise = supabase
+      .from('profiles')
+      .select('id')
+      .limit(1)
+      .then(({ data, error }) => {
+        const duration = Date.now() - startTime;
+
+        if (error) {
+          console.error('🔥 Supabase query error:', error);
+          return {
+            success: false,
+            status: 'error',
+            error,
+            message: `Database query failed: ${error.message}`,
+            duration,
+            diagnosticInfo: {
+              errorCode: error.code,
+              details: error.details,
+              hint: error.hint
+            }
+          };
+        }
+
+        console.log(`🎉 Supabase query successful in ${duration}ms`, data);
+        return {
+          success: true,
+          status: 'connected',
+          message: `Connected successfully in ${duration}ms`,
+          duration,
+          data
+        };
+      });
+
+    // Step 5: Race timeout vs query
+    return await Promise.race([queryPromise, timeoutPromise]);
+  } catch (error: any) {
+    console.error('❌ Unexpected error during connection test:', error);
     return {
       success: false,
-      status: isAbort ? 'timeout' : 'error',
+      status: 'error',
       error,
-      duration,
-      message: isAbort ? `Connection timed out after ${timeoutMs / 1000}s` : error.message,
-      isNetworkError: error.name === 'TypeError',
+      message: error.message || 'Unknown connection test error'
     };
   }
 };
