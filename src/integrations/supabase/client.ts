@@ -41,63 +41,18 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Comprehensive connection test function
-export const testConnection = async () => {
-  try {
-    console.log('Testing Supabase connection...');
-    
-    // First try a plain fetch to see if the domain is reachable
-    try {
-      console.log('Testing basic network connectivity to Supabase domain...');
-      const domainResponse = await fetch(`${SUPABASE_URL}/ping`, { 
-        method: 'GET',
-        mode: 'no-cors' // This won't give response data but will tell us if network connection works
-      });
-      console.log('Domain reachability test complete', domainResponse);
-    } catch (error) {
-      console.error('Cannot reach Supabase domain - possible network/CORS issue:', error);
-    }
-    
-    // Add timeout to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), 10000)
-    );
-    
-    console.log('Testing database query...');
-    const queryPromise = supabase.from('profiles').select('count').limit(1);
-    
-    // Race between the query and timeout
-    const { data, error } = await Promise.race([
-      queryPromise,
-      timeoutPromise.then(() => {
-        throw new Error('Connection timeout');
-      })
-    ]);
-    
-    if (error) {
-      console.error('Connection test failed with error:', error);
-      return { success: false, error, message: error.message };
-    }
-    
-    console.log('Connection test successful:', data);
-    return { success: true, data };
-  } catch (error: any) {
-    console.error('Connection test exception:', error);
-    return { 
-      success: false, 
-      error, 
-      message: error.message || 'Unknown connection error',
-      isNetworkError: error.name === 'TypeError' && error.message.includes('Failed to fetch')
-    };
-  }
-};
+// Import the improved connection test
+import { testSupabaseConnection } from '@/services/connectionTest';
+
+// Export the connection test for use elsewhere
+export const testConnection = testSupabaseConnection;
 
 // Run an initial connection test when the client is loaded
 setTimeout(() => {
   console.log('Running initial connection test...');
-  testConnection().then(result => {
+  testSupabaseConnection().then(result => {
     if (!result.success) {
-      console.log('Initial connection test failed. Check Supabase project settings.');
+      console.log(`Initial connection test failed: ${result.message}`);
     }
   });
 }, 1000);

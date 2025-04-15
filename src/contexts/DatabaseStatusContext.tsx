@@ -2,8 +2,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { testSupabaseConnection } from '@/services/connectionTest';
 
-export type DatabaseStatus = 'checking' | 'connected' | 'offline' | 'error';
+export type DatabaseStatus = 'checking' | 'connected' | 'offline' | 'error' | 'timeout';
 
 interface DatabaseStatusContextType {
   status: DatabaseStatus;
@@ -24,10 +25,14 @@ export const DatabaseStatusProvider: React.FC<{ children: React.ReactNode }> = (
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+  
+  // Connection timeout in milliseconds (20 seconds)
+  const CONNECTION_TIMEOUT = 20000;
 
   const checkConnection = useCallback(async (): Promise<DatabaseStatus> => {
     console.log('Checking database connection...');
     
+    // Check if device is offline first
     if (!navigator.onLine) {
       console.log('Device is offline');
       setError(new Error('You are offline. Please check your internet connection.'));
@@ -35,77 +40,54 @@ export const DatabaseStatusProvider: React.FC<{ children: React.ReactNode }> = (
     }
 
     try {
-      // First try a simple fetch to see if the domain is reachable
-      try {
-        console.log('Testing basic connectivity to Supabase domain...');
-        await fetch('https://oqpwgxrqwbgchirnnejj.supabase.co/ping', { 
-          method: 'GET',
-          mode: 'no-cors',
-          cache: 'no-cache'
-        });
-      } catch (networkError) {
-        console.error('Basic connectivity test failed:', networkError);
-        setError(new Error('Cannot reach the Supabase server. Check your network connection and firewall settings.'));
-        return navigator.onLine ? 'error' : 'offline';
-      }
-      
-      // Use longer timeout (10s) for actual query
-      const timeoutPromise = new Promise<DatabaseStatus>((resolve) => {
-        setTimeout(() => {
-          console.log('Connection check timed out after 10 seconds');
-          resolve('error');
-        }, 10000);
-      });
-      
-      const connectionPromise = (async () => {
-        try {
-          console.log('Testing connection to Supabase...');
-          // Using a simple query that should always return quickly
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('count')
-            .limit(1);
-          
-          if (error) {
-            console.error("Connection test error:", error);
-            setError(new Error(`Database error: ${error.message}`));
-            return 'error';
-          }
-          
-          console.log('Connection test successful:', data);
-          setError(null);
-          return 'connected';
-        } catch (error: any) {
-          console.error("Connection test exception:", error);
-          setError(error instanceof Error ? error : new Error(String(error)));
-          return navigator.onLine ? 'error' : 'offline';
-        }
-      })();
-      
-      // Race between connection check and timeout
-      const result = await Promise.race([connectionPromise, timeoutPromise]);
+      // Use the improved testSupabaseConnection function with 20s timeout
+      const result = await testSupabaseConnection(CONNECTION_TIMEOUT);
       setLastCheck(new Date());
-      setStatus(result);
       
-      // Show toast only when status changes from error to connected
-      if (status === 'error' && result === 'connected') {
-        toast({
-          title: "Connection Restored",
-          description: "Successfully connected to database.",
-          variant: "success",
-        });
+      // Handle different result types
+      if (result.success) {
+        console.log(`Connection test successful (${result.duration}ms)`);
+        setError(null);
+        setStatus('connected');
+        
+        // Show toast only when status changes from error/timeout to connected
+        if (status === 'error' || status === 'timeout') {
+          toast({
+            title: "Connection Restored",
+            description: "Successfully connected to database.",
+            variant: "success",
+          });
+        }
+        
+        return 'connected';
+      } else {
+        // Handle different error types
+        if (result.status === 'offline') {
+          console.log('Device is offline');
+          setError(new Error('You are offline. Please check your internet connection.'));
+          setStatus('offline');
+          return 'offline';
+        } else if (result.status === 'timeout') {
+          console.log(`Connection timed out after ${CONNECTION_TIMEOUT/1000}s`);
+          setError(new Error(`Connection timed out after ${CONNECTION_TIMEOUT/1000} seconds. The server might be experiencing high load.`));
+          setStatus('timeout');
+          return 'timeout';
+        } else {
+          // General error
+          console.error("Connection test error:", result.error);
+          setError(new Error(result.message || 'Database connection error'));
+          setStatus('error');
+          return 'error';
+        }
       }
-      
-      return result;
     } catch (error: any) {
       console.error("Connection check unexpected error:", error);
       setError(error instanceof Error ? error : new Error(String(error)));
-      const newStatus = navigator.onLine ? 'error' : 'offline';
-      setStatus(newStatus);
+      setStatus('error');
       setLastCheck(new Date());
-      return newStatus;
+      return 'error';
     }
-  }, [status, toast]);
+  }, [status, toast, CONNECTION_TIMEOUT]);
 
   // Check connection when component mounts
   useEffect(() => {

@@ -2,19 +2,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { testSupabaseConnection } from '@/services/connectionTest';
 
-export type DatabaseConnectionStatus = 'checking' | 'connected' | 'offline' | 'error';
+export type DatabaseConnectionStatus = 'checking' | 'connected' | 'offline' | 'error' | 'timeout';
 
 interface UseDatabaseConnectionOptions {
   showToasts?: boolean;
   suppressInitialToasts?: boolean;
+  timeoutMs?: number;
 }
 
 export function useDatabaseConnection(options?: UseDatabaseConnectionOptions) {
   const {
     showToasts = true,
-    suppressInitialToasts = true
+    suppressInitialToasts = true,
+    timeoutMs = 20000
   } = options || {};
   
   const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
@@ -29,15 +31,32 @@ export function useDatabaseConnection(options?: UseDatabaseConnectionOptions) {
     if (status === 'connected' && retryCount > 0) {
       toast({
         title: "Connection Restored",
-        description: "Successfully connected to the database. Your data is now being synced.",
-        variant: "default",
+        description: "Successfully connected to Supabase. Your data is now being synced.",
+        variant: "success",
       });
-    } else if ((status === 'error' || status === 'offline') && (!suppressInitialToasts || hasShownInitialToast || retryCount > 0)) {
+    } else if ((status === 'error' || status === 'offline' || status === 'timeout') && 
+               (!suppressInitialToasts || hasShownInitialToast || retryCount > 0)) {
+      
+      const statusMessages = {
+        'offline': {
+          title: "You're Offline",
+          description: "Working in offline mode. Your changes will sync when you're back online."
+        },
+        'error': {
+          title: "Supabase Unreachable",
+          description: "Having trouble connecting to Supabase. Using local data for now."
+        },
+        'timeout': {
+          title: "Connection Timed Out",
+          description: "Connection to Supabase timed out. Using local data for now."
+        }
+      };
+      
+      const message = statusMessages[status as keyof typeof statusMessages];
+      
       toast({
-        title: status === 'offline' ? "You're Offline" : "Connection Error",
-        description: status === 'offline' 
-          ? "Working in offline mode. Your changes will sync when you're back online."
-          : "Having trouble connecting to the database. Using local data for now.",
+        title: message.title,
+        description: message.description,
         variant: "default",
       });
     }
@@ -48,12 +67,12 @@ export function useDatabaseConnection(options?: UseDatabaseConnectionOptions) {
   const handleRetry = useCallback(async () => {
     setRetryCount(count => count + 1);
     try {
-      const { data } = await supabase.from('profiles').select('count').limit(1);
-      return data ? 'connected' : 'error';
+      const result = await testSupabaseConnection(timeoutMs);
+      return result.status as DatabaseConnectionStatus;
     } catch (error) {
       return navigator.onLine ? 'error' : 'offline';
     }
-  }, []);
+  }, [timeoutMs]);
   
   return {
     status,

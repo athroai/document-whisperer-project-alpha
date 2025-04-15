@@ -11,7 +11,7 @@ import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
 import { DatabaseStatus } from '@/components/ui/database-status';
 import { testSupabaseConnection } from '@/services/connectionTest';
-import { AlertCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { AlertCircle, RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -54,10 +54,12 @@ const LoginPage: React.FC = () => {
     }
 
     // Don't attempt to login if there's a connection error
-    if (connectionStatus === 'error') {
+    if (connectionStatus === 'error' || connectionStatus === 'timeout') {
       toast({
-        title: "Connection Issue",
-        description: "Can't connect to authentication service. Please try again later.",
+        title: connectionStatus === 'timeout' ? "Connection Timeout" : "Connection Issue",
+        description: connectionStatus === 'timeout' 
+          ? "Connection to authentication service timed out. Please try again later."
+          : "Can't connect to authentication service. Please try again later.",
         variant: "destructive"
       });
       return;
@@ -87,20 +89,8 @@ const LoginPage: React.FC = () => {
     setIsTestingConnection(true);
     setConnectionResults(null);
     try {
-      // Test if we can reach the Supabase URL
-      try {
-        console.log("Testing basic fetch to Supabase domain...");
-        const response = await fetch("https://oqpwgxrqwbgchirnnejj.supabase.co", {
-          method: 'HEAD',
-          mode: 'no-cors' // This won't give us response details but can tell if network is blocked
-        });
-        console.log("Basic fetch test completed", response);
-      } catch (error) {
-        console.error("Basic fetch test failed:", error);
-      }
-      
-      // Test the actual Supabase connection
-      const result = await testSupabaseConnection();
+      // Use the improved connection test
+      const result = await testSupabaseConnection(20000);
       setConnectionResults(result);
       
       if (result.success) {
@@ -112,9 +102,15 @@ const LoginPage: React.FC = () => {
         // Manually update the database status
         await retryConnection();
       } else {
+        const statusMessages = {
+          'offline': "You are currently offline",
+          'timeout': "Connection timed out after 20 seconds",
+          'error': result.error?.message || "Could not connect to Supabase"
+        };
+        
         toast({
           title: "Connection Test Failed",
-          description: result.error?.message || "Could not connect to Supabase",
+          description: statusMessages[result.status as keyof typeof statusMessages] || "Connection test failed",
           variant: "destructive"
         });
       }
@@ -198,14 +194,43 @@ const LoginPage: React.FC = () => {
                 )}
               </Button>
             </div>
+          ) : connectionStatus === 'timeout' ? (
+            <div className="p-4 mb-4 bg-orange-50 border border-orange-200 rounded-md">
+              <div className="flex items-center">
+                <Clock className="h-5 w-5 text-orange-500 mr-2" />
+                <h3 className="font-medium text-orange-800">Connection Timeout</h3>
+              </div>
+              <p className="mt-1 text-sm text-orange-700">
+                Connection to Supabase timed out. This may be due to high server load or network issues.
+              </p>
+              <Button 
+                onClick={handleTestConnection} 
+                disabled={isTestingConnection}
+                variant="outline"
+                size="sm"
+                className="mt-2"
+              >
+                {isTestingConnection ? (
+                  <>
+                    <LoadingSpinner className="mr-2 h-4 w-4" />
+                    <span>Testing connection...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <span>Test Connection</span>
+                  </>
+                )}
+              </Button>
+            </div>
           ) : connectionStatus === 'error' ? (
             <div className="p-4 mb-4 bg-red-50 border border-red-200 rounded-md">
               <div className="flex items-center">
                 <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                <h3 className="font-medium text-red-800">Connection Error</h3>
+                <h3 className="font-medium text-red-800">Supabase Unreachable</h3>
               </div>
               <p className="mt-1 text-sm text-red-700">
-                {connectionError ? connectionError.message : "Unable to connect to the database."}
+                {connectionError ? connectionError.message : "Unable to connect to Supabase."}
               </p>
               <div className="flex flex-col mt-2 space-y-2">
                 <Button 

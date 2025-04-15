@@ -2,7 +2,7 @@
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { CloudOff, AlertCircle, Cloud, RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { CloudOff, AlertCircle, Cloud, RefreshCw, Wifi, WifiOff, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDatabaseStatus } from "@/contexts/DatabaseStatusContext";
 
@@ -54,7 +54,28 @@ export function DatabaseStatus({
             variant="outline" 
             className="bg-red-50 text-red-800 border-red-200 flex items-center gap-1"
           >
-            <AlertCircle className="h-3 w-3" /> Connection Issue
+            <AlertCircle className="h-3 w-3" /> Supabase Unreachable
+          </Badge>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => retry()} 
+            className="h-6 px-2 ml-1"
+          >
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        </div>
+      );
+    }
+    
+    if (status === "timeout") {
+      return (
+        <div className="flex items-center">
+          <Badge 
+            variant="outline" 
+            className="bg-orange-50 text-orange-800 border-orange-200 flex items-center gap-1"
+          >
+            <Clock className="h-3 w-3" /> Connection Timeout
           </Badge>
           <Button 
             variant="ghost" 
@@ -121,9 +142,29 @@ export function DatabaseStatus({
     return (
       <Alert variant="default" className={`mb-4 bg-red-50 border-red-200 ${className}`}>
         <AlertCircle className="h-4 w-4 text-red-600" />
-        <AlertTitle className="text-red-800">Connection Issue</AlertTitle>
+        <AlertTitle className="text-red-800">Supabase Unreachable</AlertTitle>
         <AlertDescription className="text-red-700 flex flex-col">
-          <span>We're having trouble connecting to our servers. {error?.message || "Please check your connection."}</span>
+          <span>We're having trouble connecting to our database servers. {error?.message || "Please try again later."}</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-2 self-start" 
+            onClick={() => retry()}
+          >
+            <RefreshCw className="h-3 w-3 mr-1" /> Retry Connection
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  if (status === "timeout") {
+    return (
+      <Alert variant="default" className={`mb-4 bg-orange-50 border-orange-200 ${className}`}>
+        <Clock className="h-4 w-4 text-orange-600" />
+        <AlertTitle className="text-orange-800">Connection Timed Out</AlertTitle>
+        <AlertDescription className="text-orange-700 flex flex-col">
+          <span>The connection to Supabase timed out. This may be due to high server load or network issues.</span>
           <Button 
             variant="outline" 
             size="sm" 
@@ -155,7 +196,7 @@ export function DatabaseStatus({
         <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
         <AlertTitle className="text-blue-800">Connecting</AlertTitle>
         <AlertDescription className="text-blue-700">
-          Connecting to server...
+          Connecting to Supabase...
         </AlertDescription>
       </Alert>
     );
