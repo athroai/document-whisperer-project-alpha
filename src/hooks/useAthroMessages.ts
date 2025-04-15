@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
@@ -79,15 +78,6 @@ export function useAthroMessages() {
     setIsTyping(true);
     
     try {
-      const systemPrompt = buildSystemPrompt(activeCharacter);
-      console.log('🤖 System prompt built:', { 
-        characterName: activeCharacter.name, 
-        systemPromptLength: systemPrompt.length,
-        promptStart: systemPrompt.substring(0, 50) + '...'
-      });
-
-      console.log('🌐 Network status before API call:', navigator.onLine ? 'Online' : 'Offline');
-      
       // For welcome messages, create a predefined response directly without API call
       if (isWelcomeMessage) {
         const welcomeResponse = `Hello, I'm ${activeCharacter.name}. How can I help with your ${activeCharacter.subject} studies today?`;
