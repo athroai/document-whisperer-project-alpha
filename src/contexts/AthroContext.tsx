@@ -12,7 +12,7 @@ interface AthroContextType {
   messages: AthroMessage[];
   sendMessage: (content: string) => void;
   isTyping: boolean;
-  studentProgress: Record<AthroSubject, {
+  studentProgress: Record<string, {
     confidenceScores: Record<string, number>;
     quizScores: Array<{ topic: string; score: number; date: string }>;
   }>;
@@ -27,7 +27,7 @@ const AthroContext = createContext<AthroContextType>({
   messages: [],
   sendMessage: () => {},
   isTyping: false,
-  studentProgress: {} as Record<AthroSubject, {
+  studentProgress: {} as Record<string, {
     confidenceScores: Record<string, number>;
     quizScores: Array<{ topic: string; score: number; date: string }>;
   }>,
@@ -47,8 +47,8 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const [messages, setMessages] = useState<AthroMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   
-  // Mock student progress data (would normally come from an API)
-  const [studentProgress, setStudentProgress] = useState<Record<AthroSubject, {
+  // Mock student progress data with updated type (would normally come from an API)
+  const [studentProgress, setStudentProgress] = useState<Record<string, {
     confidenceScores: Record<string, number>;
     quizScores: Array<{ topic: string; score: number; date: string }>;
   }>>({
