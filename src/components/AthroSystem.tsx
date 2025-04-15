@@ -16,7 +16,8 @@ const AthroSystem: React.FC = () => {
   useEffect(() => {
     console.log('🎮 AthroSystem component mounted');
     
-    // Removed automatic initial greeting that was here
+    // CRITICAL: No automatic messages should be sent here
+    // Previous implementation had a greeting here that was removed
     
     return () => console.log('🎮 AthroSystem component unmounted');
   }, []);

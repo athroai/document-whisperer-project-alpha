@@ -21,7 +21,8 @@ export function useAthroMessages() {
     if (!initializedRef.current) {
       console.log('🔄 useAthroMessages: Initial setup');
       initializedRef.current = true;
-      // Removed any automatic initial message that might have been here
+      // CRITICAL: No automatic welcome message should be sent here
+      // Previous implementation may have had a message here
     }
     
     return () => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,8 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ocrFileInputRef = useRef<HTMLInputElement>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
-  const initialMessageSent = useRef(false);
+  
+  // CRITICAL: Removed initialMessageSent ref and automatic welcome messages
   
   const currentCharacter = character || activeCharacter;
   
@@ -64,7 +66,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
     console.log('🎭 AthroChat component mounted with', messages.length, 'messages');
     return () => {
       console.log('🎭 AthroChat component unmounted');
-      initialMessageSent.current = false;
+      // CRITICAL: Removed reset of initialMessageSent.current here
     };
   }, [messages.length]);
   
