@@ -170,7 +170,7 @@ const SettingsPage: React.FC = () => {
                         <SelectValue placeholder="Select a school" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {schools.map((school) => (
                           <SelectItem key={school.id} value={school.id}>
                             {school.name}

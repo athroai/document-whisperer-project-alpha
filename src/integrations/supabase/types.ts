@@ -511,6 +511,62 @@ export type Database = {
           },
         ]
       }
+      uploads: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          file_type: string | null
+          file_url: string | null
+          filename: string | null
+          id: string
+          mime_type: string | null
+          original_name: string | null
+          size: number | null
+          storage_path: string | null
+          subject: string | null
+          uploaded_by: string | null
+          visibility: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          filename?: string | null
+          id?: string
+          mime_type?: string | null
+          original_name?: string | null
+          size?: number | null
+          storage_path?: string | null
+          subject?: string | null
+          uploaded_by?: string | null
+          visibility?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          filename?: string | null
+          id?: string
+          mime_type?: string | null
+          original_name?: string | null
+          size?: number | null
+          storage_path?: string | null
+          subject?: string | null
+          uploaded_by?: string | null
+          visibility?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uploads_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
