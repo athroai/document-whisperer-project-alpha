@@ -48,6 +48,11 @@ const AthroSelectorPage: React.FC = () => {
     }
   };
   
+  // Helper function to convert subject name to URL path
+  const getSubjectPath = (subject: string): string => {
+    return subject.toLowerCase().replace(/ /g, '-');
+  };
+  
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6 text-center">
@@ -95,7 +100,7 @@ const AthroSelectorPage: React.FC = () => {
               </div>
               <Button 
                 className="w-full" 
-                onClick={() => navigate(`/athro/${character.subject.toLowerCase()}`)}
+                onClick={() => navigate(`/athro/${getSubjectPath(character.subject)}`)}
               >
                 Study with {character.name}
               </Button>

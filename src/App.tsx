@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -26,6 +25,7 @@ import AthroPage from "./pages/AthroPage";
 
 // Lazy-loaded Pages
 const AthroMathsPage = React.lazy(() => import('./pages/athro/AthroMathsPage'));
+const AthroSubjectPage = React.lazy(() => import('./pages/athro/AthroSubjectPage'));
 
 // Teacher dashboard pages
 import TeacherSetsPage from "./pages/teacher/TeacherSetsPage";
@@ -81,20 +81,7 @@ const App = () => (
                   } />
                   
                   {/* Athro Routes */}
-                  <Route path="/athro" element={<AthroPage />} />
-                  <Route path="/athro/mathematics" element={
-                    <ProtectedRoute>
-                      {({ user }) => (
-                        <>
-                          <Navigation />
-                          <Suspense fallback={<div>Loading...</div>}>
-                            <AthroMathsPage />
-                          </Suspense>
-                          <AthroSystem />
-                        </>
-                      )}
-                    </ProtectedRoute>
-                  } />
+                  <Route path="/athro/*" element={<AthroPage />} />
                   
                   <Route path="/calendar" element={
                     <ProtectedRoute>
@@ -174,4 +161,3 @@ const App = () => (
 );
 
 export default App;
-
