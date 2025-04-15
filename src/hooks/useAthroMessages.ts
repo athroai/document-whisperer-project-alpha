@@ -12,6 +12,9 @@ export function useAthroMessages() {
   const initializedRef = useRef(false);
   const messagesRef = useRef<AthroMessage[]>([]);
   
+  // For storing the API key - in production this would be securely managed
+  const [openAIApiKey, setOpenAIApiKey] = useState<string>("");
+  
   useEffect(() => {
     messagesRef.current = messages;
     console.log('💬 Messages updated:', messages.length);
@@ -21,6 +24,13 @@ export function useAthroMessages() {
     if (!initializedRef.current) {
       console.log('🔄 useAthroMessages: Initial setup');
       initializedRef.current = true;
+      
+      // Check for stored API key in localStorage
+      const storedApiKey = localStorage.getItem('openai_api_key');
+      if (storedApiKey) {
+        setOpenAIApiKey(storedApiKey);
+        console.log('🔑 Loaded stored API key');
+      }
     }
     
     return () => {
@@ -34,6 +44,14 @@ export function useAthroMessages() {
     setMessages([]);
   }, []);
 
+  // Function to set API key (will be used by an input in StudySessionPage)
+  const setApiKey = useCallback((key: string) => {
+    setOpenAIApiKey(key);
+    // Store in localStorage for persistence
+    localStorage.setItem('openai_api_key', key);
+    console.log('🔑 API key updated and stored');
+  }, []);
+
   const sendMessage = useCallback(async (content: string, activeCharacter?: AthroCharacter | null) => {
     console.log('📨 Sending message:', { 
       content, 
@@ -45,6 +63,15 @@ export function useAthroMessages() {
       console.warn('❌ Cannot send message: No active character or empty content', {
         hasActiveCharacter: !!activeCharacter,
         contentLength: content.trim().length
+      });
+      return;
+    }
+    
+    if (!openAIApiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter your OpenAI API key to continue.",
+        variant: "destructive",
       });
       return;
     }
@@ -73,12 +100,6 @@ export function useAthroMessages() {
     setIsTyping(true);
     
     try {
-      // FIXED: Properly formatted API key
-      const openAIApiKey = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; // Replace with your API key in production
-      
-      // For demo purposes, we'll use a safe dummy key format for preview/testing
-      const demoKey = "sk-demo-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-      
       const systemPrompt = buildSystemPrompt(activeCharacter);
       console.log('🤖 System prompt built:', { 
         characterName: activeCharacter.name, 
@@ -88,24 +109,12 @@ export function useAthroMessages() {
 
       console.log('🌐 Network status before API call:', navigator.onLine ? 'Online' : 'Offline');
       
-      // FIXED: For demo purposes, simulate a response rather than making a real API call
-      let response;
-      
-      if (process.env.NODE_ENV === 'development' || !openAIApiKey.startsWith('sk-') || openAIApiKey.includes('xxxxxxx')) {
-        console.log('🧪 Using simulated response for development/demo');
-        
-        // Simulate typing delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        response = generateMockResponse(content, activeCharacter);
-      } else {
-        // Only make real API call if we have a proper key
-        response = await getOpenAIResponse({
-          systemPrompt: systemPrompt,
-          userMessage: content,
-          apiKey: openAIApiKey
-        });
-      }
+      // Make the actual API call to OpenAI
+      const response = await getOpenAIResponse({
+        systemPrompt: systemPrompt,
+        userMessage: content,
+        apiKey: openAIApiKey
+      });
       
       console.log('✨ Response received', { 
         responseLength: response?.length || 0,
@@ -165,50 +174,14 @@ export function useAthroMessages() {
       activeRequests.current.delete(requestId);
       setIsTyping(false);
     }
-  }, []);
-
-  // ADDED: Helper function to generate mock responses for demo/development
-  const generateMockResponse = (message: string, character: AthroCharacter): string => {
-    const lowerMessage = message.toLowerCase();
-    
-    // Handle basic arithmetic operations
-    if (/\d+\s*[\+\-\*\/]\s*\d+/.test(lowerMessage)) {
-      // Check specifically for "2-1" pattern
-      if (lowerMessage.includes('2-1')) {
-        return "2-1 = 1. This is a simple subtraction. Would you like to try more complex problems?";
-      }
-      
-      if (lowerMessage.includes('2+2') || lowerMessage.includes('2 + 2')) {
-        return "2 + 2 = 4. That's a simple arithmetic question! Would you like to try something more challenging?";
-      }
-    }
-    
-    // Handle non-mathematical questions that might be personal
-    if (lowerMessage.includes('old') || lowerMessage.includes('age')) {
-      return "I'm here to help with your GCSE studies. Let's focus on a specific topic you'd like to explore or practice in " + character.subject + ".";
-    }
-    
-    if (character.subject === 'Mathematics') {
-      if (lowerMessage.includes('equation') || lowerMessage.includes('solve')) {
-        return "Let's work through this equation step by step. First, we need to identify what type of equation we're dealing with. Is it linear, quadratic, or something else? Once we know that, we can apply the appropriate method to solve it.";
-      }
-      
-      if (lowerMessage.includes('algebra') || lowerMessage.includes('simplify')) {
-        return "Algebra is all about finding the unknown values. When simplifying expressions, remember to collect like terms and apply the order of operations (BODMAS/PEMDAS). Would you like me to demonstrate with an example?";
-      }
-    }
-    
-    if (character.subject === 'Science') {
-      return "That's an interesting question about Science! In the GCSE curriculum, we cover topics ranging from biology to physics and chemistry. Could you tell me which specific area you'd like to explore more?";
-    }
-    
-    return `I'm ${character.name}, your ${character.subject} mentor. I'm here to help you understand GCSE-level ${character.subject} concepts. What specific topic would you like to explore today?`;
-  };
+  }, [openAIApiKey]);
 
   return {
     messages,
     isTyping,
     sendMessage,
-    clearMessages
+    clearMessages,
+    setApiKey,
+    hasApiKey: !!openAIApiKey
   };
 }

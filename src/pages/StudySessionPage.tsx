@@ -1,13 +1,13 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Send, ThumbsUp, Clock, BookOpen, GraduationCap, FileText } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Send, ThumbsUp, Clock, BookOpen, GraduationCap, FileText, Key } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import PomodoroTimer from '@/components/PomodoroTimer';
 import { toast } from '@/hooks/use-toast';
 import FileReference from '@/components/FileReference';
@@ -16,8 +16,8 @@ import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
 import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
 import { pastPapers, PastPaper } from '@/data/athro-maths/past-papers';
+import { useAthroMessages } from '@/hooks/useAthroMessages';
 
-// Character data - moved outside component to avoid recreation on re-renders
 const athroCharacters = {
   Mathematics: { 
     name: 'AthroMaths', 
@@ -50,15 +50,9 @@ const athroCharacters = {
 };
 
 const StudySessionPage: React.FC = () => {
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([
-    { 
-      text: "Hello there! I'm your comprehensive GCSE study mentor. How can I help you with your studies today?", 
-      sender: 'athro',
-      avatar: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png'
-    },
-  ]);
+  const { messages, isTyping, sendMessage, clearMessages, setApiKey, hasApiKey } = useAthroMessages();
   
+  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showOptions, setShowOptions] = useState(true);
   const [activeSession, setActiveSession] = useState<'ai' | 'manual' | 'past-paper' | null>(null);
@@ -69,47 +63,93 @@ const StudySessionPage: React.FC = () => {
   const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
   const [showFileReferences, setShowFileReferences] = useState(false);
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
-  const [hasShownFallback, setHasShownFallback] = useState(false);
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [localMessages, setLocalMessages] = useState<any[]>([
+    { 
+      text: "Hello there! I'm your comprehensive GCSE study mentor. How can I help you with your studies today?", 
+      sender: 'athro',
+      avatar: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png'
+    },
+  ]);
 
-  // Get current topics based on the selected subject
+  useEffect(() => {
+    if (!hasApiKey) {
+      setShowApiKeyDialog(true);
+    }
+  }, [hasApiKey]);
+
   const currentTopics = currentAthro?.topics || [];
 
-  // Paper list for select
   const paperList = pastPapers.map(paper => paper.title);
 
   const mockUserId = 'user_1';
+
+  const handleApiKeySubmit = () => {
+    if (apiKeyInput.trim()) {
+      setApiKey(apiKeyInput.trim());
+      setShowApiKeyDialog(false);
+      toast({
+        title: "API Key Set",
+        description: "Your OpenAI API key has been saved.",
+      });
+    } else {
+      toast({
+        title: "Invalid API Key",
+        description: "Please enter a valid API key.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleActions = {
     changeSubject: (subject: string) => {
       setCurrentSubject(subject);
       setCurrentAthro(athroCharacters[subject as keyof typeof athroCharacters]);
       
-      setMessages([
-        { 
-          text: `Hello! I'm ${athroCharacters[subject as keyof typeof athroCharacters].name}, your ${subject} mentor. How can I help you today?`, 
-          sender: 'athro',
-          avatar: athroCharacters[subject as keyof typeof athroCharacters].avatar
-        },
-      ]);
+      clearMessages();
+      
+      const activeCharacter: AthroCharacter = {
+        id: subject.toLowerCase(),
+        name: athroCharacters[subject as keyof typeof athroCharacters].name,
+        subject: subject as AthroSubject,
+        topics: athroCharacters[subject as keyof typeof athroCharacters].topics,
+        examBoards: ['wjec', 'aqa', 'ocr'],
+        supportsMathNotation: subject === 'Mathematics' || subject === 'Science',
+        avatarUrl: athroCharacters[subject as keyof typeof athroCharacters].avatar,
+        shortDescription: `Your ${subject} study mentor`,
+        fullDescription: athroCharacters[subject as keyof typeof athroCharacters].fullDescription,
+        tone: athroCharacters[subject as keyof typeof athroCharacters].tone
+      };
+      
+      setTimeout(() => {
+        sendMessage(`Hello! I'm ${activeCharacter.name}, your ${subject} mentor. How can I help you today?`, activeCharacter);
+      }, 100);
       
       setShowOptions(true);
       setActiveSession(null);
       setSelectedTopic('');
       setSelectedPaper('');
-      setHasShownFallback(false);
     },
 
     startAISession: () => {
       setShowOptions(false);
       setActiveSession('ai');
-      setMessages([
-        ...messages,
-        {
-          text: `What would you like help with in ${currentSubject} today? I'm here to answer any questions about your studies.`,
-          sender: 'athro',
-          avatar: currentAthro.avatar
-        }
-      ]);
+      
+      const activeCharacter: AthroCharacter = {
+        id: currentSubject.toLowerCase(),
+        name: currentAthro.name,
+        subject: currentSubject as AthroSubject,
+        topics: currentAthro.topics,
+        examBoards: ['wjec', 'aqa', 'ocr'],
+        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
+        avatarUrl: currentAthro.avatar,
+        shortDescription: `Your ${currentSubject} study mentor`,
+        fullDescription: currentAthro.fullDescription,
+        tone: currentAthro.tone
+      };
+      
+      sendMessage(`What would you like help with in ${currentSubject} today? I'm here to answer any questions about your studies.`, activeCharacter);
     },
 
     startManualSession: () => {
@@ -191,7 +231,6 @@ const StudySessionPage: React.FC = () => {
       }]);
     },
     
-    // Add this new handler for Pomodoro timer completion
     handlePomodoroComplete: () => {
       toast({
         title: "Session Complete",
@@ -202,113 +241,92 @@ const StudySessionPage: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (message.trim()) {
-      // Add user message to the chat
-      setMessages([...messages, { text: message, sender: 'user', avatar: '' }]);
+      if (!hasApiKey) {
+        setShowApiKeyDialog(true);
+        return;
+      }
       
-      // Start loading state
       setIsLoading(true);
       
+      const activeCharacter: AthroCharacter = {
+        id: currentSubject.toLowerCase(),
+        name: currentAthro.name,
+        subject: currentSubject as AthroSubject,
+        topics: currentAthro.topics,
+        examBoards: ['wjec', 'aqa', 'ocr'],
+        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
+        avatarUrl: currentAthro.avatar,
+        shortDescription: `Your ${currentSubject} study mentor`,
+        fullDescription: currentAthro.fullDescription,
+        tone: currentAthro.tone
+      };
+      
       try {
-        // Create a complete character object
-        const character: AthroCharacter = {
-          id: currentSubject.toLowerCase(),
-          name: currentAthro.name,
-          subject: currentSubject as AthroSubject,
-          topics: currentAthro.topics,
-          examBoards: ['wjec', 'aqa', 'ocr'],
-          supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
-          avatarUrl: currentAthro.avatar,
-          shortDescription: `Your ${currentSubject} study mentor`,
-          fullDescription: currentAthro.fullDescription,
-          tone: currentAthro.tone
-        };
-
-        // Build system prompt for the current character
-        const systemPrompt = buildSystemPrompt(character);
-        console.log('🔍 Using system prompt for:', character.name);
-        
-        let response;
-        
-        // Use a demo key for development/testing
-        const openAIApiKey = "sk-demo-12345678901234567890";
-        
-        // Check if we're in development or using a demo key
-        if (process.env.NODE_ENV === 'development' || openAIApiKey.includes('demo')) {
-          console.log('🧪 Using mock response for main chat interface');
-          
-          // Simulate API delay
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Generate a subject-specific response
-          response = generateSubjectResponse(message, currentSubject);
-        } else {
-          // Make a real API call if we have a proper key
-          response = await getOpenAIResponse({
-            systemPrompt,
-            userMessage: message,
-            apiKey: openAIApiKey
-          });
-        }
-        
-        // Add AI response to the chat
-        setMessages(prev => [...prev, {
-          text: response,
-          sender: 'athro',
-          avatar: currentAthro.avatar
-        }]);
-        
-        // Show file references randomly (for demo)
-        if (Math.random() > 0.5) {
-          setShowFileReferences(true);
-        }
-        
+        await sendMessage(message, activeCharacter);
       } catch (error) {
-        console.error('Error getting response:', error);
-        
-        // Show error message
-        toast({
-          title: "Connection Error",
-          description: "Failed to get a response. Please try again.",
-          variant: "destructive",
-        });
-        
-        // Add error message to chat
-        setMessages(prev => [...prev, {
-          text: "I'm having trouble connecting right now. Could you try again in a moment?",
-          sender: 'athro',
-          avatar: currentAthro.avatar
-        }]);
+        console.error('Error sending message:', error);
       } finally {
-        // Stop loading state
         setIsLoading(false);
-        // Clear input field
         setMessage('');
       }
     }
   };
 
-  const generateSubjectResponse = (userMessage: string, subject: string) => {
-    const lowerCaseMessage = userMessage.toLowerCase();
-    
-    if (subject === 'Science' && lowerCaseMessage.includes('atom')) {
-      return "An atom is the basic unit of a chemical element. It's made up of a nucleus containing protons and neutrons, with electrons orbiting around it. Would you like me to explain more about atomic structure?";
-    } 
-    else if (subject === 'Mathematics' && (lowerCaseMessage.includes('equation') || lowerCaseMessage.includes('solve'))) {
-      return "I'd be happy to help you solve that equation. Let's work through it step by step. First, we need to identify what type of equation we're dealing with...";
-    }
-    else if (subject === 'History' && lowerCaseMessage.includes('war')) {
-      return "Wars have shaped much of human history. Which specific conflict are you interested in learning about? I can help with World Wars, Cold War, or many other historical conflicts.";
-    }
-    else if (subject === 'English' && (lowerCaseMessage.includes('essay') || lowerCaseMessage.includes('write'))) {
-      return "For essay writing, it's important to start with a clear structure: introduction, body paragraphs, and conclusion. Would you like some specific tips on how to improve your essay writing?";
-    }
-    
-    return `That's an interesting question about ${subject}. To help you better, could you tell me a bit more about what specific aspect of this topic you're studying? I'll do my best to provide a useful explanation.`;
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
+      <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enter your OpenAI API Key</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              This application requires an OpenAI API key to function. Your key will be stored locally in your browser.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="api-key">API Key</Label>
+              <div className="flex space-x-2">
+                <Input 
+                  id="api-key" 
+                  type="password" 
+                  placeholder="sk-..." 
+                  value={apiKeyInput} 
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                You can find your API key in your <a href="https://platform.openai.com/account/api-keys" target="_blank" rel="noreferrer" className="text-primary">OpenAI dashboard</a>.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleApiKeySubmit} className="bg-purple-600 hover:bg-purple-700">
+              <Key className="h-4 w-4 mr-2" />
+              Save API Key
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {!hasApiKey && (
+          <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <Key className="h-5 w-5 text-yellow-500" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">
+                  Please set your OpenAI API key to enable live AI responses. 
+                  <Button variant="link" onClick={() => setShowApiKeyDialog(true)} className="p-0 h-auto text-yellow-700 underline ml-1">
+                    Set API Key
+                  </Button>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-4 mb-4">
             <Card>
@@ -335,6 +353,16 @@ const StudySessionPage: React.FC = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Button 
+                      variant="outline" 
+                      className="h-9 text-xs"
+                      onClick={() => setShowApiKeyDialog(true)}
+                    >
+                      <Key className="h-4 w-4 mr-1" />
+                      {hasApiKey ? 'Update API Key' : 'Set API Key'}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -467,9 +495,11 @@ const StudySessionPage: React.FC = () => {
                     <Button
                       onClick={handleActions.startAISession}
                       className="h-auto py-12 flex flex-col bg-purple-600 hover:bg-purple-700"
+                      disabled={!hasApiKey}
                     >
                       <BookOpen className="h-16 w-16 mb-4" />
                       <span className="text-lg font-medium">AI-Powered Study Session</span>
+                      {!hasApiKey && <span className="text-xs mt-2">Set API key first</span>}
                     </Button>
                     
                     <Button
@@ -494,20 +524,20 @@ const StudySessionPage: React.FC = () => {
                   {messages.map((msg, index) => (
                     <div 
                       key={index}
-                      className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${msg.senderId === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div 
                         className={`max-w-[80%] rounded-lg p-3 ${
-                          msg.sender === 'user' 
+                          msg.senderId === 'user' 
                             ? 'bg-purple-600 text-white ml-12' 
                             : 'bg-white border border-gray-200 mr-12'
                         }`}
                       >
-                        {msg.sender === 'athro' && (
+                        {msg.senderId !== 'user' && (
                           <div className="flex items-center mb-2">
                             <div className="w-8 h-8 mr-2">
                               <img 
-                                src={msg.avatar} 
+                                src={currentAthro.avatar} 
                                 alt="Athro Avatar" 
                                 className="w-full h-full object-cover rounded-full" 
                               />
@@ -515,14 +545,14 @@ const StudySessionPage: React.FC = () => {
                             <span className="font-medium text-purple-700">{currentAthro.name}</span>
                           </div>
                         )}
-                        <p className={`text-sm ${msg.sender === 'user' ? 'text-white' : 'text-gray-800'}`}>
-                          {msg.text}
+                        <p className={`text-sm ${msg.senderId === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                          {msg.content}
                         </p>
                       </div>
                     </div>
                   ))}
                   
-                  {isLoading && (
+                  {isTyping && (
                     <div className="flex justify-start">
                       <div className="max-w-[80%] rounded-lg p-3 bg-white border border-gray-200 mr-12">
                         <div className="flex items-center mb-2">
@@ -673,12 +703,12 @@ const StudySessionPage: React.FC = () => {
                           handleSendMessage();
                         }
                       }}
-                      disabled={isLoading}
+                      disabled={isLoading || !hasApiKey}
                     />
                     <Button 
                       className="h-auto bg-purple-600 hover:bg-purple-700"
                       onClick={handleSendMessage}
-                      disabled={isLoading || !message.trim()}
+                      disabled={isLoading || !message.trim() || !hasApiKey}
                     >
                       <Send className="h-4 w-4" />
                       <span className="sr-only">Send message</span>

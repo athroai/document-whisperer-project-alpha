@@ -2,19 +2,23 @@
 import React from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { AthroCharacterConfig } from '@/types/athroCharacter';
+import { getOpenAIResponse } from '@/lib/openai';
+import { buildSystemPrompt } from '@/utils/athroPrompts';
 
 interface AthroRouterProps {
   character: AthroCharacter;
   message: string;
   context?: any;
   onResponse: (message: AthroMessage) => void;
+  apiKey?: string;
 }
 
 const AthroRouter: React.FC<AthroRouterProps> = ({
   character,
   message,
   context,
-  onResponse
+  onResponse,
+  apiKey
 }) => {
   // In a real implementation, this component would:
   // 1. Preprocess the message based on the character
@@ -25,20 +29,41 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
   React.useEffect(() => {
     const processMessage = async () => {
       try {
-        // This would be an API call in production
         console.log(`[AthroRouter] Processing message for ${character.name}`);
         
-        // Simulate API call with a timeout
-        setTimeout(() => {
-          const response: AthroMessage = {
-            id: Date.now().toString(),
-            senderId: character.id,
-            content: generateMockResponse(message, character),
-            timestamp: new Date().toISOString()
-          };
-          
-          onResponse(response);
-        }, 1000);
+        if (!apiKey) {
+          console.warn('[AthroRouter] No API key provided, using mock response');
+          // Simulate API call with a timeout
+          setTimeout(() => {
+            const response: AthroMessage = {
+              id: Date.now().toString(),
+              senderId: character.id,
+              content: generateMockResponse(message, character),
+              timestamp: new Date().toISOString()
+            };
+            
+            onResponse(response);
+          }, 1000);
+          return;
+        }
+        
+        // Use real API call with provided key
+        console.log('[AthroRouter] Using real OpenAI API');
+        const systemPrompt = buildSystemPrompt(character);
+        
+        const response = await getOpenAIResponse({
+          systemPrompt,
+          userMessage: message,
+          apiKey
+        });
+        
+        onResponse({
+          id: Date.now().toString(),
+          senderId: character.id,
+          content: response,
+          timestamp: new Date().toISOString()
+        });
+        
       } catch (error) {
         console.error('[AthroRouter] Error processing message:', error);
         
@@ -52,7 +77,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
     };
     
     processMessage();
-  }, [character, message, onResponse]);
+  }, [character, message, onResponse, apiKey]);
   
   return null; // This is a logic component, not a UI component
 };
