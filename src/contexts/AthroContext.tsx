@@ -64,7 +64,7 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   };
 
   const sendMessage = (content: string) => {
-    console.log("✅ sendMessage fired");
+    console.log("✅ SEND MESSAGE TRIGGERED");
     
     if (!activeCharacter) return;
     sendAthroMessage(content, activeCharacter);
