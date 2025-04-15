@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
@@ -54,9 +55,12 @@ export function useAthroMessages() {
     // Check if this is a welcome message
     const isWelcomeMessage = content.toLowerCase() === "welcome";
     
+    // Create user message object for non-welcome messages
+    let userMessage: AthroMessage | null = null;
+    
     // Only add non-welcome messages to chat
     if (!isWelcomeMessage) {
-      const userMessage: AthroMessage = {
+      userMessage = {
         id: requestId,
         senderId: 'user',
         content,
@@ -64,7 +68,7 @@ export function useAthroMessages() {
       };
       
       setMessages(prevMessages => {
-        const updatedMessages = [...prevMessages, userMessage];
+        const updatedMessages = [...prevMessages, userMessage!];
         console.log('✅ Adding user message', { 
           prevMessageCount: prevMessages.length, 
           newMessageCount: updatedMessages.length,
@@ -167,7 +171,7 @@ export function useAthroMessages() {
         variant: "destructive",
       });
 
-      return null;
+      return userMessage;
     } finally {
       activeRequests.current.delete(requestId);
       setIsTyping(false);

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
@@ -189,8 +190,9 @@ const AthroChat: React.FC<AthroChatProps> = ({
       const messageResult = await sendMessage(userMessage, currentCharacter);
       
       if (messageResult && uploadResult.id) {
-        const linkResult = await linkDocumentToMessage(uploadResult.id, messageResult.id);
-        console.log('Document linked to message:', linkResult);
+        // Link document to message only if both exist
+        await linkDocumentToMessage(uploadResult.id, messageResult.id);
+        console.log('Document linked to message:', uploadResult.id, messageResult.id);
       }
 
       // Refresh document list
