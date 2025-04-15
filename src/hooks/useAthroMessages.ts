@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
@@ -45,7 +46,7 @@ export function useAthroMessages() {
         hasActiveCharacter: !!activeCharacter,
         contentLength: content.trim().length
       });
-      return;
+      return null;
     }
 
     const requestId = Date.now().toString();
@@ -54,15 +55,16 @@ export function useAthroMessages() {
     // Check if this is a welcome message
     const isWelcomeMessage = content.toLowerCase() === "welcome";
     
+    // Create the user message object
+    const userMessage: AthroMessage = {
+      id: requestId,
+      senderId: 'user',
+      content,
+      timestamp: new Date().toISOString(),
+    };
+    
     // Only add user message to chat if it's not a welcome message
     if (!isWelcomeMessage) {
-      const userMessage: AthroMessage = {
-        id: requestId,
-        senderId: 'user',
-        content,
-        timestamp: new Date().toISOString(),
-      };
-      
       setMessages(prevMessages => {
         const updatedMessages = [...prevMessages, userMessage];
         console.log('✅ Adding user message', { 
@@ -116,7 +118,7 @@ export function useAthroMessages() {
           setIsTyping(false);
         }, 500); // Small delay to simulate typing
         
-        return;
+        return null;
       }
       
       // Make the actual API call to OpenAI for non-welcome messages
@@ -132,7 +134,7 @@ export function useAthroMessages() {
       
       if (!activeRequests.current.has(requestId)) {
         console.warn('🚫 Request was cancelled');
-        return;
+        return null;
       }
       
       const athroResponse: AthroMessage = {
@@ -151,6 +153,8 @@ export function useAthroMessages() {
         });
         return updatedMessages;
       });
+
+      return isWelcomeMessage ? null : userMessage;
 
     } catch (error) {
       console.error("🔥 Error getting Athro response:", error);
@@ -179,6 +183,8 @@ export function useAthroMessages() {
         description: "Failed to get a response. Please try again.",
         variant: "destructive",
       });
+
+      return null;
     } finally {
       activeRequests.current.delete(requestId);
       setIsTyping(false);

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
@@ -9,18 +10,11 @@ import AthroMathsRenderer from './AthroMathsRenderer';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
+import { DocumentMetadata, uploadDocumentForChat, getDocumentsForCharacter, linkDocumentToMessage } from '@/services/documentService';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
   character?: AthroCharacter;
-}
-
-interface ChatDocument {
-  id: string;
-  name: string;
-  url: string;
-  type: string;
-  uploadedAt: string;
 }
 
 const AthroChat: React.FC<AthroChatProps> = ({ 
@@ -31,8 +25,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const [inputMessage, setInputMessage] = useState<string>('');
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
-  const [showDocuments, setShowDocuments] = useState(false);
-  const [documents, setDocuments] = useState<ChatDocument[]>([]);
+  const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
@@ -89,20 +82,18 @@ const AthroChat: React.FC<AthroChatProps> = ({
   }, [messages]);
 
   useEffect(() => {
-    if (currentCharacter) {
-      const loadDocuments = async () => {
+    const loadDocumentsForCharacter = async () => {
+      if (currentCharacter) {
         try {
-          const storedDocs = localStorage.getItem(`athro_documents_${currentCharacter.id}`);
-          if (storedDocs) {
-            setDocuments(JSON.parse(storedDocs));
-          }
+          const docs = await getDocumentsForCharacter(currentCharacter.id);
+          setDocuments(docs);
         } catch (error) {
           console.error('Error loading documents:', error);
         }
-      };
-      
-      loadDocuments();
-    }
+      }
+    };
+
+    loadDocumentsForCharacter();
   }, [currentCharacter]);
   
   const handleSend = () => {
@@ -142,11 +133,10 @@ const AthroChat: React.FC<AthroChatProps> = ({
     }
     
     const file = e.target.files[0];
-    const fileType = file.type.split('/')[1];
+    const fileType = file.name.split('.').pop()?.toLowerCase() || '';
     const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'jpg', 'jpeg', 'png'];
-    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
     
-    if (!allowedTypes.includes(fileExtension)) {
+    if (!allowedTypes.includes(fileType)) {
       toast({
         title: "Invalid File Type",
         description: "Please upload only PDF, DOC, XLS, CSV, DOCX, JPG, or PNG files.",
@@ -167,25 +157,40 @@ const AthroChat: React.FC<AthroChatProps> = ({
     setUploading(true);
     
     try {
-      const fileId = `${Date.now()}_${file.name}`;
-      const fileURL = URL.createObjectURL(file);
-      
-      const newDocument: ChatDocument = {
-        id: fileId,
-        name: file.name,
-        url: fileURL,
-        type: fileExtension,
-        uploadedAt: new Date().toISOString(),
-      };
-      
-      const updatedDocs = [...documents, newDocument];
+      // Check if user is authenticated
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) {
+        toast({
+          title: "Authentication Required",
+          description: "You need to be logged in to upload files.",
+          variant: "destructive",
+        });
+        setUploading(false);
+        return;
+      }
+
+      // Upload file to Supabase storage
+      const uploadResult = await uploadDocumentForChat(
+        file, 
+        currentCharacter.id
+      );
+
+      if (!uploadResult) {
+        throw new Error('Upload failed');
+      }
+
+      // Create a message about the upload
+      const userMessage = `I've uploaded a document: ${file.name}`;
+      const messageResponse = await sendMessage(userMessage);
+
+      // If we have a message ID, link the document to it
+      if (messageResponse && uploadResult.id) {
+        await linkDocumentToMessage(uploadResult.id, messageResponse.id);
+      }
+
+      // Refresh document list
+      const updatedDocs = await getDocumentsForCharacter(currentCharacter.id);
       setDocuments(updatedDocs);
-      
-      localStorage.setItem(`athro_documents_${currentCharacter.id}`, JSON.stringify(updatedDocs));
-      
-      setShowDocuments(true);
-      
-      sendMessage(`I've uploaded a document: ${file.name}`);
       
       toast({
         title: "File Uploaded",
@@ -207,8 +212,16 @@ const AthroChat: React.FC<AthroChatProps> = ({
     }
   };
 
-  const openDocument = (doc: ChatDocument) => {
-    window.open(doc.url, '_blank');
+  const openDocument = (doc: DocumentMetadata) => {
+    if (doc.url) {
+      window.open(doc.url, '_blank');
+    } else {
+      toast({
+        title: "Document Unavailable",
+        description: "Unable to access this document at the moment.",
+        variant: "destructive",
+      });
+    }
   };
 
   const sendDebugMessage = () => {

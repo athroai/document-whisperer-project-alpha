@@ -118,6 +118,48 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          character_id: string
+          created_at: string
+          file_type: string
+          filename: string
+          id: string
+          mime_type: string | null
+          original_name: string
+          session_id: string
+          size: number | null
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          file_type: string
+          filename: string
+          id?: string
+          mime_type?: string | null
+          original_name: string
+          session_id: string
+          size?: number | null
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          file_type?: string
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          original_name?: string
+          session_id?: string
+          size?: number | null
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           ai_feedback: string | null
@@ -169,6 +211,35 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_documents: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          message_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          message_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
             referencedColumns: ["id"]
           },
         ]
