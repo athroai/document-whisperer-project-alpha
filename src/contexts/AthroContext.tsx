@@ -96,6 +96,7 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     if (activeCharacter && characterInitialized.current) {
       console.log('👤 Active character changed to:', activeCharacter.name);
       memoizedClearMessages();
+      // Removed automatic welcome message here
     }
   }, [activeCharacter, memoizedClearMessages]);
 

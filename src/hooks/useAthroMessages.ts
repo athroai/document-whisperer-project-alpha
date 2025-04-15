@@ -21,8 +21,7 @@ export function useAthroMessages() {
     if (!initializedRef.current) {
       console.log('🔄 useAthroMessages: Initial setup');
       initializedRef.current = true;
-      // CRITICAL: No automatic welcome message should be sent here
-      // Previous implementation may have had a message here
+      // No welcome message here - this was already fixed
     }
     
     return () => {
@@ -54,7 +53,7 @@ export function useAthroMessages() {
     const requestId = Date.now().toString();
     activeRequests.current.add(requestId);
     
-    // Don't send welcome messages at all
+    // This was already correctly handled - no "welcome" messages get processed
     if (content.toLowerCase() === "welcome") {
       console.log('🚫 Skipping welcome message');
       activeRequests.current.delete(requestId);

@@ -61,7 +61,6 @@ const StudentProgressPage: React.FC = () => {
   // Mock quiz results data that matches the QuizResult type
   const quizResults: QuizResult[] = [
     {
-      id: '1',
       userId: id || '1',
       subject: 'Mathematics',
       questionsAsked: ['m1', 'm2', 'm3'],
@@ -76,7 +75,6 @@ const StudentProgressPage: React.FC = () => {
       timestamp: '2025-04-10T10:30:00Z'
     },
     {
-      id: '2',
       userId: id || '1',
       subject: 'Science',
       questionsAsked: ['s1', 's2', 's3'],
@@ -91,7 +89,6 @@ const StudentProgressPage: React.FC = () => {
       timestamp: '2025-04-08T14:15:00Z'
     },
     {
-      id: '3',
       userId: id || '1',
       subject: 'English',
       questionsAsked: ['e1', 'e2', 'e3'],

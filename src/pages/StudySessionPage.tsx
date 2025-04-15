@@ -94,7 +94,6 @@ const StudySessionPage: React.FC = () => {
         tone: athroCharacters[subject as keyof typeof athroCharacters].tone
       };
       
-      
       setShowOptions(true);
       setActiveSession(null);
       setSelectedTopic('');
@@ -104,8 +103,6 @@ const StudySessionPage: React.FC = () => {
     startAISession: () => {
       setShowOptions(false);
       setActiveSession('ai');
-      
-      
     },
 
     startManualSession: () => {
@@ -120,94 +117,28 @@ const StudySessionPage: React.FC = () => {
 
     handleTopicSelection: (topic: string) => {
       setSelectedTopic(topic);
-      
-      const activeCharacter: AthroCharacter = {
-        id: currentSubject.toLowerCase(),
-        name: currentAthro.name,
-        subject: currentSubject as AthroSubject,
-        topics: currentAthro.topics,
-        examBoards: ['wjec', 'aqa', 'ocr'],
-        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
-        avatarUrl: currentAthro.avatar,
-        shortDescription: `Your ${currentSubject} study mentor`,
-        fullDescription: currentAthro.fullDescription,
-        tone: currentAthro.tone
-      };
-      
-      
     },
 
     continueWithoutTopic: () => {
-      
     },
 
     handleModalClose: () => {
       setActiveSession(null);
-      
     },
 
     handlePaperSelection: (paper: string) => {
       setSelectedPaper(paper);
-      
-      const activeCharacter: AthroCharacter = {
-        id: currentSubject.toLowerCase(),
-        name: currentAthro.name,
-        subject: currentSubject as AthroSubject,
-        topics: currentAthro.topics,
-        examBoards: ['wjec', 'aqa', 'ocr'],
-        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
-        avatarUrl: currentAthro.avatar,
-        shortDescription: `Your ${currentSubject} study mentor`,
-        fullDescription: currentAthro.fullDescription,
-        tone: currentAthro.tone
-      };
-      
-      
     },
 
     handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
         const fileName = e.target.files[0].name;
-        
-        const activeCharacter: AthroCharacter = {
-          id: currentSubject.toLowerCase(),
-          name: currentAthro.name,
-          subject: currentSubject as AthroSubject,
-          topics: currentAthro.topics,
-          examBoards: ['wjec', 'aqa', 'ocr'],
-          supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
-          avatarUrl: currentAthro.avatar,
-          shortDescription: `Your ${currentSubject} study mentor`,
-          fullDescription: currentAthro.fullDescription,
-          tone: currentAthro.tone
-        };
-        
-        
       }
     },
 
     handleFileSelect: (file: UploadedFile) => {
       setSelectedFile(file);
       setShowFileReferences(false);
-      
-      const fileReference = file.label 
-        ? `your ${file.label}` 
-        : `the ${file.subject} ${file.fileType === 'paper' ? 'past paper' : file.fileType}`;
-      
-      const activeCharacter: AthroCharacter = {
-        id: currentSubject.toLowerCase(),
-        name: currentAthro.name,
-        subject: currentSubject as AthroSubject,
-        topics: currentAthro.topics,
-        examBoards: ['wjec', 'aqa', 'ocr'],
-        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
-        avatarUrl: currentAthro.avatar,
-        shortDescription: `Your ${currentSubject} study mentor`,
-        fullDescription: currentAthro.fullDescription,
-        tone: currentAthro.tone
-      };
-      
-      
     },
     
     handlePomodoroComplete: () => {
@@ -246,7 +177,6 @@ const StudySessionPage: React.FC = () => {
     }
   };
 
-  
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
