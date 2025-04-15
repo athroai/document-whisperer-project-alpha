@@ -43,7 +43,7 @@ const AthroSubjectPage: React.FC = () => {
       <h1 className="text-3xl font-bold mb-6">
         {character.name}: {character.subject} Study Session
       </h1>
-      <AthroChat character={character} />
+      <AthroChat character={character} />  {/* Pass the character prop */}
     </div>
   );
 };

@@ -1,10 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Send, AlertTriangle, Wifi, WifiOff, Bug, Info } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
+import { AthroCharacter } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
 import { toast } from '@/hooks/use-toast';
@@ -12,16 +12,21 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
+  character?: AthroCharacter;
 }
 
-const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
+const AthroChat: React.FC<AthroChatProps> = ({ 
+  isCompactMode = false, 
+  character 
+}) => {
   const { activeCharacter, messages, sendMessage, isTyping } = useAthro();
   const [inputMessage, setInputMessage] = useState<string>('');
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   
-  // Monitor online status
+  const currentCharacter = character || activeCharacter;
+  
   useEffect(() => {
     const handleOnline = () => {
       console.log('🌐 Network status: Online');
@@ -36,7 +41,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Debug initial network status
     console.log('🌐 Initial network status:', navigator.onLine ? 'Online' : 'Offline');
     
     return () => {
@@ -45,7 +49,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     };
   }, []);
   
-  // Debug mount/unmount cycles
   useEffect(() => {
     console.log('🎭 AthroChat component mounted with', messages.length, 'messages');
     return () => {
@@ -53,7 +56,6 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     };
   }, [messages.length]);
   
-  // Scroll to latest message
   useEffect(() => {
     console.log('📜 Messages in AthroChat:', messages.length, 'messages');
     if (messageEndRef.current) {
@@ -61,10 +63,9 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     }
   }, [messages]);
   
-  // Add a debug message button for testing
   const sendDebugMessage = () => {
     console.log('🐛 Sending debug test message');
-    if (!activeCharacter) {
+    if (!currentCharacter) {
       console.log('❌ No active character for debug message');
       toast({
         title: "No Character Selected",
@@ -74,14 +75,12 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       return;
     }
     
-    // Send a simple test message that should trigger a response
-    sendMessage("2+2=?", activeCharacter);
+    sendMessage("2+2=?", currentCharacter);
   };
 
-  // Add a check functionality to test math expressions
   const sendMathTest = () => {
     console.log('🧮 Testing math response');
-    if (!activeCharacter) {
+    if (!currentCharacter) {
       console.log('❌ No active character for math test');
       toast({
         title: "No Character Selected",
@@ -91,13 +90,12 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       return;
     }
     
-    // Send a simple subtraction that had issues
-    sendMessage("2-1", activeCharacter);
+    sendMessage("2-1", currentCharacter);
   };
 
   const handleSend = () => {
-    if (!inputMessage.trim() || !activeCharacter) {
-      if (!activeCharacter) {
+    if (!inputMessage.trim() || !currentCharacter) {
+      if (!currentCharacter) {
         console.log('❌ Send attempted with no active character');
         toast({
           title: "No Subject Selected",
@@ -172,7 +170,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       
       {showDebugInfo && (
         <div className="bg-muted text-xs p-2 mb-2 overflow-auto max-h-24">
-          <p>Active Character: {activeCharacter?.name || 'None'}</p>
+          <p>Active Character: {currentCharacter?.name || 'None'}</p>
           <p>Messages: {messages.length}</p>
           <p>Is Typing: {isTyping ? 'Yes' : 'No'}</p>
           <p>Network: {isOnline ? 'Online' : 'Offline'}</p>
@@ -182,13 +180,13 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       
       <ScrollArea className="flex-grow p-4">
         <div className="space-y-4">
-          {messages.length === 0 && activeCharacter && (
+          {messages.length === 0 && currentCharacter && (
             <div className="text-center p-4 text-muted-foreground">
-              Start a conversation with {activeCharacter.name}
+              Start a conversation with {currentCharacter.name}
             </div>
           )}
           
-          {messages.length === 0 && !activeCharacter && (
+          {messages.length === 0 && !currentCharacter && (
             <div className="text-center p-4 text-muted-foreground">
               Please select a subject mentor to begin chatting
             </div>
@@ -209,15 +207,14 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
                 {msg.senderId !== 'user' && (
                   <div className="flex items-center mb-2">
                     <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={activeCharacter?.avatarUrl} alt={activeCharacter?.name} />
-                      <AvatarFallback>{activeCharacter?.name?.charAt(0) || 'A'}</AvatarFallback>
+                      <AvatarImage src={currentCharacter?.avatarUrl} alt={currentCharacter?.name} />
+                      <AvatarFallback>{currentCharacter?.name?.charAt(0) || 'A'}</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium">{activeCharacter?.name || 'Athro AI'}</span>
+                    <span className="text-sm font-medium">{currentCharacter?.name || 'Athro AI'}</span>
                   </div>
                 )}
                 
-                {/* Use math renderer for responses if needed */}
-                {msg.senderId !== 'user' && activeCharacter?.supportsMathNotation ? (
+                {msg.senderId !== 'user' && currentCharacter?.supportsMathNotation ? (
                   <AthroMathsRenderer content={msg.content} />
                 ) : (
                   <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -253,17 +250,17 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         <div className="flex space-x-2">
           <input
             type="text"
-            placeholder={`Ask ${activeCharacter?.name || 'Athro AI'} a question...`}
+            placeholder={`Ask ${currentCharacter?.name || 'Athro AI'} a question...`}
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-purple-200"
-            disabled={!activeCharacter || !isOnline}
+            disabled={!currentCharacter || !isOnline}
           />
           <Button 
             onClick={handleSend}
             className="shrink-0"
-            disabled={!inputMessage.trim() || isTyping || !activeCharacter || !isOnline}
+            disabled={!inputMessage.trim() || isTyping || !currentCharacter || !isOnline}
           >
             <Send className="h-4 w-4" />
             <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>
