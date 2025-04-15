@@ -1,13 +1,24 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export const testSupabaseConnection = async (timeoutMs = 20000) => {
+export interface ConnectionTestResult {
+  success: boolean;
+  status?: 'connected' | 'offline' | 'error' | 'timeout';
+  error?: Error;
+  message?: string;
+  data?: any;
+  duration?: number;
+  corsStatus?: number;
+  isNetworkError?: boolean;
+  diagnosticInfo?: Record<string, any>;
+}
+
+export const testSupabaseConnection = async (timeoutMs = 20000): Promise<ConnectionTestResult> => {
   try {
     console.log('Running comprehensive connection test...');
     
     // Check if we're online first
     if (!navigator.onLine) {
-      console.log('Device is offline');
       return { 
         success: false, 
         status: 'offline',
@@ -15,11 +26,11 @@ export const testSupabaseConnection = async (timeoutMs = 20000) => {
       };
     }
     
-    // Add timeout to prevent hanging
-    let timeoutReached = false;
-    const timeoutPromise = new Promise(resolve => {
+    const startTime = Date.now();
+    
+    // Timeout promise
+    const timeoutPromise = new Promise<ConnectionTestResult>((resolve) => {
       setTimeout(() => {
-        timeoutReached = true;
         resolve({
           success: false,
           status: 'timeout',
@@ -29,9 +40,6 @@ export const testSupabaseConnection = async (timeoutMs = 20000) => {
     });
     
     // Actual Supabase database query
-    console.log(`Testing database query with ${timeoutMs/1000}s timeout...`);
-    const startTime = Date.now();
-    
     const queryPromise = supabase
       .from('profiles')
       .select('id')
@@ -40,7 +48,6 @@ export const testSupabaseConnection = async (timeoutMs = 20000) => {
         const duration = Date.now() - startTime;
         
         if (error) {
-          console.error('Supabase database query failed:', error);
           return { 
             success: false, 
             status: 'error',
@@ -55,7 +62,6 @@ export const testSupabaseConnection = async (timeoutMs = 20000) => {
           };
         }
         
-        console.log(`Supabase connection test successful (${duration}ms):`, data);
         return { 
           success: true, 
           status: 'connected',
@@ -66,10 +72,8 @@ export const testSupabaseConnection = async (timeoutMs = 20000) => {
       });
     
     // Race between the query and timeout
-    const result = await Promise.race([queryPromise, timeoutPromise]);
-    return result;
+    return await Promise.race([queryPromise, timeoutPromise]);
   } catch (error: any) {
-    console.error('Supabase connection test threw an exception:', error);
     return { 
       success: false,
       status: 'error',

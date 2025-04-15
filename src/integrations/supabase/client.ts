@@ -1,6 +1,6 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { testSupabaseConnection } from '@/services/connectionTest';
 
 const SUPABASE_URL = "https://oqpwgxrqwbgchirnnejj.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcHdneHJxd2JnY2hpcm5uZWpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2NTIyNDUsImV4cCI6MjA2MDIyODI0NX0.PB-H47Q9C6cpUm_uGUpLE1gMsBJ0hMcecBQu9rE0aJA";
@@ -41,20 +41,25 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
+// Export a typed connection test function
+export const testConnection = async () => {
+  return await testSupabaseConnection();
+};
+
 // Import the improved connection test
-import { testSupabaseConnection } from '@/services/connectionTest';
+// import { testSupabaseConnection } from '@/services/connectionTest';
 
 // Export the connection test for use elsewhere
-export const testConnection = testSupabaseConnection;
+// export const testConnection = testSupabaseConnection;
 
 // Run an initial connection test when the client is loaded
-setTimeout(() => {
-  console.log('Running initial connection test...');
-  testSupabaseConnection().then(result => {
-    if (!result.success) {
-      console.log(`Initial connection test failed: ${result.message}`);
-    }
-  });
-}, 1000);
+// setTimeout(() => {
+//   console.log('Running initial connection test...');
+//   testSupabaseConnection().then(result => {
+//     if (!result.success) {
+//       console.log(`Initial connection test failed: ${result.message}`);
+//     }
+//   });
+// }, 1000);
 
 export default supabase;
