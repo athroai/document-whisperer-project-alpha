@@ -3,7 +3,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Send, ThumbsUp, Clock, BookOpen, GraduationCap, FileText, Key } from 'lucide-react';
+import { Send, ThumbsUp, Clock, BookOpen, GraduationCap, FileText, Key, Shield } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ import { buildSystemPrompt } from '@/utils/athroPrompts';
 import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
 import { pastPapers, PastPaper } from '@/data/athro-maths/past-papers';
 import { useAthroMessages } from '@/hooks/useAthroMessages';
+import AdminSettings from '@/components/AdminSettings';
 
 const athroCharacters = {
   Mathematics: { 
@@ -65,13 +66,7 @@ const StudySessionPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
-  const [localMessages, setLocalMessages] = useState<any[]>([
-    { 
-      text: "Hello there! I'm your comprehensive GCSE study mentor. How can I help you with your studies today?", 
-      sender: 'athro',
-      avatar: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png'
-    },
-  ]);
+  const [showAdminSettings, setShowAdminSettings] = useState(false);
 
   useEffect(() => {
     if (!hasApiKey) {
@@ -164,25 +159,38 @@ const StudySessionPage: React.FC = () => {
 
     handleTopicSelection: (topic: string) => {
       setSelectedTopic(topic);
-      setMessages([
-        ...messages,
-        {
-          text: `Let's review ${topic}. What specific aspect would you like to focus on?`,
-          sender: 'athro',
-          avatar: currentAthro.avatar
-        }
-      ]);
+      
+      const activeCharacter: AthroCharacter = {
+        id: currentSubject.toLowerCase(),
+        name: currentAthro.name,
+        subject: currentSubject as AthroSubject,
+        topics: currentAthro.topics,
+        examBoards: ['wjec', 'aqa', 'ocr'],
+        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
+        avatarUrl: currentAthro.avatar,
+        shortDescription: `Your ${currentSubject} study mentor`,
+        fullDescription: currentAthro.fullDescription,
+        tone: currentAthro.tone
+      };
+      
+      sendMessage(`Let's review ${topic}. What specific aspect would you like to focus on?`, activeCharacter);
     },
 
     continueWithoutTopic: () => {
-      setMessages([
-        ...messages,
-        {
-          text: `What would you like to learn about in ${currentSubject} today? I'm here to help with any questions you might have.`,
-          sender: 'athro',
-          avatar: currentAthro.avatar
-        }
-      ]);
+      const activeCharacter: AthroCharacter = {
+        id: currentSubject.toLowerCase(),
+        name: currentAthro.name,
+        subject: currentSubject as AthroSubject,
+        topics: currentAthro.topics,
+        examBoards: ['wjec', 'aqa', 'ocr'],
+        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
+        avatarUrl: currentAthro.avatar,
+        shortDescription: `Your ${currentSubject} study mentor`,
+        fullDescription: currentAthro.fullDescription,
+        tone: currentAthro.tone
+      };
+      
+      sendMessage(`What would you like to learn about in ${currentSubject} today? I'm here to help with any questions you might have.`, activeCharacter);
     },
 
     handleModalClose: () => {
@@ -192,27 +200,41 @@ const StudySessionPage: React.FC = () => {
 
     handlePaperSelection: (paper: string) => {
       setSelectedPaper(paper);
-      setMessages([
-        ...messages,
-        {
-          text: `I've loaded ${paper}. Let's work through it together. Ask me about any question you find challenging.`,
-          sender: 'athro',
-          avatar: currentAthro.avatar
-        }
-      ]);
+      
+      const activeCharacter: AthroCharacter = {
+        id: currentSubject.toLowerCase(),
+        name: currentAthro.name,
+        subject: currentSubject as AthroSubject,
+        topics: currentAthro.topics,
+        examBoards: ['wjec', 'aqa', 'ocr'],
+        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
+        avatarUrl: currentAthro.avatar,
+        shortDescription: `Your ${currentSubject} study mentor`,
+        fullDescription: currentAthro.fullDescription,
+        tone: currentAthro.tone
+      };
+      
+      sendMessage(`I've loaded ${paper}. Let's work through it together. Ask me about any question you find challenging.`, activeCharacter);
     },
 
     handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
         const fileName = e.target.files[0].name;
-        setMessages([
-          ...messages,
-          {
-            text: `I've received your file "${fileName}". Let's work through it together. What question would you like to start with?`,
-            sender: 'athro',
-            avatar: currentAthro.avatar
-          }
-        ]);
+        
+        const activeCharacter: AthroCharacter = {
+          id: currentSubject.toLowerCase(),
+          name: currentAthro.name,
+          subject: currentSubject as AthroSubject,
+          topics: currentAthro.topics,
+          examBoards: ['wjec', 'aqa', 'ocr'],
+          supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
+          avatarUrl: currentAthro.avatar,
+          shortDescription: `Your ${currentSubject} study mentor`,
+          fullDescription: currentAthro.fullDescription,
+          tone: currentAthro.tone
+        };
+        
+        sendMessage(`I've received your file "${fileName}". Let's work through it together. What question would you like to start with?`, activeCharacter);
       }
     },
 
@@ -224,11 +246,20 @@ const StudySessionPage: React.FC = () => {
         ? `your ${file.label}` 
         : `the ${file.subject} ${file.fileType === 'paper' ? 'past paper' : file.fileType}`;
       
-      setMessages(prev => [...prev, {
-        text: `Let's take a look at ${fileReference}. What specific part would you like to focus on?`,
-        sender: 'athro',
-        avatar: currentAthro.avatar
-      }]);
+      const activeCharacter: AthroCharacter = {
+        id: currentSubject.toLowerCase(),
+        name: currentAthro.name,
+        subject: currentSubject as AthroSubject,
+        topics: currentAthro.topics,
+        examBoards: ['wjec', 'aqa', 'ocr'],
+        supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
+        avatarUrl: currentAthro.avatar,
+        shortDescription: `Your ${currentSubject} study mentor`,
+        fullDescription: currentAthro.fullDescription,
+        tone: currentAthro.tone
+      };
+      
+      sendMessage(`Let's take a look at ${fileReference}. What specific part would you like to focus on?`, activeCharacter);
     },
     
     handlePomodoroComplete: () => {
@@ -308,6 +339,8 @@ const StudySessionPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
+      <AdminSettings open={showAdminSettings} onOpenChange={setShowAdminSettings} />
+
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {!hasApiKey && (
           <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
@@ -315,13 +348,22 @@ const StudySessionPage: React.FC = () => {
               <div className="flex-shrink-0">
                 <Key className="h-5 w-5 text-yellow-500" />
               </div>
-              <div className="ml-3">
+              <div className="ml-3 flex justify-between w-full items-center">
                 <p className="text-sm">
-                  Please set your OpenAI API key to enable live AI responses. 
+                  Please set your OpenAI API key to enable live AI responses.
                   <Button variant="link" onClick={() => setShowApiKeyDialog(true)} className="p-0 h-auto text-yellow-700 underline ml-1">
                     Set API Key
                   </Button>
                 </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                  onClick={() => setShowAdminSettings(true)}
+                >
+                  <Shield className="h-4 w-4 mr-1" />
+                  Admin Settings
+                </Button>
               </div>
             </div>
           </div>

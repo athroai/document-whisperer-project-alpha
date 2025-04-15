@@ -14,6 +14,7 @@ export function useAthroMessages() {
   
   // For storing the API key - in production this would be securely managed
   const [openAIApiKey, setOpenAIApiKey] = useState<string>("");
+  const [adminApiKey, setAdminApiKey] = useState<string | null>(null);
   
   useEffect(() => {
     messagesRef.current = messages;
@@ -25,11 +26,18 @@ export function useAthroMessages() {
       console.log('🔄 useAthroMessages: Initial setup');
       initializedRef.current = true;
       
-      // Check for stored API key in localStorage
-      const storedApiKey = localStorage.getItem('openai_api_key');
-      if (storedApiKey) {
-        setOpenAIApiKey(storedApiKey);
-        console.log('🔑 Loaded stored API key');
+      // Check for admin API key first
+      const adminKey = localStorage.getItem('athro_admin_openai_key');
+      if (adminKey) {
+        console.log('🔑 Admin API key found');
+        setAdminApiKey(adminKey);
+      } else {
+        // If no admin key, look for user-specific stored key
+        const storedApiKey = localStorage.getItem('openai_api_key');
+        if (storedApiKey) {
+          setOpenAIApiKey(storedApiKey);
+          console.log('🔑 Loaded user API key');
+        }
       }
     }
     
@@ -67,7 +75,9 @@ export function useAthroMessages() {
       return;
     }
     
-    if (!openAIApiKey) {
+    // Check if we have either an admin key or user key
+    const effectiveApiKey = adminApiKey || openAIApiKey;
+    if (!effectiveApiKey) {
       toast({
         title: "API Key Required",
         description: "Please enter your OpenAI API key to continue.",
@@ -113,7 +123,7 @@ export function useAthroMessages() {
       const response = await getOpenAIResponse({
         systemPrompt: systemPrompt,
         userMessage: content,
-        apiKey: openAIApiKey
+        apiKey: effectiveApiKey
       });
       
       console.log('✨ Response received', { 
@@ -174,7 +184,7 @@ export function useAthroMessages() {
       activeRequests.current.delete(requestId);
       setIsTyping(false);
     }
-  }, [openAIApiKey]);
+  }, [adminApiKey, openAIApiKey]);
 
   return {
     messages,
@@ -182,6 +192,6 @@ export function useAthroMessages() {
     sendMessage,
     clearMessages,
     setApiKey,
-    hasApiKey: !!openAIApiKey
+    hasApiKey: !!adminApiKey || !!openAIApiKey
   };
 }

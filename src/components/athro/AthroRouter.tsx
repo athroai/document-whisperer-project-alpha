@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { AthroCharacterConfig } from '@/types/athroCharacter';
 import { getOpenAIResponse } from '@/lib/openai';
@@ -20,18 +20,22 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
   onResponse,
   apiKey
 }) => {
-  // In a real implementation, this component would:
-  // 1. Preprocess the message based on the character
-  // 2. Call the appropriate API (OpenAI, MathPix, etc.)
-  // 3. Format the response for the specific character
-  // 4. Handle special rendering requirements (LaTeX, languages, etc.)
+  const [adminApiKey, setAdminApiKey] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Check for admin API key
+    const savedAdminKey = localStorage.getItem('athro_admin_openai_key');
+    setAdminApiKey(savedAdminKey);
+  }, []);
   
   React.useEffect(() => {
     const processMessage = async () => {
       try {
         console.log(`[AthroRouter] Processing message for ${character.name}`);
         
-        if (!apiKey) {
+        const effectiveApiKey = adminApiKey || apiKey;
+        
+        if (!effectiveApiKey) {
           console.warn('[AthroRouter] No API key provided, using mock response');
           // Simulate API call with a timeout
           setTimeout(() => {
@@ -54,7 +58,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         const response = await getOpenAIResponse({
           systemPrompt,
           userMessage: message,
-          apiKey
+          apiKey: effectiveApiKey
         });
         
         onResponse({
@@ -77,7 +81,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
     };
     
     processMessage();
-  }, [character, message, onResponse, apiKey]);
+  }, [character, message, onResponse, apiKey, adminApiKey]);
   
   return null; // This is a logic component, not a UI component
 };

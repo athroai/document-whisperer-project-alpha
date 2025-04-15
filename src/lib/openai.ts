@@ -11,9 +11,13 @@ export async function getOpenAIResponse({
 }) {
   console.log('🔌 Starting OpenAI API request with message:', userMessage.substring(0, 50) + '...');
   
+  // Use the default API key from the app if available
+  const defaultApiKey = localStorage.getItem('athro_admin_openai_key');
+  const effectiveApiKey = defaultApiKey || apiKey;
+  
   try {
     // Use a proper API key check
-    if (!apiKey || apiKey.length < 20) {
+    if (!effectiveApiKey || effectiveApiKey.length < 20) {
       console.error('❌ Invalid OpenAI API key - missing or too short');
       throw new Error('Invalid API key provided. Please check your API key.');
     }
@@ -43,7 +47,7 @@ export async function getOpenAIResponse({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${effectiveApiKey}`,
       },
       body: JSON.stringify(requestBody),
     });
