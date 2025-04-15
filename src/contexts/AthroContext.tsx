@@ -1,8 +1,11 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { AthroCharacterConfig, SubjectData } from '@/types/athroCharacter';
 import { athroCharacters } from '@/config/athrosConfig';
 import { mockAthroResponse } from '@/services/athroService';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 // Mock data for student progress in different subjects
 const mockStudentProgress: Record<string, SubjectData> = {
@@ -71,27 +74,92 @@ interface AthroContextProps {
 const AthroContext = createContext<AthroContextProps | undefined>(undefined);
 
 export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Convert config-based characters to AthroCharacter type
-  const convertedCharacters: AthroCharacter[] = athroCharacters.map(config => ({
-    id: config.id,
-    name: config.name,
-    subject: config.subject,
-    avatarUrl: config.avatarUrl,
-    shortDescription: config.shortDescription,
-    fullDescription: config.fullDescription,
-    tone: config.tone,
-    supportsMathNotation: config.supportsMathNotation || false,
-    supportsSpecialCharacters: config.supportsSpecialCharacters || false,
-    supportedLanguages: config.supportedLanguages || [],
-    topics: config.topics,
-    examBoards: config.examBoards,
-  }));
-
-  const [characters] = useState<AthroCharacter[]>(convertedCharacters);
+  const [characters, setCharacters] = useState<AthroCharacter[]>([]);
   const [activeCharacter, setActiveCharacterState] = useState<AthroCharacter | null>(null);
   const [messages, setMessages] = useState<AthroMessage[]>([]);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [studentProgress] = useState<Record<string, SubjectData>>(mockStudentProgress);
+
+  useEffect(() => {
+    // Try to fetch characters from Supabase
+    const fetchCharacters = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('athro_characters')
+          .select('*');
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data && data.length > 0) {
+          // Map Supabase data to AthroCharacter type
+          const supabaseCharacters: AthroCharacter[] = data.map(char => ({
+            id: char.id,
+            name: char.name,
+            subject: char.subject,
+            avatarUrl: char.avatar_url,
+            shortDescription: char.short_description,
+            fullDescription: char.full_description,
+            tone: char.tone,
+            supportsMathNotation: char.supports_math_notation || false,
+            supportsSpecialCharacters: char.supports_special_characters || false,
+            supportedLanguages: char.supported_languages || [],
+            topics: char.topics || [],
+            examBoards: char.exam_boards || []
+          }));
+          
+          setCharacters(supabaseCharacters);
+        } else {
+          // Fallback to local config if no data is found
+          console.log("No characters found in database, using local config");
+          const convertedCharacters: AthroCharacter[] = athroCharacters.map(config => ({
+            id: config.id,
+            name: config.name,
+            subject: config.subject,
+            avatarUrl: config.avatarUrl,
+            shortDescription: config.shortDescription,
+            fullDescription: config.fullDescription,
+            tone: config.tone,
+            supportsMathNotation: config.supportsMathNotation || false,
+            supportsSpecialCharacters: config.supportsSpecialCharacters || false,
+            supportedLanguages: config.supportedLanguages || [],
+            topics: config.topics,
+            examBoards: config.examBoards,
+          }));
+          
+          setCharacters(convertedCharacters);
+        }
+      } catch (error) {
+        console.error("Error fetching Athro characters:", error);
+        toast({
+          title: "Failed to load characters",
+          description: "Using local configuration instead",
+          variant: "destructive",
+        });
+        
+        // Fallback to local config
+        const convertedCharacters: AthroCharacter[] = athroCharacters.map(config => ({
+          id: config.id,
+          name: config.name,
+          subject: config.subject,
+          avatarUrl: config.avatarUrl,
+          shortDescription: config.shortDescription,
+          fullDescription: config.fullDescription,
+          tone: config.tone,
+          supportsMathNotation: config.supportsMathNotation || false,
+          supportsSpecialCharacters: config.supportsSpecialCharacters || false,
+          supportedLanguages: config.supportedLanguages || [],
+          topics: config.topics,
+          examBoards: config.examBoards,
+        }));
+        
+        setCharacters(convertedCharacters);
+      }
+    };
+    
+    fetchCharacters();
+  }, []);
 
   useEffect(() => {
     // Set default character when the component mounts
