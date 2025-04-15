@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
 import { getOpenAIResponse } from '@/lib/openai';
 import { athroCharacters, getAthroById } from '@/config/athrosConfig';
-import { SubjectData } from '@/types/athroCharacter';
 
 // Define the shape of our context
 interface AthroContextType {
@@ -236,6 +235,8 @@ Act as a wise, encouraging mentor who knows when to hand over to specialist char
         userMessage: content,
         apiKey: openAIApiKey
       });
+      
+      console.log('Raw OpenAI Response:', response);
       
       const athroResponse: AthroMessage = {
         id: (Date.now() + 1).toString(),
