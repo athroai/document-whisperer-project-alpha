@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Send } from 'lucide-react';
@@ -16,7 +15,7 @@ interface AthroChatProps {
 
 const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const { activeCharacter, messages, sendMessage, isTyping } = useAthro();
-  const [userMessage, setUserMessage] = useState<string>('');
+  const [inputMessage, setInputMessage] = useState<string>('');
   const messageEndRef = useRef<HTMLDivElement>(null);
   
   // Auto-scroll to the latest message
@@ -26,17 +25,18 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!userMessage.trim() || !activeCharacter) return;
+  const handleSend = () => {
+    if (!inputMessage.trim() || !activeCharacter) return;
     
-    sendMessage(userMessage);
-    setUserMessage('');
+    console.log('Sending message:', inputMessage);
+    sendMessage(inputMessage);
+    setInputMessage('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSend();
     }
   };
 
@@ -112,14 +112,18 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       
       <div className={`p-4 border-t ${isCompactMode ? 'bg-background' : ''}`}>
         <div className="flex space-x-2">
-          <Textarea
+          <input
+            type="text"
             placeholder={`Ask ${activeCharacter?.name || 'Athro AI'} a question...`}
-            value={userMessage}
-            onChange={(e) => setUserMessage(e.target.value)}
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="min-h-[60px]"
+            className="flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-purple-200"
           />
-          <Button className="shrink-0" onClick={handleSendMessage}>
+          <Button 
+            onClick={handleSend}
+            className="shrink-0"
+          >
             <Send className="h-4 w-4" />
             <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>
           </Button>
