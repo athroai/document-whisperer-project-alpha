@@ -11,9 +11,6 @@ export interface ConnectionTestResult {
   error?: Error | PostgrestError;
   data?: any;
   duration?: number;
-  corsStatus?: number;
-  isNetworkError?: boolean;
-  diagnosticInfo?: Record<string, any>;
 }
 
 export const testSupabaseConnection = async (timeoutMs = 10000): Promise<ConnectionTestResult> => {
@@ -43,15 +40,10 @@ export const testSupabaseConnection = async (timeoutMs = 10000): Promise<Connect
     if (error) {
       return {
         success: false,
-        status: 'error' as DatabaseStatus,
+        status: 'error',
         error,
         duration,
-        message: `Database query failed: ${error.message}`,
-        diagnosticInfo: {
-          errorCode: error.code,
-          details: error.details,
-          hint: error.hint,
-        },
+        message: `Database query failed: ${error.message}`
       };
     }
 
@@ -60,7 +52,7 @@ export const testSupabaseConnection = async (timeoutMs = 10000): Promise<Connect
       status: 'connected',
       data,
       duration,
-      message: `Connected successfully in ${duration}ms`,
+      message: `Connected successfully in ${duration}ms`
     };
   } catch (error: any) {
     clearTimeout(timeout);
@@ -72,8 +64,7 @@ export const testSupabaseConnection = async (timeoutMs = 10000): Promise<Connect
       status: isAbort ? 'timeout' : 'error',
       error,
       duration,
-      message: isAbort ? `Connection timed out after ${timeoutMs / 1000}s` : error.message,
-      isNetworkError: error.name === 'TypeError',
+      message: isAbort ? `Connection timed out after ${timeoutMs / 1000}s` : error.message
     };
   }
 };

@@ -1,11 +1,7 @@
 
-import { useDatabaseConnection } from "./useDatabaseConnection";
+// This file is deprecated and maintained only for backwards compatibility
+// Use useDatabaseConnection.tsx instead
 
-/**
- * @deprecated Use useDatabaseConnection from useDatabaseConnection instead
- */
-export const useFirestoreConnection = useDatabaseConnection;
+import useDatabaseConnection from './useDatabaseConnection';
+
 export default useDatabaseConnection;
-
-// Re-export types for backward compatibility
-export type { DatabaseConnectionStatus } from "./useDatabaseConnection";
