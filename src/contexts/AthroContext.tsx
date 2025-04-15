@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
 import { athroCharacters, getAthroById } from '@/config/athrosConfig';
@@ -6,7 +5,6 @@ import { useAthroMessages } from '@/hooks/useAthroMessages';
 import { useStudentProgress } from '@/hooks/useStudentProgress';
 import { toast } from '@/hooks/use-toast';
 
-// Define the shape of our context
 interface AthroContextType {
   activeCharacter: AthroCharacter | null;
   setActiveCharacter: (character: AthroCharacter | null) => void;
@@ -21,7 +19,6 @@ interface AthroContextType {
   getSuggestedTopics: (subject: AthroSubject) => string[];
 }
 
-// Create context with default values
 const AthroContext = createContext<AthroContextType>({
   activeCharacter: null,
   setActiveCharacter: () => {},
@@ -36,7 +33,6 @@ const AthroContext = createContext<AthroContextType>({
   getSuggestedTopics: () => [],
 });
 
-// Custom hook to use the context
 export const useAthro = () => useContext(AthroContext);
 
 interface AthroProviderProps {
@@ -50,24 +46,22 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const { messages, isTyping, sendMessage: sendAthroMessage, clearMessages } = useAthroMessages();
   const { studentProgress, getSuggestedTopics: getTopics } = useStudentProgress();
   
-  // Initialize characters only once
   useEffect(() => {
-    if (initializedRef.current) {
-      return;
-    }
+    if (initializedRef.current) return;
     
-    console.log('Initializing Athro characters');
+    console.log('🚀 Initializing Athro characters ONCE');
     
     try {
-      setCharacters(athroCharacters);
+      const charactersData = athroCharacters;
+      setCharacters(charactersData);
 
-      if (athroCharacters.length > 0) {
-        console.log('Setting initial active character:', athroCharacters[0].name);
-        setActiveCharacter(athroCharacters[0]);
+      if (charactersData.length > 0) {
+        console.log('🎯 Setting initial active character:', charactersData[0].name);
+        setActiveCharacter(charactersData[0]);
       }
       initializedRef.current = true;
     } catch (error) {
-      console.error('Error setting up Athro characters:', error);
+      console.error('🔥 Error setting up Athro characters:', error);
       toast({
         title: "Setup Error",
         description: "Failed to initialize Athro characters. Please refresh the page.",
@@ -76,16 +70,14 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Use useCallback to avoid function recreation
   const memoizedClearMessages = useCallback(() => {
     clearMessages();
   }, [clearMessages]);
 
-  // Monitor active character changes
   useEffect(() => {
     if (activeCharacter && initializedRef.current) {
       console.log('Active character changed to:', activeCharacter.name);
-      memoizedClearMessages(); // Clear messages when changing characters
+      memoizedClearMessages();
     }
   }, [activeCharacter, memoizedClearMessages]);
 
