@@ -47,7 +47,6 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const [messages, setMessages] = useState<AthroMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   
-  // Mock student progress data with updated type (would normally come from an API)
   const [studentProgress, setStudentProgress] = useState<Record<string, {
     confidenceScores: Record<string, number>;
     quizScores: Array<{ topic: string; score: number; date: string }>;
@@ -102,23 +101,18 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     }
   });
 
-  // Load all characters on mount
   useEffect(() => {
-    // Use the athroCharacters array directly instead of calling getAllAthros
     setCharacters(athroCharacters);
 
-    // If there's at least one character, set it as active by default
     if (athroCharacters.length > 0) {
       setActiveCharacter(athroCharacters[0]);
     }
   }, []);
 
-  // Function to get suggested topics based on subject
   const getSuggestedTopics = (subject: AthroSubject): string[] => {
     const character = characters.find(c => c.subject === subject);
     if (!character) return [];
     
-    // Return topics with lower confidence scores first
     const subjectProgress = studentProgress[subject];
     if (!subjectProgress) return character.topics.slice(0, 5);
     
@@ -134,7 +128,94 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const sendMessage = async (content: string) => {
     if (!activeCharacter || !content.trim()) return;
 
-    // Add user message
+    function buildSystemPrompt(character: AthroCharacter): string {
+      const examBoard = character.examBoards?.[0] || 'UK GCSE';
+
+      switch (character.subject) {
+        case "Mathematics":
+          return `
+You are ${character.name}, a sharp and friendly AI mentor for GCSE Mathematics.
+Answer direct maths questions with clear step-by-step logic.
+If asked something like "2+3", give the correct answer and explain in a line.
+Use proper maths language and help students feel confident in problem-solving.
+Exam board: ${examBoard}
+`.trim();
+
+        case "Science":
+          return `
+You are ${character.name}, a helpful AI mentor for GCSE Science.
+Provide accurate, age-appropriate explanations for Biology, Chemistry, and Physics.
+Use real-world examples and clear definitions to support students' understanding.
+Exam board: ${examBoard}
+`.trim();
+
+        case "English":
+          return `
+You are ${character.name}, an expert English mentor for GCSE students.
+Support students with essay writing, grammar, analysis, and comprehension.
+Help them understand texts, themes, and authorial intent.
+Exam board: ${examBoard}
+`.trim();
+
+        case "History":
+          return `
+You are ${character.name}, a passionate GCSE History guide.
+Help students understand causes, consequences, and significance of events.
+Encourage source analysis and structured arguments.
+Exam board: ${examBoard}
+`.trim();
+
+        case "Welsh":
+          return `
+You are ${character.name}, a GCSE Welsh language and literature mentor.
+Provide translations, grammar help, writing feedback, and cultural insights.
+Support both first and second-language learners.
+Exam board: ${examBoard}
+`.trim();
+
+        case "Geography":
+          return `
+You are ${character.name}, a GCSE Geography expert.
+Help students understand human and physical geography, case studies, and diagrams.
+Use real-world contexts and exam-friendly examples.
+Exam board: ${examBoard}
+`.trim();
+
+        case "Languages":
+          return `
+You are ${character.name}, a skilled AI tutor in GCSE French, Spanish, and German.
+Translate, explain grammar, and build vocabulary with real examples.
+Encourage full-sentence practice and confidence in speaking/writing.
+Exam board: ${examBoard}
+`.trim();
+
+        case "RE":
+        case "Religious Education":
+          return `
+You are ${character.name}, a thoughtful AI guide in GCSE Religious Education.
+Support students with ethics, beliefs, philosophical questions, and worldviews.
+Offer balanced, respectful, exam-appropriate responses.
+Exam board: ${examBoard}
+`.trim();
+
+        case "Timekeeper":
+          return `
+You are ${character.name}, the Timekeeper for Athro AI.
+Your job is to help students manage their time, plan revision sessions, and stay on track.
+Use supportive language and encourage realistic, structured routines.
+`.trim();
+
+        case "System":
+        case "AthroAI":
+        default:
+          return `
+You are ${character.name}, the central AI system behind Athro AI.
+You manage conversations across all subjects, help with general study advice, and guide students through the platform.
+Act as a wise, encouraging mentor who knows when to hand over to specialist characters.
+`.trim();
+      }
+    }
+
     const userMessage: AthroMessage = {
       id: Date.now().toString(),
       senderId: 'user',
@@ -143,21 +224,15 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     };
     setMessages(prev => [...prev, userMessage]);
     
-    // Show typing indicator
     setIsTyping(true);
     
     try {
-      // Temporary hardcoded OpenAI API key for direct usage
       const openAIApiKey = "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";
       
-      // Call OpenAI with the API key and updated system prompt
+      const systemPrompt = buildSystemPrompt(activeCharacter);
+      
       const response = await getOpenAIResponse({
-        systemPrompt: `You are ${activeCharacter.name}, an AI mentor for the subject ${activeCharacter.subject}.
-You are currently helping a student studying for the ${activeCharacter.examBoards?.[0] || 'UK'} exam board.
-Your tone is ${activeCharacter.tone || 'supportive and helpful'}.
-
-Respond clearly and concisely, aiming to build confidence in the student.
-You may use examples where useful, and your answer should always relate directly to the topic asked.`,
+        systemPrompt: systemPrompt,
         userMessage: content,
         apiKey: openAIApiKey
       });
@@ -173,7 +248,6 @@ You may use examples where useful, and your answer should always relate directly
     } catch (error) {
       console.error("Error getting Athro response:", error);
       
-      // Add fallback message
       const errorMessage: AthroMessage = {
         id: (Date.now() + 1).toString(),
         senderId: activeCharacter.id,
