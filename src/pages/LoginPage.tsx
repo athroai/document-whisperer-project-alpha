@@ -10,15 +10,18 @@ import { toast } from '@/hooks/use-toast';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
 import { DatabaseStatus } from '@/components/ui/database-status';
+import { testSupabaseConnection } from '@/services/connectionTest';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { login, state } = useAuth();
   const navigate = useNavigate();
-  const { status: connectionStatus } = useDatabaseStatus();
+  const { status: connectionStatus, retry: retryConnection, error: connectionError } = useDatabaseStatus();
 
   // Redirect if already logged in
   useEffect(() => {
@@ -40,10 +43,20 @@ const LoginPage: React.FC = () => {
     }
     
     // Don't attempt to login if offline
-    if (connectionStatus === 'offline' || connectionStatus === 'error') {
+    if (connectionStatus === 'offline') {
+      toast({
+        title: "You're Offline",
+        description: "Please check your internet connection and try again",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Don't attempt to login if there's a connection error
+    if (connectionStatus === 'error') {
       toast({
         title: "Connection Issue",
-        description: "Please check your internet connection and try again",
+        description: "Can't connect to authentication service. Please try again later.",
         variant: "destructive"
       });
       return;
@@ -66,6 +79,37 @@ const LoginPage: React.FC = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    try {
+      const isConnected = await testSupabaseConnection();
+      
+      if (isConnected) {
+        toast({
+          title: "Connection Test Successful",
+          description: "Successfully connected to Supabase",
+          variant: "success"
+        });
+        // Manually update the database status
+        await retryConnection();
+      } else {
+        toast({
+          title: "Connection Test Failed",
+          description: "Could not connect to Supabase",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Test Error",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
@@ -104,6 +148,33 @@ const LoginPage: React.FC = () => {
           {(connectionStatus === 'offline' || connectionStatus === 'error') && (
             <div className="mb-6">
               <DatabaseStatus />
+              <div className="flex justify-center mt-4">
+                <Button 
+                  onClick={handleTestConnection} 
+                  disabled={isTestingConnection} 
+                  variant="outline"
+                  size="sm"
+                >
+                  {isTestingConnection ? (
+                    <>
+                      <LoadingSpinner className="mr-2 h-4 w-4" />
+                      <span>Testing connection...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      <span>Test Connection</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {connectionStatus === 'checking' && (
+            <div className="flex items-center justify-center p-4 mb-4 bg-blue-50 text-blue-700 rounded-md">
+              <LoadingSpinner className="mr-2 h-4 w-4" />
+              <span>Checking connection status...</span>
             </div>
           )}
           
@@ -119,7 +190,7 @@ const LoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
-                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error'}
+                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error' || connectionStatus === 'checking'}
               />
             </div>
 
@@ -134,7 +205,7 @@ const LoginPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
-                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error'}
+                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error' || connectionStatus === 'checking'}
               />
             </div>
 
@@ -144,7 +215,7 @@ const LoginPage: React.FC = () => {
                   id="remember-me" 
                   checked={rememberMe} 
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
-                  disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error'}
+                  disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error' || connectionStatus === 'checking'}
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
                   Remember me
@@ -164,7 +235,12 @@ const LoginPage: React.FC = () => {
               <Button
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
-                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error'}
+                disabled={
+                  isSubmitting || 
+                  connectionStatus === 'offline' || 
+                  connectionStatus === 'error' || 
+                  connectionStatus === 'checking'
+                }
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center">

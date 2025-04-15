@@ -2,7 +2,7 @@
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { CloudOff, AlertCircle, Cloud, RefreshCw } from "lucide-react";
+import { CloudOff, AlertCircle, Cloud, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDatabaseStatus } from "@/contexts/DatabaseStatusContext";
 
@@ -17,7 +17,7 @@ export function DatabaseStatus({
   showSuccessStatus = false,
   compact = false,
 }: DatabaseStatusProps) {
-  const { status, retry } = useDatabaseStatus();
+  const { status, retry, error } = useDatabaseStatus();
   
   // If connected and we don't need to show success status, return null
   if (status === "connected" && !showSuccessStatus) {
@@ -33,7 +33,7 @@ export function DatabaseStatus({
             variant="outline" 
             className="bg-yellow-50 text-yellow-800 border-yellow-200 flex items-center gap-1"
           >
-            <CloudOff className="h-3 w-3" /> Working Offline
+            <WifiOff className="h-3 w-3" /> Working Offline
           </Badge>
           <Button 
             variant="ghost" 
@@ -98,7 +98,7 @@ export function DatabaseStatus({
   if (status === "offline") {
     return (
       <Alert variant="default" className={`mb-4 bg-yellow-50 border-yellow-200 ${className}`}>
-        <CloudOff className="h-4 w-4 text-yellow-600" />
+        <WifiOff className="h-4 w-4 text-yellow-600" />
         <AlertTitle className="text-yellow-800">Working Offline</AlertTitle>
         <AlertDescription className="text-yellow-700 flex flex-col">
           <span>You're currently working offline. Your data is stored locally and will sync when connectivity is restored.</span>
@@ -123,7 +123,7 @@ export function DatabaseStatus({
         <AlertCircle className="h-4 w-4 text-red-600" />
         <AlertTitle className="text-red-800">Connection Issue</AlertTitle>
         <AlertDescription className="text-red-700 flex flex-col">
-          <span>We're having trouble connecting to our servers. Please check your connection.</span>
+          <span>We're having trouble connecting to our servers. {error?.message || "Please check your connection."}</span>
           <Button 
             variant="outline" 
             size="sm" 

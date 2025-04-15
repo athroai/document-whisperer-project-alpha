@@ -11,7 +11,35 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true
+  },
+  global: {
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    // Log debug information
+    fetch: (url, options) => {
+      console.log(`Making Supabase request to: ${url.toString().split('?')[0]}`);
+      return fetch(url, options);
+    }
   }
 });
+
+// Add a simple wrapper to test connection
+export const testConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    
+    if (error) {
+      console.error('Connection test failed with error:', error);
+      return { success: false, error };
+    }
+    
+    console.log('Connection test successful:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Connection test exception:', error);
+    return { success: false, error };
+  }
+};
 
 export default supabase;
