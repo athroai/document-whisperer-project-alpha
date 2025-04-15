@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -42,7 +43,7 @@ export const testSupabaseConnection = async (timeoutMs = 10000): Promise<Connect
     if (error) {
       return {
         success: false,
-        status: 'error',
+        status: 'error' as DatabaseStatus,
         error,
         duration,
         message: `Database query failed: ${error.message}`,
