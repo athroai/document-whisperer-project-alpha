@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
@@ -34,7 +33,6 @@ export function useAthroMessages() {
     setMessages([]);
   }, []);
 
-  // Update the return type to be explicit - can return AthroMessage | null
   const sendMessage = useCallback(async (content: string, activeCharacter?: AthroCharacter | null): Promise<AthroMessage | null> => {
     console.log('📨 Sending message:', { 
       content, 
@@ -56,16 +54,15 @@ export function useAthroMessages() {
     // Check if this is a welcome message
     const isWelcomeMessage = content.toLowerCase() === "welcome";
     
-    // Create the user message object
-    const userMessage: AthroMessage = {
-      id: requestId,
-      senderId: 'user',
-      content,
-      timestamp: new Date().toISOString(),
-    };
-    
-    // Only add user message to chat if it's not a welcome message
+    // Only add non-welcome messages to chat
     if (!isWelcomeMessage) {
+      const userMessage: AthroMessage = {
+        id: requestId,
+        senderId: 'user',
+        content,
+        timestamp: new Date().toISOString(),
+      };
+      
       setMessages(prevMessages => {
         const updatedMessages = [...prevMessages, userMessage];
         console.log('✅ Adding user message', { 
@@ -82,35 +79,27 @@ export function useAthroMessages() {
     try {
       // For welcome messages, create a predefined response directly without API call
       if (isWelcomeMessage) {
-        const welcomeResponse = `Hello, I'm ${activeCharacter.name}. How can I help with your ${activeCharacter.subject} studies today?`;
+        const welcomeResponse = `What would you like help with in ${activeCharacter.subject} today? I'm here to answer any questions about your studies.`;
         
-        setTimeout(() => {
-          if (!activeRequests.current.has(requestId)) {
-            console.warn('🚫 Request was cancelled');
-            return;
-          }
-          
-          const athroResponse: AthroMessage = {
-            id: (Date.now() + 1).toString(),
-            senderId: activeCharacter.id,
-            content: welcomeResponse,
-            timestamp: new Date().toISOString(),
-          };
-          
-          setMessages(prevMessages => {
-            const updatedMessages = [...prevMessages, athroResponse];
-            console.log('➕ Adding AI welcome response', { 
-              prevMessageCount: prevMessages.length, 
-              newMessageCount: updatedMessages.length,
-              responseContent: athroResponse.content
-            });
-            return updatedMessages;
+        const athroResponse: AthroMessage = {
+          id: (Date.now() + 1).toString(),
+          senderId: activeCharacter.id,
+          content: welcomeResponse,
+          timestamp: new Date().toISOString(),
+        };
+        
+        setMessages(prevMessages => {
+          const updatedMessages = [...prevMessages, athroResponse];
+          console.log('➕ Adding AI welcome response', { 
+            prevMessageCount: prevMessages.length, 
+            newMessageCount: updatedMessages.length,
+            responseContent: athroResponse.content
           });
-          
-          setIsTyping(false);
-        }, 500); // Small delay to simulate typing
+          return updatedMessages;
+        });
         
-        return userMessage;
+        setIsTyping(false);
+        return null;
       }
       
       // Make the actual API call to OpenAI for non-welcome messages
