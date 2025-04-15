@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
@@ -32,11 +31,10 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const [showOcrDialog, setShowOcrDialog] = useState(false);
   const [ocrResult, setOcrResult] = useState<{text: string, latex: string, latexConfidence: number}|null>(null);
   const [processingOcr, setProcessingOcr] = useState(false);
+  const [hasWelcomed, setHasWelcomed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ocrFileInputRef = useRef<HTMLInputElement>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
-  
-  // CRITICAL: Removed initialMessageSent ref and automatic welcome messages
   
   const currentCharacter = character || activeCharacter;
   
@@ -64,11 +62,31 @@ const AthroChat: React.FC<AthroChatProps> = ({
   
   useEffect(() => {
     console.log('🎭 AthroChat component mounted with', messages.length, 'messages');
+    
+    const sendWelcomeMessage = async () => {
+      if (!currentCharacter || hasWelcomed || messages.length > 0) {
+        return;
+      }
+      
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'student';
+        
+        if (currentCharacter) {
+          sendMessage(`Welcome ${userName}! I'm ${currentCharacter.name}. What would you like to study in ${currentCharacter.subject} today?`, currentCharacter);
+          setHasWelcomed(true);
+        }
+      } catch (error) {
+        console.error('Error generating welcome message:', error);
+      }
+    };
+    
+    sendWelcomeMessage();
+    
     return () => {
       console.log('🎭 AthroChat component unmounted');
-      // CRITICAL: Removed reset of initialMessageSent.current here
     };
-  }, [messages.length]);
+  }, [messages.length, currentCharacter, sendMessage, hasWelcomed]);
   
   useEffect(() => {
     console.log('📜 Messages in AthroChat:', messages.length, 'messages');
@@ -90,6 +108,10 @@ const AthroChat: React.FC<AthroChatProps> = ({
     };
 
     loadDocumentsForCharacter();
+  }, [currentCharacter]);
+  
+  useEffect(() => {
+    setHasWelcomed(false);
   }, [currentCharacter]);
   
   const handleSend = () => {
@@ -153,7 +175,6 @@ const AthroChat: React.FC<AthroChatProps> = ({
     setUploading(true);
     
     try {
-      // Check if user is authenticated
       const { data: authData } = await supabase.auth.getUser();
       if (!authData.user) {
         toast({
@@ -165,20 +186,16 @@ const AthroChat: React.FC<AthroChatProps> = ({
         return;
       }
 
-      // Upload file to Supabase storage
       const uploadResult = await uploadDocumentForChat(file, currentCharacter.id);
 
       if (uploadResult) {
-        // Directly call sendMessage and link document without void check
         const messageResult = await sendMessage(`I've uploaded a document: ${file.name}`, currentCharacter);
         
-        // Use optional chaining and null checks to safely access id properties
         if (messageResult?.id && uploadResult.id) {
           await linkDocumentToMessage(uploadResult.id, messageResult.id);
           console.log('Document linked to message:', uploadResult.id, messageResult.id);
         }
 
-        // Refresh document list
         const updatedDocs = await getDocumentsForCharacter(currentCharacter.id);
         setDocuments(updatedDocs);
         
@@ -239,18 +256,15 @@ const AthroChat: React.FC<AthroChatProps> = ({
     setShowOcrDialog(true);
     
     try {
-      // Process the image with Mathpix OCR
       const result = await extractTextFromImageWithMathpix(file);
       setOcrResult(result);
 
-      // Upload the original file to Supabase as well
       const uploadResult = await uploadDocumentForChat(
         file, 
         currentCharacter.id
       );
 
       if (uploadResult) {
-        // Refresh document list
         const updatedDocs = await getDocumentsForCharacter(currentCharacter.id);
         setDocuments(updatedDocs);
       }
@@ -456,7 +470,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
             <div className="space-y-4">
               {messages.length === 0 && currentCharacter && (
                 <div className="text-center p-4 text-muted-foreground">
-                  {isTyping ? "Loading..." : "Start a conversation with " + currentCharacter.name}
+                  {isTyping ? "Loading..." : "Starting a conversation with " + currentCharacter.name}
                 </div>
               )}
               
@@ -547,7 +561,6 @@ const AthroChat: React.FC<AthroChatProps> = ({
         </div>
       </div>
       
-      {/* OCR Result Dialog */}
       <Dialog open={showOcrDialog} onOpenChange={setShowOcrDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,6 @@ import { buildSystemPrompt } from '@/utils/athroPrompts';
 import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
 import { pastPapers, PastPaper } from '@/data/athro-maths/past-papers';
 import { useAthroMessages } from '@/hooks/useAthroMessages';
-import AdminSettings from '@/components/AdminSettings';
 
 const athroCharacters = {
   Mathematics: { 
@@ -116,7 +116,6 @@ const StudySessionPage: React.FC = () => {
   const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
   const [showFileReferences, setShowFileReferences] = useState(false);
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
-  const [showAdminSettings, setShowAdminSettings] = useState(false);
 
   useEffect(() => {
     const subjectParam = searchParams.get('subject');
@@ -243,8 +242,6 @@ const StudySessionPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
-      <Dialog open={showAdminSettings} onOpenChange={setShowAdminSettings} />
-
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-4 mb-4">
@@ -404,11 +401,9 @@ const StudySessionPage: React.FC = () => {
                     <Button
                       onClick={handleActions.startAISession}
                       className="h-auto py-12 flex flex-col bg-purple-600 hover:bg-purple-700"
-                      disabled={!hasApiKey}
                     >
                       <BookOpen className="h-16 w-16 mb-4" />
                       <span className="text-lg font-medium">AI-Powered Study Session</span>
-                      {!hasApiKey && <span className="text-xs mt-2">Set API key first</span>}
                     </Button>
                     
                     <Button
@@ -612,12 +607,12 @@ const StudySessionPage: React.FC = () => {
                           handleSendMessage();
                         }
                       }}
-                      disabled={isLoading || !hasApiKey}
+                      disabled={isLoading}
                     />
                     <Button 
                       className="h-auto bg-purple-600 hover:bg-purple-700"
                       onClick={handleSendMessage}
-                      disabled={isLoading || !message.trim() || !hasApiKey}
+                      disabled={isLoading || !message.trim()}
                     >
                       <Send className="h-4 w-4" />
                       <span className="sr-only">Send message</span>

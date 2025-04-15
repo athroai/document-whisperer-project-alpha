@@ -10,6 +10,7 @@ import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/lib/supabase';
 
 interface AthroBaseProps {
   showTopicSelector?: boolean;
@@ -19,6 +20,7 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
   const { activeCharacter, messages, sendMessage, isTyping, studentProgress, getSuggestedTopics } = useAthro();
   const [userMessage, setUserMessage] = useState<string>('');
   const [showMarkScheme, setShowMarkScheme] = useState<boolean>(false);
+  const [hasWelcomed, setHasWelcomed] = useState<boolean>(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<string>('chat');
   
@@ -28,6 +30,32 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
       messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Send welcome message when component mounts and character is active
+  useEffect(() => {
+    const sendWelcomeMessage = async () => {
+      if (!activeCharacter || hasWelcomed || messages.length > 0) {
+        return;
+      }
+      
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'student';
+        
+        sendMessage(`Welcome ${userName}! I'm ${activeCharacter.name}. What would you like to study in ${activeCharacter.subject} today?`);
+        setHasWelcomed(true);
+      } catch (error) {
+        console.error('Error generating welcome message:', error);
+      }
+    };
+    
+    sendWelcomeMessage();
+  }, [activeCharacter, messages.length, sendMessage, hasWelcomed]);
+
+  // Reset welcome state when character changes
+  useEffect(() => {
+    setHasWelcomed(false);
+  }, [activeCharacter]);
 
   const handleSendMessage = () => {
     if (!userMessage.trim() || !activeCharacter) return;
