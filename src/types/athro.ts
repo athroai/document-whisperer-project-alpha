@@ -33,12 +33,14 @@ export interface AthroCharacter {
 
 export interface AthroMessage {
   id: string;
-  senderId: string; // 'user' or AthroCharacter ID
+  senderId: string; // 'user' or character ID
   content: string;
   timestamp: string;
-  attachments?: AthroAttachment[];
-  referencedResources?: string[]; // IDs of resources being referenced
-  confidence?: number; // For tracking student confidence
+  referencedResources?: {
+    id: string;
+    name: string;
+    type: string;
+  }[];
 }
 
 export interface AthroAttachment {

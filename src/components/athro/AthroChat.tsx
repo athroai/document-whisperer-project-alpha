@@ -2,17 +2,25 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Send, AlertTriangle, Wifi, WifiOff, Bug, Info } from 'lucide-react';
-import { AthroMessage } from '@/types/athro';
-import { AthroCharacter } from '@/types/athro';
+import { Send, AlertTriangle, Wifi, WifiOff, Bug, Info, Upload, FileText } from 'lucide-react';
+import { AthroMessage, AthroCharacter } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/lib/supabase';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
   character?: AthroCharacter;
+}
+
+interface ChatDocument {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  uploadedAt: string;
 }
 
 const AthroChat: React.FC<AthroChatProps> = ({ 
@@ -23,6 +31,10 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const [inputMessage, setInputMessage] = useState<string>('');
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [showDocuments, setShowDocuments] = useState(false);
+  const [documents, setDocuments] = useState<ChatDocument[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const initialMessageSent = useRef(false);
   
@@ -75,7 +87,130 @@ const AthroChat: React.FC<AthroChatProps> = ({
       messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (currentCharacter) {
+      const loadDocuments = async () => {
+        try {
+          const storedDocs = localStorage.getItem(`athro_documents_${currentCharacter.id}`);
+          if (storedDocs) {
+            setDocuments(JSON.parse(storedDocs));
+          }
+        } catch (error) {
+          console.error('Error loading documents:', error);
+        }
+      };
+      
+      loadDocuments();
+    }
+  }, [currentCharacter]);
   
+  const handleSend = () => {
+    if (!inputMessage.trim() || !currentCharacter) {
+      if (!currentCharacter) {
+        console.log('❌ Send attempted with no active character');
+        toast({
+          title: "No Subject Selected",
+          description: "Please select a subject mentor first.",
+          variant: "default",
+        });
+      }
+      return;
+    }
+    
+    console.log('💬 AthroChat - Sending message:', inputMessage);
+    sendMessage(inputMessage);
+    setInputMessage('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !currentCharacter) {
+      return;
+    }
+    
+    const file = e.target.files[0];
+    const fileType = file.type.split('/')[1];
+    const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'jpg', 'jpeg', 'png'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+    
+    if (!allowedTypes.includes(fileExtension)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload only PDF, DOC, XLS, CSV, DOCX, JPG, or PNG files.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "File size should be less than 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setUploading(true);
+    
+    try {
+      const fileId = `${Date.now()}_${file.name}`;
+      const fileURL = URL.createObjectURL(file);
+      
+      const newDocument: ChatDocument = {
+        id: fileId,
+        name: file.name,
+        url: fileURL,
+        type: fileExtension,
+        uploadedAt: new Date().toISOString(),
+      };
+      
+      const updatedDocs = [...documents, newDocument];
+      setDocuments(updatedDocs);
+      
+      localStorage.setItem(`athro_documents_${currentCharacter.id}`, JSON.stringify(updatedDocs));
+      
+      setShowDocuments(true);
+      
+      sendMessage(`I've uploaded a document: ${file.name}`);
+      
+      toast({
+        title: "File Uploaded",
+        description: `${file.name} has been uploaded successfully.`,
+      });
+      
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: "Upload Failed",
+        description: "There was an error uploading your file.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const openDocument = (doc: ChatDocument) => {
+    window.open(doc.url, '_blank');
+  };
+
   const sendDebugMessage = () => {
     console.log('🐛 Sending debug test message');
     if (!currentCharacter) {
@@ -104,31 +239,6 @@ const AthroChat: React.FC<AthroChatProps> = ({
     }
     
     sendMessage("2-1", currentCharacter);
-  };
-
-  const handleSend = () => {
-    if (!inputMessage.trim() || !currentCharacter) {
-      if (!currentCharacter) {
-        console.log('❌ Send attempted with no active character');
-        toast({
-          title: "No Subject Selected",
-          description: "Please select a subject mentor first.",
-          variant: "default",
-        });
-      }
-      return;
-    }
-    
-    console.log('💬 AthroChat - Sending message:', inputMessage);
-    sendMessage(inputMessage);
-    setInputMessage('');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
   };
 
   return (
@@ -199,97 +309,141 @@ const AthroChat: React.FC<AthroChatProps> = ({
         </div>
       )}
       
-      <ScrollArea className="flex-grow p-4">
-        <div className="space-y-4">
-          {messages.length === 0 && currentCharacter && (
-            <div className="text-center p-4 text-muted-foreground">
-              {isTyping ? "Loading..." : "Start a conversation with " + currentCharacter.name}
-            </div>
-          )}
-          
-          {messages.length === 0 && !currentCharacter && (
-            <div className="text-center p-4 text-muted-foreground">
-              Please select a subject mentor to begin chatting
-            </div>
-          )}
-          
-          {messages.map((msg: AthroMessage) => (
-            <div 
-              key={msg.id} 
-              className={`flex ${msg.senderId === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
-            >
-              <div 
-                className={`max-w-[80%] rounded-lg p-4 ${
-                  msg.senderId === 'user' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted'
-                }`}
-              >
-                {msg.senderId !== 'user' && (
-                  <div className="flex items-center mb-2">
-                    <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={currentCharacter?.avatarUrl} alt={currentCharacter?.name} />
-                      <AvatarFallback>{currentCharacter?.name?.charAt(0) || 'A'}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium">{currentCharacter?.name || 'Athro AI'}</span>
-                  </div>
-                )}
-                
-                {msg.senderId !== 'user' && currentCharacter?.supportsMathNotation ? (
-                  <AthroMathsRenderer content={msg.content} />
-                ) : (
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                )}
-                
-                {msg.senderId !== 'user' && msg.referencedResources && msg.referencedResources.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-gray-200">
-                    <Button variant="link" size="sm" className="p-0 h-auto text-xs">
-                      View referenced materials
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          
-          {isTyping && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-lg p-4 bg-muted">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '600ms' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messageEndRef} />
-        </div>
-      </ScrollArea>
-      
-      <div className={`p-4 border-t ${isCompactMode ? 'bg-background' : ''}`}>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            placeholder={`Ask ${currentCharacter?.name || 'Athro AI'} a question...`}
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-purple-200"
-            disabled={!currentCharacter || !isOnline}
-          />
+      <div className="flex flex-1">
+        <div className="w-56 border-r p-4 flex flex-col">
           <Button 
-            onClick={handleSend}
-            className="shrink-0"
-            disabled={!inputMessage.trim() || isTyping || !currentCharacter || !isOnline}
+            onClick={handleUploadClick} 
+            className="mb-4 w-full"
+            disabled={uploading || !currentCharacter}
           >
-            <Send className="h-4 w-4" />
-            <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>
+            <Upload className="h-4 w-4 mr-2" />
+            {uploading ? "Uploading..." : "Upload Study Materials"}
           </Button>
+          
+          <input 
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png"
+          />
+          
+          <h3 className="text-sm font-medium mb-2">Documents</h3>
+          
+          <div className="overflow-y-auto flex-1">
+            {documents.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No documents uploaded</p>
+            ) : (
+              <div className="space-y-2">
+                {documents.map((doc) => (
+                  <div 
+                    key={doc.id}
+                    className="p-2 border rounded text-xs cursor-pointer hover:bg-muted flex items-center"
+                    onClick={() => openDocument(doc)}
+                  >
+                    <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
+                    <span className="truncate">{doc.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          Press Enter to send. Use Shift+Enter for a new line.
-        </p>
+        
+        <div className="flex-1 flex flex-col">
+          <ScrollArea className="flex-grow p-4">
+            <div className="space-y-4">
+              {messages.length === 0 && currentCharacter && (
+                <div className="text-center p-4 text-muted-foreground">
+                  {isTyping ? "Loading..." : "Start a conversation with " + currentCharacter.name}
+                </div>
+              )}
+              
+              {messages.length === 0 && !currentCharacter && (
+                <div className="text-center p-4 text-muted-foreground">
+                  Please select a subject mentor to begin chatting
+                </div>
+              )}
+              
+              {messages.map((msg: AthroMessage) => (
+                <div 
+                  key={msg.id} 
+                  className={`flex ${msg.senderId === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
+                >
+                  <div 
+                    className={`max-w-[80%] rounded-lg p-4 ${
+                      msg.senderId === 'user' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted'
+                    }`}
+                  >
+                    {msg.senderId !== 'user' && (
+                      <div className="flex items-center mb-2">
+                        <Avatar className="h-6 w-6 mr-2">
+                          <AvatarImage src={currentCharacter?.avatarUrl} alt={currentCharacter?.name} />
+                          <AvatarFallback>{currentCharacter?.name?.charAt(0) || 'A'}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{currentCharacter?.name || 'Athro AI'}</span>
+                      </div>
+                    )}
+                    
+                    {msg.senderId !== 'user' && currentCharacter?.supportsMathNotation ? (
+                      <AthroMathsRenderer content={msg.content} />
+                    ) : (
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                    )}
+                    
+                    {msg.senderId !== 'user' && msg.referencedResources && msg.referencedResources.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <Button variant="link" size="sm" className="p-0 h-auto text-xs">
+                          View referenced materials
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] rounded-lg p-4 bg-muted">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '600ms' }}></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messageEndRef} />
+            </div>
+          </ScrollArea>
+          
+          <div className={`p-4 border-t ${isCompactMode ? 'bg-background' : ''}`}>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                placeholder={`Ask ${currentCharacter?.name || 'Athro AI'} a question...`}
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-purple-200"
+                disabled={!currentCharacter || !isOnline}
+              />
+              <Button 
+                onClick={handleSend}
+                className="shrink-0"
+                disabled={!inputMessage.trim() || isTyping || !currentCharacter || !isOnline}
+              >
+                <Send className="h-4 w-4" />
+                <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Press Enter to send. Use Shift+Enter for a new line.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
