@@ -43,12 +43,6 @@ const AthroSystem: React.FC = () => {
     }
   }, [messages, isOpen, activeCharacter, isInitialRender]);
 
-  console.log('🎭 AthroSystem rendering with:', {
-    characterName: activeCharacter?.name || 'No character',
-    messageCount: messages.length,
-    isOpen
-  });
-
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <Sheet open={isOpen} onOpenChange={setIsOpen}>

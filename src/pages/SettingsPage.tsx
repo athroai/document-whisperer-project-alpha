@@ -8,22 +8,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
-import { Key, Shield, LogOut, Save } from 'lucide-react';
+import { LogOut, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import AdminSettings from '@/components/AdminSettings';
 
 const SettingsPage: React.FC = () => {
   const { state, updateUser, logout } = useAuth();
   const user = state.user;
   const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [examBoard, setExamBoard] = useState(user?.examBoard || 'none');
-  const [showAdminSettings, setShowAdminSettings] = useState(false);
+  const [examBoard, setExamBoard] = useState<string>(user?.examBoard || 'none');
 
   const handleSaveSettings = () => {
     if (user) {
       updateUser({
         displayName,
-        examBoard
+        examBoard: examBoard as "none" | "aqa" | "edexcel" | "ocr" | "wjec"
       });
       toast({
         title: "Settings Saved",
@@ -44,7 +42,6 @@ const SettingsPage: React.FC = () => {
         <TabsList>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="preferences">Preferences</TabsTrigger>
-          <TabsTrigger value="admin">Admin</TabsTrigger>
         </TabsList>
         
         <TabsContent value="account">
@@ -116,8 +113,8 @@ const SettingsPage: React.FC = () => {
               <div className="space-y-1">
                 <Label htmlFor="examBoard">Exam Board</Label>
                 <Select 
-                  value={examBoard} 
-                  onValueChange={setExamBoard}
+                  value={examBoard}
+                  onValueChange={(value) => setExamBoard(value)}
                 >
                   <SelectTrigger id="examBoard">
                     <SelectValue placeholder="Select exam board" />
@@ -153,38 +150,7 @@ const SettingsPage: React.FC = () => {
             </CardFooter>
           </Card>
         </TabsContent>
-        
-        <TabsContent value="admin">
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin Settings</CardTitle>
-              <CardDescription>
-                Configure system-wide settings
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex flex-col space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Configure OpenAI API key for all users and other administrative settings.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    className="flex items-center"
-                    onClick={() => setShowAdminSettings(true)}
-                  >
-                    <Shield className="h-4 w-4 mr-2 text-amber-500" />
-                    Open Admin Settings
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
-      
-      <AdminSettings open={showAdminSettings} onOpenChange={setShowAdminSettings} />
     </div>
   );
 };

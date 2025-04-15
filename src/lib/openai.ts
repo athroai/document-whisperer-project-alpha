@@ -1,5 +1,9 @@
 
 // src/lib/openai.ts
+
+// Hardcoded project API key for all users - safe to store here as it's a project-specific key
+const PROJECT_API_KEY = "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";
+
 export async function getOpenAIResponse({
   systemPrompt,
   userMessage,
@@ -7,13 +11,12 @@ export async function getOpenAIResponse({
 }: {
   systemPrompt: string;
   userMessage: string;
-  apiKey: string;
+  apiKey?: string;  // Made optional since we now have a project key
 }) {
   console.log('🔌 Starting OpenAI API request with message:', userMessage.substring(0, 50) + '...');
   
-  // Use the default API key from the app if available
-  const defaultApiKey = localStorage.getItem('athro_admin_openai_key');
-  const effectiveApiKey = defaultApiKey || apiKey;
+  // Always use the project API key first, then fall back to other sources
+  const effectiveApiKey = PROJECT_API_KEY || localStorage.getItem('athro_admin_openai_key') || apiKey;
   
   try {
     // Use a proper API key check

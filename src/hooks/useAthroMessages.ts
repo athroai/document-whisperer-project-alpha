@@ -12,10 +12,6 @@ export function useAthroMessages() {
   const initializedRef = useRef(false);
   const messagesRef = useRef<AthroMessage[]>([]);
   
-  // For storing the API key - in production this would be securely managed
-  const [openAIApiKey, setOpenAIApiKey] = useState<string>("");
-  const [adminApiKey, setAdminApiKey] = useState<string | null>(null);
-  
   useEffect(() => {
     messagesRef.current = messages;
     console.log('💬 Messages updated:', messages.length);
@@ -25,20 +21,6 @@ export function useAthroMessages() {
     if (!initializedRef.current) {
       console.log('🔄 useAthroMessages: Initial setup');
       initializedRef.current = true;
-      
-      // Check for admin API key first
-      const adminKey = localStorage.getItem('athro_admin_openai_key');
-      if (adminKey) {
-        console.log('🔑 Admin API key found');
-        setAdminApiKey(adminKey);
-      } else {
-        // If no admin key, look for user-specific stored key
-        const storedApiKey = localStorage.getItem('openai_api_key');
-        if (storedApiKey) {
-          setOpenAIApiKey(storedApiKey);
-          console.log('🔑 Loaded user API key');
-        }
-      }
     }
     
     return () => {
@@ -52,14 +34,6 @@ export function useAthroMessages() {
     setMessages([]);
   }, []);
 
-  // Function to set API key (will be used by an input in StudySessionPage)
-  const setApiKey = useCallback((key: string) => {
-    setOpenAIApiKey(key);
-    // Store in localStorage for persistence
-    localStorage.setItem('openai_api_key', key);
-    console.log('🔑 API key updated and stored');
-  }, []);
-
   const sendMessage = useCallback(async (content: string, activeCharacter?: AthroCharacter | null) => {
     console.log('📨 Sending message:', { 
       content, 
@@ -71,17 +45,6 @@ export function useAthroMessages() {
       console.warn('❌ Cannot send message: No active character or empty content', {
         hasActiveCharacter: !!activeCharacter,
         contentLength: content.trim().length
-      });
-      return;
-    }
-    
-    // Check if we have either an admin key or user key
-    const effectiveApiKey = adminApiKey || openAIApiKey;
-    if (!effectiveApiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter your OpenAI API key to continue.",
-        variant: "destructive",
       });
       return;
     }
@@ -123,7 +86,6 @@ export function useAthroMessages() {
       const response = await getOpenAIResponse({
         systemPrompt: systemPrompt,
         userMessage: content,
-        apiKey: effectiveApiKey
       });
       
       console.log('✨ Response received', { 
@@ -184,14 +146,13 @@ export function useAthroMessages() {
       activeRequests.current.delete(requestId);
       setIsTyping(false);
     }
-  }, [adminApiKey, openAIApiKey]);
+  }, []);
 
   return {
     messages,
     isTyping,
     sendMessage,
     clearMessages,
-    setApiKey,
-    hasApiKey: !!adminApiKey || !!openAIApiKey
+    hasApiKey: true // Always return true since we have the project API key
   };
 }
