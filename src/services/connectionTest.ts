@@ -16,86 +16,63 @@ export interface ConnectionTestResult {
 }
 
 export const testSupabaseConnection = async (timeoutMs = 10000): Promise<ConnectionTestResult> => {
+  // Check if user is offline
+  if (!navigator.onLine) {
+    return {
+      success: false,
+      status: 'offline',
+      message: 'Your device is offline',
+    };
+  }
+
+  const startTime = Date.now();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    // Step 1: Check local network state
-    if (!navigator.onLine) {
-      console.log('🚫 Device is offline');
+    // Run a simple Supabase query
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1);
+
+    clearTimeout(timeout);
+    const duration = Date.now() - startTime;
+
+    if (error) {
       return {
         success: false,
-        status: 'offline',
-        message: 'You are offline. Please check your internet connection.'
+        status: 'error',
+        error,
+        duration,
+        message: `Database query failed: ${error.message}`,
+        diagnosticInfo: {
+          errorCode: error.code,
+          details: error.details,
+          hint: error.hint,
+        },
       };
     }
 
-    const startTime = Date.now();
-
-    // Step 2: Check Supabase session
-    console.log('🔍 Checking Supabase session...');
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-      console.error('⚠️ Supabase session error:', sessionError);
-    }
-    if (!sessionData || !sessionData.session) {
-      console.warn('🛑 No active Supabase session. Are you logged in?');
-    } else {
-      console.log('✅ Supabase session exists:', sessionData.session.user);
-    }
-
-    // Step 3: Create timeout fallback
-    const timeoutPromise = new Promise<ConnectionTestResult>((resolve) => {
-      setTimeout(() => {
-        console.log(`⏱️ Connection timed out after ${timeoutMs}ms`);
-        resolve({
-          success: false,
-          status: 'timeout',
-          message: `Connection timed out after ${timeoutMs / 1000} seconds`
-        });
-      }, timeoutMs);
-    });
-
-    // Step 4: Execute actual Supabase query
-    const queryPromise = supabase
-      .from('profiles')
-      .select('id')
-      .limit(1)
-      .then(({ data, error }) => {
-        const duration = Date.now() - startTime;
-
-        if (error) {
-          console.error('🔥 Supabase query error:', error);
-          return {
-            success: false,
-            status: 'error',
-            error,
-            message: `Database query failed: ${error.message}`,
-            duration,
-            diagnosticInfo: {
-              errorCode: error.code,
-              details: error.details,
-              hint: error.hint
-            }
-          };
-        }
-
-        console.log(`🎉 Supabase query successful in ${duration}ms`, data);
-        return {
-          success: true,
-          status: 'connected',
-          message: `Connected successfully in ${duration}ms`,
-          duration,
-          data
-        };
-      });
-
-    // Step 5: Race timeout vs query
-    return await Promise.race([queryPromise, timeoutPromise]);
+    return {
+      success: true,
+      status: 'connected',
+      data,
+      duration,
+      message: `Connected successfully in ${duration}ms`,
+    };
   } catch (error: any) {
-    console.error('❌ Unexpected error during connection test:', error);
+    clearTimeout(timeout);
+    const duration = Date.now() - startTime;
+    const isAbort = error.name === 'AbortError';
+
     return {
       success: false,
-      status: 'error',
+      status: isAbort ? 'timeout' : 'error',
       error,
-      message: error.message || 'Unknown connection test error'
+      duration,
+      message: isAbort ? `Connection timed out after ${timeoutMs / 1000}s` : error.message,
+      isNetworkError: error.name === 'TypeError',
     };
   }
 };
