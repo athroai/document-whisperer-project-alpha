@@ -18,8 +18,9 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const [inputMessage, setInputMessage] = useState<string>('');
   const messageEndRef = useRef<HTMLDivElement>(null);
   
-  // Auto-scroll to the latest message
+  // Debug messages and scroll to latest
   useEffect(() => {
+    console.log('Messages in AthroChat:', messages);
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -27,13 +28,13 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
 
   // Debug active character
   useEffect(() => {
-    console.log('Active character:', activeCharacter);
+    console.log('Active character in AthroChat:', activeCharacter);
   }, [activeCharacter]);
 
   const handleSend = () => {
     if (!inputMessage.trim() || !activeCharacter) return;
     
-    console.log('Sending message:', inputMessage);
+    console.log('AthroChat - Sending message:', inputMessage);
     sendMessage(inputMessage);
     setInputMessage('');
   };
@@ -45,21 +46,16 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     }
   };
 
-  if (!activeCharacter && messages.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center p-4">
-          <h3 className="font-medium mb-2">No Active Athro Selected</h3>
-          <p className="text-muted-foreground">Choose a subject to begin studying</p>
-        </div>
-      </div>
-    );
-  }
-  
   return (
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-grow p-4">
         <div className="space-y-4">
+          {messages.length === 0 && (
+            <div className="text-center p-4 text-muted-foreground">
+              Start a conversation with {activeCharacter?.name || "Athro"}
+            </div>
+          )}
+          
           {messages.map((msg: AthroMessage) => (
             <div 
               key={msg.id} 
@@ -128,6 +124,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
           <Button 
             onClick={handleSend}
             className="shrink-0"
+            disabled={!inputMessage.trim() || isTyping}
           >
             <Send className="h-4 w-4" />
             <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>

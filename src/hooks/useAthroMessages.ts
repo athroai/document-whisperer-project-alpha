@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
+import { toast } from '@/hooks/use-toast';
 
 export function useAthroMessages() {
   const [messages, setMessages] = useState<AthroMessage[]>([]);
@@ -21,13 +22,17 @@ export function useAthroMessages() {
 
     console.log(`Sending message to ${activeCharacter.name}:`, content);
     
+    // Create and add user message to state immediately
     const userMessage: AthroMessage = {
       id: Date.now().toString(),
       senderId: 'user',
       content,
       timestamp: new Date().toISOString(),
     };
-    setMessages(prev => [...prev, userMessage]);
+    
+    // Add the user message to the state immediately
+    setMessages(prevMessages => [...prevMessages, userMessage]);
+    console.log('Added user message:', userMessage);
     
     setIsTyping(true);
     
@@ -52,6 +57,7 @@ export function useAthroMessages() {
         throw new Error('Empty response from OpenAI');
       }
       
+      // Create response message
       const athroResponse: AthroMessage = {
         id: (Date.now() + 1).toString(),
         senderId: activeCharacter.id,
@@ -59,10 +65,13 @@ export function useAthroMessages() {
         timestamp: new Date().toISOString(),
       };
       
-      setMessages(prev => [...prev, athroResponse]);
+      // Add the AI response to the messages
+      setMessages(prevMessages => [...prevMessages, athroResponse]);
+      console.log('Added AI response:', athroResponse);
     } catch (error) {
       console.error("Error getting Athro response:", error);
       
+      // Add error message to chat
       const errorMessage: AthroMessage = {
         id: (Date.now() + 1).toString(),
         senderId: activeCharacter?.id || 'system',
@@ -70,7 +79,14 @@ export function useAthroMessages() {
         timestamp: new Date().toISOString(),
       };
       
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
+      
+      // Show toast notification for better UX
+      toast({
+        title: "Connection Error",
+        description: "Failed to get a response. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsTyping(false);
     }
@@ -78,6 +94,7 @@ export function useAthroMessages() {
 
   const clearMessages = () => {
     setMessages([]);
+    console.log('Messages cleared');
   };
 
   return {

@@ -4,6 +4,7 @@ import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
 import { athroCharacters, getAthroById } from '@/config/athrosConfig';
 import { useAthroMessages } from '@/hooks/useAthroMessages';
 import { useStudentProgress } from '@/hooks/useStudentProgress';
+import { toast } from '@/hooks/use-toast';
 
 // Define the shape of our context
 interface AthroContextType {
@@ -45,18 +46,36 @@ interface AthroProviderProps {
 export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const [activeCharacter, setActiveCharacter] = useState<AthroCharacter | null>(null);
   const [characters, setCharacters] = useState<AthroCharacter[]>([]);
-  const { messages, isTyping, sendMessage: sendAthroMessage } = useAthroMessages();
+  const { messages, isTyping, sendMessage: sendAthroMessage, clearMessages } = useAthroMessages();
   const { studentProgress, getSuggestedTopics: getTopics } = useStudentProgress();
   
+  // Initialize characters
   useEffect(() => {
     console.log('Setting up Athro characters');
-    setCharacters(athroCharacters);
+    try {
+      setCharacters(athroCharacters);
 
-    if (athroCharacters.length > 0) {
-      console.log('Setting active character to:', athroCharacters[0]);
-      setActiveCharacter(athroCharacters[0]);
+      if (athroCharacters.length > 0) {
+        console.log('Setting active character to:', athroCharacters[0]);
+        setActiveCharacter(athroCharacters[0]);
+      }
+    } catch (error) {
+      console.error('Error setting up Athro characters:', error);
+      toast({
+        title: "Setup Error",
+        description: "Failed to initialize Athro characters. Please refresh the page.",
+        variant: "destructive",
+      });
     }
   }, []);
+
+  // Monitor active character changes
+  useEffect(() => {
+    if (activeCharacter) {
+      console.log('Active character changed:', activeCharacter.name);
+      clearMessages(); // Clear messages when changing characters
+    }
+  }, [activeCharacter, clearMessages]);
 
   const getSuggestedTopics = (subject: AthroSubject): string[] => {
     const character = characters.find(c => c.subject === subject);
@@ -71,10 +90,23 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     
     if (!activeCharacter) {
       console.warn("No active character to send message to");
+      toast({
+        title: "No Character Selected",
+        description: "Please select a subject character first.",
+      });
       return;
     }
     
-    sendAthroMessage(content, activeCharacter);
+    try {
+      sendAthroMessage(content, activeCharacter);
+    } catch (error) {
+      console.error("Error in sendMessage:", error);
+      toast({
+        title: "Message Error",
+        description: "Failed to send your message. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
