@@ -10,18 +10,17 @@ export async function getOpenAIResponse({
   apiKey: string;
 }) {
   console.log('🔌 Starting OpenAI API request with message:', userMessage.substring(0, 50) + '...');
-  console.log('🔑 API Key provided:', apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : 'MISSING');
   
   try {
-    // Check if the API key seems valid (basic check)
-    if (!apiKey || apiKey.length < 20 || !apiKey.startsWith('sk-')) {
-      console.error('❌ Invalid OpenAI API key format detected');
-      throw new Error('Invalid API key provided. API keys should start with "sk-".');
+    // Use a proper API key check
+    if (!apiKey || apiKey.length < 20) {
+      console.error('❌ Invalid OpenAI API key - missing or too short');
+      throw new Error('Invalid API key provided. Please check your API key.');
     }
     
     // For testing in development environment
     if (process.env.NODE_ENV === 'development' && navigator.userAgent.includes('ReactSnap')) {
-      console.log('🧪 Using mock response for snapshot testing');
+      console.log('🧪 Using mock response for testing purposes');
       return "This is a mock response for testing purposes.";
     }
     
@@ -72,10 +71,6 @@ export async function getOpenAIResponse({
     // More detailed error logging based on error type
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('📶 Network error detected - possibly CORS or connectivity issue');
-    }
-    
-    if (error instanceof Error && error.message.includes('API key')) {
-      console.error('🔐 API key validation failed');
     }
     
     throw error; // Rethrow so the caller can handle it appropriately
