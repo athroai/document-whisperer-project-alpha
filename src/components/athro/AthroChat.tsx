@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { AthroMessage, AthroCharacter } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
 import { DocumentMetadata, uploadDocumentForChat, getDocumentsForCharacter, linkDocumentToMessage } from '@/services/documentService';
 import { extractTextFromImageWithMathpix } from '@/lib/mathpixService';
@@ -186,11 +186,12 @@ const AthroChat: React.FC<AthroChatProps> = ({
 
       // Create a message about the upload
       const userMessage = `I've uploaded a document: ${file.name}`;
+      
+      // Store the result of sendMessage in messageResult
       const messageResult = await sendMessage(userMessage, currentCharacter);
       
-      // Fix for TS1345 error - check messageResult and uploadResult.id separately before using them
-      if (messageResult && uploadResult.id) {
-        // Link document to message only if both exist
+      // Only proceed with linking the document if both messageResult and uploadResult.id exist
+      if (messageResult && uploadResult && uploadResult.id) {
         await linkDocumentToMessage(uploadResult.id, messageResult.id);
         console.log('Document linked to message:', uploadResult.id, messageResult.id);
       }
