@@ -34,7 +34,7 @@ export function useAthroMessages() {
     setMessages([]);
   }, []);
 
-  const sendMessage = useCallback(async (content: string, activeCharacter: AthroCharacter | null) => {
+  const sendMessage = useCallback(async (content: string, activeCharacter?: AthroCharacter | null) => {
     console.log('📨 Sending message:', { 
       content, 
       characterName: activeCharacter?.name || 'No Character',
@@ -42,13 +42,17 @@ export function useAthroMessages() {
     });
 
     if (!activeCharacter || !content.trim()) {
-      console.warn('❌ Cannot send message: Invalid parameters');
+      console.warn('❌ Cannot send message: No active character or empty content', {
+        hasActiveCharacter: !!activeCharacter,
+        contentLength: content.trim().length
+      });
       return;
     }
 
     const requestId = Date.now().toString();
     activeRequests.current.add(requestId);
     
+    // Add user message to chat
     const userMessage: AthroMessage = {
       id: requestId,
       senderId: 'user',

@@ -36,6 +36,9 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
+    // Debug initial network status
+    console.log('🌐 Initial network status:', navigator.onLine ? 'Online' : 'Offline');
+    
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -60,12 +63,25 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   
   // Add a debug message button for testing
   const sendDebugMessage = () => {
-    sendMessage("2-1?");
+    console.log('🐛 Sending debug test message');
+    if (!activeCharacter) {
+      console.log('❌ No active character for debug message');
+      toast({
+        title: "No Character Selected",
+        description: "Please select a subject mentor first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Send a simple test message that should trigger a response
+    sendMessage("2+2=?", activeCharacter);
   };
 
   const handleSend = () => {
     if (!inputMessage.trim() || !activeCharacter) {
       if (!activeCharacter) {
+        console.log('❌ Send attempted with no active character');
         toast({
           title: "No Subject Selected",
           description: "Please select a subject mentor first.",
@@ -108,17 +124,15 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
           <span>Status: {isOnline ? 'Connected' : 'Offline'}</span>
         </div>
         <div className="flex items-center space-x-2">
-          {showDebugInfo && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-6 text-xs" 
-              onClick={sendDebugMessage}
-            >
-              <Bug className="h-3 w-3 mr-1" />
-              Test API
-            </Button>
-          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-6 text-xs" 
+            onClick={sendDebugMessage}
+          >
+            <Bug className="h-3 w-3 mr-1" />
+            Test Chat
+          </Button>
           <Button 
             variant="ghost" 
             size="sm" 

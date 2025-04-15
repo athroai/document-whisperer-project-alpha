@@ -11,7 +11,7 @@ interface AthroContextType {
   setActiveCharacter: (character: AthroCharacter | null) => void;
   characters: AthroCharacter[];
   messages: AthroMessage[];
-  sendMessage: (content: string) => void;
+  sendMessage: (content: string, character?: AthroCharacter | null) => void;
   isTyping: boolean;
   studentProgress: Record<string, {
     confidenceScores: Record<string, number>;
@@ -46,6 +46,7 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const { messages, isTyping, sendMessage: sendAthroMessage, clearMessages } = useAthroMessages();
   const { studentProgress, getSuggestedTopics: getTopics } = useStudentProgress();
+  const characterInitialized = useRef(false);
   
   // Debug mount/unmount cycles to detect potential issues
   useEffect(() => {
@@ -73,6 +74,7 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
       if (charactersData.length > 0) {
         console.log('🎯 Setting initial active character:', charactersData[0].name);
         setActiveCharacter(charactersData[0]);
+        characterInitialized.current = true;
       }
       
       setIsInitialized(true);
@@ -93,14 +95,11 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
 
   // Clear messages when active character changes
   useEffect(() => {
-    if (activeCharacter && isInitialized) {
+    if (activeCharacter && characterInitialized.current) {
       console.log('👤 Active character changed to:', activeCharacter.name);
       memoizedClearMessages();
-      
-      // Add a welcome message when character changes
-      sendAthroMessage("Hello, I'm " + activeCharacter.name + ". How can I help with your " + activeCharacter.subject + " studies today?", activeCharacter);
     }
-  }, [activeCharacter, isInitialized, memoizedClearMessages, sendAthroMessage]);
+  }, [activeCharacter, memoizedClearMessages]);
 
   const getSuggestedTopics = useCallback((subject: AthroSubject): string[] => {
     const character = characters.find(c => c.subject === subject);
@@ -109,10 +108,12 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     return getTopics(subject, character.topics);
   }, [characters, getTopics]);
 
-  const sendMessage = useCallback((content: string) => {
+  const sendMessage = useCallback((content: string, character: AthroCharacter | null = null) => {
     console.log("✉️ SEND MESSAGE TRIGGERED with content:", content);
     
-    if (!activeCharacter) {
+    const charToUse = character || activeCharacter;
+    
+    if (!charToUse) {
       console.warn("❌ No active character to send message to");
       toast({
         title: "No Character Selected",
@@ -122,8 +123,8 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     }
     
     try {
-      console.log("📨 Sending message to:", activeCharacter.name);
-      sendAthroMessage(content, activeCharacter);
+      console.log("📨 Sending message to:", charToUse.name);
+      sendAthroMessage(content, charToUse);
     } catch (error) {
       console.error("💥 Error in sendMessage:", error);
       toast({

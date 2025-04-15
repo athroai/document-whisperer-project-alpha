@@ -8,15 +8,24 @@ import AthroChat from './athro/AthroChat';
 import { toast } from '@/hooks/use-toast';
 
 const AthroSystem: React.FC = () => {
-  const { activeCharacter, messages } = useAthro();
+  const { activeCharacter, messages, sendMessage } = useAthro();
   const [isOpen, setIsOpen] = useState(false);
   const [isInitialRender, setIsInitialRender] = useState(true);
   
   // Log component mount for debugging
   useEffect(() => {
     console.log('🎮 AthroSystem component mounted');
+    
+    // When the system mounts, send an initial greeting if there are no messages
+    if (activeCharacter && messages.length === 0) {
+      console.log('👋 Sending initial greeting from AthroSystem mount');
+      setTimeout(() => {
+        sendMessage(`Hello, I'm ${activeCharacter.name}. How can I help with your ${activeCharacter.subject} studies today?`);
+      }, 500);
+    }
+    
     return () => console.log('🎮 AthroSystem component unmounted');
-  }, []);
+  }, [activeCharacter, messages.length, sendMessage]);
 
   useEffect(() => {
     if (isInitialRender) {
@@ -46,9 +55,9 @@ const AthroSystem: React.FC = () => {
         <SheetTrigger asChild>
           <Button 
             size="icon" 
-            className="h-12 w-12 rounded-full shadow-lg relative"
+            className="h-12 w-12 rounded-full shadow-lg relative bg-purple-600 hover:bg-purple-700"
           >
-            <MessageCircle className="h-6 w-6" />
+            <MessageCircle className="h-6 w-6 text-white" />
             {messages.length > 0 && !isOpen && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 {messages.filter(m => m.senderId !== 'user').length}

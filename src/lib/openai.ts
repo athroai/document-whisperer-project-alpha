@@ -13,36 +13,16 @@ export async function getOpenAIResponse({
   console.log('🔑 API Key provided:', apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : 'MISSING');
   
   try {
-    // For testing, always use mock responses in development
-    if (process.env.NODE_ENV === 'development' && !apiKey.startsWith('sk-')) {
-      console.log('🧪 Using mock response in development environment');
-      
-      // Wait for a short time to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Return a contextual mock response based on the user message
-      if (userMessage.toLowerCase().includes('hello') || userMessage.toLowerCase().includes('hi')) {
-        return `Hello! I'm AthroMaths, your GCSE Maths mentor. How can I help you with your mathematics studies today?`;
-      } else if (userMessage.toLowerCase().includes('algebra')) {
-        return `Algebra is all about finding the unknown values. Let's break down this topic together. Would you like to start with simple equations or move to something more challenging like quadratics?`;
-      } else if (userMessage.toLowerCase().includes('geometry')) {
-        return `Geometry explores the properties and relationships of shapes and spaces. Which specific area of geometry are you interested in? We could look at angles, triangles, circles, or coordinate geometry.`;
-      } else if (userMessage.toLowerCase().includes('help')) {
-        return `I'm here to help with any mathematics questions you have. You can ask me about specific topics, practice problems, or general study strategies. What would you like to focus on today?`;
-      } else if (userMessage.includes('2-1')) {
-        return `The answer to 2-1 is 1. This is a basic subtraction operation. Would you like me to help you with more complex math problems?`;
-      } else {
-        return `That's an interesting question about ${userMessage.split(' ').slice(0, 3).join(' ')}... Let me help you understand this concept step by step. What specific part are you finding challenging?`;
-      }
-    }
-
-    // Log whether we're using a mock or real API key
-    console.log('📡 Making actual OpenAI API call to chat/completions endpoint...');
-    
     // Check if the API key seems valid (basic check)
     if (!apiKey || apiKey.length < 20 || !apiKey.startsWith('sk-')) {
       console.error('❌ Invalid OpenAI API key format detected');
       throw new Error('Invalid API key provided. API keys should start with "sk-".');
+    }
+    
+    // For testing in development environment
+    if (process.env.NODE_ENV === 'development' && navigator.userAgent.includes('ReactSnap')) {
+      console.log('🧪 Using mock response for snapshot testing');
+      return "This is a mock response for testing purposes.";
     }
     
     // Full URL for clarity in debugging
@@ -94,11 +74,10 @@ export async function getOpenAIResponse({
       console.error('📶 Network error detected - possibly CORS or connectivity issue');
     }
     
-    if (error.message.includes('API key')) {
+    if (error instanceof Error && error.message.includes('API key')) {
       console.error('🔐 API key validation failed');
     }
     
-    // Return a fallback response instead of throwing the error
-    return `I'm having trouble connecting to my knowledge base right now. Could you try asking me again in a slightly different way?`;
+    throw error; // Rethrow so the caller can handle it appropriately
   }
 }
