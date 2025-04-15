@@ -31,6 +31,13 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     console.log('Active character in AthroChat:', activeCharacter);
   }, [activeCharacter]);
 
+  // Add a welcome message when the component loads
+  useEffect(() => {
+    if (messages.length === 0 && activeCharacter) {
+      console.log('Adding welcome message for:', activeCharacter.name);
+    }
+  }, [activeCharacter, messages.length]);
+
   const handleSend = () => {
     if (!inputMessage.trim() || !activeCharacter) return;
     
@@ -120,11 +127,12 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-purple-200"
+            disabled={!activeCharacter}
           />
           <Button 
             onClick={handleSend}
             className="shrink-0"
-            disabled={!inputMessage.trim() || isTyping}
+            disabled={!inputMessage.trim() || isTyping || !activeCharacter}
           >
             <Send className="h-4 w-4" />
             <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>

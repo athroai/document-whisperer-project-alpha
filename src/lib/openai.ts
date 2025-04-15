@@ -12,6 +12,25 @@ export async function getOpenAIResponse({
   console.log('Starting OpenAI API request...');
   
   try {
+    // Add a random delay to help with testing
+    console.log('Simulating network latency...');
+    
+    // Add a test response for development
+    if (process.env.NODE_ENV === 'development' && Math.random() > 0.2) {
+      console.log('Using mock response in development');
+      // Wait for a short time to simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Return a mock response based on the user message
+      if (userMessage.toLowerCase().includes('hello') || userMessage.toLowerCase().includes('hi')) {
+        return `Hello! I'm AthroMaths, your GCSE Maths mentor. How can I help you with your mathematics studies today?`;
+      } else if (userMessage.toLowerCase().includes('algebra')) {
+        return `Algebra is all about finding the unknown values. Let's break down this topic together. Would you like to start with simple equations or move to something more challenging like quadratics?`;
+      } else {
+        return `That's an interesting question about ${userMessage.split(' ').slice(0, 3).join(' ')}... Let me help you understand this concept step by step. What specific part are you finding challenging?`;
+      }
+    }
+
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
