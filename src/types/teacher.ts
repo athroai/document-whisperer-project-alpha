@@ -1,3 +1,4 @@
+
 export interface School {
   id: string;
   name: string;
@@ -63,18 +64,12 @@ export interface AssignedTask {
 }
 
 export interface ParentMessage {
-  id: string;
-  parentName: string;
   parentEmail: string;
   studentId: string;
-  teacherId?: string;
+  teacherId: string;
   message: string;
   reply?: string;
   timestamp: string;
-  status: 'unread' | 'read' | 'replied';
-  topic: string;  // e.g., "Progress", "Wellbeing", "Homework"
-  assignedTo: string | null;
-  classId: string;
 }
 
 export interface StudentDetail {
@@ -105,32 +100,4 @@ export interface StudentDetail {
 export interface Subject {
   id: string;
   name: string;
-}
-
-export interface SchoolLicense {
-  status: 'trial' | 'active' | 'expired';
-  plan: string;
-  expirationDate: string;
-  studentLimit: number;
-  teacherLimit: number;
-  storageLimit: number; // in GB
-  storageUsed: number; // in MB
-}
-
-export interface SystemDiagnostic {
-  firestoreStatus: 'connected' | 'disconnected' | 'mock';
-  environment: 'development' | 'production';
-  systemTime: string;
-  userSessionActive: boolean;
-}
-
-export interface ClassWithCode extends Class {
-  joinCode: string;
-}
-
-export interface StudentStatus {
-  total: number;
-  active: number;
-  pending: number;
-  inactive: number;
 }

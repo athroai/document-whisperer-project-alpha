@@ -32,18 +32,6 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     }
   };
 
-  // Make sure we have a valid question object
-  if (!question || !question.question) {
-    return (
-      <Card className="w-full">
-        <CardContent className="p-6 text-center">
-          <AlertCircle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
-          <p className="text-amber-600">Unable to load question. Please try again.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -96,18 +84,14 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           )}
 
           {question.type === 'short-answer' && (
-            <div className="space-y-2">
-              <Label htmlFor="answer">Your Answer</Label>
-              <Input
-                id="answer"
-                type="text"
-                placeholder="Type your answer here"
-                value={showFeedback ? userAnswer : answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                disabled={showFeedback}
-                className="max-w-md"
-              />
-            </div>
+            <Input
+              type="text"
+              placeholder="Type your answer here"
+              value={showFeedback ? userAnswer : answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              disabled={showFeedback}
+              className="max-w-md"
+            />
           )}
 
           {showFeedback && (
@@ -139,7 +123,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             <div className="mt-6">
               <Button 
                 type="submit" 
-                disabled={!answer && question.type === 'multiple-choice'}
+                disabled={!answer && question.type !== 'short-answer'}
               >
                 Submit Answer
               </Button>

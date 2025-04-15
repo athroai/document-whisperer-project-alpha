@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import TeacherDashboardLayout from '@/components/dashboard/TeacherDashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +12,8 @@ import { toast } from '@/components/ui/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { Class, StudentDetail, Subject } from '@/types/teacher';
-import StudentClassService from '@/services/StudentClassService';
 
+// Mock data for development - will be replaced with Firestore in production
 const subjects: Subject[] = [
   { id: "maths", name: "Mathematics" },
   { id: "science", name: "Science" },
@@ -23,6 +24,7 @@ const subjects: Subject[] = [
 
 const yearGroups = ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11"];
 
+// Mock classes that would be fetched from Firestore
 const mockClasses: Class[] = [
   { 
     id: "maths-y10-s1", 
@@ -62,6 +64,7 @@ const mockClasses: Class[] = [
   }
 ];
 
+// Mock students that would be fetched from Firestore
 const mockStudents: StudentDetail[] = [
   { 
     id: "1", 
@@ -126,16 +129,17 @@ const TeacherSetsPage: React.FC = () => {
   const [selectedSet, setSelectedSet] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [showNewSetDialog, setShowNewSetDialog] = useState(false);
-  const [showAddStudentDialog, setShowAddStudentDialog] = useState(false);
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<StudentDetail[]>([]);
-  const [joinCodeInput, setJoinCodeInput] = useState('');
   
   const { state } = useAuth();
   const { user } = state;
 
   useEffect(() => {
+    // In production, this would fetch from Firestore
+    // where teacher_id = user.id
     if (user) {
+      // Simulating fetch from Firestore
       setTimeout(() => {
         setClasses(mockClasses);
         setStudents(mockStudents);
@@ -147,25 +151,10 @@ const TeacherSetsPage: React.FC = () => {
     set => set.subject === selectedSubject && set.yearGroup === selectedYearGroup
   );
 
-  const fetchSetStudents = async (setId: string) => {
-    try {
-      const studentIds = await StudentClassService.getClassStudents(setId);
-      return students.filter(student => studentIds.includes(student.id));
-    } catch (error) {
-      console.error("Error fetching set students:", error);
-      return [];
-    }
-  };
-
-  const [setStudentsList, setSetStudentsList] = useState<StudentDetail[]>([]);
-
-  useEffect(() => {
-    if (selectedSet) {
-      fetchSetStudents(selectedSet).then(setSetStudentsList);
-    } else {
-      setSetStudentsList([]);
-    }
-  }, [selectedSet, students]);
+  // Get students for the selected set
+  const setStudentsList = selectedSet 
+    ? students.filter(student => student.classId === selectedSet)
+    : [];
 
   const studentDetails = selectedStudent 
     ? students.find(s => s.id === selectedStudent)
@@ -178,23 +167,10 @@ const TeacherSetsPage: React.FC = () => {
   const handleCloseNewSetDialog = () => {
     setShowNewSetDialog(false);
   };
-  
-  const handleAddStudent = () => {
-    setShowAddStudentDialog(true);
-  };
-  
-  const handleAddStudentSubmit = () => {
-    if (selectedSet) {
-      toast({
-        title: "Student invited",
-        description: `A student invitation has been sent with join code: ${joinCodeInput || 'CLASS123'}`
-      });
-      setShowAddStudentDialog(false);
-      setJoinCodeInput('');
-    }
-  };
 
   const handleApproveStudent = (studentId: string) => {
+    // In production, this would update Firestore
+    // Update local state for now
     const updatedStudents = students.map(student => 
       student.id === studentId ? { ...student, status: "approved" as const } : student
     );
@@ -207,6 +183,8 @@ const TeacherSetsPage: React.FC = () => {
   };
 
   const handleRemoveStudent = (studentId: string) => {
+    // In production, this would update Firestore
+    // Update local state for now
     const updatedStudents = students.map(student => 
       student.id === studentId ? { ...student, status: "removed" as const } : student
     );
@@ -222,6 +200,7 @@ const TeacherSetsPage: React.FC = () => {
     setSelectedStudent(null);
   };
 
+  // Add temporary type safety check
   console.log("Student shape:", students);
 
   const setsPageContent = (
@@ -307,16 +286,9 @@ const TeacherSetsPage: React.FC = () => {
 
       {selectedSet && (
         <div className="mt-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              Students in {filteredSets.find(s => s.id === selectedSet)?.name}
-            </h2>
-            <Button onClick={handleAddStudent} size="sm" className="flex items-center gap-2">
-              <Plus size={16} />
-              Add Student
-            </Button>
-          </div>
-          
+          <h2 className="text-xl font-semibold mb-4">
+            Students in {filteredSets.find(s => s.id === selectedSet)?.name}
+          </h2>
           {setStudentsList.length > 0 ? (
             <div className="bg-white rounded-md border">
               {setStudentsList.map(student => (
@@ -377,6 +349,7 @@ const TeacherSetsPage: React.FC = () => {
         </div>
       )}
 
+      {/* Student Profile Dialog */}
       <Dialog open={!!selectedStudent} onOpenChange={handleCloseStudentProfile}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -447,6 +420,7 @@ const TeacherSetsPage: React.FC = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Create New Set Dialog */}
       <Dialog open={showNewSetDialog} onOpenChange={setShowNewSetDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -509,50 +483,6 @@ const TeacherSetsPage: React.FC = () => {
               setShowNewSetDialog(false);
             }}>
               Create Set
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={showAddStudentDialog} onOpenChange={setShowAddStudentDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Student to Set</DialogTitle>
-            <DialogDescription>
-              Add a student directly to this class
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="student-email" className="text-sm font-medium">
-                Student Email
-              </label>
-              <input
-                id="student-email"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                type="email"
-                placeholder="student@school.edu"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <label htmlFor="student-name" className="text-sm font-medium">
-                Student Name (Optional)
-              </label>
-              <input
-                id="student-name"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                type="text"
-                placeholder="John Smith"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddStudentDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddStudentSubmit}>
-              Add Student
             </Button>
           </DialogFooter>
         </DialogContent>

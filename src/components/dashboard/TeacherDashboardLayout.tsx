@@ -7,11 +7,6 @@ import TeacherSidebar from './TeacherSidebar';
 import TeacherSetsPage from '@/pages/teacher/TeacherSetsPage';
 import TeacherMarkingPage from '@/pages/teacher/TeacherMarkingPage';
 import TeacherStudentProfilesPage from '@/pages/teacher/TeacherStudentProfilesPage';
-import TeacherInsightsPage from '@/pages/teacher/TeacherInsightsPage';
-import TeacherAnalyticsPage from '@/pages/teacher/TeacherAnalyticsPage';
-import TeacherResourceDeployPage from '@/pages/teacher/TeacherResourceDeployPage';
-import TeacherParentInquiriesPage from '@/pages/teacher/TeacherParentInquiriesPage';
-import TeacherSystemToolsPage from '@/pages/teacher/TeacherSystemToolsPage';
 import NotFound from '@/pages/NotFound';
 
 interface TeacherDashboardLayoutProps {
@@ -42,20 +37,16 @@ const TeacherDashboardLayout: React.FC<TeacherDashboardLayoutProps> = ({ childre
         return <TeacherMarkingPage />;
       case 'profiles':
         return <TeacherStudentProfilesPage />;
-      case 'insights':
-        return <TeacherInsightsPage />;
-      case 'analytics':
-        return <TeacherAnalyticsPage />;
-      case 'deploy':
-        return <TeacherResourceDeployPage />;
       case 'notifications':
         return <div className="p-6">Notifications Panel</div>;
       case 'assign':
         return <div className="p-6">Assign Work Panel</div>;
       case 'inquiries':
-        return <TeacherParentInquiriesPage />;
+        return <div className="p-6">Parent Inquiries Panel</div>;
+      case 'insights':
+        return <div className="p-6">Insights Dashboard</div>;
       case 'system':
-        return <TeacherSystemToolsPage />;
+        return <div className="p-6">System Tools Panel</div>;
       default:
         return <NotFound />;
     }

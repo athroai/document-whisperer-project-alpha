@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Bell, 
@@ -10,38 +10,19 @@ import {
   Mail, 
   BarChart3, 
   Settings,
-  Home,
-  Upload,
-  ActivitySquare,
-  ChartBar,
-  Database
+  Home
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { UnreadInquiriesBadge } from '@/components/teacher/UnreadInquiriesBadge';
 
 interface SidebarItemProps {
   icon: React.ElementType;
   label: string;
   href: string;
   isActive: boolean;
-  badge?: React.ReactNode;
-  isDisabled?: boolean;
 }
 
-const SidebarItem = ({ icon: Icon, label, href, isActive, badge, isDisabled }: SidebarItemProps) => {
-  const location = useLocation();
-  
-  if (isDisabled) {
-    return (
-      <div className="flex items-center gap-3 px-3 py-2 rounded-md text-gray-400 cursor-not-allowed">
-        <Icon size={18} className="text-gray-300" />
-        <span>{label}</span>
-        {badge && <div className="opacity-50">{badge}</div>}
-      </div>
-    );
-  }
-  
+const SidebarItem = ({ icon: Icon, label, href, isActive }: SidebarItemProps) => {
   return (
     <Link
       to={href}
@@ -52,7 +33,6 @@ const SidebarItem = ({ icon: Icon, label, href, isActive, badge, isDisabled }: S
     >
       <Icon size={18} className={cn("text-gray-500", isActive && "text-purple-700")} />
       <span>{label}</span>
-      {badge}
     </Link>
   );
 };
@@ -64,35 +44,22 @@ interface TeacherSidebarProps {
 const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
   const { state } = useAuth();
   const { user } = state;
-  const location = useLocation();
+  const navigate = useNavigate();
 
   const sidebarItems = [
-    { icon: Home, label: 'Dashboard', href: '/teacher', isDisabled: false },
-    { icon: Users, label: 'My Sets', href: '/teacher/sets', isDisabled: false },
-    { icon: Bell, label: 'Notifications', href: '/teacher/notifications', isDisabled: false },
-    { icon: FileCheck, label: 'Marking Panel', href: '/teacher/marking', isDisabled: false },
-    { icon: Upload, label: 'Resource Deploy', href: '/teacher/deploy', isDisabled: false },
-    { icon: FileText, label: 'Assign Work', href: '/teacher/assign', isDisabled: false },
-    { icon: UserCircle, label: 'Student Profiles', href: '/teacher/profiles', isDisabled: false },
-    { icon: ActivitySquare, label: 'Live Monitor', href: '/teacher/live-monitoring', isDisabled: false },
-    { icon: Mail, label: 'Parent Inquiries', href: '/teacher/inquiries', badge: <UnreadInquiriesBadge />, isDisabled: false },
-    { icon: BarChart3, label: 'Insights', href: '/teacher/insights', isDisabled: false },
-    { icon: ChartBar, label: 'Analytics', href: '/teacher/analytics', isDisabled: false },
-    { icon: Settings, label: 'System Tools', href: '/teacher/system', isDisabled: false },
+    { icon: Home, label: 'Dashboard', href: '/teacher-dashboard' },
+    { icon: Users, label: 'My Sets', href: '/teacher/sets' },
+    { icon: Bell, label: 'Notifications', href: '/teacher/notifications' },
+    { icon: FileCheck, label: 'Marking Panel', href: '/teacher/marking' },
+    { icon: FileText, label: 'Assign Work', href: '/teacher/assign' },
+    { icon: UserCircle, label: 'Student Profiles', href: '/teacher/profiles' },
+    { icon: Mail, label: 'Parent Inquiries', href: '/teacher/inquiries' },
+    { icon: BarChart3, label: 'Insights', href: '/teacher/insights' },
+    { icon: Settings, label: 'System Tools', href: '/teacher/system' },
   ];
 
-  // Add admin-specific items if user is an admin
-  if (user?.role === 'admin') {
-    sidebarItems.push({
-      icon: Database,
-      label: 'Knowledge Base',
-      href: '/admin/knowledge-base',
-      isDisabled: false
-    });
-  }
-
-  // Only show sidebar for teachers and admins
-  if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+  if (!user || user.role !== 'teacher') {
+    setTimeout(() => navigate('/home'), 0);
     return null;
   }
 
@@ -102,11 +69,6 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
         <h2 className="text-lg font-semibold text-purple-700">Teacher Dashboard</h2>
         <p className="text-sm text-gray-500">
           {user?.displayName || 'Teacher'}
-          {user?.role === 'admin' && (
-            <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
-              Admin
-            </span>
-          )}
         </p>
       </div>
       <div className="p-4 flex-1 flex flex-col gap-1">
@@ -116,11 +78,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ activePage }) => {
             icon={item.icon}
             label={item.label}
             href={item.href}
-            isDisabled={item.isDisabled}
-            isActive={location.pathname === item.href || 
-                    (item.href !== '/teacher' && 
-                      location.pathname.includes(item.href.split('/').pop() || ''))}
-            badge={item.badge}
+            isActive={item.href.includes(activePage)}
           />
         ))}
       </div>

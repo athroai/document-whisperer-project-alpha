@@ -1,160 +1,177 @@
 
-import React, { Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import Layout from "./components/Layout";
-import AthroPage from "./pages/AthroPage";
-import HomePage from "./pages/HomePage";
-import MyWorkPage from "./pages/MyWorkPage";
+import React, { Suspense } from 'react';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { StudentRecordProvider } from "./contexts/StudentRecordContext";
+import { AthroProvider } from "./contexts/AthroContext";
 import NotFound from "./pages/NotFound";
+import AthroSystem from "./components/AthroSystem";
+
+// Pages
+import WelcomePage from "./pages/WelcomePage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
-import SettingsPage from "./pages/SettingsPage";
-import CalendarPage from "./pages/CalendarPage";
-import FilesPage from "./pages/FilesPage";
-import { AthroProvider } from "./contexts/AthroContext";
-import { AuthProvider } from "./contexts/AuthContext";
-import { StudentClassProvider } from "./contexts/StudentClassContext";
-import { StudentRecordProvider } from "./contexts/StudentRecordContext";
-import { DatabaseStatusProvider } from "./contexts/DatabaseStatusContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import AthroSystem from "./components/AthroSystem";
-import LicenseRequiredPage from "./pages/LicenseRequiredPage";
-import TeacherDashboardPage from "./pages/TeacherDashboardPage";
-import { Toaster as SonnerToaster } from "sonner";
-import { Toaster } from "@/components/ui/toaster";
-import QuizPage from "./pages/QuizPage";
-import IndexPage from "./pages/Index";
+import HomePage from "./pages/HomePage";
 import StudySessionPage from "./pages/StudySessionPage";
-import StudySessionRouter from "./pages/study/StudySessionRouter";
-import KnowledgePage from './pages/KnowledgePage';
-import LoadingSpinner from "./components/ui/loading-spinner";
-import Navigation from "./components/Navigation";
+import CalendarPage from "./pages/CalendarPage";
+import QuizPage from "./pages/QuizPage";
+import SettingsPage from "./pages/SettingsPage";
+import TeacherDashboardPage from "./pages/TeacherDashboardPage";
+import FilesPage from "./pages/FilesPage";
+import AthroPage from "./pages/AthroPage";
 
-// Simple loading fallback component
-const LoadingFallback: React.FC = () => (
-  <div className="flex items-center justify-center h-screen">
-    <LoadingSpinner className="animate-fade-in" size={32} />
-  </div>
+// Lazy-loaded Pages
+const AthroMathsPage = React.lazy(() => import('./pages/athro/AthroMathsPage'));
+
+// Teacher dashboard pages
+import TeacherSetsPage from "./pages/teacher/TeacherSetsPage";
+import TeacherMarkingPage from "./pages/teacher/TeacherMarkingPage";
+import TeacherStudentProfilesPage from "./pages/teacher/TeacherStudentProfilesPage";
+
+// Components
+import ProtectedRoute from "./components/ProtectedRoute";
+import Navigation from "./components/Navigation";
+import TeacherDashboardLayout from "./components/dashboard/TeacherDashboardLayout";
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <StudentRecordProvider>
+        <AthroProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <div className="flex flex-col min-h-screen">
+                <Routes>
+                  <Route path="/" element={<WelcomePage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
+                  
+                  {/* Student Protected Routes */}
+                  <Route path="/home" element={
+                    <ProtectedRoute>
+                      {({ user }) => user?.role === 'teacher' ? 
+                        <Navigate to="/teacher-dashboard" /> : 
+                        <>
+                          <Navigation />
+                          <HomePage />
+                          <AthroSystem />
+                        </>
+                      }
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/study" element={
+                    <ProtectedRoute>
+                      {({ user }) => user?.role === 'teacher' ? 
+                        <Navigate to="/teacher-dashboard" /> : 
+                        <>
+                          <Navigation />
+                          <StudySessionPage />
+                          <AthroSystem />
+                        </>
+                      }
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Athro Routes */}
+                  <Route path="/athro" element={<AthroPage />} />
+                  <Route path="/athro/mathematics" element={
+                    <ProtectedRoute>
+                      {({ user }) => (
+                        <>
+                          <Navigation />
+                          <Suspense fallback={<div>Loading...</div>}>
+                            <AthroMathsPage />
+                          </Suspense>
+                          <AthroSystem />
+                        </>
+                      )}
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/calendar" element={
+                    <ProtectedRoute>
+                      {({ user }) => user?.role === 'teacher' ? 
+                        <Navigate to="/teacher-dashboard" /> : 
+                        <>
+                          <Navigation />
+                          <CalendarPage />
+                          <AthroSystem />
+                        </>
+                      }
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/quiz" element={
+                    <ProtectedRoute>
+                      {({ user }) => user?.role === 'teacher' ? 
+                        <Navigate to="/teacher-dashboard" /> : 
+                        <>
+                          <Navigation />
+                          <QuizPage />
+                          <AthroSystem />
+                        </>
+                      }
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      {({ user }) => 
+                        <>
+                          <Navigation />
+                          <SettingsPage />
+                          {user?.role !== 'teacher' && <AthroSystem />}
+                        </>
+                      }
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Teacher Dashboard Main Route */}
+                  <Route path="/teacher-dashboard" element={
+                    <ProtectedRoute>
+                      <TeacherDashboardPage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Teacher Dashboard Sub-Routes */}
+                  <Route path="/teacher/:section" element={
+                    <ProtectedRoute>
+                      {({ user }) => 
+                        user?.role === 'teacher' ? 
+                          <TeacherDashboardLayout /> : 
+                          <Navigate to="/home" />
+                      }
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/files" element={
+                    <ProtectedRoute>
+                      <>
+                        <Navigation />
+                        <FilesPage />
+                        <AthroSystem />
+                      </>
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Catch-all Route */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AthroProvider>
+      </StudentRecordProvider>
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
-// Add a transition wrapper component for smooth page transitions
-const TransitionWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  return (
-    <div className="animate-fade-in">
-      {children}
-    </div>
-  );
-};
+export default App;
 
-export default function App() {
-  return (
-    <AuthProvider>
-      <DatabaseStatusProvider>
-        <StudentClassProvider>
-          <StudentRecordProvider>
-            <AthroProvider>
-              <Suspense fallback={<LoadingSpinner size={36} className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />}>
-                <div className="min-h-screen flex flex-col">
-                  <Navigation />
-                  <div className="flex-1">
-                    <TransitionWrapper>
-                      <Routes>
-                        <Route path="/" element={<IndexPage />} />
-                        <Route path="/home" element={
-                          <ProtectedRoute redirectPath="/login">
-                            <HomePage />
-                          </ProtectedRoute>
-                        } />
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/signup" element={<SignupPage />} />
-                        <Route path="/my-work" element={
-                          <ProtectedRoute redirectPath="/login">
-                            <MyWorkPage />
-                          </ProtectedRoute>
-                        } />
-                        <Route
-                          path="/athro/*"
-                          element={
-                            <ProtectedRoute redirectPath="/login">
-                              <AthroPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/quiz"
-                          element={
-                            <ProtectedRoute redirectPath="/login">
-                              <QuizPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/settings"
-                          element={
-                            <ProtectedRoute redirectPath="/login">
-                              <SettingsPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/calendar"
-                          element={
-                            <ProtectedRoute redirectPath="/login">
-                              <CalendarPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/files"
-                          element={
-                            <ProtectedRoute redirectPath="/login">
-                              <FilesPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/teacher/*"
-                          element={
-                            <ProtectedRoute 
-                              requiredRole="teacher" 
-                              redirectPath="/login"
-                              loadingComponent={<LoadingFallback />}
-                            >
-                              <TeacherDashboardPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/study-session"
-                          element={
-                            <ProtectedRoute redirectPath="/login">
-                              <StudySessionPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/study/*"
-                          element={
-                            <ProtectedRoute redirectPath="/login">
-                              <StudySessionRouter />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route path="/license-required" element={<LicenseRequiredPage />} />
-                        <Route path="/knowledge" element={<KnowledgePage />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </TransitionWrapper>
-                  </div>
-                </div>
-              </Suspense>
-              <AthroSystem />
-              <SonnerToaster position="top-right" />
-              <Toaster />
-            </AthroProvider>
-          </StudentRecordProvider>
-        </StudentClassProvider>
-      </DatabaseStatusProvider>
-    </AuthProvider>
-  );
-}

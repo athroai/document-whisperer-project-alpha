@@ -18,25 +18,14 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
 }) => {
   // Get subject-specific icon
   const getSubjectIcon = () => {
-    switch (character.subject.toLowerCase()) {
-      case 'mathematics':
+    switch (character.subject) {
+      case 'Mathematics':
         return <Calculator className="h-5 w-5 text-purple-600" />;
-      case 'science':
+      case 'Science':
         return <Circle className="h-5 w-5 text-green-600" />;
       default:
         return <BookOpen className="h-5 w-5 text-blue-600" />;
     }
-  };
-
-  // Get character avatar image with fallback
-  const getCharacterAvatar = () => {
-    if (character.avatar) {
-      return character.avatar;
-    }
-    if (character.avatarUrl) {
-      return character.avatarUrl;
-    }
-    return `/assets/images/athro-${character.subject.toLowerCase()}.png`;
   };
 
   // Get subject-specific capabilities
@@ -62,40 +51,25 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
     <Card className={`overflow-hidden transition-all ${isActive ? 'border-purple-500 shadow-md' : 'hover:shadow-md'}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
-          <div className="h-16 w-16 overflow-hidden rounded-full bg-slate-100 flex items-center justify-center">
+          <div className="h-12 w-12 overflow-hidden rounded-full">
             <img
-              src={getCharacterAvatar()}
-              alt={character.name || character.subject}
+              src={character.avatarUrl}
+              alt={character.name}
               className="h-full w-full object-cover"
-              onError={(e) => {
-                console.error(`Failed to load avatar for ${character.subject}:`, getCharacterAvatar());
-                const target = e.target as HTMLImageElement;
-                target.onerror = null; // Prevent infinite loop
-                
-                // Use character's first letter as fallback
-                const parent = target.parentElement;
-                if (parent) {
-                  parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-purple-200 text-purple-700 font-bold text-lg">
-                    ${character.subject.substring(0, 1)}
-                  </div>`;
-                }
-              }}
             />
           </div>
           <div>
             <CardTitle className="flex items-center gap-2">
-              {character.name || `Athro ${character.subject}`}
+              {character.name}
               {getSubjectIcon()}
             </CardTitle>
-            <CardDescription>{character.shortDescription || character.description}</CardDescription>
+            <CardDescription>{character.shortDescription}</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pb-2">
         <p className="text-sm text-muted-foreground">
-          {character.subject} expert
-          {character.examBoards?.length ? 
-            ` with knowledge of ${character.examBoards.join(', ')} exam boards` : ''}
+          {character.subject} expert with knowledge of {character.examBoards.join(', ')} exam boards
         </p>
         
         {getSpecialCapabilities().length > 0 && (
@@ -106,26 +80,24 @@ const AthroCharacterCard: React.FC<AthroCharacterCardProps> = ({
           </div>
         )}
         
-        {character.topics && character.topics.length > 0 && (
-          <div className="mt-2">
-            <h4 className="text-sm font-medium">Topics:</h4>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {character.topics.slice(0, 3).map((topic) => (
-                <span
-                  key={topic}
-                  className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs text-purple-800"
-                >
-                  {topic}
-                </span>
-              ))}
-              {character.topics.length > 3 && (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-800">
-                  +{character.topics.length - 3} more
-                </span>
-              )}
-            </div>
+        <div className="mt-2">
+          <h4 className="text-sm font-medium">Topics:</h4>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {character.topics.slice(0, 3).map((topic) => (
+              <span
+                key={topic}
+                className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs text-purple-800"
+              >
+                {topic}
+              </span>
+            ))}
+            {character.topics.length > 3 && (
+              <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-800">
+                +{character.topics.length - 3} more
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </CardContent>
       <CardFooter>
         <Button

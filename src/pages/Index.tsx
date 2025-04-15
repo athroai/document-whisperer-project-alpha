@@ -1,103 +1,23 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import LoadingSpinner from '@/components/ui/loading-spinner';
-import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
-import { DatabaseStatus } from '@/components/ui/database-status';
 
-const IndexPage = () => {
+const Index = () => {
   const navigate = useNavigate();
-  const { state } = useAuth();
-  const { user, loading } = state;
-  const [localLoading, setLocalLoading] = useState(true);
-  const { status: connectionStatus } = useDatabaseStatus();
   
   useEffect(() => {
-    // Handle redirection when auth state is confirmed
-    if (!loading) {
-      setLocalLoading(false);
-      
-      // Only redirect if we have a connection or we know user is null
-      if (connectionStatus !== 'checking' || !user) {
-        redirectToUserDashboard();
-      }
-    }
-    
-    // Set a maximum wait time before redirecting to login anyway
-    const redirectTimeout = setTimeout(() => {
-      if (loading || connectionStatus === 'checking') {
-        console.log("Redirect timeout triggered - navigating to login");
-        setLocalLoading(false);
-        navigate('/login', { replace: true });
-      }
-    }, 3000);
-    
-    return () => clearTimeout(redirectTimeout);
-  }, [navigate, user, loading, connectionStatus]);
-  
-  // Handle redirection based on user role
-  const redirectToUserDashboard = () => {
-    if (user) {
-      if (user.role === 'teacher' || user.role === 'admin') {
-        navigate('/teacher', { replace: true });
-      } else if (user.role === 'student') {
-        navigate('/athro/select', { replace: true });
-      } else {
-        // Default for other roles
-        navigate('/home', { replace: true });
-      }
-    } else {
-      // If not logged in, redirect to login page
-      navigate('/login', { replace: true });
-    }
-  };
-
-  // Handle manual redirect if needed
-  const handleManualRedirect = () => {
-    setLocalLoading(false);
-    redirectToUserDashboard();
-  };
+    // Redirect to the welcome page
+    navigate('/');
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-purple-100 to-white">
-      <div className="text-center mb-6">
-        <img
-          src="/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png"
-          alt="Athro Logo"
-          className="h-24 mx-auto mb-6"
-        />
-        <h1 className="text-2xl font-bold mb-2">Welcome to Athro AI</h1>
-        <p className="text-gray-600 mb-6">
-          {localLoading ? (
-            <span className="flex items-center justify-center">
-              <LoadingSpinner className="mr-2 h-4 w-4" /> 
-              <span className="ml-2">Preparing your experience...</span>
-            </span>
-          ) : (
-            "Redirecting to your dashboard..."
-          )}
-        </p>
-        
-        {(connectionStatus === 'error' || connectionStatus === 'offline') && (
-          <div className="mb-6 max-w-md mx-auto">
-            <DatabaseStatus />
-          </div>
-        )}
-        
-        <div className="mt-8">
-          <Button 
-            onClick={handleManualRedirect} 
-            variant="default"
-            className="transition-all duration-300 hover:scale-105"
-          >
-            {user ? "Go to Dashboard" : "Log In"}
-          </Button>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-2">Redirecting...</h1>
+        <p className="text-gray-600">Please wait while we redirect you to Athro AI.</p>
       </div>
     </div>
   );
 };
 
-export default IndexPage;
+export default Index;

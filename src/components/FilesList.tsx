@@ -1,73 +1,90 @@
+
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UploadedFile } from '@/types/files';
-import { File, FileText, FileImage, FileDown } from 'lucide-react';
+import { File as FileIcon, Download, FileText, BookOpen, HelpCircle } from 'lucide-react';
+import { UploadedFile } from '@/types/auth';
 
 interface FilesListProps {
   files: UploadedFile[];
-  title?: string; // Make title optional
-  onFileClick?: (file: UploadedFile) => void;
-  onFileDeleted?: () => void;
-  isLoading?: boolean;
+  title?: string;
 }
 
-const FilesList: React.FC<FilesListProps> = ({ files, title, onFileClick, onFileDeleted, isLoading }) => {
-  const getFileIcon = (file: UploadedFile) => {
-    const mimeType = file.mimeType || '';
-    
-    if (mimeType.includes('pdf')) {
-      return <FileDown className="h-5 w-5 text-red-500" />;
-    } else if (mimeType.includes('image')) {
-      return <FileImage className="h-5 w-5 text-blue-500" />;
-    } else if (mimeType.includes('text') || mimeType.includes('document')) {
-      return <FileText className="h-5 w-5 text-green-500" />;
-    } else {
-      return <File className="h-5 w-5 text-gray-500" />;
+const FilesList: React.FC<FilesListProps> = ({ files, title = "Your Files" }) => {
+  const getFileIcon = (fileType: string) => {
+    switch (fileType) {
+      case 'paper':
+        return <FileText className="h-6 w-6" />;
+      case 'notes':
+        return <BookOpen className="h-6 w-6" />;
+      case 'quiz':
+        return <HelpCircle className="h-6 w-6" />;
+      default:
+        return <FileIcon className="h-6 w-6" />;
     }
   };
 
-  const getFileName = (file: UploadedFile) => file.filename || file.original_name || 'Unnamed file';
+  const getFileTypeLabel = (fileType: string) => {
+    switch (fileType) {
+      case 'paper':
+        return 'Past Paper';
+      case 'notes':
+        return 'Notes';
+      case 'quiz':
+        return 'Quiz';
+      default:
+        return fileType;
+    }
+  };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-40">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!files || files.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <p className="text-gray-500">No files available</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
 
   return (
-    <div className="space-y-4">
-      {title && <h2 className="text-lg font-medium mb-4">{title}</h2>}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {files.map((file) => (
-          <Card 
-            key={file.id || file.filename} 
-            className={`overflow-hidden ${onFileClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
-            onClick={() => onFileClick && onFileClick(file)}
-          >
-            <CardContent className="p-4 flex items-center space-x-3">
-              {getFileIcon(file)}
-              <div className="overflow-hidden">
-                <p className="font-medium truncate">{getFileName(file)}</p>
-                <p className="text-sm text-gray-500">{file.subject || file.fileType || 'General'}</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {files.length === 0 ? (
+          <p className="text-center text-gray-500 py-4">No files found</p>
+        ) : (
+          <div className="space-y-3">
+            {files.map((file) => (
+              <div 
+                key={file.id}
+                className="p-3 border rounded-lg flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-gray-100 p-2 rounded-md">
+                    {getFileIcon(file.fileType)}
+                  </div>
+                  <div>
+                    <h3 className="font-medium">{file.label || file.filename}</h3>
+                    <div className="flex text-xs text-gray-500 space-x-2">
+                      <span>{getFileTypeLabel(file.fileType)}</span>
+                      <span>•</span>
+                      <span>{formatDate(file.timestamp)}</span>
+                      <span>•</span>
+                      <span className="capitalize">{file.subject}</span>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon">
+                  <Download className="h-4 w-4" />
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

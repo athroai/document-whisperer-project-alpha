@@ -1,89 +1,117 @@
-export type AthroSubject = 
-  'Mathematics' | 
-  'Science' | 
-  'English' | 
-  'History' | 
-  'Geography' | 
-  'Languages' | 
-  'Religious Education' | 
-  'Welsh' | 
-  'French' | 
-  'German' | 
-  'Spanish' | 
-  'Study Skills' | 
-  'Computer Science';
 
-export type ExamBoard = 'WJEC' | 'AQA' | 'OCR' | 'Edexcel' | 'Cambridge' | 'CCEA';
+export type ExamBoard = 'wjec' | 'ocr' | 'aqa' | 'none';
+
+export type AthroSubject = 
+  | 'Mathematics' 
+  | 'Science' 
+  | 'English' 
+  | 'Welsh' 
+  | 'History' 
+  | 'Geography' 
+  | 'Languages' 
+  | 'RE';
+
+export type AthroLanguage = 'Spanish' | 'French' | 'German';
 
 export interface AthroCharacter {
   id: string;
-  name?: string;
+  name: string;
   subject: AthroSubject;
-  avatar?: string;
-  avatarUrl?: string; // For backwards compatibility
-  description?: string;
-  shortDescription?: string; // For backwards compatibility 
-  greeting?: string;
-  imageUrl?: string; // For backwards compatibility
+  avatarUrl: string;
+  shortDescription: string;
+  fullDescription: string;
+  tone: string; // Describes the character's tone for AI prompting
   supportsMathNotation?: boolean;
   supportsSpecialCharacters?: boolean;
-  supportedLanguages?: string[];
-  topics?: string[];
-  examBoards?: ExamBoard[];
-}
-
-export interface AthroTheme {
-  primary: string;
-  secondary: string;
-  primaryHex: string;
-  secondaryHex: string;
+  supportedLanguages?: AthroLanguage[];
+  topics: string[]; // Subject-specific topics
+  examBoards: ExamBoard[];
 }
 
 export interface AthroMessage {
   id: string;
+  senderId: string; // 'user' or AthroCharacter ID
   content: string;
-  role: 'user' | 'assistant';
-  timestamp: Date;
-  senderId?: string;
-  citations?: any[];
+  timestamp: string;
+  attachments?: AthroAttachment[];
+  referencedResources?: string[]; // IDs of resources being referenced
+  confidence?: number; // For tracking student confidence
 }
 
-export interface PastPaper {
+export interface AthroAttachment {
   id: string;
-  examBoard: ExamBoard;
+  type: 'image' | 'pdf' | 'mathml' | 'latex' | 'resource';
+  url: string;
+  caption?: string;
+  thumbnailUrl?: string;
+}
+
+export interface AthroStudySession {
+  id: string;
+  studentId: string;
+  characterId: string;
   subject: AthroSubject;
-  year: number;
-  season: 'Summer' | 'Winter' | 'Autumn';
-  fileUrl: string;
-  markSchemeUrl?: string;
-  unit?: string;
-  title?: string;
-  questions?: any[];
-}
-
-export interface ModelAnswer {
-  id: string;
-  question: string; // Note: This is the expected field, not questionId
-  answer: string;
+  topic?: string;
   examBoard: ExamBoard;
-  grade: 'A*' | 'A' | 'B' | 'C' | 'D' | 'E' | 'U';
-  marks: number;
-  totalMarks?: number;
-  workingSteps?: string[];
-  markScheme?: string;
-  latexNotation?: string;
-  translation?: string;
-  grammarExplanation?: string;
-  culturalNote?: string;
+  messages: AthroMessage[];
+  startTime: string;
+  endTime?: string;
+  confidenceStart?: number;
+  confidenceEnd?: number;
 }
 
-// Import and re-export FeedbackSummary from feedback.ts to maintain compatibility
-import { FeedbackSummary as FeedbackSummaryType } from './feedback';
-export type FeedbackSummary = FeedbackSummaryType;
+export interface AthroResource {
+  id: string;
+  title: string;
+  type: 'past-paper' | 'notes' | 'quiz' | 'topic-sheet' | 'marking-scheme';
+  subject: AthroSubject;
+  examBoard: ExamBoard;
+  uploaderId: string;
+  url: string;
+  uploadDate: string;
+  topics: string[];
+  visibility: 'private' | 'class' | 'school' | 'public';
+  classId?: string;
+}
 
-export interface AthroLanguage {
-  code: string;
-  name: string;
-  nativeName: string;
-  supported: boolean;
+export interface AthroStudentProgress {
+  studentId: string;
+  subject: AthroSubject;
+  confidenceScores: {
+    [topic: string]: number; // 1-10 scale
+  };
+  completedQuizzes: {
+    quizId: string;
+    score: number;
+    date: string;
+  }[];
+  studyTime: {
+    [topic: string]: number; // in minutes
+  };
+  lastStudySession?: string; // timestamp
+}
+
+export interface AthroPrompt {
+  systemPrompt: string;
+  userPrompt?: string;
+  examples?: {
+    userMessage: string;
+    athroResponse: string;
+  }[];
+  characterOverrides?: {
+    [key in AthroSubject]?: string;
+  };
+}
+
+// Interface for MathML or LaTeX rendering options
+export interface MathNotationOptions {
+  displayMode: boolean; // inline or block
+  leqno: boolean; // left equation numbering
+  fleqn: boolean; // flush equations left
+  throwOnError: boolean; // throw error for invalid syntax
+  errorColor: string; // color for error text
+  macros: Record<string, string>; // custom macros
+  minRuleThickness: number; // minimum thickness for rules
+  colorIsTextColor: boolean; // use given color as text color
+  strict: boolean; // strict parsing of TeX
 }

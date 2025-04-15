@@ -9,12 +9,11 @@ import { Upload } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadFile } from '@/services/fileService';
-import { UploadMetadata } from '@/types/files';
 
 interface ResourceUploadProps {
   subjectId?: string;
   classId?: string;
-  onUploadComplete?: (metadata: UploadMetadata) => void;
+  onUploadComplete?: () => void;
 }
 
 const ResourceUpload: React.FC<ResourceUploadProps> = ({
@@ -66,7 +65,7 @@ const ResourceUpload: React.FC<ResourceUploadProps> = ({
 
     try {
       // Upload file using fileService
-      const uploadResult = await uploadFile(selectedFile, {
+      await uploadFile(selectedFile, {
         uploadedBy: user.id,
         role: user.role,
         subject,
@@ -85,18 +84,7 @@ const ResourceUpload: React.FC<ResourceUploadProps> = ({
       
       // Call the onUploadComplete callback if provided
       if (onUploadComplete) {
-        // Create metadata object with correct types
-        const metadata: UploadMetadata = {
-          url: uploadResult.url || uploadResult.file_url || '',
-          filename: uploadResult.filename || uploadResult.original_name || '',
-          mimeType: uploadResult.mime_type || '',
-          uploadedBy: uploadResult.uploadedBy || uploadResult.uploaded_by || '',
-          subject: uploadResult.subject,
-          classId: uploadResult.set_id,
-          uploadTime: uploadResult.uploadTime || new Date().toISOString(),
-          visibility: uploadResult.visibility as 'private' | 'class-only' | 'public',
-        };
-        onUploadComplete(metadata);
+        onUploadComplete();
       }
     } catch (error) {
       console.error('Upload error:', error);

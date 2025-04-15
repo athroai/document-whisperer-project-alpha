@@ -1,422 +1,143 @@
-import { supabase, typedSupabase, ExtendedUpload, toExtendedUpload } from '@/integrations/supabase/client';
 
-export interface UploadedFile {
-  id?: string;
-  userId: string;
-  filename: string;
-  fileType: string; // Updated to generic string instead of strict literals
-  fileURL: string;
-  originalName: string;
-  subject?: string;
-  description?: string;
-  size?: number;
-  createdAt?: Date;
-  // Add properties needed for UploadMetadata compatibility
-  url?: string;
-  mimeType?: string;
-  uploadedBy?: string;
-  visibility?: string;
-  storagePath?: string;
-  timestamp?: string;
-  bucket_name?: string; // Add this since it's used in the code
+import { UploadedFile } from '@/types/auth';
+import { toast } from '@/components/ui/use-toast';
+
+// Mock Firebase Storage and Firestore - In production this would connect to Firebase
+const mockFiles: UploadedFile[] = [
+  {
+    id: 'file_1',
+    uploadedBy: 'user_1',
+    subject: 'mathematics',
+    fileType: 'paper',
+    visibility: 'public',
+    filename: 'algebra_practice.pdf',
+    storagePath: 'files/user_1/algebra_practice.pdf',
+    timestamp: new Date().toISOString(),
+    label: 'Algebra practice paper'
+  },
+  {
+    id: 'file_2',
+    uploadedBy: 'user_1',
+    subject: 'science',
+    fileType: 'notes',
+    visibility: 'private',
+    filename: 'chemistry_notes.pdf',
+    storagePath: 'files/user_1/chemistry_notes.pdf',
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+    label: 'Chemistry revision notes'
+  }
+];
+
+// New interface for teacher preferences
+export interface TeacherPreference {
+  teacherId: string;
+  classId: string;
+  markingStyle: 'detailed' | 'headline-only' | 'encouraging';
+  lastUpdated: string;
 }
 
-export interface UploadProgress {
-  progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error';
-  error?: string;
-}
-
-export type TeacherPreference = "detailed" | "headline-only" | "encouraging";
-
-// Save marking style preference for a teacher
-export const saveMarkingStyle = async (
-  userId: string, 
-  classId: string, 
-  style: TeacherPreference
-): Promise<void> => {
-  try {
-    // Store in a proper teacher_preferences table or store in user metadata
-    // For now, we'll just store as an attribute on the user's profile
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        // Note: This assumes marking_style exists in the profiles table
-        // If it doesn't exist, a schema update would be needed
-        // marking_style: style, 
-        
-        // Store in metadata JSON field instead as a workaround
-        confidence_scores: {
-          marking_style: style
-        }
-      })
-      .eq('id', userId);
-      
-    if (error) throw error;
-  } catch (error) {
-    console.error('Error saving marking style:', error);
-    throw error;
+const mockTeacherPreferences: TeacherPreference[] = [
+  {
+    teacherId: 'teacher_1',
+    classId: 'class_1',
+    markingStyle: 'detailed',
+    lastUpdated: new Date().toISOString()
   }
-};
+];
 
-// Get recent files for a user
-export const getRecentFiles = async (userId: string): Promise<UploadedFile[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('uploads')
-      .select('*')
-      .eq('uploaded_by', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    
-    return data.map(file => {
-      const extendedFile = toExtendedUpload(file);
-      return {
-        id: file.id,
-        userId: file.uploaded_by,
-        filename: file.filename,
-        fileType: file.file_type,
-        fileURL: file.file_url,
-        originalName: file.original_name,
-        subject: file.subject,
-        description: file.description,
-        size: file.size,
-        createdAt: new Date(file.created_at || ''),
-        url: file.file_url,
-        mimeType: file.mime_type || 'application/octet-stream',
-        uploadedBy: file.uploaded_by,
-        visibility: file.visibility || 'private',
-        storagePath: file.storage_path,
-        timestamp: file.created_at,
-        bucket_name: extendedFile.bucket_name,
-      };
-    });
-  } catch (error) {
-    console.error('Error getting recent files:', error);
-    throw error;
-  }
-};
-
-// Get files by subject for a user
-export const getFilesBySubject = async (userId: string, subject: string): Promise<UploadedFile[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('uploads')
-      .select('*')
-      .eq('uploaded_by', userId)
-      .eq('subject', subject)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    
-    return data.map(file => {
-      const extendedFile = toExtendedUpload(file);
-      return {
-        id: file.id,
-        userId: file.uploaded_by,
-        filename: file.filename,
-        fileType: file.file_type,
-        fileURL: file.file_url,
-        originalName: file.original_name,
-        subject: file.subject,
-        description: file.description,
-        size: file.size,
-        createdAt: new Date(file.created_at || ''),
-        url: file.file_url,
-        mimeType: file.mime_type || 'application/octet-stream',
-        uploadedBy: file.uploaded_by,
-        visibility: file.visibility || 'private',
-        storagePath: file.storage_path,
-        timestamp: file.created_at,
-        bucket_name: extendedFile.bucket_name,
-      };
-    });
-  } catch (error) {
-    console.error('Error getting files by subject:', error);
-    throw error;
-  }
-};
-
-// Upload file with metadata
+// File upload function - would connect to Firebase Storage in production
 export const uploadFile = async (
-  file: File,
+  file: File, 
   metadata: {
     uploadedBy: string;
-    subject?: string;
+    role: string;
+    subject: string;
     classId?: string;
-    visibility?: 'private' | 'class-only' | 'public';
-    type?: 'topic-notes' | 'quiz' | 'past-paper' | 'notes';
-    role?: string;
+    visibility: 'public' | 'class-only' | 'private';
+    type: 'topic-notes' | 'quiz' | 'past-paper' | 'notes';
   }
-) => {
-  try {
-    if (!file) throw new Error('No file provided');
-    
-    // Create a unique filename
-    const timestamp = new Date().getTime();
-    const fileExtension = file.name.split('.').pop();
-    const uniqueFilename = `${metadata.uploadedBy}_${timestamp}.${fileExtension}`;
-    
-    // Upload to Supabase Storage
-    const storagePath = `uploads/${metadata.uploadedBy}/${uniqueFilename}`;
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('student_uploads')
-      .upload(storagePath, file);
-      
-    if (uploadError) throw uploadError;
-    
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('student_uploads')
-      .getPublicUrl(storagePath);
-      
-    const downloadURL = urlData?.publicUrl;
-    
-    // Save metadata to Supabase
-    const uploadMetadata = {
-      filename: uniqueFilename,
-      original_name: file.name,
-      file_url: downloadURL,
-      mime_type: file.type,
-      uploaded_by: metadata.uploadedBy,
-      subject: metadata.subject,
-      set_id: metadata.classId,
-      visibility: metadata.visibility || 'private',
-      file_type: metadata.type || 'notes',
-      storage_path: storagePath,
-      bucket_name: 'student_uploads',
-      size: file.size
-    };
-    
-    const { data: metadataData, error: metadataError } = await supabase
-      .from('uploads')
-      .insert(uploadMetadata)
-      .select()
-      .single();
-      
-    if (metadataError) throw metadataError;
-    
-    return {
-      ...uploadMetadata,
-      id: metadataData.id,
-      url: downloadURL,
-      uploadedBy: metadata.uploadedBy,
-      uploadTime: new Date().toISOString()
-    };
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    throw error;
-  }
-};
-
-export const fileService = {
-  // Upload a file to Supabase Storage
-  uploadFile: async (
-    file: File, 
-    userId: string, 
-    metadata: { 
-      fileType: string;
-      subject?: string;
-      description?: string;
-    },
-    onProgress?: (progress: UploadProgress) => void
-  ): Promise<UploadedFile> => {
-    try {
-      if (!file) throw new Error('No file provided');
-      
-      // Create a unique filename
-      const timestamp = new Date().getTime();
-      const fileExtension = file.name.split('.').pop();
-      const uniqueFilename = `${userId}_${timestamp}.${fileExtension}`;
-      const storagePath = `uploads/${userId}/${uniqueFilename}`;
-      
-      // Start upload
-      onProgress?.({ progress: 0, status: 'uploading' });
-      
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('student_uploads')
-        .upload(storagePath, file);
-        
-      if (uploadError) throw uploadError;
-      
-      onProgress?.({ progress: 50, status: 'uploading' });
-      
-      // Get the public URL
-      const { data: urlData } = supabase.storage
-        .from('student_uploads')
-        .getPublicUrl(storagePath);
-        
-      const downloadURL = urlData?.publicUrl;
-      
-      // Save metadata to Supabase
-      const fileData = {
-        uploaded_by: userId,
-        filename: uniqueFilename,
-        file_url: downloadURL,
-        original_name: file.name,
-        file_type: metadata.fileType,
-        subject: metadata.subject,
-        description: metadata.description,
-        size: file.size,
-        mime_type: file.type,
-        storage_path: storagePath,
-        visibility: 'private'
-      };
-      
-      const { data: metadataData, error: metadataError } = await typedSupabase
-        .from('uploads')
-        .insert(fileData)
-        .select()
-        .single();
-        
-      if (metadataError) throw metadataError;
-      
-      onProgress?.({ progress: 100, status: 'success' });
-      
-      const bucketName = 'student_uploads'; // Default bucket name
-      
-      return {
-        id: metadataData.id,
-        userId,
-        filename: uniqueFilename,
-        fileURL: downloadURL,
-        originalName: file.name,
-        fileType: metadata.fileType,
-        subject: metadata.subject,
-        description: metadata.description,
-        size: file.size,
-        url: downloadURL,
-        mimeType: file.type,
-        uploadedBy: userId,
-        visibility: 'private',
-        storagePath,
-        timestamp: new Date().toISOString(),
-        createdAt: new Date(),
-        bucket_name: bucketName
-      };
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      onProgress?.({ 
-        progress: 0, 
-        status: 'error', 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      });
-      throw error;
-    }
-  },
-
-  // Get all files for a user
-  getUserFiles: async (userId: string): Promise<UploadedFile[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('uploads')
-        .select('*')
-        .eq('uploaded_by', userId)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      return data.map(file => {
-        const extendedFile = toExtendedUpload(file);
-        return {
-          id: file.id,
-          userId: file.uploaded_by,
-          filename: file.filename,
-          fileType: file.file_type,
-          fileURL: file.file_url,
-          originalName: file.original_name,
-          subject: file.subject,
-          description: file.description,
-          size: file.size,
-          createdAt: new Date(file.created_at || ''),
-          url: file.file_url,
-          mimeType: file.mime_type || 'application/octet-stream',
-          uploadedBy: file.uploaded_by,
-          visibility: file.visibility || 'private',
-          storagePath: file.storage_path,
-          timestamp: file.created_at,
-          bucket_name: extendedFile.bucket_name,
-        };
-      });
-    } catch (error) {
-      console.error('Error getting files:', error);
-      throw error;
-    }
-  },
-
-  // Delete a file
-  deleteFile: async (file: UploadedFile): Promise<void> => {
-    try {
-      if (!file.id) throw new Error('File ID not provided');
-      
-      // Delete from Supabase Storage
-      if (file.storagePath) {
-        const bucketName = file.bucket_name || 'student_uploads';
-        const { error: storageError } = await supabase.storage
-          .from(bucketName)
-          .remove([file.storagePath]);
-          
-        if (storageError) throw storageError;
-      }
-      
-      // Delete from Supabase Database
-      const { error: dbError } = await supabase
-        .from('uploads')
-        .delete()
-        .eq('id', file.id);
-        
-      if (dbError) throw dbError;
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      throw error;
-    }
-  },
+): Promise<UploadedFile> => {
+  // Simulate upload delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Get files for a specific subject
-  getFilesBySubject: async (userId: string, subject: string): Promise<UploadedFile[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('uploads')
-        .select('*')
-        .eq('uploaded_by', userId)
-        .eq('subject', subject)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      return data.map(file => {
-        const extendedFile = toExtendedUpload(file);
-        return {
-          id: file.id,
-          userId: file.uploaded_by,
-          filename: file.filename,
-          fileType: file.file_type,
-          fileURL: file.file_url,
-          originalName: file.original_name,
-          subject: file.subject,
-          description: file.description,
-          size: file.size,
-          createdAt: new Date(file.created_at || ''),
-          url: file.file_url,
-          mimeType: file.mime_type || 'application/octet-stream',
-          uploadedBy: file.uploaded_by,
-          visibility: file.visibility || 'private',
-          storagePath: file.storage_path,
-          timestamp: file.created_at,
-          bucket_name: extendedFile.bucket_name,
-        };
-      });
-    } catch (error) {
-      console.error('Error getting files by subject:', error);
-      throw error;
-    }
-  }
+  // In a real app, this would upload to Firebase Storage
+  // and store metadata in Firestore
+  const fileUrl = `https://storage.example.com/${metadata.uploadedBy}/${file.name}`;
+  
+  const newFile: UploadedFile = {
+    id: `file_${Date.now()}`,
+    uploadedBy: metadata.uploadedBy,
+    subject: metadata.subject,
+    fileType: metadata.type,
+    visibility: metadata.visibility,
+    filename: file.name,
+    storagePath: `files/${metadata.uploadedBy}/${file.name}`,
+    timestamp: new Date().toISOString(),
+    label: file.name
+  };
+  
+  mockFiles.push(newFile);
+  
+  console.log('File uploaded:', newFile);
+  return newFile;
 };
 
-// Also export the individual functions from the service object for direct imports
-export const { getUserFiles, deleteFile } = fileService;
+export const getUserFiles = async (userId: string): Promise<UploadedFile[]> => {
+  // In a real app, this would query Firestore
+  return mockFiles.filter(file => 
+    file.uploadedBy === userId || file.visibility === 'public'
+  );
+};
 
-export default fileService;
+export const getFilesBySubject = async (subject: string): Promise<UploadedFile[]> => {
+  // In a real app, this would query Firestore
+  return mockFiles.filter(file => file.subject === subject);
+};
+
+export const getRecentFiles = async (userId: string, limit: number = 5): Promise<UploadedFile[]> => {
+  // In a real app, this would query Firestore
+  return mockFiles
+    .filter(file => file.uploadedBy === userId || file.visibility === 'public')
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, limit);
+};
+
+// Teacher preferences functions
+export const saveMarkingStyle = async (
+  teacherId: string,
+  classId: string,
+  markingStyle: 'detailed' | 'headline-only' | 'encouraging'
+): Promise<TeacherPreference> => {
+  // In a real app, this would update Firestore
+  const existingPrefIndex = mockTeacherPreferences.findIndex(
+    pref => pref.teacherId === teacherId && pref.classId === classId
+  );
+  
+  const updatedPref = {
+    teacherId,
+    classId,
+    markingStyle,
+    lastUpdated: new Date().toISOString()
+  };
+  
+  if (existingPrefIndex >= 0) {
+    // Update existing preference
+    mockTeacherPreferences[existingPrefIndex] = updatedPref;
+  } else {
+    // Create new preference
+    mockTeacherPreferences.push(updatedPref);
+  }
+  
+  console.log('Marking style updated:', updatedPref);
+  return updatedPref;
+};
+
+export const getTeacherPreference = async (
+  teacherId: string,
+  classId: string
+): Promise<TeacherPreference | undefined> => {
+  // In a real app, this would query Firestore
+  return mockTeacherPreferences.find(
+    pref => pref.teacherId === teacherId && pref.classId === classId
+  );
+};

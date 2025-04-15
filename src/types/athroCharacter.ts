@@ -1,8 +1,4 @@
-
-import { AthroSubject } from './athro';
-
-// Define ExamBoard type directly here since we're having problems with imports
-export type ExamBoard = 'WJEC' | 'AQA' | 'OCR' | 'Edexcel' | 'Cambridge' | 'CCEA';
+import { AthroSubject, AthroLanguage, ExamBoard } from './athro';
 
 export interface AthroCharacterConfig {
   id: string;
@@ -13,14 +9,13 @@ export interface AthroCharacterConfig {
   fullDescription: string;
   tone: string;
   promptTemplate: string;
-  promptPersona: string;
   responseStyle: 'maths' | 'essay' | 'language' | 'summary';
   usesMathFont?: boolean;
   supportsImageOCR?: boolean;
   specialFeatures?: string[];
   supportsMathNotation?: boolean;
   supportsSpecialCharacters?: boolean;
-  supportedLanguages?: string[];
+  supportedLanguages?: AthroLanguage[];
   topics: string[];
   examBoards: ExamBoard[];
   features?: {
@@ -32,7 +27,6 @@ export interface AthroCharacterConfig {
     default: ExamBoard;
     fallback: ExamBoard[];
   };
-  subjectStructure?: string[];
 }
 
 export interface AthroPromptContext {
@@ -41,8 +35,6 @@ export interface AthroPromptContext {
   confidenceScores?: Record<string, number>;
   examBoard?: ExamBoard;
   currentTopic?: string;
-  currentSubject?: string;
-  subjectSection?: string; // For Science: 'biology', 'chemistry', 'physics'
   recentQuizScores?: {
     topic: string;
     score: number;
@@ -71,17 +63,5 @@ export interface SubjectData {
     topic: string;
     score: number;
     date: string;
-  }[];
-}
-
-export interface AthroCharacterContext extends AthroCharacterConfig {
-  isActive: boolean;
-  currentTopic?: string;
-  confidenceScore?: number;
-  lastInteraction?: string;
-  sessionHistory?: {
-    date: string;
-    duration: number;
-    topics: string[];
   }[];
 }

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -5,26 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
-import { useTranslation } from '@/hooks/useTranslation';
-import { UserRole } from '@/types/auth';
+import { toast } from '@/components/ui/use-toast';
 
 const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('student');
-  const [welshEligible, setWelshEligible] = useState(false);
+  const [role, setRole] = useState<'student' | 'parent' | 'teacher'>('student');
   const { signup, state } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error("Missing information", {
-        description: "Please fill in all required fields"
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
       });
       return;
     }
@@ -32,32 +30,37 @@ const SignupPage: React.FC = () => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error("Invalid email", {
-        description: "Please enter a valid email address"
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
       });
       return;
     }
     
     // Validate password length
     if (password.length < 8) {
-      toast.error("Password too short", {
-        description: "Password must be at least 8 characters long"
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
       });
       return;
     }
     
     try {
-      await signup(email, password, role, { 
-        welshEligible,
-        preferredLanguage: 'en' // Default to English
-      });
-      
-      toast.success("Account created!", {
-        description: "Welcome to Athro AI"
+      await signup(email, password, role);
+      toast({
+        title: "Account created!",
+        description: "Welcome to Athro AI",
       });
       navigate('/home');
     } catch (error) {
-      // Error is already handled in the AuthContext
+      toast({
+        title: "Signup failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
@@ -72,10 +75,10 @@ const SignupPage: React.FC = () => {
           />
         </Link>
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-purple-800">
-          {t('signup.welcomeTitle')}
+          Create your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          {t('signup.welcomeMessage')}
+          Join Athro AI and start your GCSE learning journey today
         </p>
       </div>
 
@@ -83,7 +86,7 @@ const SignupPage: React.FC = () => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <Label htmlFor="email">{t('auth.email')}</Label>
+              <Label htmlFor="email">Email address</Label>
               <Input
                 id="email"
                 name="email"
@@ -97,7 +100,7 @@ const SignupPage: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="password">{t('auth.password')}</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 name="password"
@@ -109,53 +112,32 @@ const SignupPage: React.FC = () => {
                 className="mt-1"
               />
               <p className="mt-1 text-xs text-gray-500">
-                {t('signup.passwordRequirements')}
+                Password must be at least 8 characters long
               </p>
             </div>
 
             <div>
               <Label htmlFor="role" className="mb-2 block">
-                {t('signup.roleLabel')}
+                I am a:
               </Label>
               <RadioGroup 
                 value={role}
-                onValueChange={(value) => setRole(value as UserRole)}
+                onValueChange={(value) => setRole(value as 'student' | 'parent' | 'teacher')}
                 className="flex flex-col space-y-1"
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="student" id="student" />
-                  <Label htmlFor="student">{t('signup.roleStudent')}</Label>
+                  <Label htmlFor="student">Student</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="parent" id="parent" />
-                  <Label htmlFor="parent">{t('signup.roleParent')}</Label>
+                  <Label htmlFor="parent">Parent</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="teacher" id="teacher" />
-                  <Label htmlFor="teacher">{t('signup.roleTeacher')}</Label>
+                  <Label htmlFor="teacher">Teacher</Label>
                 </div>
               </RadioGroup>
-            </div>
-            
-            <div>
-              <div className="flex items-start space-x-2 mt-4">
-                <Checkbox 
-                  id="welsh-eligible" 
-                  checked={welshEligible}
-                  onCheckedChange={(checked) => setWelshEligible(checked === true)}
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <Label 
-                    htmlFor="welsh-eligible" 
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {t('signup.welshLanguageQuestion')}
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t('signup.welshLanguageYes')}
-                  </p>
-                </div>
-              </div>
             </div>
 
             <div>
@@ -164,7 +146,7 @@ const SignupPage: React.FC = () => {
                 className="w-full bg-purple-600 hover:bg-purple-700"
                 disabled={state.loading}
               >
-                {state.loading ? "Creating account..." : t('signup.welcomeTitle')}
+                {state.loading ? "Creating account..." : "Sign up"}
               </Button>
             </div>
           </form>
@@ -182,7 +164,7 @@ const SignupPage: React.FC = () => {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  {t('auth.hasAccount')}
+                  Already have an account?
                 </span>
               </div>
             </div>
@@ -193,7 +175,7 @@ const SignupPage: React.FC = () => {
                   variant="outline"
                   className="w-full border-purple-300 text-purple-600 hover:bg-purple-50"
                 >
-                  {t('common.login')}
+                  Log in instead
                 </Button>
               </Link>
             </div>

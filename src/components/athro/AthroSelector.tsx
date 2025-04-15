@@ -1,32 +1,15 @@
 
 import React from 'react';
 import { useAthro } from '@/contexts/AthroContext';
-import { useStudentClass } from '@/contexts/StudentClassContext';
 import { AthroCharacter, AthroSubject } from '@/types/athro';
 import AthroCharacterCard from './AthroCharacterCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BookOpen, Loader2 } from 'lucide-react';
 
-interface AthroSelectorProps {
-  onSelectAthro?: (character: AthroCharacter) => void; // Optional custom handler
-  mode?: 'standard' | 'self-study'; // Mode affects UI text
-}
+const AthroSelector: React.FC = () => {
+  const { characters, activeCharacter, setActiveCharacter } = useAthro();
 
-const AthroSelector: React.FC<AthroSelectorProps> = ({ 
-  onSelectAthro,
-  mode = 'standard'
-}) => {
-  const { characters, activeCharacter, setActiveCharacter, loading: athroLoading } = useAthro();
-  const { enrolledSubjects, isEnrolledInSubject, loading: classLoading } = useStudentClass();
-
-  // Filter characters based on student's enrolled subjects
-  const filteredCharacters = characters.filter(character => 
-    isEnrolledInSubject(character.subject)
-  );
-  
   // Group characters by subject
-  const charactersBySubject = filteredCharacters.reduce<Record<AthroSubject, AthroCharacter[]>>(
+  const charactersBySubject = characters.reduce<Record<AthroSubject, AthroCharacter[]>>(
     (acc, character) => {
       if (!acc[character.subject]) {
         acc[character.subject] = [];
@@ -39,39 +22,13 @@ const AthroSelector: React.FC<AthroSelectorProps> = ({
 
   const subjects = Object.keys(charactersBySubject) as AthroSubject[];
 
-  const handleSelectCharacter = (character: AthroCharacter) => {
-    // If custom handler is provided, use that
-    if (onSelectAthro) {
-      onSelectAthro(character);
-    } else {
-      // Default behavior
-      setActiveCharacter(character);
-    }
-  };
-
-  if (athroLoading || classLoading) {
+  if (characters.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center rounded-lg border border-dashed p-8 text-center">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-lg font-medium">Loading your study mentors...</p>
+        <div>
+          <p className="text-lg font-medium">No Athro characters available</p>
+          <p className="text-sm text-muted-foreground">Check back soon for new study mentors</p>
         </div>
-      </div>
-    );
-  }
-
-  if (filteredCharacters.length === 0) {
-    return (
-      <div className="space-y-4">
-        <Alert>
-          <BookOpen className="h-4 w-4" />
-          <AlertTitle>No study mentors available</AlertTitle>
-          <AlertDescription>
-            {enrolledSubjects.length === 0 
-              ? "You're not enrolled in any subjects yet. Please join a class to access study mentors."
-              : "No study mentors are available for your enrolled subjects at the moment."}
-          </AlertDescription>
-        </Alert>
       </div>
     );
   }
@@ -84,7 +41,7 @@ const AthroSelector: React.FC<AthroSelectorProps> = ({
         <h2 className="text-xl font-semibold">Your Study Mentor</h2>
         <AthroCharacterCard
           character={character}
-          onSelect={handleSelectCharacter}
+          onSelect={setActiveCharacter}
           isActive={activeCharacter?.id === character.id}
         />
       </div>
@@ -93,11 +50,7 @@ const AthroSelector: React.FC<AthroSelectorProps> = ({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">
-        {mode === 'self-study' 
-          ? "Select a Subject to Study" 
-          : "Select Your Study Mentor"}
-      </h2>
+      <h2 className="text-xl font-semibold">Select Your Study Mentor</h2>
       <Tabs defaultValue={subjects[0]} className="w-full">
         <TabsList className="mb-4 w-full">
           {subjects.map((subject) => (
@@ -114,7 +67,7 @@ const AthroSelector: React.FC<AthroSelectorProps> = ({
                 <AthroCharacterCard
                   key={character.id}
                   character={character}
-                  onSelect={handleSelectCharacter}
+                  onSelect={setActiveCharacter}
                   isActive={activeCharacter?.id === character.id}
                 />
               ))}
@@ -122,12 +75,6 @@ const AthroSelector: React.FC<AthroSelectorProps> = ({
           </TabsContent>
         ))}
       </Tabs>
-      
-      {mode === 'self-study' && (
-        <p className="text-sm text-muted-foreground mt-4">
-          Self-study sessions help you practice independently. Your progress won't be automatically shared with teachers.
-        </p>
-      )}
     </div>
   );
 };

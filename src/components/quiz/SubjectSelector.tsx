@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Brain } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { subjectList } from '@/types/quiz';
 
 interface SubjectSelectorProps {
@@ -52,16 +52,6 @@ const SubjectSelector: React.FC<SubjectSelectorProps> = ({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          
-          <div className="mt-4 bg-purple-50 p-4 rounded-md border border-purple-100">
-            <h3 className="text-sm font-medium text-purple-800 mb-2">What to expect:</h3>
-            <ul className="text-sm text-purple-700 list-disc pl-5 space-y-1">
-              <li>5 engaging questions tailored to GCSE level</li>
-              <li>Immediate feedback after each answer</li>
-              <li>Detailed explanations for correct and incorrect answers</li>
-              <li>Performance summary at the end</li>
-            </ul>
           </div>
         </div>
       </CardContent>

@@ -1,13 +1,12 @@
+
 // If this file already exists, we'll add to it
 // This is a simplified version, assuming the file already has some content
 
 // Adding the User interface that was missing
-export type UserRole = 'student' | 'teacher' | 'parent' | 'admin';
-
 export interface User {
   id: string;
   email: string;
-  role: UserRole;
+  role: 'student' | 'teacher' | 'parent';
   displayName: string;
   createdAt: Date;
   rememberMe: boolean;
@@ -17,8 +16,6 @@ export interface User {
   confidenceScores?: {
     [subject: string]: number;
   };
-  welshEligible?: boolean; // Determines language toggle visibility
-  preferredLanguage?: 'en' | 'cy' | 'es' | 'fr' | 'de'; // Current selected language
 }
 
 // Adding the AuthState interface that was missing

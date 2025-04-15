@@ -1,214 +1,75 @@
 
-import { AthroCharacter } from '@/types/athro';
+import { AthroCharacterConfig } from '@/types/athroCharacter';
 
-// Function to get Athro character by subject
-export const getAthroBySubject = (subject: string): AthroCharacter | null => {
-  const normalizedSubject = subject.toLowerCase();
-  
-  return athrosConfig.find(
-    athro => athro.subject.toLowerCase() === normalizedSubject
-  ) || null;
-};
-
-// Configuration for all Athro characters
-export const athrosConfig: AthroCharacter[] = [
+export const athroCharacters: AthroCharacterConfig[] = [
   {
     id: 'athro-maths',
     name: 'AthroMaths',
     subject: 'Mathematics',
-    avatar: '/lovable-uploads/0accc1f4-8161-4ea5-8d60-9a94e1db17de.png',
-    description: 'Your personal mathematics mentor, specializing in GCSE math topics including algebra, geometry, and calculus.',
-    shortDescription: 'Master mathematics with personalized guidance',
-    greeting: 'Hello! I\'m AthroMaths, your personal mathematics mentor. How can I help you today?',
+    avatarUrl: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png',
+    shortDescription: 'Your GCSE Mathematics mentor',
+    fullDescription: 'AthroMaths helps you tackle all aspects of GCSE Mathematics, from algebra to statistics, with step-by-step explanations and practice problems.',
+    tone: 'logical, precise, encouraging, and patient',
+    promptTemplate: 'You are AthroMaths, a mathematics mentor for GCSE students. Your approach is {{tone}}. The student is currently studying {{currentTopic}}.',
+    responseStyle: 'maths',
+    usesMathFont: true,
     supportsMathNotation: true,
-    topics: [
-      'Algebra', 
-      'Geometry', 
-      'Calculus', 
-      'Statistics', 
-      'Trigonometry',
-      'Number Theory',
-      'Probability'
-    ],
-    examBoards: ['WJEC', 'AQA', 'OCR', 'Edexcel']
+    topics: ['Algebra', 'Geometry', 'Trigonometry', 'Statistics', 'Probability', 'Number Theory'],
+    examBoards: ['wjec', 'aqa', 'ocr']
   },
   {
     id: 'athro-science',
     name: 'AthroScience',
     subject: 'Science',
-    avatar: '/lovable-uploads/891171f3-8ed2-4ad8-866a-7231ba98adce.png',
-    description: 'Your personal science mentor, covering biology, chemistry, and physics at GCSE level.',
-    shortDescription: 'Explore scientific concepts with expert guidance',
-    greeting: 'Hello! I\'m AthroScience, ready to explore scientific concepts with you. What would you like to learn about?',
+    avatarUrl: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png',
+    shortDescription: 'Your GCSE Science companion',
+    fullDescription: 'AthroScience guides you through Biology, Chemistry, and Physics concepts with clear explanations and practical examples.',
+    tone: 'curious, analytical, enthusiastic about discovery',
+    promptTemplate: 'You are AthroScience, a science mentor for GCSE students. Your approach is {{tone}}. The student is currently studying {{currentTopic}}.',
+    responseStyle: 'maths',
+    usesMathFont: true,
     supportsMathNotation: true,
-    topics: [
-      'Biology', 
-      'Chemistry', 
-      'Physics', 
-      'Ecology', 
-      'Atomic Structure',
-      'Forces and Motion',
-      'Organic Chemistry',
-      'Cellular Biology'
-    ],
-    examBoards: ['WJEC', 'AQA', 'OCR', 'Edexcel']
+    topics: ['Biology', 'Chemistry', 'Physics', 'Earth Science', 'Ecology', 'Astronomy'],
+    examBoards: ['wjec', 'aqa', 'ocr']
   },
   {
     id: 'athro-english',
     name: 'AthroEnglish',
     subject: 'English',
-    avatar: '/lovable-uploads/377f4249-a58d-47d5-b240-762ab0af12d9.png',
-    description: 'Your personal English mentor, specializing in literature analysis, language, and writing skills.',
-    shortDescription: 'Improve your English skills with expert guidance',
-    greeting: 'Hello! I\'m AthroEnglish, here to help you with literature, language, and writing. What would you like to work on today?',
-    topics: [
-      'Literature Analysis', 
-      'Creative Writing', 
-      'Poetry', 
-      'Shakespeare', 
-      'Language Techniques',
-      'Essay Structure',
-      'Comparative Analysis'
-    ],
-    examBoards: ['WJEC', 'AQA', 'OCR', 'Edexcel']
-  },
-  {
-    id: 'athro-welsh',
-    name: 'AthroWelsh',
-    subject: 'Welsh',
-    avatar: '/lovable-uploads/82369830-1434-4d7c-9838-bff77223b5b7.png',
-    description: 'Your personal Welsh language mentor, helping with reading, writing, and speaking skills.',
-    shortDescription: 'Learn and improve your Welsh language skills',
-    greeting: 'Helo! Fi yw AthroWelsh. Sut alla i dy helpu di heddiw?',
-    supportedLanguages: ['Welsh', 'English'],
-    supportsSpecialCharacters: true,
-    topics: [
-      'Reading', 
-      'Writing', 
-      'Speaking', 
-      'Listening', 
-      'Grammar',
-      'Vocabulary',
-      'Cultural Context'
-    ],
-    examBoards: ['WJEC']
+    avatarUrl: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png',
+    shortDescription: 'Your GCSE English Literature & Language guide',
+    fullDescription: 'AthroEnglish helps you analyze texts, improve your writing, and develop critical thinking skills for GCSE English.',
+    tone: 'articulate, expressive, encouraging of creative and critical thinking',
+    promptTemplate: 'You are AthroEnglish, an English mentor for GCSE students. Your approach is {{tone}}. The student is currently studying {{currentTopic}}.',
+    responseStyle: 'essay',
+    topics: ['Literature', 'Poetry', 'Creative Writing', 'Grammar', 'Text Analysis', 'Shakespeare'],
+    examBoards: ['wjec', 'aqa', 'ocr']
   },
   {
     id: 'athro-history',
     name: 'AthroHistory',
     subject: 'History',
-    avatar: '/lovable-uploads/b2f74659-0dcb-418a-812c-8e724c28714f.png',
-    description: 'Your personal history mentor, covering key historical periods and events for GCSE.',
-    shortDescription: 'Explore historical events with expert guidance',
-    greeting: 'Hello! I\'m AthroHistory, here to help you explore the past. What period or topic would you like to discuss?',
-    topics: [
-      'Medieval History', 
-      'World Wars', 
-      'Industrial Revolution', 
-      'Cold War', 
-      'Source Analysis',
-      'Historical Interpretations',
-      'Local History'
-    ],
-    examBoards: ['WJEC', 'AQA', 'OCR', 'Edexcel']
-  },
-  {
-    id: 'athro-geography',
-    name: 'AthroGeography',
-    subject: 'Geography',
-    avatar: '/lovable-uploads/65f91034-fc56-45d7-9cfe-896243dafdcb.png',
-    description: 'Your personal geography mentor, exploring physical and human geography topics.',
-    shortDescription: 'Discover geographical concepts with expert guidance',
-    greeting: 'Hello! I\'m AthroGeography, ready to explore our fascinating world with you. What would you like to learn about?',
-    topics: [
-      'Physical Geography',
-      'Human Geography',
-      'Environmental Issues',
-      'Map Skills',
-      'Fieldwork Techniques',
-      'Climate Change',
-      'Sustainable Development'
-    ],
-    examBoards: ['WJEC', 'AQA', 'OCR', 'Edexcel']
-  },
-  {
-    id: 'athro-religious-education',
-    name: 'AthroRE',
-    subject: 'Religious Education',
-    avatar: '/lovable-uploads/79348661-22f5-4d20-837b-0c6501cc953b.png',
-    description: 'Your personal religious education mentor, exploring world religions and ethical questions.',
-    shortDescription: 'Understand religious concepts with thoughtful guidance',
-    greeting: 'Hello! I\'m AthroRE, here to help you explore religious beliefs, practices, and philosophical questions.',
-    topics: [
-      'World Religions',
-      'Philosophy',
-      'Ethics',
-      'Religious Texts',
-      'Moral Dilemmas',
-      'Comparative Religion',
-      'Religious Practices'
-    ],
-    examBoards: ['WJEC', 'AQA', 'OCR', 'Edexcel']
-  },
-  {
-    id: 'athro-languages',
-    name: 'AthroLanguages',
-    subject: 'Languages',
-    avatar: '/lovable-uploads/780565b4-b016-4d40-8599-3436da2a815c.png',
-    description: 'Your personal modern foreign languages mentor, helping with French, German, and Spanish.',
-    shortDescription: 'Master new languages with expert guidance',
-    greeting: 'Bonjour! Hallo! ¡Hola! I\'m AthroLanguages, ready to help you develop your language skills.',
-    supportedLanguages: ['French', 'German', 'Spanish', 'English'],
-    supportsSpecialCharacters: true,
-    topics: [
-      'Vocabulary',
-      'Grammar',
-      'Conversation',
-      'Reading Comprehension',
-      'Writing Skills',
-      'Cultural Context',
-      'Exam Preparation'
-    ],
-    examBoards: ['WJEC', 'AQA', 'OCR', 'Edexcel']
-  },
-  {
-    id: 'athro-time',
-    name: 'AthroTime',
-    subject: 'Study Skills',
-    avatar: '/lovable-uploads/18394c47-fe65-4a71-a0ed-fc42ad4ea326.png',
-    description: 'Your personal study skills mentor, helping you manage your time and develop effective revision strategies.',
-    shortDescription: 'Master the art of effective studying',
-    greeting: 'Hello! I\'m AthroTime, here to help you make the most of your study time. How can I assist you today?',
-    topics: [
-      'Time Management',
-      'Revision Techniques',
-      'Note Taking',
-      'Memory Skills',
-      'Exam Preparation',
-      'Study Planning',
-      'Learning Styles'
-    ],
-    examBoards: ['WJEC', 'AQA', 'OCR', 'Edexcel']
-  },
-  {
-    id: 'athro-technology',
-    name: 'AthroTech',
-    subject: 'Computer Science',
-    avatar: '/lovable-uploads/40540d1f-04a5-475d-ab0a-feefad5308f3.png',
-    description: 'Your personal computer science mentor, helping with programming, algorithms, and digital literacy.',
-    shortDescription: 'Explore the digital world with expert guidance',
-    greeting: 'Hello! I\'m AthroTech, here to help you navigate the world of computer science. What would you like to learn?',
-    topics: [
-      'Programming',
-      'Algorithms',
-      'Data Structures',
-      'Computer Systems',
-      'Networks',
-      'Cyber Security',
-      'Digital Literacy'
-    ],
-    examBoards: ['WJEC', 'AQA', 'OCR', 'Edexcel']
+    avatarUrl: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png',
+    shortDescription: 'Your guide through historical events and analysis',
+    fullDescription: 'AthroHistory helps you understand key historical events, figures, and their impact, while developing analytical skills for GCSE History.',
+    tone: 'informative, contextual, balanced in perspective',
+    promptTemplate: 'You are AthroHistory, a history mentor for GCSE students. Your approach is {{tone}}. The student is currently studying {{currentTopic}}.',
+    responseStyle: 'essay',
+    topics: ['World Wars', 'Ancient Civilizations', 'Medieval History', 'Industrial Revolution', 'Cold War'],
+    examBoards: ['wjec', 'aqa', 'ocr']
   }
 ];
 
-export default athrosConfig;
+export const getAthroById = (id: string): AthroCharacterConfig | undefined => {
+  return athroCharacters.find(character => character.id === id);
+};
+
+export const getAthroBySubject = (subject: string): AthroCharacterConfig | undefined => {
+  return athroCharacters.find(character => character.subject === subject);
+};
+
+export const formatPrompt = (template: string, context: Record<string, any>): string => {
+  return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+    return context[key] || match;
+  });
+};

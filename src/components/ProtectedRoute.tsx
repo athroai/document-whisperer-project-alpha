@@ -1,65 +1,51 @@
 
-import React, { useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/types/auth';
-import LoadingSpinner from './ui/loading-spinner';
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requiredRole?: UserRole | UserRole[];
-  redirectPath?: string;
-  allowLicenseExempt?: boolean;
-  loadingComponent?: React.ReactNode;
+  children: React.ReactNode | (({ user }: { user: any }) => React.ReactNode);
+  requireLicense?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  children,
-  requiredRole,
-  redirectPath = '/login',
-  allowLicenseExempt = false,
-  loadingComponent = (
-    <div className="flex h-screen items-center justify-center">
-      <LoadingSpinner className="h-12 w-12" />
-    </div>
-  ),
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  requireLicense = false 
 }) => {
-  const { state } = useAuth();
+  const { state, updateUser } = useAuth();
   const { user, loading } = state;
-  const location = useLocation();
-
-  // Show loading state while checking auth
+  
   if (loading) {
-    return <>{loadingComponent}</>;
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
-
-  // Redirect if not authenticated
+  
   if (!user) {
-    return <Navigate to={redirectPath} state={{ from: location }} replace />;
+    return <Navigate to="/login" />;
   }
-
-  // Check role requirements if specified
-  if (requiredRole) {
-    const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    
-    // Allow license exempt users to bypass role check if enabled
-    if (allowLicenseExempt && user.licenseExempt) {
-      return <>{children}</>;
-    }
-    
-    // Check if user has one of the required roles
-    if (!roles.includes(user.role)) {
-      // For students, redirect to license required page
-      if (user.role === 'student') {
-        return <Navigate to="/license-required" state={{ from: location }} replace />;
-      }
-      // For others, just redirect to login
-      return <Navigate to={redirectPath} state={{ from: location }} replace />;
+  
+  // If license is required and user doesn't have a license exemption, check license
+  if (requireLicense && !user.licenseExempt && !user.email.endsWith('@nexastream.co.uk')) {
+    // Mock license check - in production would check against Firestore
+    if (!user.schoolId) {
+      return <Navigate to="/license-required" />;
     }
   }
 
-  // User is authenticated and meets role requirements
-  return <>{children}</>;
+  // Redirect teachers to dashboard if trying to access student routes
+  if (user.role === 'teacher' && window.location.pathname === '/home') {
+    return <Navigate to="/teacher-dashboard" />;
+  }
+  
+  // Handle function children that need user data
+  if (typeof children === 'function') {
+    return children({ user });
+  }
+  
+  return children;
 };
 
 export default ProtectedRoute;

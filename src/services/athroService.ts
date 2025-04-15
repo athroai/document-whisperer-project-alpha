@@ -1,233 +1,114 @@
 
-import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
-import { FeedbackSummary } from '@/types/feedback';
-import { supabase, typedSupabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
+import { AthroMessage } from '@/types/athro';
+import { pastPapers, PastPaper, PastPaperQuestion } from '@/data/athro-maths/past-papers';
+import { modelAnswers, ModelAnswer } from '@/data/athro-maths/model-answers';
 
-// Type definition for athro_characters table row
-interface AthroCharacterRow {
-  id: string;
-  name: string;
-  subject: string;
-  avatar_url: string;
-  description: string;
-  strengths?: string[];
-  created_at: string;
-  updated_at: string;
+export async function mockAthroResponse(
+  message: string, 
+  subject: string,
+  examBoard: string = 'wjec'
+): Promise<AthroMessage> {
+  // Mock delay to simulate API call
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  
+  // Check if the message matches any past paper questions
+  const questionMatch = findMatchingQuestion(message);
+  
+  let content = '';
+  let referencedResources: string[] = [];
+  
+  if (questionMatch) {
+    // If we have a matching question, use its model answer
+    const answer = findModelAnswer(questionMatch.id);
+    
+    if (answer) {
+      content = `I can help with this ${questionMatch.topic} question.\n\n${formatWorkingSteps(answer.workingSteps)}\n\nThe final answer is: ${answer.markScheme}`;
+      referencedResources = [questionMatch.id];
+    } else {
+      content = generateSubjectResponse(message, subject);
+    }
+  } else {
+    content = generateSubjectResponse(message, subject);
+  }
+  
+  return {
+    id: Date.now().toString(),
+    senderId: `athro-${subject.toLowerCase()}`,
+    content,
+    timestamp: new Date().toISOString(),
+    referencedResources
+  };
 }
 
-// Service for Athro character management
-const athroService = {
-  // Get available Athro characters - from Supabase
-  getCharacters: async (): Promise<AthroCharacter[]> => {
-    try {
-      // Using typedSupabase to bypass type checking
-      const { data, error } = await typedSupabase
-        .from('athro_characters')
-        .select('*');
-        
-      if (error) {
-        console.error('Error fetching Athro characters:', error);
-        throw error;
-      }
+function findMatchingQuestion(message: string): PastPaperQuestion | null {
+  // Very basic matching logic - in a real implementation this would be much more sophisticated
+  const lowerMessage = message.toLowerCase();
+  
+  for (const paper of pastPapers) {
+    for (const question of paper.questions) {
+      // Check if significant parts of the question text appear in the message
+      const keywords = question.text.toLowerCase().split(' ')
+        .filter(word => word.length > 3) // Only match on significant words
+        .filter(word => !['what', 'find', 'calculate', 'solve', 'work', 'out'].includes(word));
       
-      if (!data || data.length === 0) {
-        console.warn('No Athro characters found, returning fallback data');
-        return athroService.getFallbackCharacters();
-      }
+      const matchCount = keywords.filter(word => lowerMessage.includes(word)).length;
+      const matchThreshold = Math.ceil(keywords.length * 0.6); // 60% match threshold
       
-      // Map database fields to our AthroCharacter type with explicit type assertions
-      return data.map((char: AthroCharacterRow) => ({
-        id: char.id,
-        name: char.name,
-        subject: char.subject as AthroSubject,
-        avatar: char.avatar_url,
-        description: char.description,
-        topics: char.strengths || [],
-        examBoards: ['WJEC', 'AQA', 'OCR'],
-        supportsMathNotation: char.subject === 'Mathematics'
-      }));
-    } catch (error) {
-      console.error('Error in getCharacters:', error);
-      return athroService.getFallbackCharacters();
+      if (matchCount >= matchThreshold) {
+        return question;
+      }
     }
-  },
-  
-  // Fallback characters in case of database connection issues
-  getFallbackCharacters: (): AthroCharacter[] => {
-    return [
-      {
-        id: 'athro-math',
-        name: 'AthroMath',
-        subject: 'Mathematics',
-        avatar: '/assets/athro-math.png',
-        description: 'Your personal GCSE Mathematics mentor',
-        topics: ['Algebra', 'Geometry', 'Calculus', 'Statistics'],
-        examBoards: ['WJEC', 'AQA', 'OCR'],
-        supportsMathNotation: true
-      },
-      {
-        id: 'athro-science',
-        name: 'AthroScience',
-        subject: 'Science',
-        avatar: '/assets/athro-science.png',
-        description: 'Your personal GCSE Science mentor',
-        topics: ['Biology', 'Chemistry', 'Physics', 'Environmental Science'],
-        examBoards: ['WJEC', 'AQA', 'OCR']
-      },
-      {
-        id: 'athro-english',
-        name: 'AthroEnglish',
-        subject: 'English',
-        avatar: '/assets/athro-english.png',
-        description: 'Your personal GCSE English mentor',
-        topics: ['Literature', 'Language', 'Writing', 'Poetry'],
-        examBoards: ['WJEC', 'AQA', 'OCR']
-      }
-    ];
-  },
-  
-  // Get a character by ID
-  getCharacterById: async (id: string): Promise<AthroCharacter | null> => {
-    try {
-      // Using typedSupabase to bypass type checking
-      const { data, error } = await typedSupabase
-        .from('athro_characters')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (error) {
-        console.error(`Error fetching character with ID ${id}:`, error);
-        return null;
-      }
-      
-      if (!data) return null;
-      
-      // Explicit type assertion for database fields
-      const char = data as AthroCharacterRow;
-      return {
-        id: char.id,
-        name: char.name,
-        subject: char.subject as AthroSubject,
-        avatar: char.avatar_url,
-        description: char.description,
-        topics: char.strengths || [],
-        examBoards: ['WJEC', 'AQA', 'OCR'],
-        supportsMathNotation: char.subject === 'Mathematics'
-      };
-    } catch (error) {
-      console.error(`Error in getCharacterById for ID ${id}:`, error);
-      return null;
-    }
-  },
-  
-  // Get a character by subject
-  getCharacterBySubject: async (subject: string): Promise<AthroCharacter | null> => {
-    try {
-      // Using typedSupabase to bypass type checking
-      const { data, error } = await typedSupabase
-        .from('athro_characters')
-        .select('*')
-        .ilike('subject', subject)
-        .maybeSingle();
-        
-      if (error) {
-        console.error(`Error fetching character for subject ${subject}:`, error);
-        return null;
-      }
-      
-      if (!data) return null;
-      
-      // Type assertion to access properties
-      const char = data as AthroCharacterRow;
-      return {
-        id: char.id,
-        name: char.name,
-        subject: char.subject as AthroSubject,
-        avatar: char.avatar_url,
-        description: char.description,
-        topics: char.strengths || [],
-        examBoards: ['WJEC', 'AQA', 'OCR'],
-        supportsMathNotation: char.subject === 'Mathematics'
-      };
-    } catch (error) {
-      console.error(`Error in getCharacterBySubject for subject ${subject}:`, error);
-      return null;
-    }
-  },
-  
-  // Get a feedback summary for a submission
-  getFeedbackSummary: (submission: any): FeedbackSummary => {
-    // This would typically come from the backend
-    // But for now, we'll generate a mock feedback
-    return {
-      score: submission.score || Math.floor(Math.random() * 100),
-      strengths: [
-        'Good understanding of core concepts',
-        'Clear explanations of methods used',
-        'Effective use of subject-specific terminology'
-      ],
-      improvements: [
-        'Review formulas in section 3.2',
-        'Practice more complex problem-solving',
-        'Work on time management during assessments'
-      ],
-      nextSteps: [
-        'Complete practice exercises 5-8',
-        'Book a session with your Athro mentor',
-        'Review feedback on previous assignments'
-      ],
-      confidence: 7,
-      feedback: `Feedback for ${submission.subject || 'activity'}`,
-      encouragement: 'Keep up the great work!',
-      activityType: 'quiz',
-      activityId: submission.id || 'default-activity',
-      activityName: submission.title || 'Practice Activity',
-      subject: submission.subject || 'Unknown'
-    };
-  },
-  
-  // Get recent activity for a student
-  getRecentActivity: (studentId: string) => {
-    // Simulated data - would come from database
-    return [
-      {
-        id: 'activity-1',
-        type: 'quiz',
-        subject: 'Mathematics',
-        topic: 'Algebra',
-        score: 85,
-        completedAt: new Date(),
-        duration: 15 // minutes
-      },
-      {
-        id: 'activity-2',
-        type: 'study',
-        subject: 'Science',
-        topic: 'Chemistry',
-        completedAt: new Date(Date.now() - 86400000), // yesterday
-        duration: 25 // minutes
-      }
-    ];
-  },
-  
-  // Track a study session
-  trackStudySession: (sessionData: {
-    studentId: string;
-    subject: AthroSubject;
-    topic: string;
-    duration: number;
-    confidence?: number;
-  }) => {
-    // In a real implementation, this would send data to a backend
-    console.log('Study session tracked:', sessionData);
-    return {
-      id: `session-${Date.now()}`,
-      ...sessionData,
-      timestamp: new Date()
-    };
   }
-};
+  
+  return null;
+}
 
-export default athroService;
+function findModelAnswer(questionId: string): ModelAnswer | undefined {
+  return modelAnswers.find(answer => answer.questionId === questionId);
+}
+
+function formatWorkingSteps(steps: string[]): string {
+  return steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
+}
+
+function generateSubjectResponse(message: string, subject: string): string {
+  const lowerMessage = message.toLowerCase();
+  
+  if (subject === 'Mathematics') {
+    if (lowerMessage.includes('algebra') || lowerMessage.includes('equation') || lowerMessage.includes('solve')) {
+      return "Algebra is all about finding unknown values. Let's tackle this step-by-step. Could you share the specific equation you're working on?";
+    }
+    
+    if (lowerMessage.includes('geometry') || lowerMessage.includes('circle') || lowerMessage.includes('triangle') || lowerMessage.includes('angle')) {
+      return "Geometry problems are best approached by identifying what we know and what we need to find. Let's break down this question together.";
+    }
+    
+    if (lowerMessage.includes('statistics') || lowerMessage.includes('mean') || lowerMessage.includes('median') || lowerMessage.includes('mode')) {
+      return "Statistics involves analyzing and interpreting data. For this problem, we need to understand which measure of central tendency is most appropriate.";
+    }
+    
+    return "I'm your mathematics mentor. Could you provide more details about your maths question? It helps me to see the specific problem you're working on.";
+  }
+  
+  return `I'm your ${subject} mentor. How can I help you today?`;
+}
+
+export async function getPastPapers(subject: string, examBoard?: string): Promise<PastPaper[]> {
+  // Mock delay
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  
+  // In a real implementation, this would filter from a database
+  if (examBoard) {
+    return pastPapers.filter(paper => paper.examBoard === examBoard.toLowerCase());
+  }
+  
+  return pastPapers;
+}
+
+export async function getModelAnswer(questionId: string): Promise<ModelAnswer | null> {
+  // Mock delay
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  
+  const answer = modelAnswers.find(a => a.questionId === questionId);
+  return answer || null;
+}

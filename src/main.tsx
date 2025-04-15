@@ -1,17 +1,16 @@
+import { createRoot } from 'react-dom/client'
+import App from './App.tsx'
+import './index.css'
+import { AthroProvider } from './contexts/AthroContext';
+import { StudentRecordProvider } from './contexts/StudentRecordContext';
+import { AuthProvider } from './contexts/AuthContext';
 
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './index.css';
-import { TranslationProvider } from './hooks/useTranslation';
-import { BrowserRouter } from 'react-router-dom';
-
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <TranslationProvider>
+createRoot(document.getElementById("root")!).render(
+  <AuthProvider>
+    <StudentRecordProvider>
+      <AthroProvider>
         <App />
-      </TranslationProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
+      </AthroProvider>
+    </StudentRecordProvider>
+  </AuthProvider>
 );
