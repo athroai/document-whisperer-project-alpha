@@ -6,7 +6,7 @@ import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { toast } from '@/hooks/use-toast';
 
 export function useAthroMessages() {
-  const [messages, setMessages] = useState<AthroMessage[]>([]);
+  const [messages, setMessages] = useState<AthroMessage[]>([]); // Initialize as empty array
   const [isTyping, setIsTyping] = useState(false);
   const activeRequests = useRef(new Set<string>());
   const initializedRef = useRef(false);
@@ -21,6 +21,7 @@ export function useAthroMessages() {
     if (!initializedRef.current) {
       console.log('🔄 useAthroMessages: Initial setup');
       initializedRef.current = true;
+      // Removed any automatic initial message that might have been here
     }
     
     return () => {
