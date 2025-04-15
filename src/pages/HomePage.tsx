@@ -135,7 +135,7 @@ const HomePage: React.FC = () => {
                     <p className="text-sm text-gray-500 mt-2">{subjectProgress[character.subject] || 0}% complete</p>
                   </CardContent>
                   <CardFooter className="pt-0">
-                    <Link to={`/athro/${character.subject.toLowerCase()}`} className="w-full">
+                    <Link to={`/study?subject=${character.subject.toLowerCase()}`} className="w-full">
                       <Button variant="outline" className="w-full">
                         <BookOpen className="mr-2 h-4 w-4" /> Continue
                       </Button>

@@ -100,7 +100,7 @@ const AthroSelectorPage: React.FC = () => {
               </div>
               <Button 
                 className="w-full" 
-                onClick={() => navigate(`/athro/${getSubjectPath(character.subject)}`)}
+                onClick={() => navigate(`/study?subject=${getSubjectPath(character.subject)}`)}
               >
                 Study with {character.name}
               </Button>
@@ -134,7 +134,7 @@ const AthroSelectorPage: React.FC = () => {
               <Button 
                 variant="outline"
                 className="w-full" 
-                onClick={() => navigate(`/athro/${character.subject.toLowerCase()}`)}
+                onClick={() => navigate(`/study?subject=${character.subject.toLowerCase()}`)}
               >
                 Open {character.name}
               </Button>

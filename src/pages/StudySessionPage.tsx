@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFo
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import PomodoroTimer from '@/components/PomodoroTimer';
 import { toast } from '@/hooks/use-toast';
 import FileReference from '@/components/FileReference';
@@ -52,6 +54,8 @@ const athroCharacters = {
 
 const StudySessionPage: React.FC = () => {
   const { messages, isTyping, sendMessage, clearMessages, hasApiKey } = useAthroMessages();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -68,10 +72,22 @@ const StudySessionPage: React.FC = () => {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [showAdminSettings, setShowAdminSettings] = useState(false);
 
+  // Handle subject from URL query parameter
+  useEffect(() => {
+    const subjectParam = searchParams.get('subject');
+    if (subjectParam) {
+      // Format subject to match keys in athroCharacters
+      const formattedSubject = subjectParam.charAt(0).toUpperCase() + subjectParam.slice(1);
+      
+      if (athroCharacters[formattedSubject as keyof typeof athroCharacters]) {
+        handleActions.changeSubject(formattedSubject);
+        console.log(`Subject set from URL parameter: ${formattedSubject}`);
+      }
+    }
+  }, [searchParams]);
+
   const currentTopics = currentAthro?.topics || [];
-
   const paperList = pastPapers.map(paper => paper.title);
-
   const mockUserId = 'user_1';
 
   const handleActions = {
