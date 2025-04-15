@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
@@ -52,9 +51,10 @@ export function useAthroMessages() {
     const requestId = Date.now().toString();
     activeRequests.current.add(requestId);
     
-    // Add user message to chat (except for welcome message)
+    // Check if this is a welcome message
     const isWelcomeMessage = content.toLowerCase() === "welcome";
     
+    // Only add user message to chat if it's not a welcome message
     if (!isWelcomeMessage) {
       const userMessage: AthroMessage = {
         id: requestId,
@@ -86,7 +86,40 @@ export function useAthroMessages() {
 
       console.log('🌐 Network status before API call:', navigator.onLine ? 'Online' : 'Offline');
       
-      // Make the actual API call to OpenAI
+      // For welcome messages, create a predefined response directly without API call
+      if (isWelcomeMessage) {
+        const welcomeResponse = `Hello, I'm ${activeCharacter.name}. How can I help with your ${activeCharacter.subject} studies today?`;
+        
+        setTimeout(() => {
+          if (!activeRequests.current.has(requestId)) {
+            console.warn('🚫 Request was cancelled');
+            return;
+          }
+          
+          const athroResponse: AthroMessage = {
+            id: (Date.now() + 1).toString(),
+            senderId: activeCharacter.id,
+            content: welcomeResponse,
+            timestamp: new Date().toISOString(),
+          };
+          
+          setMessages(prevMessages => {
+            const updatedMessages = [...prevMessages, athroResponse];
+            console.log('➕ Adding AI welcome response', { 
+              prevMessageCount: prevMessages.length, 
+              newMessageCount: updatedMessages.length,
+              responseContent: athroResponse.content
+            });
+            return updatedMessages;
+          });
+          
+          setIsTyping(false);
+        }, 500); // Small delay to simulate typing
+        
+        return;
+      }
+      
+      // Make the actual API call to OpenAI for non-welcome messages
       const response = await getOpenAIResponse({
         systemPrompt: systemPrompt,
         userMessage: content,

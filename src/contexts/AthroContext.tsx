@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
 import { athroCharacters, getAthroById } from '@/config/athrosConfig';
@@ -12,6 +11,7 @@ interface AthroContextType {
   characters: AthroCharacter[];
   messages: AthroMessage[];
   sendMessage: (content: string, character?: AthroCharacter | null) => void;
+  clearMessages: () => void;
   isTyping: boolean;
   studentProgress: Record<string, {
     confidenceScores: Record<string, number>;
@@ -26,6 +26,7 @@ const AthroContext = createContext<AthroContextType>({
   characters: [],
   messages: [],
   sendMessage: () => {},
+  clearMessages: () => {},
   isTyping: false,
   studentProgress: {} as Record<string, {
     confidenceScores: Record<string, number>;
@@ -48,7 +49,6 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const { studentProgress, getSuggestedTopics: getTopics } = useStudentProgress();
   const characterInitialized = useRef(false);
   
-  // Debug mount/unmount cycles to detect potential issues
   useEffect(() => {
     console.log('📊 AthroProvider mounted');
     return () => {
@@ -56,7 +56,6 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     };
   }, []);
   
-  // Initialize Athro characters only once
   useEffect(() => {
     if (isInitialized) {
       console.log('🛑 Preventing duplicate initialization of Athro characters');
@@ -66,7 +65,6 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     console.log('🚀 Initializing Athro characters');
     
     try {
-      // Load characters from the config
       const charactersData = athroCharacters;
       console.log('📋 Loaded characters:', charactersData.map(c => c.name).join(', '));
       setCharacters(charactersData);
@@ -93,7 +91,6 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     clearMessages();
   }, [clearMessages]);
 
-  // Clear messages when active character changes
   useEffect(() => {
     if (activeCharacter && characterInitialized.current) {
       console.log('👤 Active character changed to:', activeCharacter.name);
@@ -135,7 +132,6 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     }
   }, [activeCharacter, sendAthroMessage]);
 
-  // Log current state for debugging
   useEffect(() => {
     console.log('Current context state:', {
       activeCharacter: activeCharacter?.name || 'None',
@@ -154,6 +150,7 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
         characters,
         messages,
         sendMessage,
+        clearMessages,
         isTyping,
         studentProgress,
         getSuggestedTopics

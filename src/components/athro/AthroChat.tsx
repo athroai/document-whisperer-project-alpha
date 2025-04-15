@@ -24,6 +24,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const initialMessageSent = useRef(false);
   
   const currentCharacter = character || activeCharacter;
   
@@ -50,9 +51,21 @@ const AthroChat: React.FC<AthroChatProps> = ({
   }, []);
   
   useEffect(() => {
+    if (currentCharacter && messages.length === 0 && !initialMessageSent.current && !isTyping) {
+      console.log('👋 Sending initial welcome message');
+      initialMessageSent.current = true;
+      
+      setTimeout(() => {
+        sendMessage('welcome', currentCharacter);
+      }, 200);
+    }
+  }, [currentCharacter, messages.length, sendMessage, isTyping]);
+  
+  useEffect(() => {
     console.log('🎭 AthroChat component mounted with', messages.length, 'messages');
     return () => {
       console.log('🎭 AthroChat component unmounted');
+      initialMessageSent.current = false;
     };
   }, [messages.length]);
   
@@ -143,7 +156,11 @@ const AthroChat: React.FC<AthroChatProps> = ({
             variant="outline" 
             size="sm" 
             className="h-6 text-xs" 
-            onClick={sendMathTest}
+            onClick={() => {
+              if (currentCharacter) {
+                sendMessage("2-1", currentCharacter);
+              }
+            }}
           >
             <Info className="h-3 w-3 mr-1" />
             Test 2-1
@@ -152,7 +169,11 @@ const AthroChat: React.FC<AthroChatProps> = ({
             variant="outline" 
             size="sm" 
             className="h-6 text-xs" 
-            onClick={sendDebugMessage}
+            onClick={() => {
+              if (currentCharacter) {
+                sendMessage("2+2=?", currentCharacter);
+              }
+            }}
           >
             <Bug className="h-3 w-3 mr-1" />
             Test Chat
@@ -182,7 +203,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
         <div className="space-y-4">
           {messages.length === 0 && currentCharacter && (
             <div className="text-center p-4 text-muted-foreground">
-              Start a conversation with {currentCharacter.name}
+              {isTyping ? "Loading..." : "Start a conversation with " + currentCharacter.name}
             </div>
           )}
           
