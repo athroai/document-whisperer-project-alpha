@@ -9,15 +9,24 @@ export function useAthroMessages() {
   const [messages, setMessages] = useState<AthroMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const activeRequests = useRef(new Set<string>());
+  const initializedRef = useRef(false);
   
   // For debugging
   useEffect(() => {
-    console.log('Current messages:', messages);
+    console.log('Current messages in hook:', messages);
   }, [messages]);
 
+  // Initialize with a welcome message if we have none
+  useEffect(() => {
+    if (!initializedRef.current && messages.length === 0) {
+      console.log('useAthroMessages: Setting initial state');
+      initializedRef.current = true;
+    }
+  }, [messages.length]);
+
   const clearMessages = useCallback(() => {
+    console.log('Clearing all messages');
     setMessages([]);
-    console.log('Messages cleared');
   }, []);
 
   const sendMessage = useCallback(async (content: string, activeCharacter: AthroCharacter | null) => {
@@ -26,11 +35,11 @@ export function useAthroMessages() {
       return;
     }
 
+    console.log(`Sending message from useAthroMessages to ${activeCharacter.name}:`, content);
+    
     // Generate a unique request ID to track this specific request
     const requestId = Date.now().toString();
     activeRequests.current.add(requestId);
-
-    console.log(`Sending message to ${activeCharacter.name}:`, content);
     
     // Create and add user message to state immediately
     const userMessage: AthroMessage = {
@@ -47,13 +56,12 @@ export function useAthroMessages() {
     setIsTyping(true);
     
     try {
-      // Note: In a production app, this key should be in an environment variable
-      // and we should use a backend proxy for API calls
+      // Demo API key for educational purposes
       const openAIApiKey = "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";
       
       const systemPrompt = buildSystemPrompt(activeCharacter);
       
-      console.log('Calling OpenAI with system prompt:', systemPrompt);
+      console.log('Calling OpenAI with system prompt for:', activeCharacter.name);
       
       const response = await getOpenAIResponse({
         systemPrompt: systemPrompt,
@@ -61,7 +69,7 @@ export function useAthroMessages() {
         apiKey: openAIApiKey
       });
       
-      console.log('OpenAI Response received:', response);
+      console.log('Response received from OpenAI:', response ? 'Yes (has content)' : 'No (empty)');
       
       // Check if this request is still active (hasn't been cancelled)
       if (!activeRequests.current.has(requestId)) {
@@ -69,15 +77,11 @@ export function useAthroMessages() {
         return;
       }
       
-      if (!response) {
-        throw new Error('Empty response from OpenAI');
-      }
-      
       // Create response message
       const athroResponse: AthroMessage = {
         id: (Date.now() + 1).toString(),
         senderId: activeCharacter.id,
-        content: response,
+        content: response || "I'm having trouble connecting right now. Could you try again in a moment?",
         timestamp: new Date().toISOString(),
       };
       
@@ -106,7 +110,7 @@ export function useAthroMessages() {
       
       // Show toast notification for better UX
       toast({
-        title: "Connection Error",
+        title: "Connection Issue",
         description: "Failed to get a response. Please try again.",
         variant: "destructive",
       });

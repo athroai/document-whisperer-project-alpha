@@ -2,12 +2,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Send } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
+import { toast } from '@/hooks/use-toast';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
@@ -18,28 +18,32 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const [inputMessage, setInputMessage] = useState<string>('');
   const messageEndRef = useRef<HTMLDivElement>(null);
   
-  // Debug messages and scroll to latest
+  // Scroll to latest message
   useEffect(() => {
-    console.log('Messages in AthroChat:', messages);
+    console.log('Messages in AthroChat:', messages.length, 'messages');
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
-
-  // Debug active character
+  
+  // Add a welcome message when the component mounts if no messages exist
   useEffect(() => {
-    console.log('Active character in AthroChat:', activeCharacter);
-  }, [activeCharacter]);
-
-  // Add a welcome message when the component loads
-  useEffect(() => {
-    if (messages.length === 0 && activeCharacter) {
-      console.log('Adding welcome message for:', activeCharacter.name);
+    if (activeCharacter && messages.length === 0) {
+      console.log('No messages, would add welcome message here if needed');
     }
   }, [activeCharacter, messages.length]);
 
   const handleSend = () => {
-    if (!inputMessage.trim() || !activeCharacter) return;
+    if (!inputMessage.trim() || !activeCharacter) {
+      if (!activeCharacter) {
+        toast({
+          title: "No Subject Selected",
+          description: "Please select a subject mentor first.",
+          variant: "default",
+        });
+      }
+      return;
+    }
     
     console.log('AthroChat - Sending message:', inputMessage);
     sendMessage(inputMessage);
@@ -59,14 +63,14 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         <div className="space-y-4">
           {messages.length === 0 && (
             <div className="text-center p-4 text-muted-foreground">
-              Start a conversation with {activeCharacter?.name || "Athro"}
+              Start a conversation with {activeCharacter?.name || "your Athro mentor"}
             </div>
           )}
           
           {messages.map((msg: AthroMessage) => (
             <div 
               key={msg.id} 
-              className={`flex ${msg.senderId === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.senderId === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
             >
               <div 
                 className={`max-w-[80%] rounded-lg p-4 ${
@@ -138,6 +142,9 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
             <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>
           </Button>
         </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Press Enter to send. Use Shift+Enter for a new line.
+        </p>
       </div>
     </div>
   );
