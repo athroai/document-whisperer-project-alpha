@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
@@ -10,14 +9,24 @@ export function useAthroMessages() {
   const [isTyping, setIsTyping] = useState(false);
   const activeRequests = useRef(new Set<string>());
   const initializedRef = useRef(false);
+  const messagesRef = useRef<AthroMessage[]>([]);
   
   useEffect(() => {
-    console.log('🔍 useAthroMessages: Initial Message State', { 
-      messageCount: messages.length, 
-      isTyping, 
-      initialized: initializedRef.current 
-    });
-  }, [messages, isTyping]);
+    messagesRef.current = messages;
+    console.log('💬 Messages updated:', messages.length);
+  }, [messages]);
+  
+  useEffect(() => {
+    if (!initializedRef.current) {
+      console.log('🔄 useAthroMessages: Initial setup');
+      initializedRef.current = true;
+    }
+    
+    return () => {
+      console.log('💭 useAthroMessages: Cleanup');
+      activeRequests.current.clear();
+    };
+  }, []);
 
   const clearMessages = useCallback(() => {
     console.log('🧹 Clearing all messages');
@@ -27,7 +36,8 @@ export function useAthroMessages() {
   const sendMessage = useCallback(async (content: string, activeCharacter: AthroCharacter | null) => {
     console.log('📨 Sending message:', { 
       content, 
-      characterName: activeCharacter?.name || 'No Character' 
+      characterName: activeCharacter?.name || 'No Character',
+      currentMessageCount: messagesRef.current.length
     });
 
     if (!activeCharacter || !content.trim()) {
@@ -46,16 +56,19 @@ export function useAthroMessages() {
     };
     
     setMessages(prevMessages => {
+      const updatedMessages = [...prevMessages, userMessage];
       console.log('✅ Adding user message', { 
         prevMessageCount: prevMessages.length, 
+        newMessageCount: updatedMessages.length,
         newMessageContent: content 
       });
-      return [...prevMessages, userMessage];
+      return updatedMessages;
     });
     
     setIsTyping(true);
     
     try {
+      console.log('🔐 Using API key for OpenAI');
       const openAIApiKey = "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";
       
       const systemPrompt = buildSystemPrompt(activeCharacter);
@@ -64,6 +77,8 @@ export function useAthroMessages() {
         characterName: activeCharacter.name, 
         systemPromptLength: systemPrompt.length 
       });
+
+      console.log('🌐 Network status before API call:', navigator.onLine ? 'Online' : 'Offline');
       
       const response = await getOpenAIResponse({
         systemPrompt: systemPrompt,
@@ -88,15 +103,27 @@ export function useAthroMessages() {
       };
       
       setMessages(prevMessages => {
+        const updatedMessages = [...prevMessages, athroResponse];
         console.log('➕ Adding AI response', { 
           prevMessageCount: prevMessages.length, 
-          responseContent: athroResponse.content 
+          newMessageCount: updatedMessages.length,
+          responseContent: athroResponse.content.substring(0, 50) + '...' 
         });
-        return [...prevMessages, athroResponse];
+        return updatedMessages;
       });
 
     } catch (error) {
       console.error("🔥 Error getting Athro response:", error);
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('📶 Network error detected - possibly CORS or connectivity issue');
+        
+        toast({
+          title: "Network Error",
+          description: "There seems to be a connection issue. Please check your internet connection.",
+          variant: "destructive",
+        });
+      }
       
       const errorMessage: AthroMessage = {
         id: (Date.now() + 1).toString(),

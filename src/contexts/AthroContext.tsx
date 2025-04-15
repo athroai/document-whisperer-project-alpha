@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
 import { athroCharacters, getAthroById } from '@/config/athrosConfig';
@@ -46,10 +47,21 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const { messages, isTyping, sendMessage: sendAthroMessage, clearMessages } = useAthroMessages();
   const { studentProgress, getSuggestedTopics: getTopics } = useStudentProgress();
   
+  // Debug mount/unmount cycles to detect potential issues
   useEffect(() => {
-    if (initializedRef.current) return;
+    console.log('📊 AthroProvider mounted');
+    return () => {
+      console.log('📊 AthroProvider unmounted');
+    };
+  }, []);
+  
+  useEffect(() => {
+    if (initializedRef.current) {
+      console.log('🛑 Preventing duplicate initialization of Athro characters');
+      return;
+    }
     
-    console.log('🚀 Initializing Athro characters ONCE');
+    console.log('🚀 Initializing Athro characters');
     
     try {
       const charactersData = athroCharacters;
@@ -71,12 +83,13 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   }, []);
 
   const memoizedClearMessages = useCallback(() => {
+    console.log('🧹 Clearing messages from context');
     clearMessages();
   }, [clearMessages]);
 
   useEffect(() => {
     if (activeCharacter && initializedRef.current) {
-      console.log('Active character changed to:', activeCharacter.name);
+      console.log('👤 Active character changed to:', activeCharacter.name);
       memoizedClearMessages();
     }
   }, [activeCharacter, memoizedClearMessages]);
@@ -89,11 +102,10 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   }, [characters, getTopics]);
 
   const sendMessage = useCallback((content: string) => {
-    console.log("✅ SEND MESSAGE TRIGGERED with content:", content);
-    console.log("Active character:", activeCharacter?.name || "None");
+    console.log("✉️ SEND MESSAGE TRIGGERED with content:", content);
     
     if (!activeCharacter) {
-      console.warn("No active character to send message to");
+      console.warn("❌ No active character to send message to");
       toast({
         title: "No Character Selected",
         description: "Please select a subject character first.",
@@ -102,9 +114,10 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     }
     
     try {
+      console.log("📨 Sending message to:", activeCharacter.name);
       sendAthroMessage(content, activeCharacter);
     } catch (error) {
-      console.error("Error in sendMessage:", error);
+      console.error("💥 Error in sendMessage:", error);
       toast({
         title: "Message Error",
         description: "Failed to send your message. Please try again.",
@@ -112,6 +125,17 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
       });
     }
   }, [activeCharacter, sendAthroMessage]);
+
+  // Log current state for debugging
+  useEffect(() => {
+    console.log('Current context state:', {
+      activeCharacter: activeCharacter?.name || 'None',
+      characterCount: characters.length,
+      messageCount: messages.length,
+      isTyping,
+      initialized: initializedRef.current
+    });
+  }, [activeCharacter, characters, messages, isTyping]);
 
   return (
     <AthroContext.Provider

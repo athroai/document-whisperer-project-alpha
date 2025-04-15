@@ -3,11 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Send } from 'lucide-react';
+import { Send, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
@@ -16,11 +17,42 @@ interface AthroChatProps {
 const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   const { activeCharacter, messages, sendMessage, isTyping } = useAthro();
   const [inputMessage, setInputMessage] = useState<string>('');
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
+  
+  // Monitor online status
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('🌐 Network status: Online');
+      setIsOnline(true);
+    };
+    
+    const handleOffline = () => {
+      console.log('🌐 Network status: Offline');
+      setIsOnline(false);
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  // Debug mount/unmount cycles
+  useEffect(() => {
+    console.log('🎭 AthroChat component mounted');
+    return () => {
+      console.log('🎭 AthroChat component unmounted');
+    };
+  }, []);
   
   // Scroll to latest message
   useEffect(() => {
-    console.log('Messages in AthroChat:', messages.length, 'messages');
+    console.log('📜 Messages in AthroChat:', messages.length, 'messages');
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -29,7 +61,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   // Add a welcome message when the component mounts if no messages exist
   useEffect(() => {
     if (activeCharacter && messages.length === 0) {
-      console.log('No messages, would add welcome message here if needed');
+      console.log('👋 No messages, would add welcome message here if needed');
     }
   }, [activeCharacter, messages.length]);
 
@@ -45,7 +77,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       return;
     }
     
-    console.log('AthroChat - Sending message:', inputMessage);
+    console.log('💬 AthroChat - Sending message:', inputMessage);
     sendMessage(inputMessage);
     setInputMessage('');
   };
@@ -59,6 +91,42 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
 
   return (
     <div className="flex flex-col h-full">
+      {!isOnline && (
+        <Alert variant="destructive" className="mb-2">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            You appear to be offline. Some features may not work correctly.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {isOnline && (
+        <div className="flex items-center justify-between px-4 py-1 text-xs text-muted-foreground">
+          <div className="flex items-center">
+            <Wifi className="h-3 w-3 mr-1" />
+            <span>Connected</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 text-xs" 
+            onClick={() => setShowDebugInfo(!showDebugInfo)}
+          >
+            {showDebugInfo ? 'Hide Debug' : 'Show Debug'}
+          </Button>
+        </div>
+      )}
+      
+      {showDebugInfo && (
+        <div className="bg-muted text-xs p-2 mb-2 overflow-auto max-h-24">
+          <p>Active Character: {activeCharacter?.name || 'None'}</p>
+          <p>Messages: {messages.length}</p>
+          <p>Is Typing: {isTyping ? 'Yes' : 'No'}</p>
+          <p>Network: {isOnline ? 'Online' : 'Offline'}</p>
+          <p>Last Updated: {new Date().toLocaleTimeString()}</p>
+        </div>
+      )}
+      
       <ScrollArea className="flex-grow p-4">
         <div className="space-y-4">
           {messages.length === 0 && (
@@ -131,12 +199,12 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-purple-200"
-            disabled={!activeCharacter}
+            disabled={!activeCharacter || !isOnline}
           />
           <Button 
             onClick={handleSend}
             className="shrink-0"
-            disabled={!inputMessage.trim() || isTyping || !activeCharacter}
+            disabled={!inputMessage.trim() || isTyping || !activeCharacter || !isOnline}
           >
             <Send className="h-4 w-4" />
             <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>

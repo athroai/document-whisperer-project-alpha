@@ -9,12 +9,12 @@ export async function getOpenAIResponse({
   userMessage: string;
   apiKey: string;
 }) {
-  console.log('Starting OpenAI API request with message:', userMessage);
+  console.log('🔌 Starting OpenAI API request with message:', userMessage.substring(0, 50) + '...');
   
   try {
     // For testing, always use mock responses in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('Using mock response in development environment');
+      console.log('🧪 Using mock response in development environment');
       
       // Wait for a short time to simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -28,12 +28,33 @@ export async function getOpenAIResponse({
         return `Geometry explores the properties and relationships of shapes and spaces. Which specific area of geometry are you interested in? We could look at angles, triangles, circles, or coordinate geometry.`;
       } else if (userMessage.toLowerCase().includes('help')) {
         return `I'm here to help with any mathematics questions you have. You can ask me about specific topics, practice problems, or general study strategies. What would you like to focus on today?`;
+      } else if (userMessage.includes('2-1')) {
+        return `The answer to 2-1 is 1. This is a basic subtraction operation. Would you like me to help you with more complex math problems?`;
       } else {
         return `That's an interesting question about ${userMessage.split(' ').slice(0, 3).join(' ')}... Let me help you understand this concept step by step. What specific part are you finding challenging?`;
       }
     }
 
-    console.log('Making actual OpenAI API call...');
+    console.log('📡 Making actual OpenAI API call - Network request starting...');
+    
+    // Log request details for debugging
+    console.log('🔍 Request Details:', {
+      url: 'https://api.openai.com/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer [REDACTED]',
+      },
+      body: {
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: `${systemPrompt.substring(0, 50)}...` },
+          { role: 'user', content: `${userMessage.substring(0, 50)}...` },
+        ],
+        temperature: 0.7,
+      },
+    });
+
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -50,19 +71,24 @@ export async function getOpenAIResponse({
       }),
     });
 
-    console.log('OpenAI API response status:', res.status);
+    console.log('📥 OpenAI API response status:', res.status);
     
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      console.error('OpenAI API error response:', errorData);
+      console.error('❌ OpenAI API error response:', errorData);
       throw new Error(errorData.error?.message || `Failed with status: ${res.status}`);
     }
 
     const data = await res.json();
-    console.log('OpenAI API response received successfully');
+    console.log('✅ OpenAI API response received successfully');
     return data.choices[0].message.content.trim();
   } catch (error) {
-    console.error('Error in getOpenAIResponse:', error);
+    console.error('🔥 Error in getOpenAIResponse:', error);
+    
+    // Check for network-related errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('📶 Network error detected - possibly CORS or connectivity issue');
+    }
     
     // Return a fallback response instead of throwing the error
     return `I'm having trouble connecting to my knowledge base right now. Could you try asking me again in a slightly different way?`;

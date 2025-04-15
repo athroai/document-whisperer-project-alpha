@@ -6,7 +6,9 @@ export const buildSystemPrompt = (character: AthroCharacter): string => {
   // Get current date to help AI know what time of year it is (exam season, etc.)
   const currentDate = new Date().toISOString().split('T')[0];
   
-  return `
+  console.log(`🧠 Building system prompt for ${character.name}`);
+  
+  const prompt = `
 ## ATHRO AI – CHARACTER SYSTEM PROMPT
 **Character: ${character.name}**
 **Subject: ${character.subject}**
@@ -53,4 +55,7 @@ If this is your first response to a student, be welcoming and ask how you can he
 ### IMPORTANT: ALWAYS RESPOND
 Never refuse to respond. If a question seems outside your expertise, gently redirect to aspects of ${character.subject} that you can help with.
 `;
+
+  console.log(`📝 System prompt built (${prompt.length} characters)`);
+  return prompt;
 };
