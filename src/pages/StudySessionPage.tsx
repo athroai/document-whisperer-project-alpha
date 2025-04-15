@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import FileReference from '@/components/FileReference';
 import { UploadedFile } from '@/types/auth';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
-import { AthroCharacter, AthroSubject } from '@/types/athro';
+import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
 
 // Character data - moved outside component to avoid recreation on re-renders
 const athroCharacters = {
@@ -86,7 +85,7 @@ const StudySessionPage: React.FC = () => {
           name: currentAthro.name,
           subject: currentSubject as AthroSubject,
           topics: currentAthro.topics,
-          examBoards: ['wjec', 'aqa', 'edexcel'],
+          examBoards: ['wjec', 'aqa', 'ocr'],
           supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
           avatarUrl: currentAthro.avatar,
           shortDescription: `Your ${currentSubject} study mentor`,
