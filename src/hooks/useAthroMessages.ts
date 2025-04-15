@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
@@ -68,14 +69,16 @@ export function useAthroMessages() {
     setIsTyping(true);
     
     try {
-      console.log('🔐 Using API key for OpenAI');
+      // Hard-coded API key for development/demo purposes
+      // In production, this would be fetched from a secure source
       const openAIApiKey = "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";
+      console.log('🔐 Using API key:', openAIApiKey ? `${openAIApiKey.substring(0, 5)}...${openAIApiKey.substring(openAIApiKey.length - 5)}` : 'MISSING');
       
       const systemPrompt = buildSystemPrompt(activeCharacter);
-      
-      console.log('🤖 Calling OpenAI', { 
+      console.log('🤖 System prompt built:', { 
         characterName: activeCharacter.name, 
-        systemPromptLength: systemPrompt.length 
+        systemPromptLength: systemPrompt.length,
+        promptStart: systemPrompt.substring(0, 50) + '...'
       });
 
       console.log('🌐 Network status before API call:', navigator.onLine ? 'Online' : 'Offline');
@@ -87,7 +90,8 @@ export function useAthroMessages() {
       });
       
       console.log('✨ Response received', { 
-        responseLength: response?.length || 0 
+        responseLength: response?.length || 0,
+        responsePreview: response ? response.substring(0, 50) + '...' : 'Empty response'
       });
       
       if (!activeRequests.current.has(requestId)) {

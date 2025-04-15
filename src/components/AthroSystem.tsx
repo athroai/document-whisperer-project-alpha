@@ -1,14 +1,44 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { MessageCircle } from 'lucide-react';
 import AthroChat from './athro/AthroChat';
+import { toast } from '@/hooks/use-toast';
 
 const AthroSystem: React.FC = () => {
-  const { activeCharacter, sendMessage } = useAthro();
+  const { activeCharacter, messages } = useAthro();
   const [isOpen, setIsOpen] = useState(false);
+  const [isInitialRender, setIsInitialRender] = useState(true);
+  
+  // Log component mount for debugging
+  useEffect(() => {
+    console.log('🎮 AthroSystem component mounted');
+    return () => console.log('🎮 AthroSystem component unmounted');
+  }, []);
+
+  useEffect(() => {
+    if (isInitialRender) {
+      setIsInitialRender(false);
+      return;
+    }
+    
+    // If new messages come in while the chat is closed, show notification
+    if (messages.length > 0 && !isOpen && messages[messages.length - 1].senderId !== 'user') {
+      toast({
+        title: `${activeCharacter?.name || 'Athro AI'} replied`,
+        description: "Click the chat button to view the message",
+        duration: 5000,
+      });
+    }
+  }, [messages, isOpen, activeCharacter, isInitialRender]);
+
+  console.log('🎭 AthroSystem rendering with:', {
+    characterName: activeCharacter?.name || 'No character',
+    messageCount: messages.length,
+    isOpen
+  });
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
@@ -16,9 +46,14 @@ const AthroSystem: React.FC = () => {
         <SheetTrigger asChild>
           <Button 
             size="icon" 
-            className="h-12 w-12 rounded-full shadow-lg"
+            className="h-12 w-12 rounded-full shadow-lg relative"
           >
             <MessageCircle className="h-6 w-6" />
+            {messages.length > 0 && !isOpen && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {messages.filter(m => m.senderId !== 'user').length}
+              </span>
+            )}
             <span className="sr-only">Open Athro Chat</span>
           </Button>
         </SheetTrigger>

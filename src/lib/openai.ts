@@ -10,10 +10,11 @@ export async function getOpenAIResponse({
   apiKey: string;
 }) {
   console.log('🔌 Starting OpenAI API request with message:', userMessage.substring(0, 50) + '...');
+  console.log('🔑 API Key provided:', apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : 'MISSING');
   
   try {
     // For testing, always use mock responses in development
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' && !apiKey.startsWith('sk-')) {
       console.log('🧪 Using mock response in development environment');
       
       // Wait for a short time to simulate API call
@@ -35,40 +36,43 @@ export async function getOpenAIResponse({
       }
     }
 
-    console.log('📡 Making actual OpenAI API call - Network request starting...');
+    // Log whether we're using a mock or real API key
+    console.log('📡 Making actual OpenAI API call to chat/completions endpoint...');
     
-    // Log request details for debugging
-    console.log('🔍 Request Details:', {
-      url: 'https://api.openai.com/v1/chat/completions',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer [REDACTED]',
-      },
-      body: {
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: `${systemPrompt.substring(0, 50)}...` },
-          { role: 'user', content: `${userMessage.substring(0, 50)}...` },
-        ],
-        temperature: 0.7,
-      },
+    // Check if the API key seems valid (basic check)
+    if (!apiKey || apiKey.length < 20 || !apiKey.startsWith('sk-')) {
+      console.error('❌ Invalid OpenAI API key format detected');
+      throw new Error('Invalid API key provided. API keys should start with "sk-".');
+    }
+    
+    // Full URL for clarity in debugging
+    const apiUrl = 'https://api.openai.com/v1/chat/completions';
+    console.log('🔍 Request URL:', apiUrl);
+    
+    const requestBody = {
+      model: 'gpt-4o', 
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.7,
+    };
+    
+    console.log('📦 Request payload:', {
+      model: requestBody.model,
+      messages: [
+        { role: 'system', content: systemPrompt.substring(0, 50) + '...' },
+        { role: 'user', content: userMessage.substring(0, 50) + '...' },
+      ],
     });
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: 'gpt-4o', 
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage },
-        ],
-        temperature: 0.7,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     console.log('📥 OpenAI API response status:', res.status);
@@ -85,9 +89,13 @@ export async function getOpenAIResponse({
   } catch (error) {
     console.error('🔥 Error in getOpenAIResponse:', error);
     
-    // Check for network-related errors
+    // More detailed error logging based on error type
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('📶 Network error detected - possibly CORS or connectivity issue');
+    }
+    
+    if (error.message.includes('API key')) {
+      console.error('🔐 API key validation failed');
     }
     
     // Return a fallback response instead of throwing the error

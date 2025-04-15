@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Send, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
+import { Send, AlertTriangle, Wifi, WifiOff, Bug } from 'lucide-react';
 import { AthroMessage } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
@@ -44,11 +44,11 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
   
   // Debug mount/unmount cycles
   useEffect(() => {
-    console.log('🎭 AthroChat component mounted');
+    console.log('🎭 AthroChat component mounted with', messages.length, 'messages');
     return () => {
       console.log('🎭 AthroChat component unmounted');
     };
-  }, []);
+  }, [messages.length]);
   
   // Scroll to latest message
   useEffect(() => {
@@ -58,12 +58,10 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     }
   }, [messages]);
   
-  // Add a welcome message when the component mounts if no messages exist
-  useEffect(() => {
-    if (activeCharacter && messages.length === 0) {
-      console.log('👋 No messages, would add welcome message here if needed');
-    }
-  }, [activeCharacter, messages.length]);
+  // Add a debug message button for testing
+  const sendDebugMessage = () => {
+    sendMessage("2-1?");
+  };
 
   const handleSend = () => {
     if (!inputMessage.trim() || !activeCharacter) {
@@ -100,12 +98,27 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
         </Alert>
       )}
       
-      {isOnline && (
-        <div className="flex items-center justify-between px-4 py-1 text-xs text-muted-foreground">
-          <div className="flex items-center">
+      <div className="flex items-center justify-between px-4 py-1 text-xs text-muted-foreground">
+        <div className="flex items-center">
+          {isOnline ? (
             <Wifi className="h-3 w-3 mr-1" />
-            <span>Connected</span>
-          </div>
+          ) : (
+            <WifiOff className="h-3 w-3 mr-1" />
+          )}
+          <span>Status: {isOnline ? 'Connected' : 'Offline'}</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          {showDebugInfo && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-6 text-xs" 
+              onClick={sendDebugMessage}
+            >
+              <Bug className="h-3 w-3 mr-1" />
+              Test API
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             size="sm" 
@@ -115,7 +128,7 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
             {showDebugInfo ? 'Hide Debug' : 'Show Debug'}
           </Button>
         </div>
-      )}
+      </div>
       
       {showDebugInfo && (
         <div className="bg-muted text-xs p-2 mb-2 overflow-auto max-h-24">
@@ -129,9 +142,15 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
       
       <ScrollArea className="flex-grow p-4">
         <div className="space-y-4">
-          {messages.length === 0 && (
+          {messages.length === 0 && activeCharacter && (
             <div className="text-center p-4 text-muted-foreground">
-              Start a conversation with {activeCharacter?.name || "your Athro mentor"}
+              Start a conversation with {activeCharacter.name}
+            </div>
+          )}
+          
+          {messages.length === 0 && !activeCharacter && (
+            <div className="text-center p-4 text-muted-foreground">
+              Please select a subject mentor to begin chatting
             </div>
           )}
           

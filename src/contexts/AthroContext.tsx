@@ -43,7 +43,7 @@ interface AthroProviderProps {
 export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const [activeCharacter, setActiveCharacter] = useState<AthroCharacter | null>(null);
   const [characters, setCharacters] = useState<AthroCharacter[]>([]);
-  const initializedRef = useRef(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { messages, isTyping, sendMessage: sendAthroMessage, clearMessages } = useAthroMessages();
   const { studentProgress, getSuggestedTopics: getTopics } = useStudentProgress();
   
@@ -55,8 +55,9 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     };
   }, []);
   
+  // Initialize Athro characters only once
   useEffect(() => {
-    if (initializedRef.current) {
+    if (isInitialized) {
       console.log('🛑 Preventing duplicate initialization of Athro characters');
       return;
     }
@@ -64,14 +65,17 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     console.log('🚀 Initializing Athro characters');
     
     try {
+      // Load characters from the config
       const charactersData = athroCharacters;
+      console.log('📋 Loaded characters:', charactersData.map(c => c.name).join(', '));
       setCharacters(charactersData);
 
       if (charactersData.length > 0) {
         console.log('🎯 Setting initial active character:', charactersData[0].name);
         setActiveCharacter(charactersData[0]);
       }
-      initializedRef.current = true;
+      
+      setIsInitialized(true);
     } catch (error) {
       console.error('🔥 Error setting up Athro characters:', error);
       toast({
@@ -87,12 +91,16 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     clearMessages();
   }, [clearMessages]);
 
+  // Clear messages when active character changes
   useEffect(() => {
-    if (activeCharacter && initializedRef.current) {
+    if (activeCharacter && isInitialized) {
       console.log('👤 Active character changed to:', activeCharacter.name);
       memoizedClearMessages();
+      
+      // Add a welcome message when character changes
+      sendAthroMessage("Hello, I'm " + activeCharacter.name + ". How can I help with your " + activeCharacter.subject + " studies today?", activeCharacter);
     }
-  }, [activeCharacter, memoizedClearMessages]);
+  }, [activeCharacter, isInitialized, memoizedClearMessages, sendAthroMessage]);
 
   const getSuggestedTopics = useCallback((subject: AthroSubject): string[] => {
     const character = characters.find(c => c.subject === subject);
@@ -133,9 +141,9 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
       characterCount: characters.length,
       messageCount: messages.length,
       isTyping,
-      initialized: initializedRef.current
+      initialized: isInitialized
     });
-  }, [activeCharacter, characters, messages, isTyping]);
+  }, [activeCharacter, characters, messages, isTyping, isInitialized]);
 
   return (
     <AthroContext.Provider
