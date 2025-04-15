@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { UploadedFile } from '@/types/auth';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
 import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
+import { pastPapers, PastPaper } from '@/data/athro-maths/past-papers';
 
 // Character data - moved outside component to avoid recreation on re-renders
 const athroCharacters = {
@@ -68,6 +70,12 @@ const StudySessionPage: React.FC = () => {
   const [showFileReferences, setShowFileReferences] = useState(false);
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
   const [hasShownFallback, setHasShownFallback] = useState(false);
+
+  // Get current topics based on the selected subject
+  const currentTopics = currentAthro?.topics || [];
+
+  // Paper list for select
+  const paperList = pastPapers.map(paper => paper.title);
 
   const mockUserId = 'user_1';
 
@@ -181,6 +189,14 @@ const StudySessionPage: React.FC = () => {
         sender: 'athro',
         avatar: currentAthro.avatar
       }]);
+    },
+    
+    // Add this new handler for Pomodoro timer completion
+    handlePomodoroComplete: () => {
+      toast({
+        title: "Session Complete",
+        description: "Time's up! Take a break and then continue studying.",
+      });
     }
   };
 
@@ -278,7 +294,7 @@ const StudySessionPage: React.FC = () => {
       return "An atom is the basic unit of a chemical element. It's made up of a nucleus containing protons and neutrons, with electrons orbiting around it. Would you like me to explain more about atomic structure?";
     } 
     else if (subject === 'Mathematics' && (lowerCaseMessage.includes('equation') || lowerCaseMessage.includes('solve'))) {
-      return "I'd be happy to help you solve that equation. Let's work through it step by step. First, we need to identify the variables and constants...";
+      return "I'd be happy to help you solve that equation. Let's work through it step by step. First, we need to identify what type of equation we're dealing with...";
     }
     else if (subject === 'History' && lowerCaseMessage.includes('war')) {
       return "Wars have shaped much of human history. Which specific conflict are you interested in learning about? I can help with World Wars, Cold War, or many other historical conflicts.";
@@ -587,7 +603,7 @@ const StudySessionPage: React.FC = () => {
                             <SelectValue placeholder="Select a paper" />
                           </SelectTrigger>
                           <SelectContent>
-                            {pastPapers.map((paper) => (
+                            {paperList.map((paper) => (
                               <SelectItem key={paper} value={paper}>
                                 {paper}
                               </SelectItem>
