@@ -13,27 +13,37 @@ import FileReference from '@/components/FileReference';
 import { UploadedFile } from '@/types/auth';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
+import { AthroCharacter, AthroSubject } from '@/types/athro';
 
+// Character data - moved outside component to avoid recreation on re-renders
 const athroCharacters = {
   Mathematics: { 
     name: 'AthroMaths', 
     avatar: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png',
-    topics: ['Algebra', 'Geometry', 'Trigonometry', 'Calculus', 'Statistics', 'Probability', 'Number Theory', 'Graphs']
+    topics: ['Algebra', 'Geometry', 'Trigonometry', 'Calculus', 'Statistics', 'Probability', 'Number Theory', 'Graphs'],
+    fullDescription: 'AthroMaths helps you tackle all aspects of GCSE Mathematics, from algebra to statistics, with step-by-step explanations and practice problems.',
+    tone: 'logical, precise, encouraging, and patient'
   },
   Science: { 
     name: 'AthroScience', 
     avatar: '/lovable-uploads/bf9bb93f-92c0-473b-97e2-d4ff035e3065.png',
-    topics: ['Biology', 'Chemistry', 'Physics', 'Earth Science', 'Ecology', 'Astronomy', 'Genetics', 'Laboratory Skills']
+    topics: ['Biology', 'Chemistry', 'Physics', 'Earth Science', 'Ecology', 'Astronomy', 'Genetics', 'Laboratory Skills'],
+    fullDescription: 'AthroScience guides you through Biology, Chemistry, and Physics concepts with clear explanations and practical examples.',
+    tone: 'curious, analytical, enthusiastic about discovery'
   },
   History: { 
     name: 'AthroHistory', 
     avatar: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png',
-    topics: ['World Wars', 'Ancient Civilizations', 'Medieval History', 'Industrial Revolution', 'Cold War', 'Political History', 'Cultural History', 'Economic History']
+    topics: ['World Wars', 'Ancient Civilizations', 'Medieval History', 'Industrial Revolution', 'Cold War', 'Political History', 'Cultural History', 'Economic History'],
+    fullDescription: 'AthroHistory helps you understand key historical events, figures, and their impact, while developing analytical skills for GCSE History.',
+    tone: 'informative, contextual, balanced in perspective'
   },
   English: { 
     name: 'AthroEnglish', 
     avatar: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png',
-    topics: ['Literature', 'Poetry', 'Creative Writing', 'Grammar', 'Essay Writing', 'Text Analysis', 'Shakespeare', 'Modern Fiction']
+    topics: ['Literature', 'Poetry', 'Creative Writing', 'Grammar', 'Essay Writing', 'Text Analysis', 'Shakespeare', 'Modern Fiction'],
+    fullDescription: 'AthroEnglish helps you analyze texts, improve your writing, and develop critical thinking skills for GCSE English.',
+    tone: 'articulate, expressive, encouraging of creative and critical thinking'
   }
 };
 
@@ -71,15 +81,17 @@ const StudySessionPage: React.FC = () => {
       
       try {
         // Create a character object to use with the system prompt
-        const character = {
+        const character: AthroCharacter = {
           id: currentSubject.toLowerCase(),
           name: currentAthro.name,
-          subject: currentSubject,
+          subject: currentSubject as AthroSubject,
           topics: currentAthro.topics,
           examBoards: ['wjec', 'aqa', 'edexcel'],
           supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
           avatarUrl: currentAthro.avatar,
-          shortDescription: `Your ${currentSubject} study mentor`
+          shortDescription: `Your ${currentSubject} study mentor`,
+          fullDescription: currentAthro.fullDescription,
+          tone: currentAthro.tone
         };
 
         // Build system prompt for the current character
@@ -682,118 +694,6 @@ const StudySessionPage: React.FC = () => {
       </div>
     </div>
   );
-  
-  // Include the missing functions that were referenced in the component
-  function changeSubject(subject: string) {
-    setCurrentSubject(subject);
-    setCurrentAthro(athroCharacters[subject as keyof typeof athroCharacters]);
-    
-    setMessages([
-      { 
-        text: `Hello! I'm ${athroCharacters[subject as keyof typeof athroCharacters].name}, your ${subject} mentor. How can I help you today?`, 
-        sender: 'athro',
-        avatar: athroCharacters[subject as keyof typeof athroCharacters].avatar
-      },
-    ]);
-    
-    setShowOptions(true);
-    setActiveSession(null);
-    setSelectedTopic('');
-    setSelectedPaper('');
-    setHasShownFallback(false);
-  }
-
-  function startAISession() {
-    setShowOptions(false);
-    setActiveSession('ai');
-    setMessages([
-      ...messages,
-      {
-        text: `What would you like help with in ${currentSubject} today? I'm here to answer any questions about your studies.`,
-        sender: 'athro',
-        avatar: currentAthro.avatar
-      }
-    ]);
-  }
-
-  function startManualSession() {
-    setShowOptions(false);
-    setActiveSession('manual');
-  }
-
-  function startPastPaperSession() {
-    setShowOptions(false);
-    setActiveSession('past-paper');
-  }
-
-  function handleTopicSelection(topic: string) {
-    setSelectedTopic(topic);
-    setMessages([
-      ...messages,
-      {
-        text: `Let's review ${topic}. What specific aspect would you like to focus on?`,
-        sender: 'athro',
-        avatar: currentAthro.avatar
-      }
-    ]);
-  }
-
-  function continueWithoutTopic() {
-    setMessages([
-      ...messages,
-      {
-        text: `What would you like to learn about in ${currentSubject} today? I'm here to help with any questions you might have.`,
-        sender: 'athro',
-        avatar: currentAthro.avatar
-      }
-    ]);
-  }
-
-  function handleModalClose() {
-    setActiveSession(null);
-    continueWithoutTopic();
-  }
-
-  function handlePaperSelection(paper: string) {
-    setSelectedPaper(paper);
-    setMessages([
-      ...messages,
-      {
-        text: `I've loaded ${paper}. Let's work through it together. Ask me about any question you find challenging.`,
-        sender: 'athro',
-        avatar: currentAthro.avatar
-      }
-    ]);
-  }
-
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      const fileName = e.target.files[0].name;
-      setMessages([
-        ...messages,
-        {
-          text: `I've received your file "${fileName}". Let's work through it together. What question would you like to start with?`,
-          sender: 'athro',
-          avatar: currentAthro.avatar
-        }
-      ]);
-    }
-  }
-
-  function handleFileSelect(file: UploadedFile) {
-    setSelectedFile(file);
-    setShowFileReferences(false);
-    
-    const fileReference = file.label 
-      ? `your ${file.label}` 
-      : `the ${file.subject} ${file.fileType === 'paper' ? 'past paper' : file.fileType}`;
-    
-    setMessages(prev => [...prev, {
-      text: `Let's take a look at ${fileReference}. What specific part would you like to focus on?`,
-      sender: 'athro',
-      avatar: currentAthro.avatar
-    }]);
-  }
 };
 
 export default StudySessionPage;
