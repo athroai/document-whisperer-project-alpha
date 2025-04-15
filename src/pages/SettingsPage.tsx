@@ -10,18 +10,19 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { ExamBoard } from '@/types/athro';
 
 const SettingsPage: React.FC = () => {
   const { state, updateUser, logout } = useAuth();
   const user = state.user;
   const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [examBoard, setExamBoard] = useState<string>(user?.examBoard || 'none');
+  const [examBoard, setExamBoard] = useState<ExamBoard>(user?.examBoard || 'none');
 
   const handleSaveSettings = () => {
     if (user) {
       updateUser({
         displayName,
-        examBoard: examBoard as "none" | "aqa" | "edexcel" | "ocr" | "wjec"
+        examBoard
       });
       toast({
         title: "Settings Saved",
