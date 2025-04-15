@@ -9,86 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      ai_logs: {
-        Row: {
-          created_at: string
-          duration: number | null
-          error_message: string | null
-          id: string
-          model: string | null
-          prompt: string | null
-          request_type: string
-          status: string | null
-          tokens_used: number | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          duration?: number | null
-          error_message?: string | null
-          id?: string
-          model?: string | null
-          prompt?: string | null
-          request_type: string
-          status?: string | null
-          tokens_used?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          duration?: number | null
-          error_message?: string | null
-          id?: string
-          model?: string | null
-          prompt?: string | null
-          request_type?: string
-          status?: string | null
-          tokens_used?: number | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      athro_characters: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          strengths: string[] | null
-          subject: string
-          voice_style: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          description?: string | null
-          id: string
-          name: string
-          strengths?: string[] | null
-          subject: string
-          voice_style?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          strengths?: string[] | null
-          subject?: string
-          voice_style?: string | null
-        }
-        Relationships: []
-      }
       calendar_events: {
         Row: {
           created_at: string
@@ -205,92 +125,9 @@ export type Database = {
           },
         ]
       }
-      model_answers: {
-        Row: {
-          answer_text: string | null
-          created_at: string
-          file_id: string | null
-          id: string
-          past_paper_id: string | null
-          question_number: string | null
-        }
-        Insert: {
-          answer_text?: string | null
-          created_at?: string
-          file_id?: string | null
-          id?: string
-          past_paper_id?: string | null
-          question_number?: string | null
-        }
-        Update: {
-          answer_text?: string | null
-          created_at?: string
-          file_id?: string | null
-          id?: string
-          past_paper_id?: string | null
-          question_number?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "model_answers_file_id_fkey"
-            columns: ["file_id"]
-            isOneToOne: false
-            referencedRelation: "uploads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "model_answers_past_paper_id_fkey"
-            columns: ["past_paper_id"]
-            isOneToOne: false
-            referencedRelation: "past_papers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      past_papers: {
-        Row: {
-          created_at: string
-          exam_board: string | null
-          file_id: string | null
-          id: string
-          season: string | null
-          subject: string
-          title: string
-          year: number | null
-        }
-        Insert: {
-          created_at?: string
-          exam_board?: string | null
-          file_id?: string | null
-          id?: string
-          season?: string | null
-          subject: string
-          title: string
-          year?: number | null
-        }
-        Update: {
-          created_at?: string
-          exam_board?: string | null
-          file_id?: string | null
-          id?: string
-          season?: string | null
-          subject?: string
-          title?: string
-          year?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "past_papers_file_id_fkey"
-            columns: ["file_id"]
-            isOneToOne: false
-            referencedRelation: "uploads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
-          confidence_scores: Json | null
+          confidence_scores: Json
           created_at: string
           email: string
           exam_board: string | null
@@ -302,7 +139,7 @@ export type Database = {
           welsh_eligible: boolean | null
         }
         Insert: {
-          confidence_scores?: Json | null
+          confidence_scores?: Json
           created_at?: string
           email: string
           exam_board?: string | null
@@ -314,7 +151,7 @@ export type Database = {
           welsh_eligible?: boolean | null
         }
         Update: {
-          confidence_scores?: Json | null
+          confidence_scores?: Json
           created_at?: string
           email?: string
           exam_board?: string | null
@@ -369,6 +206,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "quiz_results_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recall_entries: {
+        Row: {
+          content: string
+          created_at: string
+          difficulty_level: number | null
+          id: string
+          last_reviewed: string
+          next_review: string | null
+          student_id: string
+          subject: string
+          topic: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          difficulty_level?: number | null
+          id?: string
+          last_reviewed?: string
+          next_review?: string | null
+          student_id: string
+          subject: string
+          topic: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          difficulty_level?: number | null
+          id?: string
+          last_reviewed?: string
+          next_review?: string | null
+          student_id?: string
+          subject?: string
+          topic?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recall_entries_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -481,6 +362,56 @@ export type Database = {
           },
         ]
       }
+      study_sessions: {
+        Row: {
+          confidence_after: number | null
+          confidence_before: number | null
+          created_at: string
+          duration_minutes: number | null
+          end_time: string | null
+          id: string
+          notes: string | null
+          start_time: string
+          student_id: string
+          subject: string
+          topic: string | null
+        }
+        Insert: {
+          confidence_after?: number | null
+          confidence_before?: number | null
+          created_at?: string
+          duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          start_time: string
+          student_id: string
+          subject: string
+          topic?: string | null
+        }
+        Update: {
+          confidence_after?: number | null
+          confidence_before?: number | null
+          created_at?: string
+          duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          start_time?: string
+          student_id?: string
+          subject?: string
+          topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_sessions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_submissions: {
         Row: {
           created_at: string
@@ -513,13 +444,6 @@ export type Database = {
           task_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "task_submissions_file_id_fkey"
-            columns: ["file_id"]
-            isOneToOne: false
-            referencedRelation: "uploads"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "task_submissions_student_id_fkey"
             columns: ["student_id"]
@@ -583,75 +507,6 @@ export type Database = {
             columns: ["set_id"]
             isOneToOne: false
             referencedRelation: "sets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      uploads: {
-        Row: {
-          bucket_name: string
-          created_at: string
-          description: string | null
-          file_type: string | null
-          file_url: string | null
-          filename: string
-          id: string
-          mime_type: string | null
-          original_name: string | null
-          set_id: string | null
-          size: number | null
-          storage_path: string
-          subject: string | null
-          uploaded_by: string
-          visibility: string
-        }
-        Insert: {
-          bucket_name: string
-          created_at?: string
-          description?: string | null
-          file_type?: string | null
-          file_url?: string | null
-          filename: string
-          id?: string
-          mime_type?: string | null
-          original_name?: string | null
-          set_id?: string | null
-          size?: number | null
-          storage_path: string
-          subject?: string | null
-          uploaded_by: string
-          visibility?: string
-        }
-        Update: {
-          bucket_name?: string
-          created_at?: string
-          description?: string | null
-          file_type?: string | null
-          file_url?: string | null
-          filename?: string
-          id?: string
-          mime_type?: string | null
-          original_name?: string | null
-          set_id?: string | null
-          size?: number | null
-          storage_path?: string
-          subject?: string | null
-          uploaded_by?: string
-          visibility?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "uploads_set_id_fkey"
-            columns: ["set_id"]
-            isOneToOne: false
-            referencedRelation: "sets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "uploads_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
