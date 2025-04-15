@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
 import { getOpenAIResponse } from '@/lib/openai';
-import { getAthroById, getAllAthros } from '@/config/athrosConfig';
+import { athroCharacters, getAthroById } from '@/config/athrosConfig';
 
 // Define the shape of our context
 interface AthroContextType {
@@ -83,17 +83,33 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     History: {
       confidenceScores: {},
       quizScores: []
+    },
+    Welsh: {
+      confidenceScores: {},
+      quizScores: []
+    },
+    Geography: {
+      confidenceScores: {},
+      quizScores: []
+    },
+    Languages: {
+      confidenceScores: {},
+      quizScores: []
+    },
+    RE: {
+      confidenceScores: {},
+      quizScores: []
     }
   });
 
   // Load all characters on mount
   useEffect(() => {
-    const loadedCharacters = getAllAthros();
-    setCharacters(loadedCharacters);
+    // Use the athroCharacters array directly instead of calling getAllAthros
+    setCharacters(athroCharacters);
 
     // If there's at least one character, set it as active by default
-    if (loadedCharacters.length > 0) {
-      setActiveCharacter(loadedCharacters[0]);
+    if (athroCharacters.length > 0) {
+      setActiveCharacter(athroCharacters[0]);
     }
   }, []);
 
