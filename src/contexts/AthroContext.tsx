@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { AthroCharacterConfig, SubjectData } from '@/types/athroCharacter';
@@ -6,6 +5,7 @@ import { athroCharacters } from '@/config/athrosConfig';
 import { mockAthroResponse } from '@/services/athroService';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { getOpenAIResponse } from '@/lib/openai'; // Ensure this import is added
 
 // Mock data for student progress in different subjects
 const mockStudentProgress: Record<string, SubjectData> = {
@@ -254,14 +254,24 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsTyping(true);
     
     try {
-      // Call our mock service
-      const response = await mockAthroResponse(
-        content,
-        activeCharacter.subject,
-        activeCharacter.examBoards[0]
-      );
+      // Temporary hardcoded OpenAI API key for direct usage
+      const openAIApiKey = "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";
       
-      setMessages(prev => [...prev, response]);
+      // Call OpenAI with the API key
+      const response = await getOpenAIResponse({
+        systemPrompt: `You are ${activeCharacter.name}, an AI mentor for ${activeCharacter.subject}. Respond helpfully and professionally.`,
+        userMessage: content,
+        apiKey: openAIApiKey
+      });
+      
+      const athroResponse: AthroMessage = {
+        id: (Date.now() + 1).toString(),
+        senderId: activeCharacter.id,
+        content: response,
+        timestamp: new Date().toISOString(),
+      };
+      
+      setMessages(prev => [...prev, athroResponse]);
     } catch (error) {
       console.error("Error getting Athro response:", error);
       
