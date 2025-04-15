@@ -1,10 +1,9 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Send, ThumbsUp, Clock, BookOpen, GraduationCap, FileText, Key, Shield } from 'lucide-react';
+import { Send, ThumbsUp, Clock, BookOpen, GraduationCap, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -49,6 +48,55 @@ const athroCharacters = {
     topics: ['Literature', 'Poetry', 'Creative Writing', 'Grammar', 'Essay Writing', 'Text Analysis', 'Shakespeare', 'Modern Fiction'],
     fullDescription: 'AthroEnglish helps you analyze texts, improve your writing, and develop critical thinking skills for GCSE English.',
     tone: 'articulate, expressive, encouraging of creative and critical thinking'
+  },
+  Geography: {
+    name: 'AthroGeography',
+    avatar: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png',
+    topics: ['Physical Geography', 'Human Geography', 'Environmental Challenges', 'Map Skills', 'Fieldwork', 'Ecosystems', 'Settlements', 'Development'],
+    fullDescription: 'AthroGeography helps you understand physical and human geography concepts, supporting you with case studies and geographical skills.',
+    tone: 'exploratory, analytical, environmentally conscious'
+  },
+  Welsh: {
+    name: 'AthroWelsh',
+    avatar: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png',
+    topics: ['Reading', 'Writing', 'Speaking', 'Listening', 'Grammar', 'Literature', 'Cultural Context', 'Vocabulary'],
+    fullDescription: 'AthroWelsh helps you develop reading, writing and speaking skills in Welsh, covering both first and second language curricula.',
+    tone: 'friendly, patient, encouraging of language exploration'
+  },
+  Languages: {
+    name: 'AthroLanguages',
+    avatar: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png',
+    topics: ['French', 'Spanish', 'German', 'Grammar', 'Vocabulary', 'Reading', 'Writing', 'Speaking', 'Listening'],
+    fullDescription: 'AthroLanguages helps you develop your skills in French, Spanish, and German for GCSE exams.',
+    tone: 'encouraging, pronunciation-focused, culturally aware'
+  },
+  'Religious Education': {
+    name: 'AthroRE',
+    avatar: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png',
+    topics: ['Christianity', 'Islam', 'Judaism', 'Hinduism', 'Buddhism', 'Ethics', 'Philosophy', 'Religious Texts'],
+    fullDescription: 'AthroRE helps you explore religious beliefs, teachings and practices, ethical themes, and philosophical questions.',
+    tone: 'respectful, balanced, thoughtful, encouraging of critical thinking'
+  },
+  AthroAI: {
+    name: 'AthroAI',
+    avatar: '/lovable-uploads/e4274c9e-f66c-4933-9c0b-79f6c222c31b.png',
+    topics: ['Study Skills', 'Exam Preparation', 'Memory Techniques', 'Note-taking', 'Critical Thinking', 'Research', 'Time Management', 'Academic Writing'],
+    fullDescription: 'AthroAI is your all-purpose study companion who can help with any subject and general study skills.',
+    tone: 'helpful, knowledgeable, encouraging'
+  },
+  Timekeeper: {
+    name: 'Timekeeper',
+    avatar: '/lovable-uploads/a2640d0a-113f-4f37-9120-5533af965b5d.png',
+    topics: ['Time Management', 'Pomodoro Technique', 'Study Scheduling', 'Habit Formation', 'Task Prioritization', 'Deadline Management', 'Break Planning', 'Focus Techniques'],
+    fullDescription: 'Timekeeper helps you plan your revision timetable, manage Pomodoro study sessions, and track your study progress.',
+    tone: 'organized, motivating, disciplined'
+  },
+  System: {
+    name: 'SystemBrain',
+    avatar: '/lovable-uploads/e4274c9e-f66c-4933-9c0b-79f6c222c31b.png',
+    topics: ['Settings', 'Notifications', 'Feedback', 'Account Management', 'System Updates', 'Data Management', 'Privacy', 'Help & Support'],
+    fullDescription: 'SystemBrain manages your app settings, notification preferences, and helps you provide feedback on your study experience.',
+    tone: 'professional, efficient, helpful'
   }
 };
 
@@ -68,20 +116,20 @@ const StudySessionPage: React.FC = () => {
   const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
   const [showFileReferences, setShowFileReferences] = useState(false);
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
-  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
   const [showAdminSettings, setShowAdminSettings] = useState(false);
 
-  // Handle subject from URL query parameter
   useEffect(() => {
     const subjectParam = searchParams.get('subject');
     if (subjectParam) {
-      // Format subject to match keys in athroCharacters
-      const formattedSubject = subjectParam.charAt(0).toUpperCase() + subjectParam.slice(1);
+      const formattedSubject = subjectParam.charAt(0).toUpperCase() + subjectParam.slice(1).replace(/-/g, ' ');
       
-      if (athroCharacters[formattedSubject as keyof typeof athroCharacters]) {
-        handleActions.changeSubject(formattedSubject);
-        console.log(`Subject set from URL parameter: ${formattedSubject}`);
+      for (const [subject, details] of Object.entries(athroCharacters)) {
+        if (subject.toLowerCase() === formattedSubject.toLowerCase() || 
+            details.name.toLowerCase() === formattedSubject.toLowerCase()) {
+          handleActions.changeSubject(subject);
+          console.log(`Subject set from URL parameter: ${subject}`);
+          break;
+        }
       }
     }
   }, [searchParams]);
@@ -195,30 +243,7 @@ const StudySessionPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
-      <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>OpenAI API Key Information</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              This application is now using a project-wide API key. You don't need to provide your own API key.
-            </p>
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">
-                If you're an administrator and need to update the project API key, use the Admin Settings.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowApiKeyDialog(false)} className="bg-purple-600 hover:bg-purple-700">
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AdminSettings open={showAdminSettings} onOpenChange={setShowAdminSettings} />
+      <Dialog open={showAdminSettings} onOpenChange={setShowAdminSettings} />
 
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -247,16 +272,6 @@ const StudySessionPage: React.FC = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Button 
-                      variant="outline" 
-                      className="h-9 text-xs"
-                      onClick={() => setShowApiKeyDialog(true)}
-                    >
-                      <Key className="h-4 w-4 mr-1" />
-                      {hasApiKey ? 'Update API Key' : 'Set API Key'}
-                    </Button>
                   </div>
                 </div>
               </CardContent>

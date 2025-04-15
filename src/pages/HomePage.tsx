@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Calendar, GraduationCap, Clock, ArrowRight, Gauge } from 'lucide-react';
+import { BookOpen, Calendar, GraduationCap, Clock, ArrowRight, Gauge, BookText, Atom, Languages, Book, 
+  MapPin, History, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
@@ -29,6 +30,10 @@ const HomePage: React.FC = () => {
     !['AthroAI', 'Timekeeper', 'System'].includes(char.subject)
   );
   
+  const systemCharacters = characters.filter(char => 
+    ['AthroAI', 'Timekeeper', 'System'].includes(char.subject)
+  );
+  
   const subjectProgress = {
     'Mathematics': 65,
     'Science': 42,
@@ -38,6 +43,33 @@ const HomePage: React.FC = () => {
     'Geography': 45,
     'Languages': 60,
     'Religious Education': 51
+  };
+
+  const getSubjectIcon = (subject: string) => {
+    switch (subject) {
+      case 'Mathematics':
+        return <BookText className="h-5 w-5 text-purple-600" />;
+      case 'Science':
+        return <Atom className="h-5 w-5 text-green-600" />;
+      case 'English':
+        return <Book className="h-5 w-5 text-blue-600" />;
+      case 'History':
+        return <History className="h-5 w-5 text-amber-600" />;
+      case 'Geography':
+        return <MapPin className="h-5 w-5 text-cyan-600" />;
+      case 'Languages':
+        return <Languages className="h-5 w-5 text-pink-600" />;
+      case 'Welsh':
+        return <Languages className="h-5 w-5 text-red-600" />;
+      case 'Religious Education':
+        return <BookOpen className="h-5 w-5 text-violet-600" />;
+      case 'AthroAI':
+        return <Brain className="h-5 w-5 text-indigo-600" />;
+      case 'Timekeeper':
+        return <Clock className="h-5 w-5 text-amber-600" />;
+      default:
+        return <BookOpen className="h-5 w-5 text-gray-600" />;
+    }
   };
   
   const getGreeting = () => {
@@ -106,7 +138,7 @@ const HomePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">
-            <h2 className="text-xl font-bold text-gray-800">Your Subjects</h2>
+            <h2 className="text-xl font-bold text-gray-800">Subject Mentors</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {subjectCharacters.map((character) => (
                 <Card key={character.id} className="hover:shadow-md transition-shadow">
@@ -137,7 +169,39 @@ const HomePage: React.FC = () => {
                   <CardFooter className="pt-0">
                     <Link to={`/study?subject=${character.subject.toLowerCase()}`} className="w-full">
                       <Button variant="outline" className="w-full">
-                        <BookOpen className="mr-2 h-4 w-4" /> Continue
+                        {getSubjectIcon(character.subject)}
+                        <span className="ml-2">Continue</span>
+                      </Button>
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+            
+            <h2 className="text-xl font-bold text-gray-800">System Helpers</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {systemCharacters.map((character) => (
+                <Card key={character.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-base">{character.name}</CardTitle>
+                        <CardDescription className="text-xs">{character.shortDescription}</CardDescription>
+                      </div>
+                      <div className="w-10 h-10 rounded-full overflow-hidden">
+                        <img 
+                          src={character.avatarUrl} 
+                          alt={character.name} 
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardFooter className="pt-0">
+                    <Link to={`/study?subject=${character.subject.toLowerCase()}`} className="w-full">
+                      <Button variant="outline" className="w-full text-sm">
+                        {getSubjectIcon(character.subject)}
+                        <span className="ml-2">Open {character.name}</span>
                       </Button>
                     </Link>
                   </CardFooter>
