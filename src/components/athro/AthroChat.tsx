@@ -175,19 +175,13 @@ const AthroChat: React.FC<AthroChatProps> = ({
       }
 
       // Upload file to Supabase storage
-      const uploadResult = await uploadDocumentForChat(
-        file, 
-        currentCharacter.id
-      );
+      const uploadResult = await uploadDocumentForChat(file, currentCharacter.id);
 
       if (uploadResult) {
-        // Create a message about the upload
-        const userMessage = `I've uploaded a document: ${file.name}`;
+        // Directly call sendMessage and link document without void check
+        const messageResult = await sendMessage(`I've uploaded a document: ${file.name}`, currentCharacter);
         
-        // Store the result of sendMessage in messageResult
-        const messageResult = await sendMessage(userMessage, currentCharacter);
-        
-        // Check if both messageResult and uploadResult exist and have id properties
+        // Use optional chaining and null checks to safely access id properties
         if (messageResult?.id && uploadResult.id) {
           await linkDocumentToMessage(uploadResult.id, messageResult.id);
           console.log('Document linked to message:', uploadResult.id, messageResult.id);
