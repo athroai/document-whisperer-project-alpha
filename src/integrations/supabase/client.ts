@@ -17,15 +17,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
   global: {
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-    // Enhanced debug logging with more details
-    fetch: (url, options) => {
+    fetch: (url, options = {}) => {
       const urlString = url.toString();
+      const headers = new Headers(options.headers);
+
+      // ✅ Manually include the API key and Authorization token
+      headers.set('apikey', SUPABASE_PUBLISHABLE_KEY);
+      headers.set('Authorization', `Bearer ${SUPABASE_PUBLISHABLE_KEY}`);
+
       console.log(`Supabase request: ${urlString.split('?')[0]}`);
-      console.log('Request headers:', options?.headers);
-      
-      return fetch(url, options)
+      console.log('Request headers:', Object.fromEntries(headers.entries()));
+
+      return fetch(url, { ...options, headers })
         .then(response => {
           console.log(`Supabase response status: ${response.status}`);
           if (!response.ok) {
@@ -41,25 +46,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Export a typed connection test function
+// Export the test connection utility
 export const testConnection = async () => {
   return await testSupabaseConnection();
 };
-
-// Import the improved connection test
-// import { testSupabaseConnection } from '@/services/connectionTest';
-
-// Export the connection test for use elsewhere
-// export const testConnection = testSupabaseConnection;
-
-// Run an initial connection test when the client is loaded
-// setTimeout(() => {
-//   console.log('Running initial connection test...');
-//   testSupabaseConnection().then(result => {
-//     if (!result.success) {
-//       console.log(`Initial connection test failed: ${result.message}`);
-//     }
-//   });
-// }, 1000);
 
 export default supabase;
