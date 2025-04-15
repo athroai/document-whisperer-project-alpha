@@ -1,5 +1,4 @@
-
-export type ExamBoard = 'wjec' | 'ocr' | 'aqa' | 'none';
+export type ExamBoard = 'wjec' | 'ocr' | 'aqa' | 'none' | 'edexcel';
 
 export type AthroSubject = 
   | 'Mathematics' 

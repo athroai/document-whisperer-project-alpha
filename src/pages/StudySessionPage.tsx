@@ -51,7 +51,7 @@ const athroCharacters = {
 };
 
 const StudySessionPage: React.FC = () => {
-  const { messages, isTyping, sendMessage, clearMessages, setApiKey, hasApiKey } = useAthroMessages();
+  const { messages, isTyping, sendMessage, clearMessages, hasApiKey } = useAthroMessages();
   
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -68,34 +68,11 @@ const StudySessionPage: React.FC = () => {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [showAdminSettings, setShowAdminSettings] = useState(false);
 
-  useEffect(() => {
-    if (!hasApiKey) {
-      setShowApiKeyDialog(true);
-    }
-  }, [hasApiKey]);
-
   const currentTopics = currentAthro?.topics || [];
 
   const paperList = pastPapers.map(paper => paper.title);
 
   const mockUserId = 'user_1';
-
-  const handleApiKeySubmit = () => {
-    if (apiKeyInput.trim()) {
-      setApiKey(apiKeyInput.trim());
-      setShowApiKeyDialog(false);
-      toast({
-        title: "API Key Set",
-        description: "Your OpenAI API key has been saved.",
-      });
-    } else {
-      toast({
-        title: "Invalid API Key",
-        description: "Please enter a valid API key.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleActions = {
     changeSubject: (subject: string) => {
@@ -272,11 +249,6 @@ const StudySessionPage: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (message.trim()) {
-      if (!hasApiKey) {
-        setShowApiKeyDialog(true);
-        return;
-      }
-      
       setIsLoading(true);
       
       const activeCharacter: AthroCharacter = {
@@ -308,32 +280,21 @@ const StudySessionPage: React.FC = () => {
       <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Enter your OpenAI API Key</DialogTitle>
+            <DialogTitle>OpenAI API Key Information</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              This application requires an OpenAI API key to function. Your key will be stored locally in your browser.
+              This application is now using a project-wide API key. You don't need to provide your own API key.
             </p>
             <div className="space-y-2">
-              <Label htmlFor="api-key">API Key</Label>
-              <div className="flex space-x-2">
-                <Input 
-                  id="api-key" 
-                  type="password" 
-                  placeholder="sk-..." 
-                  value={apiKeyInput} 
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                />
-              </div>
               <p className="text-xs text-muted-foreground">
-                You can find your API key in your <a href="https://platform.openai.com/account/api-keys" target="_blank" rel="noreferrer" className="text-primary">OpenAI dashboard</a>.
+                If you're an administrator and need to update the project API key, use the Admin Settings.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleApiKeySubmit} className="bg-purple-600 hover:bg-purple-700">
-              <Key className="h-4 w-4 mr-2" />
-              Save API Key
+            <Button onClick={() => setShowApiKeyDialog(false)} className="bg-purple-600 hover:bg-purple-700">
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -342,33 +303,6 @@ const StudySessionPage: React.FC = () => {
       <AdminSettings open={showAdminSettings} onOpenChange={setShowAdminSettings} />
 
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {!hasApiKey && (
-          <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <Key className="h-5 w-5 text-yellow-500" />
-              </div>
-              <div className="ml-3 flex justify-between w-full items-center">
-                <p className="text-sm">
-                  Please set your OpenAI API key to enable live AI responses.
-                  <Button variant="link" onClick={() => setShowApiKeyDialog(true)} className="p-0 h-auto text-yellow-700 underline ml-1">
-                    Set API Key
-                  </Button>
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
-                  onClick={() => setShowAdminSettings(true)}
-                >
-                  <Shield className="h-4 w-4 mr-1" />
-                  Admin Settings
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-4 mb-4">
             <Card>
