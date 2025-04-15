@@ -25,6 +25,11 @@ const AthroChat: React.FC<AthroChatProps> = ({ isCompactMode = false }) => {
     }
   }, [messages]);
 
+  // Debug active character
+  useEffect(() => {
+    console.log('Active character:', activeCharacter);
+  }, [activeCharacter]);
+
   const handleSend = () => {
     if (!inputMessage.trim() || !activeCharacter) return;
     

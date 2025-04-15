@@ -49,9 +49,11 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   const { studentProgress, getSuggestedTopics: getTopics } = useStudentProgress();
   
   useEffect(() => {
+    console.log('Setting up Athro characters');
     setCharacters(athroCharacters);
 
     if (athroCharacters.length > 0) {
+      console.log('Setting active character to:', athroCharacters[0]);
       setActiveCharacter(athroCharacters[0]);
     }
   }, []);
@@ -64,9 +66,14 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
   };
 
   const sendMessage = (content: string) => {
-    console.log("✅ SEND MESSAGE TRIGGERED");
+    console.log("✅ SEND MESSAGE TRIGGERED with content:", content);
+    console.log("Active character:", activeCharacter);
     
-    if (!activeCharacter) return;
+    if (!activeCharacter) {
+      console.warn("No active character to send message to");
+      return;
+    }
+    
     sendAthroMessage(content, activeCharacter);
   };
 
