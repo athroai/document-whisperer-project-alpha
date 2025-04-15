@@ -1,15 +1,10 @@
 
 import React, { useState } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
-import AthroChat from './AthroChat';
+import { AthroChat } from './AthroChat';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-interface KnowledgeResponse {
-  enhancedContext: string;
-  hasKnowledgeResults: boolean;
-  citations: any[];
-}
+import { Knowledge } from './AthroChat';
 
 interface AthroBaseProps {
   subject?: string;
@@ -25,7 +20,7 @@ const AthroBase: React.FC<AthroBaseProps> = ({ subject, allowScience = false }) 
   };
   
   // Mock function to fetch knowledge for a query
-  const fetchKnowledgeForQuery = async (query: string): Promise<KnowledgeResponse> => {
+  const fetchKnowledgeForQuery = async (query: string): Promise<Knowledge> => {
     setIsLoading(true);
     
     try {

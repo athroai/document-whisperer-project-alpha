@@ -1,17 +1,35 @@
 
-// Since we can't directly edit this file (it's in read-only files),
-// but we can see there's an error related to showSuccessStatus prop,
-// we need to update any component that's using AthroProfile with this prop.
-
-// Let's create a wrapper component that doesn't use the unsupported prop:
-
 import React from 'react';
-import AthroProfile from '@/components/athro/AthroProfile';
 
-export const AthroProfileWrapper: React.FC<any> = (props) => {
-  // Filter out the showSuccessStatus prop
-  const { showSuccessStatus, ...validProps } = props;
-  
-  // Pass only valid props to the original component
-  return <AthroProfile {...validProps} />;
+// Define a proper interface for the AthroProfile component
+export interface AthroProfileProps {
+  name?: string;
+  avatar?: string;
+  subject?: string;
+  [key: string]: any;
+}
+
+export const AthroProfile: React.FC<AthroProfileProps> = (props) => {
+  // This is a placeholder implementation
+  // In a real app, this would render the Athro character profile
+  return (
+    <div className="athro-profile">
+      <div className="avatar-container">
+        {props.avatar ? (
+          <img src={props.avatar} alt={props.name || 'Athro'} className="athro-avatar" />
+        ) : (
+          <div className="athro-avatar-placeholder">
+            {props.name ? props.name.charAt(0) : 'A'}
+          </div>
+        )}
+      </div>
+      <div className="athro-info">
+        <h3>{props.name || `Athro ${props.subject || ''}`}</h3>
+        {props.subject && <p className="athro-subject">{props.subject}</p>}
+      </div>
+    </div>
+  );
 };
+
+// Add a default export for backward compatibility
+export default AthroProfile;

@@ -1,18 +1,44 @@
+
 import React from 'react';
 import { AthroProfileWrapper } from './AthroProfileWrapper';
+import { Citation } from '@/types/citations';
 
-// This is a placeholder file to demonstrate the usage of AthroProfileWrapper
-// In your actual application, you would need to find where AthroProfile is used with showSuccessStatus
-// and replace it with AthroProfileWrapper
+// Define the Knowledge interface that was missing
+export interface Knowledge {
+  enhancedContext: string;
+  hasKnowledgeResults: boolean;
+  citations: Citation[];
+}
 
-export const AthroProfileUsageExample = () => {
+interface AthroCharacterProps {
+  fetchKnowledgeForQuery?: (query: string) => Promise<Knowledge>;
+  isLoading?: boolean;
+}
+
+const AthroChat: React.FC<AthroCharacterProps> = ({ 
+  fetchKnowledgeForQuery,
+  isLoading = false
+}) => {
   return (
-    <div>
-      {/* Example - replace any instance of AthroProfile that uses showSuccessStatus */}
-      <AthroProfileWrapper
-        // Other props remain the same
-        // showSuccessStatus is removed automatically
-      />
+    <div className="athro-chat">
+      <div className="chat-header">
+        <AthroProfileWrapper 
+          name="Athro AI"
+          subject="Mathematics"
+        />
+      </div>
+      <div className="chat-messages">
+        {isLoading ? (
+          <div className="loading-message">Thinking...</div>
+        ) : (
+          <div className="welcome-message">
+            Hello! I'm your Athro mentor. How can I help with your studies today?
+          </div>
+        )}
+      </div>
     </div>
   );
 };
+
+export default AthroChat;
+export { AthroChat };
