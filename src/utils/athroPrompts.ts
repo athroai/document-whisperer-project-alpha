@@ -1,11 +1,11 @@
 
 import { AthroSubject } from '@/types/athro';
-import { AthroCharacterConfig } from '@/types/athroCharacter';
+import { AthroCharacter } from '@/types/athro';
 
 /**
  * Builds a system prompt for the OpenAI API based on the character's subject
  */
-export function buildSystemPrompt(character: AthroCharacterConfig): string {
+export function buildSystemPrompt(character: AthroCharacter): string {
   const examBoard = character.examBoards?.[0] || 'UK GCSE';
 
   switch (character.subject) {

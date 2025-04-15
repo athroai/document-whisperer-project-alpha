@@ -2,22 +2,13 @@
 import { useState } from 'react';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
-import { AthroCharacterConfig } from '@/types/athroCharacter';
-
-export type AthroMessage = {
-  id: string;
-  senderId: string;
-  content: string;
-  timestamp: string;
-  attachments?: any[];
-  referencedResources?: string[];
-};
+import { AthroCharacter, AthroMessage } from '@/types/athro';
 
 export function useAthroMessages() {
   const [messages, setMessages] = useState<AthroMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
 
-  const sendMessage = async (content: string, activeCharacter: AthroCharacterConfig | null) => {
+  const sendMessage = async (content: string, activeCharacter: AthroCharacter | null) => {
     if (!activeCharacter || !content.trim()) return;
 
     const userMessage: AthroMessage = {
