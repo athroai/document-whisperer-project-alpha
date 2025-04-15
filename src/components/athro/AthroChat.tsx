@@ -61,17 +61,6 @@ const AthroChat: React.FC<AthroChatProps> = ({
   }, []);
   
   useEffect(() => {
-    if (currentCharacter && messages.length === 0 && !initialMessageSent.current && !isTyping) {
-      console.log('👋 Sending initial welcome message');
-      initialMessageSent.current = true;
-      
-      setTimeout(() => {
-        sendMessage('welcome', currentCharacter);
-      }, 200);
-    }
-  }, [currentCharacter, messages.length, sendMessage, isTyping]);
-  
-  useEffect(() => {
     console.log('🎭 AthroChat component mounted with', messages.length, 'messages');
     return () => {
       console.log('🎭 AthroChat component unmounted');

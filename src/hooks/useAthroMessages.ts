@@ -52,61 +52,35 @@ export function useAthroMessages() {
     const requestId = Date.now().toString();
     activeRequests.current.add(requestId);
     
-    // Check if this is a welcome message
-    const isWelcomeMessage = content.toLowerCase() === "welcome";
-    
-    // Create user message object for non-welcome messages
-    let userMessage: AthroMessage | null = null;
-    
-    // Only add non-welcome messages to chat
-    if (!isWelcomeMessage) {
-      userMessage = {
-        id: requestId,
-        senderId: 'user',
-        content,
-        timestamp: new Date().toISOString(),
-      };
-      
-      setMessages(prevMessages => {
-        const updatedMessages = [...prevMessages, userMessage!];
-        console.log('✅ Adding user message', { 
-          prevMessageCount: prevMessages.length, 
-          newMessageCount: updatedMessages.length,
-          newMessageContent: content 
-        });
-        return updatedMessages;
-      });
+    // Don't send welcome messages at all
+    if (content.toLowerCase() === "welcome") {
+      console.log('🚫 Skipping welcome message');
+      activeRequests.current.delete(requestId);
+      return null;
     }
+    
+    // Create user message object
+    const userMessage: AthroMessage = {
+      id: requestId,
+      senderId: 'user',
+      content,
+      timestamp: new Date().toISOString(),
+    };
+    
+    setMessages(prevMessages => {
+      const updatedMessages = [...prevMessages, userMessage];
+      console.log('✅ Adding user message', { 
+        prevMessageCount: prevMessages.length, 
+        newMessageCount: updatedMessages.length,
+        newMessageContent: content 
+      });
+      return updatedMessages;
+    });
     
     setIsTyping(true);
     
     try {
-      // For welcome messages, create a predefined response directly without API call
-      if (isWelcomeMessage) {
-        const welcomeResponse = `What would you like help with in ${activeCharacter.subject} today? I'm here to answer any questions about your studies.`;
-        
-        const athroResponse: AthroMessage = {
-          id: (Date.now() + 1).toString(),
-          senderId: activeCharacter.id,
-          content: welcomeResponse,
-          timestamp: new Date().toISOString(),
-        };
-        
-        setMessages(prevMessages => {
-          const updatedMessages = [...prevMessages, athroResponse];
-          console.log('➕ Adding AI welcome response', { 
-            prevMessageCount: prevMessages.length, 
-            newMessageCount: updatedMessages.length,
-            responseContent: athroResponse.content
-          });
-          return updatedMessages;
-        });
-        
-        setIsTyping(false);
-        return userMessage; // Return the user message or null for welcome messages
-      }
-      
-      // Make the actual API call to OpenAI for non-welcome messages
+      // Make the API call to OpenAI
       const systemPrompt = buildSystemPrompt(activeCharacter);
       
       const response = await getOpenAIResponse({

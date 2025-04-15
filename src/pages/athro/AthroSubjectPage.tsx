@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 const AthroSubjectPage: React.FC = () => {
   const { subject } = useParams<{ subject: string }>();
-  const { characters, setActiveCharacter, messages, clearMessages } = useAthro();
+  const { characters, setActiveCharacter, clearMessages } = useAthro();
   const navigate = useNavigate();
 
   // Find the character that matches the subject from the URL

@@ -16,16 +16,10 @@ const AthroSystem: React.FC = () => {
   useEffect(() => {
     console.log('🎮 AthroSystem component mounted');
     
-    // When the system mounts, send an initial greeting if there are no messages
-    if (activeCharacter && messages.length === 0) {
-      console.log('👋 Sending initial greeting from AthroSystem mount');
-      setTimeout(() => {
-        sendMessage(`Hello, I'm ${activeCharacter.name}. How can I help with your ${activeCharacter.subject} studies today?`);
-      }, 500);
-    }
+    // No longer sending automatic initial greeting
     
     return () => console.log('🎮 AthroSystem component unmounted');
-  }, [activeCharacter, messages.length, sendMessage]);
+  }, []);
 
   useEffect(() => {
     if (isInitialRender) {
