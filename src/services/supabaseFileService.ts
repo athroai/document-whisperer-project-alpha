@@ -108,7 +108,7 @@ export const supabaseFileService = {
       if (error) throw error;
       
       return data.map(file => {
-        const bucketName = 'student_uploads'; // Default bucket name
+        const extendedFile = toExtendedUpload(file);
         return {
           id: file.id,
           uploadedBy: file.uploaded_by,
@@ -122,7 +122,7 @@ export const supabaseFileService = {
           size: file.size,
           mimeType: file.mime_type,
           url: file.file_url,
-          bucket_name: bucketName,
+          bucket_name: extendedFile.bucket_name,
           file_url: file.file_url
         };
       });
