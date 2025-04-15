@@ -115,7 +115,7 @@ const SettingsPage: React.FC = () => {
                 <Label htmlFor="examBoard">Exam Board</Label>
                 <Select 
                   value={examBoard}
-                  onValueChange={(value) => setExamBoard(value)}
+                  onValueChange={(value: ExamBoard) => setExamBoard(value)}
                 >
                   <SelectTrigger id="examBoard">
                     <SelectValue placeholder="Select exam board" />
