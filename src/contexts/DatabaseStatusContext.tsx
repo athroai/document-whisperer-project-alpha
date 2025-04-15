@@ -26,7 +26,10 @@ export const DatabaseStatusProvider: React.FC<{ children: React.ReactNode }> = (
   const { toast } = useToast();
 
   const checkConnection = useCallback(async (): Promise<DatabaseStatus> => {
+    console.log('Checking database connection...');
+    
     if (!navigator.onLine) {
+      console.log('Device is offline');
       setError(new Error('You are offline. Please check your internet connection.'));
       return 'offline';
     }
@@ -34,13 +37,20 @@ export const DatabaseStatusProvider: React.FC<{ children: React.ReactNode }> = (
     try {
       // Use shorter timeout to prevent long waiting
       const timeoutPromise = new Promise<DatabaseStatus>((resolve) => {
-        setTimeout(() => resolve('error'), 3000); // 3 second timeout
+        setTimeout(() => {
+          console.log('Connection check timed out after 3 seconds');
+          resolve('error');
+        }, 3000);
       });
       
       const connectionPromise = (async () => {
         try {
           console.log('Testing connection to Supabase...');
-          const { data, error } = await supabase.from('profiles').select('count').limit(1);
+          // Using a simple query that should always return quickly
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('count')
+            .limit(1);
           
           if (error) {
             console.error("Connection test error:", error);
@@ -109,7 +119,7 @@ export const DatabaseStatusProvider: React.FC<{ children: React.ReactNode }> = (
     };
   }, [checkConnection]);
 
-  // Check connection every 2 minutes instead of 5
+  // Check connection every 2 minutes
   useEffect(() => {
     const interval = setInterval(() => {
       if (navigator.onLine && status !== 'checking') {

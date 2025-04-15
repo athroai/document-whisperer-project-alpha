@@ -11,7 +11,7 @@ import LoadingSpinner from '@/components/ui/loading-spinner';
 import { useDatabaseStatus } from '@/contexts/DatabaseStatusContext';
 import { DatabaseStatus } from '@/components/ui/database-status';
 import { testSupabaseConnection } from '@/services/connectionTest';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +19,7 @@ const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionResults, setConnectionResults] = useState<any>(null);
   const { login, state } = useAuth();
   const navigate = useNavigate();
   const { status: connectionStatus, retry: retryConnection, error: connectionError } = useDatabaseStatus();
@@ -84,13 +85,28 @@ const LoginPage: React.FC = () => {
 
   const handleTestConnection = async () => {
     setIsTestingConnection(true);
+    setConnectionResults(null);
     try {
-      const isConnected = await testSupabaseConnection();
+      // Test if we can reach the Supabase URL
+      try {
+        console.log("Testing basic fetch to Supabase domain...");
+        const response = await fetch("https://oqpwgxrqwbgchirnnejj.supabase.co", {
+          method: 'HEAD',
+          mode: 'no-cors' // This won't give us response details but can tell if network is blocked
+        });
+        console.log("Basic fetch test completed", response);
+      } catch (error) {
+        console.error("Basic fetch test failed:", error);
+      }
       
-      if (isConnected) {
+      // Test the actual Supabase connection
+      const result = await testSupabaseConnection();
+      setConnectionResults(result);
+      
+      if (result.success) {
         toast({
           title: "Connection Test Successful",
-          description: "Successfully connected to Supabase",
+          description: `Successfully connected to Supabase (${result.duration || 0}ms)`,
           variant: "success"
         });
         // Manually update the database status
@@ -98,11 +114,13 @@ const LoginPage: React.FC = () => {
       } else {
         toast({
           title: "Connection Test Failed",
-          description: "Could not connect to Supabase",
+          description: result.error?.message || "Could not connect to Supabase",
           variant: "destructive"
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Connection test threw an exception:", error);
+      setConnectionResults({ success: false, error });
       toast({
         title: "Connection Test Error",
         description: error instanceof Error ? error.message : "An unknown error occurred",
@@ -145,13 +163,54 @@ const LoginPage: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {(connectionStatus === 'offline' || connectionStatus === 'error') && (
-            <div className="mb-6">
-              <DatabaseStatus />
-              <div className="flex justify-center mt-4">
+          {/* Connection Status Section */}
+          {connectionStatus === 'checking' ? (
+            <div className="flex items-center justify-center p-4 mb-4 bg-blue-50 text-blue-700 rounded-md">
+              <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2"></div>
+              <span>Checking connection status...</span>
+            </div>
+          ) : connectionStatus === 'offline' ? (
+            <div className="p-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-md">
+              <div className="flex items-center">
+                <WifiOff className="h-5 w-5 text-yellow-500 mr-2" />
+                <h3 className="font-medium text-yellow-800">You're offline</h3>
+              </div>
+              <p className="mt-1 text-sm text-yellow-700">
+                Please check your internet connection and try again.
+              </p>
+              <Button 
+                onClick={handleTestConnection} 
+                disabled={isTestingConnection}
+                variant="outline"
+                size="sm"
+                className="mt-2"
+              >
+                {isTestingConnection ? (
+                  <>
+                    <LoadingSpinner className="mr-2 h-4 w-4" />
+                    <span>Testing connection...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <span>Test Connection</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : connectionStatus === 'error' ? (
+            <div className="p-4 mb-4 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                <h3 className="font-medium text-red-800">Connection Error</h3>
+              </div>
+              <p className="mt-1 text-sm text-red-700">
+                {connectionError ? connectionError.message : "Unable to connect to the database."}
+              </p>
+              <div className="flex flex-col mt-2 space-y-2">
                 <Button 
                   onClick={handleTestConnection} 
-                  disabled={isTestingConnection} 
+                  disabled={isTestingConnection}
                   variant="outline"
                   size="sm"
                 >
@@ -168,16 +227,20 @@ const LoginPage: React.FC = () => {
                   )}
                 </Button>
               </div>
+              
+              {/* Show detailed connection test results if available */}
+              {connectionResults && !connectionResults.success && (
+                <div className="mt-3 text-xs p-2 bg-red-100 rounded overflow-auto max-h-32">
+                  <p className="font-semibold">Diagnostic Information:</p>
+                  <pre className="whitespace-pre-wrap">
+                    {JSON.stringify(connectionResults.error || {}, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
-          )}
+          ) : null}
 
-          {connectionStatus === 'checking' && (
-            <div className="flex items-center justify-center p-4 mb-4 bg-blue-50 text-blue-700 rounded-md">
-              <LoadingSpinner className="mr-2 h-4 w-4" />
-              <span>Checking connection status...</span>
-            </div>
-          )}
-          
+          {/* Login Form */}
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <Label htmlFor="email">Email address</Label>
@@ -190,7 +253,7 @@ const LoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
-                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error' || connectionStatus === 'checking'}
+                disabled={isSubmitting || connectionStatus !== 'connected'}
               />
             </div>
 
@@ -205,7 +268,7 @@ const LoginPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
-                disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error' || connectionStatus === 'checking'}
+                disabled={isSubmitting || connectionStatus !== 'connected'}
               />
             </div>
 
@@ -215,7 +278,7 @@ const LoginPage: React.FC = () => {
                   id="remember-me" 
                   checked={rememberMe} 
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
-                  disabled={isSubmitting || connectionStatus === 'offline' || connectionStatus === 'error' || connectionStatus === 'checking'}
+                  disabled={isSubmitting || connectionStatus !== 'connected'}
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
                   Remember me
@@ -237,9 +300,7 @@ const LoginPage: React.FC = () => {
                 className="w-full bg-purple-600 hover:bg-purple-700"
                 disabled={
                   isSubmitting || 
-                  connectionStatus === 'offline' || 
-                  connectionStatus === 'error' || 
-                  connectionStatus === 'checking'
+                  connectionStatus !== 'connected'
                 }
               >
                 {isSubmitting ? (

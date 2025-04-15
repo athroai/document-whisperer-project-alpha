@@ -16,18 +16,39 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     headers: {
       'Content-Type': 'application/json'
     },
-    // Log debug information
+    // Enhanced debug logging
     fetch: (url, options) => {
       console.log(`Making Supabase request to: ${url.toString().split('?')[0]}`);
-      return fetch(url, options);
+      return fetch(url, options).then(response => {
+        if (!response.ok) {
+          console.error(`Supabase request failed with status: ${response.status}`);
+        }
+        return response;
+      }).catch(error => {
+        console.error(`Supabase fetch error: ${error.message || 'Unknown error'}`);
+        throw error;
+      });
     }
   }
 });
 
-// Add a simple wrapper to test connection
+// Add a simple connection test function with timeout
 export const testConnection = async () => {
   try {
-    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout after 5 seconds')), 5000)
+    );
+    
+    const queryPromise = supabase.from('profiles').select('count').limit(1);
+    
+    // Race between the query and timeout
+    const { data, error } = await Promise.race([
+      queryPromise,
+      timeoutPromise.then(() => {
+        throw new Error('Connection timeout');
+      })
+    ]);
     
     if (error) {
       console.error('Connection test failed with error:', error);
