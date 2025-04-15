@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
 import { DocumentMetadata, uploadDocumentForChat, getDocumentsForCharacter, linkDocumentToMessage } from '@/services/documentService';
 import { extractTextFromImageWithMathpix } from '@/lib/mathpixService';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '@/components/ui/dialog';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
@@ -180,31 +180,28 @@ const AthroChat: React.FC<AthroChatProps> = ({
         currentCharacter.id
       );
 
-      if (!uploadResult) {
-        throw new Error('Upload failed');
-      }
+      if (uploadResult) {
+        // Create a message about the upload
+        const userMessage = `I've uploaded a document: ${file.name}`;
+        
+        // Store the result of sendMessage in messageResult
+        const messageResult = await sendMessage(userMessage, currentCharacter);
+        
+        // Check if both messageResult and uploadResult exist and have id properties
+        if (messageResult?.id && uploadResult.id) {
+          await linkDocumentToMessage(uploadResult.id, messageResult.id);
+          console.log('Document linked to message:', uploadResult.id, messageResult.id);
+        }
 
-      // Create a message about the upload
-      const userMessage = `I've uploaded a document: ${file.name}`;
-      
-      // Store the result of sendMessage in messageResult
-      const messageResult = await sendMessage(userMessage, currentCharacter);
-      
-      // First check if both messageResult and uploadResult exist and have id properties
-      if (messageResult && messageResult.id && uploadResult && uploadResult.id) {
-        await linkDocumentToMessage(uploadResult.id, messageResult.id);
-        console.log('Document linked to message:', uploadResult.id, messageResult.id);
+        // Refresh document list
+        const updatedDocs = await getDocumentsForCharacter(currentCharacter.id);
+        setDocuments(updatedDocs);
+        
+        toast({
+          title: "File Uploaded",
+          description: `${file.name} has been uploaded successfully.`,
+        });
       }
-
-      // Refresh document list
-      const updatedDocs = await getDocumentsForCharacter(currentCharacter.id);
-      setDocuments(updatedDocs);
-      
-      toast({
-        title: "File Uploaded",
-        description: `${file.name} has been uploaded successfully.`,
-      });
-      
     } catch (error) {
       console.error('Error uploading file:', error);
       toast({
