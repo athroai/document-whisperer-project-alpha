@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Send, ThumbsUp, Clock, BookOpen, GraduationCap, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import PomodoroTimer from '@/components/PomodoroTimer';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import FileReference from '@/components/FileReference';
 import { UploadedFile } from '@/types/auth';
 import { getOpenAIResponse } from '@/lib/openai';
@@ -70,6 +71,119 @@ const StudySessionPage: React.FC = () => {
 
   const mockUserId = 'user_1';
 
+  const handleActions = {
+    changeSubject: (subject: string) => {
+      setCurrentSubject(subject);
+      setCurrentAthro(athroCharacters[subject as keyof typeof athroCharacters]);
+      
+      setMessages([
+        { 
+          text: `Hello! I'm ${athroCharacters[subject as keyof typeof athroCharacters].name}, your ${subject} mentor. How can I help you today?`, 
+          sender: 'athro',
+          avatar: athroCharacters[subject as keyof typeof athroCharacters].avatar
+        },
+      ]);
+      
+      setShowOptions(true);
+      setActiveSession(null);
+      setSelectedTopic('');
+      setSelectedPaper('');
+      setHasShownFallback(false);
+    },
+
+    startAISession: () => {
+      setShowOptions(false);
+      setActiveSession('ai');
+      setMessages([
+        ...messages,
+        {
+          text: `What would you like help with in ${currentSubject} today? I'm here to answer any questions about your studies.`,
+          sender: 'athro',
+          avatar: currentAthro.avatar
+        }
+      ]);
+    },
+
+    startManualSession: () => {
+      setShowOptions(false);
+      setActiveSession('manual');
+    },
+
+    startPastPaperSession: () => {
+      setShowOptions(false);
+      setActiveSession('past-paper');
+    },
+
+    handleTopicSelection: (topic: string) => {
+      setSelectedTopic(topic);
+      setMessages([
+        ...messages,
+        {
+          text: `Let's review ${topic}. What specific aspect would you like to focus on?`,
+          sender: 'athro',
+          avatar: currentAthro.avatar
+        }
+      ]);
+    },
+
+    continueWithoutTopic: () => {
+      setMessages([
+        ...messages,
+        {
+          text: `What would you like to learn about in ${currentSubject} today? I'm here to help with any questions you might have.`,
+          sender: 'athro',
+          avatar: currentAthro.avatar
+        }
+      ]);
+    },
+
+    handleModalClose: () => {
+      setActiveSession(null);
+      handleActions.continueWithoutTopic();
+    },
+
+    handlePaperSelection: (paper: string) => {
+      setSelectedPaper(paper);
+      setMessages([
+        ...messages,
+        {
+          text: `I've loaded ${paper}. Let's work through it together. Ask me about any question you find challenging.`,
+          sender: 'athro',
+          avatar: currentAthro.avatar
+        }
+      ]);
+    },
+
+    handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        const fileName = e.target.files[0].name;
+        setMessages([
+          ...messages,
+          {
+            text: `I've received your file "${fileName}". Let's work through it together. What question would you like to start with?`,
+            sender: 'athro',
+            avatar: currentAthro.avatar
+          }
+        ]);
+      }
+    },
+
+    handleFileSelect: (file: UploadedFile) => {
+      setSelectedFile(file);
+      setShowFileReferences(false);
+      
+      const fileReference = file.label 
+        ? `your ${file.label}` 
+        : `the ${file.subject} ${file.fileType === 'paper' ? 'past paper' : file.fileType}`;
+      
+      setMessages(prev => [...prev, {
+        text: `Let's take a look at ${fileReference}. What specific part would you like to focus on?`,
+        sender: 'athro',
+        avatar: currentAthro.avatar
+      }]);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (message.trim()) {
       // Add user message to the chat
@@ -79,7 +193,7 @@ const StudySessionPage: React.FC = () => {
       setIsLoading(true);
       
       try {
-        // Create a character object to use with the system prompt
+        // Create a complete character object
         const character: AthroCharacter = {
           id: currentSubject.toLowerCase(),
           name: currentAthro.name,
@@ -176,134 +290,6 @@ const StudySessionPage: React.FC = () => {
     return `That's an interesting question about ${subject}. To help you better, could you tell me a bit more about what specific aspect of this topic you're studying? I'll do my best to provide a useful explanation.`;
   };
 
-  const changeSubject = (subject: string) => {
-    setCurrentSubject(subject);
-    setCurrentAthro(athroCharacters[subject as keyof typeof athroCharacters]);
-    
-    setMessages([
-      { 
-        text: `Hello! I'm ${athroCharacters[subject as keyof typeof athroCharacters].name}, your ${subject} mentor. How can I help you today?`, 
-        sender: 'athro',
-        avatar: athroCharacters[subject as keyof typeof athroCharacters].avatar
-      },
-    ]);
-    
-    setShowOptions(true);
-    setActiveSession(null);
-    setSelectedTopic('');
-    setSelectedPaper('');
-    setHasShownFallback(false);
-  };
-
-  const startAISession = () => {
-    setShowOptions(false);
-    setActiveSession('ai');
-    setMessages([
-      ...messages,
-      {
-        text: `What would you like help with in ${currentSubject} today? I'm here to answer any questions about your studies.`,
-        sender: 'athro',
-        avatar: currentAthro.avatar
-      }
-    ]);
-  };
-
-  const startManualSession = () => {
-    setShowOptions(false);
-    setActiveSession('manual');
-  };
-
-  const startPastPaperSession = () => {
-    setShowOptions(false);
-    setActiveSession('past-paper');
-  };
-
-  const handleTopicSelection = (topic: string) => {
-    setSelectedTopic(topic);
-    setMessages([
-      ...messages,
-      {
-        text: `Let's review ${topic}. What specific aspect would you like to focus on?`,
-        sender: 'athro',
-        avatar: currentAthro.avatar
-      }
-    ]);
-  };
-
-  const continueWithoutTopic = () => {
-    setMessages([
-      ...messages,
-      {
-        text: `What would you like to learn about in ${currentSubject} today? I'm here to help with any questions you might have.`,
-        sender: 'athro',
-        avatar: currentAthro.avatar
-      }
-    ]);
-  };
-
-  const handleModalClose = () => {
-    setActiveSession(null);
-    continueWithoutTopic();
-  };
-
-  const handlePaperSelection = (paper: string) => {
-    setSelectedPaper(paper);
-    setMessages([
-      ...messages,
-      {
-        text: `I've loaded ${paper}. Let's work through it together. Ask me about any question you find challenging.`,
-        sender: 'athro',
-        avatar: currentAthro.avatar
-      }
-    ]);
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const fileName = e.target.files[0].name;
-      setMessages([
-        ...messages,
-        {
-          text: `I've received your file "${fileName}". Let's work through it together. What question would you like to start with?`,
-          sender: 'athro',
-          avatar: currentAthro.avatar
-        }
-      ]);
-    }
-  };
-
-  const handleFileSelect = (file: UploadedFile) => {
-    setSelectedFile(file);
-    setShowFileReferences(false);
-    
-    const fileReference = file.label 
-      ? `your ${file.label}` 
-      : `the ${file.subject} ${file.fileType === 'paper' ? 'past paper' : file.fileType}`;
-    
-    setMessages(prev => [...prev, {
-      text: `Let's take a look at ${fileReference}. What specific part would you like to focus on?`,
-      sender: 'athro',
-      avatar: currentAthro.avatar
-    }]);
-  };
-
-  const handlePomodoroComplete = () => {
-    toast({
-      title: "Pomodoro Session Complete",
-      description: "Great job! Time for a break.",
-      duration: 5000,
-    });
-  };
-
-  const currentTopics = currentAthro.topics;
-
-  const pastPapers = [
-    `${currentSubject} Unit 1 - Autumn 2022`,
-    `${currentSubject} Unit 2 - Summer 2022`,
-    `${currentSubject} Unit 1 - Summer 2021`,
-    `${currentSubject} Unit 2 - Autumn 2021`
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -321,7 +307,7 @@ const StudySessionPage: React.FC = () => {
                   </div>
                   <div className="flex-grow">
                     <h4 className="font-medium mb-2">Change Subject:</h4>
-                    <Select onValueChange={changeSubject} value={currentSubject}>
+                    <Select onValueChange={handleActions.changeSubject} value={currentSubject}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Subject" />
                       </SelectTrigger>
@@ -409,7 +395,7 @@ const StudySessionPage: React.FC = () => {
 
                   {showPomodoroTimer && (
                     <div className="pt-2">
-                      <PomodoroTimer onComplete={handlePomodoroComplete} />
+                      <PomodoroTimer onComplete={handleActions.handlePomodoroComplete} />
                     </div>
                   )}
 
@@ -417,13 +403,13 @@ const StudySessionPage: React.FC = () => {
                     <FileReference 
                       userId={mockUserId} 
                       subject={currentSubject.toLowerCase()} 
-                      onFileSelect={handleFileSelect} 
+                      onFileSelect={handleActions.handleFileSelect} 
                     />
                   )}
 
                   <div className="pt-4">
                     <h4 className="font-medium mb-2">Change Subject:</h4>
-                    <Select onValueChange={changeSubject} value={currentSubject}>
+                    <Select onValueChange={handleActions.changeSubject} value={currentSubject}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Subject" />
                       </SelectTrigger>
@@ -463,7 +449,7 @@ const StudySessionPage: React.FC = () => {
                 <CardContent className="flex-grow flex items-center justify-center p-8">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-3xl">
                     <Button
-                      onClick={startAISession}
+                      onClick={handleActions.startAISession}
                       className="h-auto py-12 flex flex-col bg-purple-600 hover:bg-purple-700"
                     >
                       <BookOpen className="h-16 w-16 mb-4" />
@@ -471,7 +457,7 @@ const StudySessionPage: React.FC = () => {
                     </Button>
                     
                     <Button
-                      onClick={startManualSession}
+                      onClick={handleActions.startManualSession}
                       className="h-auto py-12 flex flex-col bg-blue-600 hover:bg-blue-700"
                     >
                       <GraduationCap className="h-16 w-16 mb-4" />
@@ -479,7 +465,7 @@ const StudySessionPage: React.FC = () => {
                     </Button>
                     
                     <Button
-                      onClick={startPastPaperSession}
+                      onClick={handleActions.startPastPaperSession}
                       className="h-auto py-12 flex flex-col bg-amber-500 hover:bg-amber-600"
                     >
                       <FileText className="h-16 w-16 mb-4" />
@@ -545,7 +531,7 @@ const StudySessionPage: React.FC = () => {
               )}
               
               {activeSession === 'manual' && !selectedTopic && (
-                <Dialog open={true} onOpenChange={() => handleModalClose()}>
+                <Dialog open={true} onOpenChange={() => handleActions.handleModalClose()}>
                   <DialogContent className="sm:max-w-md bg-white">
                     <DialogHeader>
                       <DialogTitle>Select a Topic in {currentSubject}</DialogTitle>
@@ -557,7 +543,7 @@ const StudySessionPage: React.FC = () => {
                           variant="outline"
                           className="h-auto py-3 justify-start"
                           onClick={() => {
-                            handleTopicSelection(topic);
+                            handleActions.handleTopicSelection(topic);
                             setActiveSession(null);
                           }}
                         >
@@ -570,21 +556,21 @@ const StudySessionPage: React.FC = () => {
                         variant="ghost" 
                         onClick={() => {
                           setActiveSession(null);
-                          continueWithoutTopic();
+                          handleActions.continueWithoutTopic();
                         }}
                       >
                         Skip topic selection
                       </Button>
                     </div>
                     <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none" 
-                      onClick={handleModalClose}
+                      onClick={handleActions.handleModalClose}
                     />
                   </DialogContent>
                 </Dialog>
               )}
               
               {activeSession === 'past-paper' && !selectedPaper && (
-                <Dialog open={true} onOpenChange={() => handleModalClose()}>
+                <Dialog open={true} onOpenChange={() => handleActions.handleModalClose()}>
                   <DialogContent className="sm:max-w-md bg-white">
                     <DialogHeader>
                       <DialogTitle>Select a Past Paper</DialogTitle>
@@ -594,7 +580,7 @@ const StudySessionPage: React.FC = () => {
                       <div>
                         <Label htmlFor="paperSelect">Choose from available papers:</Label>
                         <Select onValueChange={(paper) => {
-                          handlePaperSelection(paper);
+                          handleActions.handlePaperSelection(paper);
                           setActiveSession(null);
                         }}>
                           <SelectTrigger>
@@ -630,7 +616,7 @@ const StudySessionPage: React.FC = () => {
                               accept=".pdf"
                               className="hidden"
                               onChange={(e) => {
-                                handleFileUpload(e);
+                                handleActions.handleFileUpload(e);
                                 setActiveSession(null);
                               }}
                             />
@@ -643,7 +629,7 @@ const StudySessionPage: React.FC = () => {
                           variant="ghost" 
                           onClick={() => {
                             setActiveSession(null);
-                            continueWithoutTopic();
+                            handleActions.continueWithoutTopic();
                           }}
                         >
                           Skip paper selection
@@ -651,7 +637,7 @@ const StudySessionPage: React.FC = () => {
                       </div>
                     </div>
                     <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none" 
-                      onClick={handleModalClose}
+                      onClick={handleActions.handleModalClose}
                     />
                   </DialogContent>
                 </Dialog>
