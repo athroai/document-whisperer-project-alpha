@@ -16,3 +16,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     detectSessionInUrl: true
   }
 });
+
+// Add helper function for type assertion to address type issues
+export const typedSupabase = supabase as any;

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, typedSupabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Valid Supabase table names - including our new tables
@@ -55,8 +55,8 @@ export function useSupabaseQuery<T = any>(
     setError(null);
 
     try {
-      // Use type assertion to avoid infinite type recursion issues
-      let query = supabase.from(tableName).select(select) as any;
+      // Use typedSupabase to avoid TypeScript errors
+      let query = typedSupabase.from(tableName).select(select);
 
       if (filter) {
         for (const [key, value] of Object.entries(filter)) {
@@ -128,8 +128,8 @@ export function useSupabaseRealtime<T = any>(
 
     const fetchInitialData = async () => {
       try {
-        // Use type assertion to break potential infinite type recursion
-        let query = supabase.from(tableName).select('*') as any;
+        // Use typedSupabase to avoid TypeScript errors
+        let query = typedSupabase.from(tableName).select('*');
 
         if (options.filter) {
           for (const [key, value] of Object.entries(options.filter)) {

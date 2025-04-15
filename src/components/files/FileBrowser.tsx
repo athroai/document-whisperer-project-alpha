@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, typedSupabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -50,9 +51,9 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       setLoading(true);
       setError(null);
 
-      let query = supabase
-        .from('uploads' as any)
-        .select('*') as any;
+      let query = typedSupabase
+        .from('uploads')
+        .select('*');
 
       if (tab === 'my-files') {
         query = query.eq('uploaded_by', user.id);
@@ -120,10 +121,10 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
         
       if (storageError) throw storageError;
       
-      const { error: dbError } = await supabase
-        .from('uploads' as any)
+      const { error: dbError } = await typedSupabase
+        .from('uploads')
         .delete()
-        .eq('id', file.id || '') as any;
+        .eq('id', file.id || '');
         
       if (dbError) throw dbError;
       
@@ -139,10 +140,10 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
     try {
       const newVisibility = file.visibility === 'private' ? 'public' : 'private';
       
-      const { error } = await supabase
-        .from('uploads' as any)
-        .update({ visibility: newVisibility } as any)
-        .eq('id', file.id || '') as any;
+      const { error } = await typedSupabase
+        .from('uploads')
+        .update({ visibility: newVisibility })
+        .eq('id', file.id || '');
         
       if (error) throw error;
       

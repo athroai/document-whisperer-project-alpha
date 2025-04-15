@@ -9,7 +9,7 @@ import { FileUp, X } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, typedSupabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
 interface UploadFilePanelProps {
@@ -91,22 +91,24 @@ const UploadFilePanel: React.FC<UploadFilePanelProps> = ({
           .from(bucketName)
           .getPublicUrl(filePath);
 
-        const { error: dbError } = await supabase
-          .from('uploads' as any)
-          .insert({
-            filename: fileName,
-            original_name: file.name,
-            storage_path: filePath,
-            file_url: publicUrlData?.publicUrl,
-            bucket_name: bucketName,
-            subject,
-            topic: topic || null,
-            visibility,
-            mime_type: file.type,
-            size: file.size,
-            file_type: topic || 'general',
-            uploaded_by: state.user.id
-          } as any);
+        const uploadData = {
+          filename: fileName,
+          original_name: file.name,
+          storage_path: filePath,
+          file_url: publicUrlData?.publicUrl,
+          bucket_name: bucketName,
+          subject,
+          topic: topic || null,
+          visibility,
+          mime_type: file.type,
+          size: file.size,
+          file_type: topic || 'general',
+          uploaded_by: state.user.id
+        };
+
+        const { error: dbError } = await typedSupabase
+          .from('uploads')
+          .insert(uploadData);
 
         if (dbError) {
           throw new Error(`Database error: ${dbError.message}`);

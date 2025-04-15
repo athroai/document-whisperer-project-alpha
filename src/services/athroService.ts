@@ -1,16 +1,28 @@
 
 import { AthroCharacter, AthroSubject, ExamBoard } from '@/types/athro';
 import { FeedbackSummary } from '@/types/feedback';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, typedSupabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
+
+// Type definition for athro_characters table row
+interface AthroCharacterRow {
+  id: string;
+  name: string;
+  subject: string;
+  avatar_url: string;
+  description: string;
+  strengths?: string[];
+  created_at: string;
+  updated_at: string;
+}
 
 // Service for Athro character management
 const athroService = {
   // Get available Athro characters - from Supabase
   getCharacters: async (): Promise<AthroCharacter[]> => {
     try {
-      // Using properly typed table name
-      const { data, error } = await supabase
+      // Using typedSupabase to bypass type checking
+      const { data, error } = await typedSupabase
         .from('athro_characters')
         .select('*');
         
@@ -25,7 +37,7 @@ const athroService = {
       }
       
       // Map database fields to our AthroCharacter type with explicit type assertions
-      return data.map((char: any) => ({
+      return data.map((char: AthroCharacterRow) => ({
         id: char.id,
         name: char.name,
         subject: char.subject as AthroSubject,
@@ -78,8 +90,8 @@ const athroService = {
   // Get a character by ID
   getCharacterById: async (id: string): Promise<AthroCharacter | null> => {
     try {
-      // Using properly typed table name
-      const { data, error } = await supabase
+      // Using typedSupabase to bypass type checking
+      const { data, error } = await typedSupabase
         .from('athro_characters')
         .select('*')
         .eq('id', id)
@@ -93,7 +105,7 @@ const athroService = {
       if (!data) return null;
       
       // Explicit type assertion for database fields
-      const char = data;
+      const char = data as AthroCharacterRow;
       return {
         id: char.id,
         name: char.name,
@@ -113,8 +125,8 @@ const athroService = {
   // Get a character by subject
   getCharacterBySubject: async (subject: string): Promise<AthroCharacter | null> => {
     try {
-      // Using properly typed table name
-      const { data, error } = await supabase
+      // Using typedSupabase to bypass type checking
+      const { data, error } = await typedSupabase
         .from('athro_characters')
         .select('*')
         .ilike('subject', subject)
@@ -128,7 +140,7 @@ const athroService = {
       if (!data) return null;
       
       // Type assertion to access properties
-      const char = data;
+      const char = data as AthroCharacterRow;
       return {
         id: char.id,
         name: char.name,
