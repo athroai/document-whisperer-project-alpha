@@ -34,7 +34,7 @@ export function useAthroMessages() {
     setMessages([]);
   }, []);
 
-  const sendMessage = useCallback(async (content: string, activeCharacter?: AthroCharacter | null) => {
+  const sendMessage = useCallback(async (content: string, activeCharacter?: AthroCharacter | null): Promise<AthroMessage | null> => {
     console.log('📨 Sending message:', { 
       content, 
       characterName: activeCharacter?.name || 'No Character',

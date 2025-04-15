@@ -15,7 +15,7 @@ export async function mockAthroResponse(
   const questionMatch = findMatchingQuestion(message);
   
   let content = '';
-  let referencedResources: string[] = [];
+  let referencedResources: {id: string; name: string; type: string;}[] = [];
   
   if (questionMatch) {
     // If we have a matching question, use its model answer
@@ -23,7 +23,7 @@ export async function mockAthroResponse(
     
     if (answer) {
       content = `I can help with this ${questionMatch.topic} question.\n\n${formatWorkingSteps(answer.workingSteps)}\n\nThe final answer is: ${answer.markScheme}`;
-      referencedResources = [questionMatch.id];
+      referencedResources = [{id: questionMatch.id, name: questionMatch.id, type: 'question'}];
     } else {
       content = generateSubjectResponse(message, subject);
     }
