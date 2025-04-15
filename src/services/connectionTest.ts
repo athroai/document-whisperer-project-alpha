@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -18,7 +17,6 @@ export interface ConnectionTestResult {
 
 export const testSupabaseConnection = async (timeoutMs = 20000): Promise<ConnectionTestResult> => {
   try {
-    // Check if we're online first
     if (!navigator.onLine) {
       return { 
         success: false, 
@@ -26,33 +24,31 @@ export const testSupabaseConnection = async (timeoutMs = 20000): Promise<Connect
         message: 'Your device is offline'
       };
     }
-    
+
     const startTime = Date.now();
-    
-    // Timeout promise
-    const timeoutPromise = new Promise<ConnectionTestResult>((resolve) => {
+
+    const timeoutPromise: Promise<ConnectionTestResult> = new Promise((resolve) => {
       setTimeout(() => {
         resolve({
           success: false,
           status: 'timeout',
-          message: `Connection timed out after ${timeoutMs/1000} seconds`
+          message: `Connection timed out after ${timeoutMs / 1000} seconds`
         });
       }, timeoutMs);
     });
-    
-    // Actual Supabase database query
-    const queryPromise = supabase
+
+    const queryPromise: Promise<ConnectionTestResult> = supabase
       .from('profiles')
       .select('id')
       .limit(1)
       .then(({ data, error }) => {
         const duration = Date.now() - startTime;
-        
+
         if (error) {
-          return { 
-            success: false, 
-            status: 'error',
-            error, 
+          return {
+            success: false,
+            status: 'error', // ✅ Must match DatabaseStatus
+            error,
             message: `Database query failed: ${error.message}`,
             duration,
             diagnosticInfo: {
@@ -60,27 +56,25 @@ export const testSupabaseConnection = async (timeoutMs = 20000): Promise<Connect
               details: error.details,
               hint: error.hint
             }
-          };
+          } as ConnectionTestResult;
         }
-        
-        return { 
-          success: true, 
-          status: 'connected',
-          data, 
-          duration, 
-          message: `Connected successfully in ${duration}ms` 
-        };
+
+        return {
+          success: true,
+          status: 'connected', // ✅ Must match DatabaseStatus
+          data,
+          duration,
+          message: `Connected successfully in ${duration}ms`
+        } as ConnectionTestResult;
       });
-    
-    // Race between the query and timeout
+
     return await Promise.race([queryPromise, timeoutPromise]);
   } catch (error: any) {
-    return { 
+    return {
       success: false,
-      status: 'error',
+      status: 'error', // ✅ Must match DatabaseStatus
       error,
       message: error.message || 'Unknown error during connection test'
     };
   }
 };
-
