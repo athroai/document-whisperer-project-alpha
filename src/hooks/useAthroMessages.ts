@@ -113,7 +113,6 @@ export function useAthroMessages() {
       }
       
       // Make the actual API call to OpenAI for non-welcome messages
-      // Fix for TS2304: Define the systemPrompt variable properly
       const systemPrompt = buildSystemPrompt(activeCharacter);
       
       const response = await getOpenAIResponse({

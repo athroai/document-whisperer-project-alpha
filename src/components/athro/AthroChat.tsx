@@ -188,7 +188,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
       const userMessage = `I've uploaded a document: ${file.name}`;
       const messageResult = await sendMessage(userMessage, currentCharacter);
       
-      if (messageResult !== null && uploadResult.id) {
+      if (messageResult && uploadResult.id) {
         const linkResult = await linkDocumentToMessage(uploadResult.id, messageResult.id);
         console.log('Document linked to message:', linkResult);
       }
