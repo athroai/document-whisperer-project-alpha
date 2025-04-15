@@ -9,29 +9,39 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Log connection details for troubleshooting
 console.log(`Initializing Supabase with URL: ${SUPABASE_URL}`);
 
-// Create a properly typed Supabase client with explicit Database type and auth configuration
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true
-  },
-  global: {
-    headers: {
-      'Content-Type': 'application/json'
+// Create a properly typed Supabase client with explicit Database type
+export const supabase = createClient<Database>(
+  SUPABASE_URL, 
+  SUPABASE_PUBLISHABLE_KEY, 
+  {
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true
     },
-    fetch: (url, options: RequestInit = {}) => {
-      const urlString = url.toString();
-      const headers = new Headers(options.headers || {});
-
-      // ✅ Manually include the API key and Authorization token
-      headers.set('apikey', SUPABASE_PUBLISHABLE_KEY);
-      headers.set('Authorization', `Bearer ${SUPABASE_PUBLISHABLE_KEY}`);
-
-      console.log(`Supabase request: ${urlString.split('?')[0]}`);
-      console.log('Request headers:', Object.fromEntries(headers.entries()));
-
-      return fetch(url, { ...options, headers })
+    global: {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      // Properly type the fetch function parameters
+      fetch: (url: RequestInfo | URL, fetchOptions: RequestInit = {}) => {
+        const urlString = url.toString();
+        
+        // Create a new Headers object from existing headers or empty object
+        const headers = new Headers(fetchOptions.headers || {});
+        
+        // Add required Supabase headers
+        headers.set('apikey', SUPABASE_PUBLISHABLE_KEY);
+        headers.set('Authorization', `Bearer ${SUPABASE_PUBLISHABLE_KEY}`);
+        
+        console.log(`Supabase request: ${urlString.split('?')[0]}`);
+        console.log('Request headers:', Object.fromEntries(headers.entries()));
+        
+        // Return the fetch with updated headers
+        return fetch(url, { 
+          ...fetchOptions, 
+          headers 
+        })
         .then(response => {
           console.log(`Supabase response status: ${response.status}`);
           if (!response.ok) {
@@ -43,9 +53,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
           console.error(`Supabase fetch error:`, error);
           throw error;
         });
+      }
     }
   }
-});
+);
 
 // Export the test connection utility
 export const testConnection = async () => {
