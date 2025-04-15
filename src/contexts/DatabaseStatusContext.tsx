@@ -35,12 +35,26 @@ export const DatabaseStatusProvider: React.FC<{ children: React.ReactNode }> = (
     }
 
     try {
-      // Use shorter timeout to prevent long waiting
+      // First try a simple fetch to see if the domain is reachable
+      try {
+        console.log('Testing basic connectivity to Supabase domain...');
+        await fetch('https://oqpwgxrqwbgchirnnejj.supabase.co/ping', { 
+          method: 'GET',
+          mode: 'no-cors',
+          cache: 'no-cache'
+        });
+      } catch (networkError) {
+        console.error('Basic connectivity test failed:', networkError);
+        setError(new Error('Cannot reach the Supabase server. Check your network connection and firewall settings.'));
+        return navigator.onLine ? 'error' : 'offline';
+      }
+      
+      // Use longer timeout (10s) for actual query
       const timeoutPromise = new Promise<DatabaseStatus>((resolve) => {
         setTimeout(() => {
-          console.log('Connection check timed out after 3 seconds');
+          console.log('Connection check timed out after 10 seconds');
           resolve('error');
-        }, 3000);
+        }, 10000);
       });
       
       const connectionPromise = (async () => {
