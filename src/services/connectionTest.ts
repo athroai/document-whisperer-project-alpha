@@ -1,11 +1,14 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { PostgrestError } from '@supabase/supabase-js';
+
+export type DatabaseStatus = 'connected' | 'offline' | 'error' | 'timeout';
 
 export interface ConnectionTestResult {
   success: boolean;
-  status?: 'connected' | 'offline' | 'error' | 'timeout';
-  error?: Error;
+  status: DatabaseStatus;
   message?: string;
+  error?: Error | PostgrestError;
   data?: any;
   duration?: number;
   corsStatus?: number;
@@ -15,8 +18,6 @@ export interface ConnectionTestResult {
 
 export const testSupabaseConnection = async (timeoutMs = 20000): Promise<ConnectionTestResult> => {
   try {
-    console.log('Running comprehensive connection test...');
-    
     // Check if we're online first
     if (!navigator.onLine) {
       return { 
@@ -82,3 +83,4 @@ export const testSupabaseConnection = async (timeoutMs = 20000): Promise<Connect
     };
   }
 };
+
