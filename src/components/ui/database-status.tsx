@@ -5,7 +5,15 @@ import { Badge } from "./badge";
 import { AlertCircle, CheckCircle, Clock, WifiOff } from "lucide-react";
 import { Button } from "./button";
 
-export const DatabaseStatus = () => {
+interface DatabaseStatusProps {
+  compact?: boolean;
+  className?: string;
+}
+
+export const DatabaseStatus: React.FC<DatabaseStatusProps> = ({ 
+  compact = false,
+  className = ""
+}) => {
   const { status, lastCheck, retry, error } = useDatabaseStatus();
 
   const getBadgeColor = () => {
@@ -59,8 +67,22 @@ export const DatabaseStatus = () => {
     }
   };
 
+  if (compact) {
+    return (
+      <div className={`${className}`}>
+        <Badge
+          variant="outline"
+          className={`cursor-default flex items-center space-x-1 ${getBadgeColor()}`}
+        >
+          {getStatusIcon()}
+          <span>{getStatusText()}</span>
+        </Badge>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col">
+    <div className={`flex flex-col ${className}`}>
       <div className="flex items-center space-x-2">
         <Badge
           variant="outline"
