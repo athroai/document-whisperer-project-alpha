@@ -3,6 +3,7 @@ export interface Student {
   id: string;
   name: string;
   email: string;
+  year?: number;
   confidenceTrend: Array<{
     date: string;
     confidence: number;
