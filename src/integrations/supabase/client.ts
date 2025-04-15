@@ -19,3 +19,21 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Add helper function for type assertion to address type issues
 export const typedSupabase = supabase as any;
+
+// Extended type definition for uploads table to handle additional properties used in the codebase
+export interface ExtendedUpload extends Database['public']['Tables']['uploads']['Row'] {
+  bucket_name?: string;
+  file_URL?: string;
+  fileURL?: string;
+  url?: string;
+}
+
+// Function to convert database record to extended upload type
+export const toExtendedUpload = (data: Database['public']['Tables']['uploads']['Row']): ExtendedUpload => {
+  return {
+    ...data,
+    bucket_name: 'student_uploads', // Default bucket name
+    fileURL: data.file_url,
+    url: data.file_url,
+  };
+};

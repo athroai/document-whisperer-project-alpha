@@ -1,5 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, typedSupabase, ExtendedUpload, toExtendedUpload } from '@/integrations/supabase/client';
 
 export interface UploadedFile {
   id?: string;
@@ -71,25 +70,28 @@ export const getRecentFiles = async (userId: string): Promise<UploadedFile[]> =>
     
     if (error) throw error;
     
-    return data.map(file => ({
-      id: file.id,
-      userId: file.uploaded_by,
-      filename: file.filename,
-      fileType: file.file_type,
-      fileURL: file.file_url,
-      originalName: file.original_name,
-      subject: file.subject,
-      description: file.description,
-      size: file.size,
-      createdAt: new Date(file.created_at),
-      url: file.file_url,
-      mimeType: file.mime_type || 'application/octet-stream',
-      uploadedBy: file.uploaded_by,
-      visibility: file.visibility || 'private',
-      storagePath: file.storage_path,
-      timestamp: file.created_at,
-      bucket_name: file.bucket_name,
-    }));
+    return data.map(file => {
+      const extendedFile = toExtendedUpload(file);
+      return {
+        id: file.id,
+        userId: file.uploaded_by,
+        filename: file.filename,
+        fileType: file.file_type,
+        fileURL: file.file_url,
+        originalName: file.original_name,
+        subject: file.subject,
+        description: file.description,
+        size: file.size,
+        createdAt: new Date(file.created_at || ''),
+        url: file.file_url,
+        mimeType: file.mime_type || 'application/octet-stream',
+        uploadedBy: file.uploaded_by,
+        visibility: file.visibility || 'private',
+        storagePath: file.storage_path,
+        timestamp: file.created_at,
+        bucket_name: extendedFile.bucket_name,
+      };
+    });
   } catch (error) {
     console.error('Error getting recent files:', error);
     throw error;
@@ -108,25 +110,28 @@ export const getFilesBySubject = async (userId: string, subject: string): Promis
       
     if (error) throw error;
     
-    return data.map(file => ({
-      id: file.id,
-      userId: file.uploaded_by,
-      filename: file.filename,
-      fileType: file.file_type,
-      fileURL: file.file_url,
-      originalName: file.original_name,
-      subject: file.subject,
-      description: file.description,
-      size: file.size,
-      createdAt: new Date(file.created_at),
-      url: file.file_url,
-      mimeType: file.mime_type || 'application/octet-stream',
-      uploadedBy: file.uploaded_by,
-      visibility: file.visibility || 'private',
-      storagePath: file.storage_path,
-      timestamp: file.created_at,
-      bucket_name: file.bucket_name,
-    }));
+    return data.map(file => {
+      const extendedFile = toExtendedUpload(file);
+      return {
+        id: file.id,
+        userId: file.uploaded_by,
+        filename: file.filename,
+        fileType: file.file_type,
+        fileURL: file.file_url,
+        originalName: file.original_name,
+        subject: file.subject,
+        description: file.description,
+        size: file.size,
+        createdAt: new Date(file.created_at || ''),
+        url: file.file_url,
+        mimeType: file.mime_type || 'application/octet-stream',
+        uploadedBy: file.uploaded_by,
+        visibility: file.visibility || 'private',
+        storagePath: file.storage_path,
+        timestamp: file.created_at,
+        bucket_name: extendedFile.bucket_name,
+      };
+    });
   } catch (error) {
     console.error('Error getting files by subject:', error);
     throw error;
@@ -258,11 +263,10 @@ export const fileService = {
         size: file.size,
         mime_type: file.type,
         storage_path: storagePath,
-        bucket_name: 'student_uploads',
         visibility: 'private'
       };
       
-      const { data: metadataData, error: metadataError } = await supabase
+      const { data: metadataData, error: metadataError } = await typedSupabase
         .from('uploads')
         .insert(fileData)
         .select()
@@ -271,6 +275,8 @@ export const fileService = {
       if (metadataError) throw metadataError;
       
       onProgress?.({ progress: 100, status: 'success' });
+      
+      const bucketName = 'student_uploads'; // Default bucket name
       
       return {
         id: metadataData.id,
@@ -289,7 +295,7 @@ export const fileService = {
         storagePath,
         timestamp: new Date().toISOString(),
         createdAt: new Date(),
-        bucket_name: 'student_uploads'
+        bucket_name: bucketName
       };
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -313,25 +319,28 @@ export const fileService = {
         
       if (error) throw error;
       
-      return data.map(file => ({
-        id: file.id,
-        userId: file.uploaded_by,
-        filename: file.filename,
-        fileType: file.file_type,
-        fileURL: file.file_url,
-        originalName: file.original_name,
-        subject: file.subject,
-        description: file.description,
-        size: file.size,
-        createdAt: new Date(file.created_at),
-        url: file.file_url,
-        mimeType: file.mime_type || 'application/octet-stream',
-        uploadedBy: file.uploaded_by,
-        visibility: file.visibility || 'private',
-        storagePath: file.storage_path,
-        timestamp: file.created_at,
-        bucket_name: file.bucket_name
-      }));
+      return data.map(file => {
+        const extendedFile = toExtendedUpload(file);
+        return {
+          id: file.id,
+          userId: file.uploaded_by,
+          filename: file.filename,
+          fileType: file.file_type,
+          fileURL: file.file_url,
+          originalName: file.original_name,
+          subject: file.subject,
+          description: file.description,
+          size: file.size,
+          createdAt: new Date(file.created_at || ''),
+          url: file.file_url,
+          mimeType: file.mime_type || 'application/octet-stream',
+          uploadedBy: file.uploaded_by,
+          visibility: file.visibility || 'private',
+          storagePath: file.storage_path,
+          timestamp: file.created_at,
+          bucket_name: extendedFile.bucket_name,
+        };
+      });
     } catch (error) {
       console.error('Error getting files:', error);
       throw error;
@@ -344,9 +353,10 @@ export const fileService = {
       if (!file.id) throw new Error('File ID not provided');
       
       // Delete from Supabase Storage
-      if (file.storagePath && file.bucket_name) {
+      if (file.storagePath) {
+        const bucketName = file.bucket_name || 'student_uploads';
         const { error: storageError } = await supabase.storage
-          .from(file.bucket_name)
+          .from(bucketName)
           .remove([file.storagePath]);
           
         if (storageError) throw storageError;
@@ -377,25 +387,28 @@ export const fileService = {
         
       if (error) throw error;
       
-      return data.map(file => ({
-        id: file.id,
-        userId: file.uploaded_by,
-        filename: file.filename,
-        fileType: file.file_type,
-        fileURL: file.file_url,
-        originalName: file.original_name,
-        subject: file.subject,
-        description: file.description,
-        size: file.size,
-        createdAt: new Date(file.created_at),
-        url: file.file_url,
-        mimeType: file.mime_type || 'application/octet-stream',
-        uploadedBy: file.uploaded_by,
-        visibility: file.visibility || 'private',
-        storagePath: file.storage_path,
-        timestamp: file.created_at,
-        bucket_name: file.bucket_name
-      }));
+      return data.map(file => {
+        const extendedFile = toExtendedUpload(file);
+        return {
+          id: file.id,
+          userId: file.uploaded_by,
+          filename: file.filename,
+          fileType: file.file_type,
+          fileURL: file.file_url,
+          originalName: file.original_name,
+          subject: file.subject,
+          description: file.description,
+          size: file.size,
+          createdAt: new Date(file.created_at || ''),
+          url: file.file_url,
+          mimeType: file.mime_type || 'application/octet-stream',
+          uploadedBy: file.uploaded_by,
+          visibility: file.visibility || 'private',
+          storagePath: file.storage_path,
+          timestamp: file.created_at,
+          bucket_name: extendedFile.bucket_name,
+        };
+      });
     } catch (error) {
       console.error('Error getting files by subject:', error);
       throw error;

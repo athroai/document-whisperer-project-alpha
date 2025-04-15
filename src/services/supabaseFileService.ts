@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, typedSupabase, ExtendedUpload, toExtendedUpload } from "@/integrations/supabase/client";
 import { UploadedFile } from "@/types/files";
 
 /**
@@ -85,7 +85,8 @@ export const supabaseFileService = {
         timestamp: uploadData.created_at,
         size: uploadData.size,
         mimeType: uploadData.mime_type,
-        url: uploadData.file_url
+        url: uploadData.file_url,
+        bucket_name: bucketName // Add this line
       };
     } catch (error: any) {
       console.error('Error uploading file:', error);
@@ -106,22 +107,25 @@ export const supabaseFileService = {
         
       if (error) throw error;
       
-      return data.map(file => ({
-        id: file.id,
-        uploadedBy: file.uploaded_by,
-        subject: file.subject,
-        fileType: file.file_type || file.mime_type,
-        visibility: file.visibility,
-        filename: file.filename,
-        original_name: file.original_name,
-        storagePath: file.storage_path,
-        timestamp: file.created_at,
-        size: file.size,
-        mimeType: file.mime_type,
-        url: file.file_url,
-        bucket_name: file.bucket_name,
-        file_url: file.file_url
-      }));
+      return data.map(file => {
+        const bucketName = 'student_uploads'; // Default bucket name
+        return {
+          id: file.id,
+          uploadedBy: file.uploaded_by,
+          subject: file.subject,
+          fileType: file.file_type || file.mime_type,
+          visibility: file.visibility,
+          filename: file.filename,
+          original_name: file.original_name,
+          storagePath: file.storage_path,
+          timestamp: file.created_at,
+          size: file.size,
+          mimeType: file.mime_type,
+          url: file.file_url,
+          bucket_name: bucketName,
+          file_url: file.file_url
+        };
+      });
     } catch (error: any) {
       console.error('Error fetching files:', error);
       throw error;
@@ -175,8 +179,9 @@ export const supabaseFileService = {
   deleteFile: async (file: UploadedFile): Promise<void> => {
     try {
       // First delete from storage
+      const bucketName = file.bucket_name || 'student_uploads';
       const { error: storageError } = await supabase.storage
-        .from(file.bucket_name || 'student_uploads')
+        .from(bucketName)
         .remove([file.storagePath]);
         
       if (storageError) throw storageError;
