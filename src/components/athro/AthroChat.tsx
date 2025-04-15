@@ -190,8 +190,8 @@ const AthroChat: React.FC<AthroChatProps> = ({
       // Store the result of sendMessage in messageResult
       const messageResult = await sendMessage(userMessage, currentCharacter);
       
-      // Only proceed with linking the document if both messageResult and uploadResult.id exist
-      if (messageResult && uploadResult && uploadResult.id) {
+      // First check if both messageResult and uploadResult exist and have id properties
+      if (messageResult && messageResult.id && uploadResult && uploadResult.id) {
         await linkDocumentToMessage(uploadResult.id, messageResult.id);
         console.log('Document linked to message:', uploadResult.id, messageResult.id);
       }

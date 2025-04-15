@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
 import { athroCharacters, getAthroById } from '@/config/athrosConfig';
@@ -10,7 +11,7 @@ interface AthroContextType {
   setActiveCharacter: (character: AthroCharacter | null) => void;
   characters: AthroCharacter[];
   messages: AthroMessage[];
-  sendMessage: (content: string, character?: AthroCharacter | null) => void;
+  sendMessage: (content: string, character?: AthroCharacter | null) => Promise<AthroMessage | null>;
   clearMessages: () => void;
   isTyping: boolean;
   studentProgress: Record<string, {
@@ -25,7 +26,7 @@ const AthroContext = createContext<AthroContextType>({
   setActiveCharacter: () => {},
   characters: [],
   messages: [],
-  sendMessage: () => {},
+  sendMessage: () => Promise.resolve(null),
   clearMessages: () => {},
   isTyping: false,
   studentProgress: {} as Record<string, {
@@ -105,7 +106,7 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     return getTopics(subject, character.topics);
   }, [characters, getTopics]);
 
-  const sendMessage = useCallback((content: string, character: AthroCharacter | null = null) => {
+  const sendMessage = useCallback(async (content: string, character: AthroCharacter | null = null): Promise<AthroMessage | null> => {
     console.log("✉️ SEND MESSAGE TRIGGERED with content:", content);
     
     const charToUse = character || activeCharacter;
@@ -116,12 +117,12 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
         title: "No Character Selected",
         description: "Please select a subject character first.",
       });
-      return;
+      return null;
     }
     
     try {
       console.log("📨 Sending message to:", charToUse.name);
-      sendAthroMessage(content, charToUse);
+      return await sendAthroMessage(content, charToUse);
     } catch (error) {
       console.error("💥 Error in sendMessage:", error);
       toast({
@@ -129,6 +130,7 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
         description: "Failed to send your message. Please try again.",
         variant: "destructive",
       });
+      return null;
     }
   }, [activeCharacter, sendAthroMessage]);
 

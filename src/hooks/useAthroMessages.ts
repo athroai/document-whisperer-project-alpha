@@ -103,7 +103,7 @@ export function useAthroMessages() {
         });
         
         setIsTyping(false);
-        return null;
+        return userMessage; // Return the user message or null for welcome messages
       }
       
       // Make the actual API call to OpenAI for non-welcome messages
