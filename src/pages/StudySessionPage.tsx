@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,8 @@ import PomodoroTimer from '@/components/PomodoroTimer';
 import { toast } from '@/components/ui/use-toast';
 import FileReference from '@/components/FileReference';
 import { UploadedFile } from '@/types/auth';
+import { getOpenAIResponse } from '@/lib/openai';
+import { buildSystemPrompt } from '@/utils/athroPrompts';
 
 const athroCharacters = {
   Mathematics: { 
@@ -44,6 +47,7 @@ const StudySessionPage: React.FC = () => {
     },
   ]);
   
+  const [isLoading, setIsLoading] = useState(false);
   const [showOptions, setShowOptions] = useState(true);
   const [activeSession, setActiveSession] = useState<'ai' | 'manual' | 'past-paper' | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
@@ -57,35 +61,88 @@ const StudySessionPage: React.FC = () => {
 
   const mockUserId = 'user_1';
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (message.trim()) {
+      // Add user message to the chat
       setMessages([...messages, { text: message, sender: 'user', avatar: '' }]);
       
-      const isVagueInput = message.trim().length < 5 || ['dunno', 'not sure', 'idk', 'help', 'hi'].includes(message.trim().toLowerCase());
+      // Start loading state
+      setIsLoading(true);
       
-      setTimeout(() => {
-        if (isVagueInput && !hasShownFallback) {
-          setMessages(prev => [...prev, {
-            text: `I'm here to help with your ${currentSubject} questions! Let me know what specific topic you'd like to explore or what problems you're facing.`,
-            sender: 'athro',
-            avatar: currentAthro.avatar
-          }]);
-          setHasShownFallback(true);
+      try {
+        // Create a character object to use with the system prompt
+        const character = {
+          id: currentSubject.toLowerCase(),
+          name: currentAthro.name,
+          subject: currentSubject,
+          topics: currentAthro.topics,
+          examBoards: ['wjec', 'aqa', 'edexcel'],
+          supportsMathNotation: currentSubject === 'Mathematics' || currentSubject === 'Science',
+          avatarUrl: currentAthro.avatar,
+          shortDescription: `Your ${currentSubject} study mentor`
+        };
+
+        // Build system prompt for the current character
+        const systemPrompt = buildSystemPrompt(character);
+        console.log('🔍 Using system prompt for:', character.name);
+        
+        let response;
+        
+        // Use a demo key for development/testing
+        const openAIApiKey = "sk-demo-12345678901234567890";
+        
+        // Check if we're in development or using a demo key
+        if (process.env.NODE_ENV === 'development' || openAIApiKey.includes('demo')) {
+          console.log('🧪 Using mock response for main chat interface');
+          
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Generate a subject-specific response
+          response = generateSubjectResponse(message, currentSubject);
         } else {
-          const subjectSpecificResponse = generateSubjectResponse(message, currentSubject);
-          setMessages(prev => [...prev, {
-            text: subjectSpecificResponse,
-            sender: 'athro',
-            avatar: currentAthro.avatar
-          }]);
+          // Make a real API call if we have a proper key
+          response = await getOpenAIResponse({
+            systemPrompt,
+            userMessage: message,
+            apiKey: openAIApiKey
+          });
         }
         
+        // Add AI response to the chat
+        setMessages(prev => [...prev, {
+          text: response,
+          sender: 'athro',
+          avatar: currentAthro.avatar
+        }]);
+        
+        // Show file references randomly (for demo)
         if (Math.random() > 0.5) {
           setShowFileReferences(true);
         }
-      }, 1000);
-      
-      setMessage('');
+        
+      } catch (error) {
+        console.error('Error getting response:', error);
+        
+        // Show error message
+        toast({
+          title: "Connection Error",
+          description: "Failed to get a response. Please try again.",
+          variant: "destructive",
+        });
+        
+        // Add error message to chat
+        setMessages(prev => [...prev, {
+          text: "I'm having trouble connecting right now. Could you try again in a moment?",
+          sender: 'athro',
+          avatar: currentAthro.avatar
+        }]);
+      } finally {
+        // Stop loading state
+        setIsLoading(false);
+        // Clear input field
+        setMessage('');
+      }
     }
   };
 
@@ -451,6 +508,28 @@ const StudySessionPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                  
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[80%] rounded-lg p-3 bg-white border border-gray-200 mr-12">
+                        <div className="flex items-center mb-2">
+                          <div className="w-8 h-8 mr-2">
+                            <img 
+                              src={currentAthro.avatar} 
+                              alt="Athro Avatar" 
+                              className="w-full h-full object-cover rounded-full" 
+                            />
+                          </div>
+                          <span className="font-medium text-purple-700">{currentAthro.name}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                          <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '600ms' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               )}
               
@@ -581,10 +660,12 @@ const StudySessionPage: React.FC = () => {
                           handleSendMessage();
                         }
                       }}
+                      disabled={isLoading}
                     />
                     <Button 
                       className="h-auto bg-purple-600 hover:bg-purple-700"
                       onClick={handleSendMessage}
+                      disabled={isLoading || !message.trim()}
                     >
                       <Send className="h-4 w-4" />
                       <span className="sr-only">Send message</span>
@@ -601,6 +682,118 @@ const StudySessionPage: React.FC = () => {
       </div>
     </div>
   );
+  
+  // Include the missing functions that were referenced in the component
+  function changeSubject(subject: string) {
+    setCurrentSubject(subject);
+    setCurrentAthro(athroCharacters[subject as keyof typeof athroCharacters]);
+    
+    setMessages([
+      { 
+        text: `Hello! I'm ${athroCharacters[subject as keyof typeof athroCharacters].name}, your ${subject} mentor. How can I help you today?`, 
+        sender: 'athro',
+        avatar: athroCharacters[subject as keyof typeof athroCharacters].avatar
+      },
+    ]);
+    
+    setShowOptions(true);
+    setActiveSession(null);
+    setSelectedTopic('');
+    setSelectedPaper('');
+    setHasShownFallback(false);
+  }
+
+  function startAISession() {
+    setShowOptions(false);
+    setActiveSession('ai');
+    setMessages([
+      ...messages,
+      {
+        text: `What would you like help with in ${currentSubject} today? I'm here to answer any questions about your studies.`,
+        sender: 'athro',
+        avatar: currentAthro.avatar
+      }
+    ]);
+  }
+
+  function startManualSession() {
+    setShowOptions(false);
+    setActiveSession('manual');
+  }
+
+  function startPastPaperSession() {
+    setShowOptions(false);
+    setActiveSession('past-paper');
+  }
+
+  function handleTopicSelection(topic: string) {
+    setSelectedTopic(topic);
+    setMessages([
+      ...messages,
+      {
+        text: `Let's review ${topic}. What specific aspect would you like to focus on?`,
+        sender: 'athro',
+        avatar: currentAthro.avatar
+      }
+    ]);
+  }
+
+  function continueWithoutTopic() {
+    setMessages([
+      ...messages,
+      {
+        text: `What would you like to learn about in ${currentSubject} today? I'm here to help with any questions you might have.`,
+        sender: 'athro',
+        avatar: currentAthro.avatar
+      }
+    ]);
+  }
+
+  function handleModalClose() {
+    setActiveSession(null);
+    continueWithoutTopic();
+  }
+
+  function handlePaperSelection(paper: string) {
+    setSelectedPaper(paper);
+    setMessages([
+      ...messages,
+      {
+        text: `I've loaded ${paper}. Let's work through it together. Ask me about any question you find challenging.`,
+        sender: 'athro',
+        avatar: currentAthro.avatar
+      }
+    ]);
+  }
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files[0]) {
+      const fileName = e.target.files[0].name;
+      setMessages([
+        ...messages,
+        {
+          text: `I've received your file "${fileName}". Let's work through it together. What question would you like to start with?`,
+          sender: 'athro',
+          avatar: currentAthro.avatar
+        }
+      ]);
+    }
+  }
+
+  function handleFileSelect(file: UploadedFile) {
+    setSelectedFile(file);
+    setShowFileReferences(false);
+    
+    const fileReference = file.label 
+      ? `your ${file.label}` 
+      : `the ${file.subject} ${file.fileType === 'paper' ? 'past paper' : file.fileType}`;
+    
+    setMessages(prev => [...prev, {
+      text: `Let's take a look at ${fileReference}. What specific part would you like to focus on?`,
+      sender: 'athro',
+      avatar: currentAthro.avatar
+    }]);
+  }
 };
 
 export default StudySessionPage;
