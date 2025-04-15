@@ -187,11 +187,11 @@ const AthroChat: React.FC<AthroChatProps> = ({
 
       // Create a message about the upload
       const userMessage = `I've uploaded a document: ${file.name}`;
-      const messageResponse = await sendMessage(userMessage, currentCharacter);
+      const messageResult = await sendMessage(userMessage, currentCharacter);
 
       // If we have a message ID, link the document to it
-      if (messageResponse && uploadResult.id) {
-        await linkDocumentToMessage(uploadResult.id, messageResponse.id);
+      if (messageResult && uploadResult.id) {
+        await linkDocumentToMessage(uploadResult.id, messageResult.id);
       }
 
       // Refresh document list
