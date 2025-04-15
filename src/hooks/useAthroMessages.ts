@@ -118,7 +118,7 @@ export function useAthroMessages() {
           setIsTyping(false);
         }, 500); // Small delay to simulate typing
         
-        return null;
+        return userMessage;
       }
       
       // Make the actual API call to OpenAI for non-welcome messages
@@ -134,7 +134,7 @@ export function useAthroMessages() {
       
       if (!activeRequests.current.has(requestId)) {
         console.warn('🚫 Request was cancelled');
-        return null;
+        return userMessage;
       }
       
       const athroResponse: AthroMessage = {
@@ -154,7 +154,7 @@ export function useAthroMessages() {
         return updatedMessages;
       });
 
-      return isWelcomeMessage ? null : userMessage;
+      return userMessage;
 
     } catch (error) {
       console.error("🔥 Error getting Athro response:", error);

@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Send, AlertTriangle, Wifi, WifiOff, Bug, Info, Upload, FileText } from 'lucide-react';
+import { Send, AlertTriangle, Wifi, WifiOff, Bug, Info, Upload, FileText, FileImage } from 'lucide-react';
 import { AthroMessage, AthroCharacter } from '@/types/athro';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AthroMathsRenderer from './AthroMathsRenderer';
@@ -11,6 +11,8 @@ import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
 import { DocumentMetadata, uploadDocumentForChat, getDocumentsForCharacter, linkDocumentToMessage } from '@/services/documentService';
+import { extractTextFromImageWithMathpix } from '@/lib/mathpixService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
@@ -27,7 +29,11 @@ const AthroChat: React.FC<AthroChatProps> = ({
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [showOcrDialog, setShowOcrDialog] = useState(false);
+  const [ocrResult, setOcrResult] = useState<{text: string, latex: string, latexConfidence: number}|null>(null);
+  const [processingOcr, setProcessingOcr] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const ocrFileInputRef = useRef<HTMLInputElement>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const initialMessageSent = useRef(false);
   
@@ -110,7 +116,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
     }
     
     console.log('💬 AthroChat - Sending message:', inputMessage);
-    sendMessage(inputMessage);
+    sendMessage(inputMessage, currentCharacter);
     setInputMessage('');
   };
 
@@ -181,7 +187,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
 
       // Create a message about the upload
       const userMessage = `I've uploaded a document: ${file.name}`;
-      const messageResponse = await sendMessage(userMessage);
+      const messageResponse = await sendMessage(userMessage, currentCharacter);
 
       // If we have a message ID, link the document to it
       if (messageResponse && uploadResult.id) {
@@ -210,6 +216,84 @@ const AthroChat: React.FC<AthroChatProps> = ({
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  const handleOcrClick = () => {
+    if (ocrFileInputRef.current) {
+      ocrFileInputRef.current.click();
+    }
+  };
+
+  const handleOcrFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !currentCharacter) {
+      return;
+    }
+    
+    const file = e.target.files[0];
+    const fileType = file.name.split('.').pop()?.toLowerCase() || '';
+    const allowedTypes = ['jpg', 'jpeg', 'png', 'pdf'];
+    
+    if (!allowedTypes.includes(fileType)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload only JPG, PNG, or PDF files for OCR.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "File size should be less than 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setProcessingOcr(true);
+    setShowOcrDialog(true);
+    
+    try {
+      // Process the image with Mathpix OCR
+      const result = await extractTextFromImageWithMathpix(file);
+      setOcrResult(result);
+
+      // Upload the original file to Supabase as well
+      const uploadResult = await uploadDocumentForChat(
+        file, 
+        currentCharacter.id
+      );
+
+      if (uploadResult) {
+        // Refresh document list
+        const updatedDocs = await getDocumentsForCharacter(currentCharacter.id);
+        setDocuments(updatedDocs);
+      }
+      
+    } catch (error) {
+      console.error('Error processing OCR:', error);
+      toast({
+        title: "OCR Processing Failed",
+        description: "There was an error processing your file with OCR.",
+        variant: "destructive",
+      });
+      setShowOcrDialog(false);
+    } finally {
+      setProcessingOcr(false);
+      if (ocrFileInputRef.current) {
+        ocrFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const sendOcrToChat = () => {
+    if (!ocrResult || !currentCharacter) return;
+    
+    const message = `I've scanned this document using OCR: \n\n${ocrResult.text}${ocrResult.latex ? `\n\nLaTeX formatted content:\n${ocrResult.latex}` : ''}`;
+    sendMessage(message, currentCharacter);
+    setShowOcrDialog(false);
+    setOcrResult(null);
   };
 
   const openDocument = (doc: DocumentMetadata) => {
@@ -324,14 +408,26 @@ const AthroChat: React.FC<AthroChatProps> = ({
       
       <div className="flex flex-1">
         <div className="w-56 border-r p-4 flex flex-col">
-          <Button 
-            onClick={handleUploadClick} 
-            className="mb-4 w-full"
-            disabled={uploading || !currentCharacter}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {uploading ? "Uploading..." : "Upload Study Materials"}
-          </Button>
+          <div className="space-y-2 mb-4">
+            <Button 
+              onClick={handleUploadClick} 
+              className="w-full"
+              disabled={uploading || !currentCharacter}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {uploading ? "Uploading..." : "Upload Study Materials"}
+            </Button>
+
+            <Button 
+              onClick={handleOcrClick}
+              className="w-full"
+              disabled={processingOcr || !currentCharacter}
+              variant="secondary"
+            >
+              <FileImage className="h-4 w-4 mr-2" />
+              {processingOcr ? "Processing..." : "Scan with OCR"}
+            </Button>
+          </div>
           
           <input 
             type="file"
@@ -339,6 +435,14 @@ const AthroChat: React.FC<AthroChatProps> = ({
             className="hidden"
             onChange={handleFileChange}
             accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png"
+          />
+
+          <input 
+            type="file"
+            ref={ocrFileInputRef}
+            className="hidden"
+            onChange={handleOcrFileChange}
+            accept=".jpg,.jpeg,.png,.pdf"
           />
           
           <h3 className="text-sm font-medium mb-2">Documents</h3>
@@ -406,7 +510,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
                       <div className="whitespace-pre-wrap">{msg.content}</div>
                     )}
                     
-                    {msg.senderId !== 'user' && msg.referencedResources && msg.referencedResources.length > 0 && (
+                    {msg.referencedResources && msg.referencedResources.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-gray-200">
                         <Button variant="link" size="sm" className="p-0 h-auto text-xs">
                           View referenced materials
@@ -458,6 +562,75 @@ const AthroChat: React.FC<AthroChatProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* OCR Result Dialog */}
+      <Dialog open={showOcrDialog} onOpenChange={setShowOcrDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>OCR Scan Results</DialogTitle>
+          </DialogHeader>
+          
+          {processingOcr ? (
+            <div className="py-8 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <p>Processing your document with Mathpix OCR...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {ocrResult && (
+                <>
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium">Extracted Text</h3>
+                    <div className="p-4 bg-muted rounded border max-h-40 overflow-y-auto">
+                      <pre className="text-sm whitespace-pre-wrap">{ocrResult.text}</pre>
+                    </div>
+                  </div>
+                  
+                  {ocrResult.latex && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">
+                        LaTeX Formatted Content
+                        {ocrResult.latexConfidence > 0 && (
+                          <span className="text-xs ml-2 text-muted-foreground">
+                            (Confidence: {Math.round(ocrResult.latexConfidence * 100)}%)
+                          </span>
+                        )}
+                      </h3>
+                      <div className="p-4 bg-muted rounded border max-h-40 overflow-y-auto">
+                        <pre className="text-sm whitespace-pre-wrap font-mono">{ocrResult.latex}</pre>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button variant="outline" onClick={() => setShowOcrDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={sendOcrToChat}>
+                      Send to Chat
+                    </Button>
+                  </div>
+                </>
+              )}
+              
+              {!ocrResult && !processingOcr && (
+                <div className="py-8 text-center">
+                  <p>Unable to process the document. Please try again.</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4" 
+                    onClick={() => setShowOcrDialog(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
