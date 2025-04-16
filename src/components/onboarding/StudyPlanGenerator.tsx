@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { PomodoroTimer } from '@/components/PomodoroTimer';
+import PomodoroTimer from '@/components/PomodoroTimer';
 
 export const StudyPlanGenerator: React.FC = () => {
   const { state } = useAuth();
