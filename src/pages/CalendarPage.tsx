@@ -10,12 +10,30 @@ import { Calendar as CalendarIcon, Plus, Clock, BookOpen, GraduationCap, ArrowLe
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import StudySessionDialog from '@/components/calendar/StudySessionDialog';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
+
+interface CalendarEvent {
+  id: number | string;
+  title: string;
+  date: Date;
+  type: 'study' | 'quiz' | 'revision';
+  time: string;
+  duration: number;
+  mentor: string;
+  icon?: React.ElementType;
+}
 
 const CalendarPage: React.FC = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [showAddEventDialog, setShowAddEventDialog] = useState(false);
+  const [showStudySessionDialog, setShowStudySessionDialog] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const { toast } = useToast();
 
   // Function to ensure selected date is correctly set 
   const handleDateChange = (selectedDate: Date | undefined) => {
@@ -53,12 +71,78 @@ const CalendarPage: React.FC = () => {
     end: endOfWeek(currentWeekStart, { weekStartsOn: 1 })
   });
 
-  // Sample data - would come from a database in a real application
-  const events = [
-    { id: 1, title: 'Math Review Session', date: new Date(2025, 3, 12), type: 'study', time: '16:00', duration: 45, mentor: 'AthroMaths', icon: BookOpen },
-    { id: 2, title: 'Science Quiz Practice', date: new Date(2025, 3, 14), type: 'quiz', time: '11:00', duration: 30, mentor: 'AthroScience', icon: GraduationCap },
-    { id: 3, title: 'History Timeline Review', date: new Date(2025, 3, 15), type: 'study', time: '14:00', duration: 60, mentor: 'AthroHistory', icon: BookOpen },
-  ];
+  // Load events from the database
+  const loadEvents = async () => {
+    setIsLoadingEvents(true);
+    try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Query calendar events
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('student_id', user.id)
+        .or(`event_type.eq.study_session,event_type.eq.quiz`)
+        .order('start_time', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Transform data to match our CalendarEvent interface
+      const formattedEvents: CalendarEvent[] = data.map(event => {
+        // Parse description if it exists
+        let description = {};
+        try {
+          if (event.description) {
+            description = JSON.parse(event.description);
+          }
+        } catch (e) {
+          console.error('Error parsing event description:', e);
+        }
+        
+        // Determine event icon
+        const eventIcon = event.event_type === 'study_session' ? BookOpen : 
+                          event.event_type === 'quiz' ? GraduationCap : 
+                          CalendarIcon;
+        
+        // Determine event type for styling                  
+        const eventType = event.event_type === 'study_session' ? 'study' : 
+                          event.event_type === 'quiz' ? 'quiz' : 
+                          'revision';
+        
+        return {
+          id: event.id,
+          title: event.title,
+          date: new Date(event.start_time),
+          type: eventType as 'study' | 'quiz' | 'revision',
+          time: format(new Date(event.start_time), 'HH:mm'),
+          duration: Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000),
+          mentor: description.subject ? `${description.subject} Mentor` : 'Athro Mentor',
+          icon: eventIcon
+        };
+      });
+      
+      setEvents(formattedEvents);
+    } catch (error) {
+      console.error('Error loading events:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load calendar events.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
+
+  // Load events on component mount and when dialogs close
+  useEffect(() => {
+    loadEvents();
+  }, []);
 
   // Filter events for the selected date
   const selectedDateEvents = events.filter(event => 
@@ -82,8 +166,11 @@ const CalendarPage: React.FC = () => {
             >
               {viewMode === 'month' ? 'Week View' : 'Month View'}
             </Button>
-            <Button onClick={() => setShowAddEventDialog(true)}>
-              <Plus className="mr-1 h-4 w-4" /> Add Study Session
+            <Button 
+              onClick={() => setShowStudySessionDialog(true)}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Plus className="mr-1 h-4 w-4" /> Schedule Study Session
             </Button>
           </div>
         </div>
@@ -142,12 +229,16 @@ const CalendarPage: React.FC = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {selectedDateEvents.length > 0 ? (
+                  {isLoadingEvents ? (
+                    <div className="text-center py-10 text-gray-500">
+                      <p>Loading events...</p>
+                    </div>
+                  ) : selectedDateEvents.length > 0 ? (
                     <div className="space-y-4">
                       {selectedDateEvents.map(event => {
-                        const EventIcon = event.icon;
+                        const EventIcon = event.icon || CalendarIcon;
                         return (
-                          <div key={event.id} className="flex border rounded-lg p-4">
+                          <div key={String(event.id)} className="flex border rounded-lg p-4">
                             <div 
                               className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 ${
                                 event.type === 'study' ? 'bg-purple-100 text-purple-600' : 
@@ -155,7 +246,7 @@ const CalendarPage: React.FC = () => {
                                 'bg-amber-100 text-amber-600'
                               }`}
                             >
-                              {EventIcon && <EventIcon className="h-6 w-6" />}
+                              <EventIcon className="h-6 w-6" />
                             </div>
                             <div className="flex-grow">
                               <div className="flex justify-between">
@@ -175,7 +266,7 @@ const CalendarPage: React.FC = () => {
                     <div className="text-center py-10 text-gray-500">
                       <CalendarIcon className="mx-auto h-12 w-12 opacity-30 mb-3" />
                       <p>No study sessions scheduled for this day</p>
-                      <p className="text-sm mt-1">Click "Add Study Session" to create a new event</p>
+                      <p className="text-sm mt-1">Click "Schedule Study Session" to create a new event</p>
                     </div>
                   )}
                 </CardContent>
@@ -202,55 +293,61 @@ const CalendarPage: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-7 gap-1">
-                {daysOfWeek.map(day => (
-                  <div key={day.toString()} className="flex flex-col">
-                    <div className={cn(
-                      "text-center py-2 font-medium text-sm",
-                      isSameDay(day, new Date()) ? "bg-blue-100 rounded-t-md" : ""
-                    )}>
-                      <div>{format(day, 'EEE')}</div>
+              {isLoadingEvents ? (
+                <div className="text-center py-10 text-gray-500">
+                  <p>Loading events...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-7 gap-1">
+                  {daysOfWeek.map(day => (
+                    <div key={day.toString()} className="flex flex-col">
                       <div className={cn(
-                        "w-8 h-8 mx-auto flex items-center justify-center rounded-full",
-                        isSameDay(day, new Date()) ? "bg-blue-500 text-white" : ""
+                        "text-center py-2 font-medium text-sm",
+                        isSameDay(day, new Date()) ? "bg-blue-100 rounded-t-md" : ""
                       )}>
-                        {format(day, 'd')}
+                        <div>{format(day, 'EEE')}</div>
+                        <div className={cn(
+                          "w-8 h-8 mx-auto flex items-center justify-center rounded-full",
+                          isSameDay(day, new Date()) ? "bg-blue-500 text-white" : ""
+                        )}>
+                          {format(day, 'd')}
+                        </div>
+                      </div>
+                      <div className={cn(
+                        "border rounded-b-md flex-grow min-h-[150px] bg-white",
+                        isSameDay(day, new Date()) ? "border-blue-200" : "border-gray-200",
+                        "relative"
+                      )}>
+                        {getEventsForDay(day).map(event => (
+                          <div 
+                            key={String(event.id)} 
+                            className={cn(
+                              "p-1 text-xs mb-1 mx-1 rounded",
+                              event.type === 'study' ? "bg-purple-100 text-purple-700" : 
+                              event.type === 'quiz' ? "bg-green-100 text-green-700" : 
+                              "bg-amber-100 text-amber-700"
+                            )}
+                          >
+                            <p className="font-medium">{event.title}</p>
+                            <p>{event.time}</p>
+                          </div>
+                        ))}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="absolute bottom-0 right-0 m-1"
+                          onClick={() => {
+                            handleDateChange(day);
+                            setShowStudySessionDialog(true);
+                          }}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
-                    <div className={cn(
-                      "border rounded-b-md flex-grow min-h-[150px] bg-white",
-                      isSameDay(day, new Date()) ? "border-blue-200" : "border-gray-200",
-                      "relative"
-                    )}>
-                      {getEventsForDay(day).map(event => (
-                        <div 
-                          key={event.id} 
-                          className={cn(
-                            "p-1 text-xs mb-1 mx-1 rounded",
-                            event.type === 'study' ? "bg-purple-100 text-purple-700" : 
-                            event.type === 'quiz' ? "bg-green-100 text-green-700" : 
-                            "bg-amber-100 text-amber-700"
-                          )}
-                        >
-                          <p className="font-medium">{event.title}</p>
-                          <p>{event.time}</p>
-                        </div>
-                      ))}
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="absolute bottom-0 right-0 m-1"
-                        onClick={() => {
-                          handleDateChange(day);
-                          setShowAddEventDialog(true);
-                        }}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -267,12 +364,16 @@ const CalendarPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {selectedDateEvents.length > 0 ? (
+              {isLoadingEvents ? (
+                <div className="text-center py-10 text-gray-500">
+                  <p>Loading events...</p>
+                </div>
+              ) : selectedDateEvents.length > 0 ? (
                 <div className="space-y-4">
                   {selectedDateEvents.map(event => {
-                    const EventIcon = event.icon;
+                    const EventIcon = event.icon || CalendarIcon;
                     return (
-                      <div key={event.id} className="flex border rounded-lg p-4">
+                      <div key={String(event.id)} className="flex border rounded-lg p-4">
                         <div 
                           className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 ${
                             event.type === 'study' ? 'bg-purple-100 text-purple-600' : 
@@ -300,7 +401,7 @@ const CalendarPage: React.FC = () => {
                 <div className="text-center py-10 text-gray-500">
                   <CalendarIcon className="mx-auto h-12 w-12 opacity-30 mb-3" />
                   <p>No study sessions scheduled for this day</p>
-                  <p className="text-sm mt-1">Click "Add Study Session" to create a new event</p>
+                  <p className="text-sm mt-1">Click "Schedule Study Session" to create a new event</p>
                 </div>
               )}
             </CardContent>
@@ -308,7 +409,15 @@ const CalendarPage: React.FC = () => {
         )}
       </div>
       
-      {/* Add Event Dialog */}
+      {/* Study Session Dialog */}
+      <StudySessionDialog
+        open={showStudySessionDialog}
+        onOpenChange={setShowStudySessionDialog}
+        selectedDate={date}
+        onSuccess={loadEvents}
+      />
+      
+      {/* Legacy Add Event Dialog - kept for reference */}
       <Dialog open={showAddEventDialog} onOpenChange={setShowAddEventDialog}>
         <DialogContent>
           <DialogHeader>
@@ -364,7 +473,6 @@ const CalendarPage: React.FC = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddEventDialog(false)}>Cancel</Button>
             <Button onClick={() => {
-              // Would save the event in a real implementation
               setShowAddEventDialog(false);
             }}>
               Save Session

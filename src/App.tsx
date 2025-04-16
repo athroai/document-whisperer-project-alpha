@@ -20,6 +20,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { AthroProvider } from '@/contexts/AthroContext';
 import WelcomePage from '@/pages/WelcomePage';
 import OnboardingPage from '@/pages/OnboardingPage';
+import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
 
 const App: React.FC = () => {
   return (
