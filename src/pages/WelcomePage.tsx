@@ -27,10 +27,10 @@ const WelcomePage: React.FC = () => {
           
           <div className="mt-8 space-y-4">
             <Button 
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/onboarding')}
               className="w-full py-6 text-lg bg-purple-600 hover:bg-purple-700"
             >
-              Get Started
+              Start Your Learning Journey
             </Button>
             <Button 
               variant="outline"

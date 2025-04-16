@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
@@ -27,7 +26,12 @@ const App: React.FC = () => {
           <div className="min-h-screen flex flex-col">
             <Navigation />
             <Routes>
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<WelcomePage />} />
+              <Route path="/onboarding" element={
+                <ProtectedRoute>
+                  <OnboardingPage />
+                </ProtectedRoute>
+              } />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               
