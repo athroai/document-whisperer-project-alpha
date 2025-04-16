@@ -57,6 +57,36 @@ export type Database = {
         }
         Relationships: []
       }
+      availability_blocks: {
+        Row: {
+          created_at: string | null
+          end_time: string
+          id: string
+          label: string | null
+          recurring: string | null
+          start_time: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_time: string
+          id?: string
+          label?: string | null
+          recurring?: string | null
+          start_time: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          label?: string | null
+          recurring?: string | null
+          start_time?: string
+          student_id?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           created_at: string
@@ -66,6 +96,7 @@ export type Database = {
           id: string
           set_id: string | null
           start_time: string
+          student_id: string | null
           task_id: string | null
           title: string
           user_id: string | null
@@ -78,6 +109,7 @@ export type Database = {
           id?: string
           set_id?: string | null
           start_time: string
+          student_id?: string | null
           task_id?: string | null
           title: string
           user_id?: string | null
@@ -90,6 +122,7 @@ export type Database = {
           id?: string
           set_id?: string | null
           start_time?: string
+          student_id?: string | null
           task_id?: string | null
           title?: string
           user_id?: string | null
@@ -117,6 +150,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      diagnostic_quiz_results: {
+        Row: {
+          completed_at: string | null
+          id: string
+          score: number
+          student_id: string
+          subject: string
+          total_questions: number
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          score: number
+          student_id: string
+          subject: string
+          total_questions: number
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          score?: number
+          student_id?: string
+          subject?: string
+          total_questions?: number
+        }
+        Relationships: []
+      }
+      diagnostic_results: {
+        Row: {
+          completed_at: string | null
+          id: string
+          percentage_accuracy: number | null
+          student_id: string
+          subject_name: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          percentage_accuracy?: number | null
+          student_id: string
+          subject_name: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          percentage_accuracy?: number | null
+          student_id?: string
+          subject_name?: string
+        }
+        Relationships: []
       }
       documents: {
         Row: {
@@ -157,6 +241,36 @@ export type Database = {
           size?: number | null
           storage_path?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      external_calendar_events: {
+        Row: {
+          calendar_source: string | null
+          created_at: string | null
+          end_time: string | null
+          event_title: string | null
+          id: string
+          start_time: string | null
+          student_id: string
+        }
+        Insert: {
+          calendar_source?: string | null
+          created_at?: string | null
+          end_time?: string | null
+          event_title?: string | null
+          id?: string
+          start_time?: string | null
+          student_id: string
+        }
+        Update: {
+          calendar_source?: string | null
+          created_at?: string | null
+          end_time?: string | null
+          event_title?: string | null
+          id?: string
+          start_time?: string | null
+          student_id?: string
         }
         Relationships: []
       }
@@ -243,6 +357,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      onboarding_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          current_step: string
+          has_completed_availability: boolean | null
+          has_completed_diagnostic: boolean | null
+          has_completed_subjects: boolean | null
+          has_connected_calendar: boolean | null
+          has_generated_plan: boolean | null
+          id: string
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step: string
+          has_completed_availability?: boolean | null
+          has_completed_diagnostic?: boolean | null
+          has_completed_subjects?: boolean | null
+          has_connected_calendar?: boolean | null
+          has_generated_plan?: boolean | null
+          id?: string
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: string
+          has_completed_availability?: boolean | null
+          has_completed_diagnostic?: boolean | null
+          has_completed_subjects?: boolean | null
+          has_connected_calendar?: boolean | null
+          has_generated_plan?: boolean | null
+          id?: string
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -445,6 +601,36 @@ export type Database = {
           },
         ]
       }
+      student_availability: {
+        Row: {
+          created_at: string | null
+          day_of_week: number
+          end_time: string
+          id: string
+          start_time: string
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week: number
+          end_time: string
+          id?: string
+          start_time: string
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          start_time?: string
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       student_sets: {
         Row: {
           id: string
@@ -480,6 +666,153 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      student_subject_preferences: {
+        Row: {
+          confidence_level: number
+          created_at: string | null
+          id: string
+          priority: number | null
+          student_id: string
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          confidence_level: number
+          created_at?: string | null
+          id?: string
+          priority?: number | null
+          student_id: string
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          confidence_level?: number
+          created_at?: string | null
+          id?: string
+          priority?: number | null
+          student_id?: string
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      student_subjects: {
+        Row: {
+          created_at: string | null
+          help_level: string
+          id: string
+          student_id: string
+          subject_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          help_level: string
+          id?: string
+          student_id: string
+          subject_name: string
+        }
+        Update: {
+          created_at?: string | null
+          help_level?: string
+          id?: string
+          student_id?: string
+          subject_name?: string
+        }
+        Relationships: []
+      }
+      study_plan_sessions: {
+        Row: {
+          calendar_event_id: string | null
+          created_at: string | null
+          end_time: string
+          id: string
+          is_pomodoro: boolean | null
+          plan_id: string
+          pomodoro_break_minutes: number | null
+          pomodoro_work_minutes: number | null
+          start_time: string
+          subject: string
+          topic: string | null
+        }
+        Insert: {
+          calendar_event_id?: string | null
+          created_at?: string | null
+          end_time: string
+          id?: string
+          is_pomodoro?: boolean | null
+          plan_id: string
+          pomodoro_break_minutes?: number | null
+          pomodoro_work_minutes?: number | null
+          start_time: string
+          subject: string
+          topic?: string | null
+        }
+        Update: {
+          calendar_event_id?: string | null
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          is_pomodoro?: boolean | null
+          plan_id?: string
+          pomodoro_break_minutes?: number | null
+          pomodoro_work_minutes?: number | null
+          start_time?: string
+          subject?: string
+          topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_plan_sessions_calendar_event_id_fkey"
+            columns: ["calendar_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_plan_sessions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "study_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          name: string
+          start_date: string
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          start_date: string
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          start_date?: string
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       study_sessions: {
         Row: {
@@ -629,6 +962,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      uploaded_materials: {
+        Row: {
+          file_type: string | null
+          file_url: string
+          id: string
+          related_subject: string | null
+          student_id: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          file_type?: string | null
+          file_url: string
+          id?: string
+          related_subject?: string | null
+          student_id: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          related_subject?: string | null
+          student_id?: string
+          uploaded_at?: string | null
+        }
+        Relationships: []
       }
       uploads: {
         Row: {
