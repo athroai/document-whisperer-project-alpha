@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_progress_signals: {
+        Row: {
+          avg_confidence: number
+          created_at: string
+          id: string
+          last_confidence: string
+          last_session_id: string | null
+          needs_review: boolean
+          sessions_count: number
+          subject: string
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_confidence?: number
+          created_at?: string
+          id?: string
+          last_confidence: string
+          last_session_id?: string | null
+          needs_review?: boolean
+          sessions_count?: number
+          subject: string
+          topic: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_confidence?: number
+          created_at?: string
+          id?: string
+          last_confidence?: string
+          last_session_id?: string | null
+          needs_review?: boolean
+          sessions_count?: number
+          subject?: string
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       athro_characters: {
         Row: {
           avatar_url: string
