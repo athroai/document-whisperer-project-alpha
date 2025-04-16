@@ -95,8 +95,10 @@ export type Database = {
           event_type: string
           id: string
           set_id: string | null
+          source_session_id: string | null
           start_time: string
           student_id: string | null
+          suggested: boolean | null
           task_id: string | null
           title: string
           user_id: string | null
@@ -108,8 +110,10 @@ export type Database = {
           event_type: string
           id?: string
           set_id?: string | null
+          source_session_id?: string | null
           start_time: string
           student_id?: string | null
+          suggested?: boolean | null
           task_id?: string | null
           title: string
           user_id?: string | null
@@ -121,8 +125,10 @@ export type Database = {
           event_type?: string
           id?: string
           set_id?: string | null
+          source_session_id?: string | null
           start_time?: string
           student_id?: string | null
+          suggested?: boolean | null
           task_id?: string | null
           title?: string
           user_id?: string | null
@@ -133,6 +139,13 @@ export type Database = {
             columns: ["set_id"]
             isOneToOne: false
             referencedRelation: "sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_source_session_id_fkey"
+            columns: ["source_session_id"]
+            isOneToOne: false
+            referencedRelation: "study_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -822,11 +835,15 @@ export type Database = {
           duration_minutes: number | null
           end_time: string | null
           id: string
+          needs_review: boolean | null
           notes: string | null
           start_time: string
+          status: string | null
           student_id: string
           subject: string
+          summary: string | null
           topic: string | null
+          transcript: Json | null
         }
         Insert: {
           confidence_after?: number | null
@@ -835,11 +852,15 @@ export type Database = {
           duration_minutes?: number | null
           end_time?: string | null
           id?: string
+          needs_review?: boolean | null
           notes?: string | null
           start_time: string
+          status?: string | null
           student_id: string
           subject: string
+          summary?: string | null
           topic?: string | null
+          transcript?: Json | null
         }
         Update: {
           confidence_after?: number | null
@@ -848,11 +869,15 @@ export type Database = {
           duration_minutes?: number | null
           end_time?: string | null
           id?: string
+          needs_review?: boolean | null
           notes?: string | null
           start_time?: string
+          status?: string | null
           student_id?: string
           subject?: string
+          summary?: string | null
           topic?: string | null
+          transcript?: Json | null
         }
         Relationships: [
           {

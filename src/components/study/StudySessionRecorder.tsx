@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { AthroMessage } from '@/types/athro';
 import { getOpenAIResponse } from '@/lib/openai';
+import { addDays, startOfDay } from 'date-fns';
 
 interface StudySessionRecorderProps {
   sessionId?: string;
@@ -131,96 +131,201 @@ Format your response as 3 concise bullet points.`;
     const confidenceAfter = getConfidenceAfterValue();
     const needsReview = confidenceAfter < 5; // Tag for review if confidence is still low
     
-    if (!sessionId) {
-      // Create a new session record if this wasn't from a calendar event
-      try {
-        const { data: sessionData, error } = await supabase
-          .from('study_sessions')
-          .insert({
-            subject,
-            topic,
-            start_time: new Date(messages[0]?.timestamp || new Date()).toISOString(),
-            end_time: new Date().toISOString(),
-            confidence_before: confidenceBefore,
-            confidence_after: confidenceAfter,
-            notes: feedback,
-            summary: sessionSummary,
-            needs_review: needsReview,
-            status: 'completed',
-            transcript: JSON.stringify(messages.map(msg => ({
-              role: msg.senderId === 'user' ? 'user' : 'assistant',
-              content: msg.content,
-              timestamp: msg.timestamp
-            })))
-          })
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        toast({
-          title: "Session Completed",
-          description: "Your study session has been saved.",
-        });
-      } catch (error) {
-        console.error('Error recording session:', error);
-        toast({
-          title: "Error",
-          description: "There was a problem saving your session.",
-          variant: "destructive",
-        });
-      }
-    } else {
-      // Update existing session record
-      try {
-        await supabase
-          .from('study_sessions')
-          .update({
-            end_time: new Date().toISOString(),
-            confidence_after: confidenceAfter,
-            notes: feedback,
-            summary: sessionSummary,
-            needs_review: needsReview,
-            status: 'completed'
-          })
-          .eq('id', sessionId);
-            
-        toast({
-          title: "Session Completed",
-          description: "Your study session has been saved.",
-        });
-      } catch (error) {
-        console.error('Error updating session record:', error);
-        toast({
-          title: "Error",
-          description: "There was a problem updating your session.",
-          variant: "destructive",
-        });
-      }
-    }
-    
-    // Update user's confidence score for this subject
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('confidence_scores')
-        .single();
-      
-      if (data) {
-        const confidenceScores = data.confidence_scores || {};
-        confidenceScores[subject] = confidenceAfter;
-        
-        await supabase
-          .from('profiles')
-          .update({ confidence_scores: confidenceScores })
-          .eq('id', (await supabase.auth.getUser()).data.user?.id);
+      // Update study session record
+      const sessionUpdateData = {
+        end_time: new Date().toISOString(),
+        confidence_after: confidenceAfter,
+        notes: feedback,
+        summary: sessionSummary,
+        needs_review: needsReview,
+        status: 'completed'
+      };
+
+      // Determine the original session's duration
+      const originalSessionDuration = messages.length > 1 
+        ? Math.round((new Date(messages[messages.length - 1].timestamp).getTime() - 
+                      new Date(messages[0].timestamp).getTime()) / 60000) 
+        : 50; // Default to 50 minutes if can't calculate
+
+      // If confidence is low, schedule a review session
+      if (needsReview && topic) {
+        await scheduleReviewSession(subject, topic, originalSessionDuration);
       }
+
+      if (!sessionId) {
+        // Create a new session record if this wasn't from a calendar event
+        try {
+          const { data: sessionData, error } = await supabase
+            .from('study_sessions')
+            .insert({
+              subject,
+              topic,
+              start_time: new Date(messages[0]?.timestamp || new Date()).toISOString(),
+              end_time: new Date().toISOString(),
+              confidence_before: confidenceBefore,
+              confidence_after: confidenceAfter,
+              notes: feedback,
+              summary: sessionSummary,
+              needs_review: needsReview,
+              status: 'completed',
+              transcript: JSON.stringify(messages.map(msg => ({
+                role: msg.senderId === 'user' ? 'user' : 'assistant',
+                content: msg.content,
+                timestamp: msg.timestamp
+              })))
+            })
+            .select()
+            .single();
+            
+          if (error) throw error;
+          
+          toast({
+            title: "Session Completed",
+            description: "Your study session has been saved.",
+          });
+        } catch (error) {
+          console.error('Error recording session:', error);
+          toast({
+            title: "Error",
+            description: "There was a problem saving your session.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        // Update existing session record
+        try {
+          await supabase
+            .from('study_sessions')
+            .update({
+              end_time: new Date().toISOString(),
+              confidence_after: confidenceAfter,
+              notes: feedback,
+              summary: sessionSummary,
+              needs_review: needsReview,
+              status: 'completed'
+            })
+            .eq('id', sessionId);
+              
+          toast({
+            title: "Session Completed",
+            description: "Your study session has been saved.",
+          });
+        } catch (error) {
+          console.error('Error updating session record:', error);
+          toast({
+            title: "Error",
+            description: "There was a problem updating your session.",
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // Update user's confidence score for this subject
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('confidence_scores')
+          .single();
+        
+        if (data) {
+          const confidenceScores = data.confidence_scores || {};
+          confidenceScores[subject] = confidenceAfter;
+          
+          await supabase
+            .from('profiles')
+            .update({ confidence_scores: confidenceScores })
+            .eq('id', (await supabase.auth.getUser()).data.user?.id);
+        }
+      } catch (error) {
+        console.error('Error updating confidence scores:', error);
+      }
+      
+      setIsEnding(false);
+      onSessionEnd();
+
     } catch (error) {
-      console.error('Error updating confidence scores:', error);
+      console.error('Error submitting feedback and scheduling review:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem saving your session and scheduling a review.",
+        variant: "destructive",
+      });
     }
-    
-    setIsEnding(false);
-    onSessionEnd();
+  };
+
+  const scheduleReviewSession = async (subject: string, topic: string, duration: number) => {
+    try {
+      // Find an open slot within the next 5 days
+      const startDate = startOfDay(new Date());
+      const endDate = addDays(startDate, 5);
+
+      // First, get the user's availability blocks
+      const { data: availabilityBlocks, error: availError } = await supabase
+        .from('availability_blocks')
+        .select('*')
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString());
+
+      if (availError) throw availError;
+
+      // Get existing calendar events in this period
+      const { data: existingEvents, error: eventError } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString());
+
+      if (eventError) throw eventError;
+
+      // Simple slot finding logic (can be made more sophisticated later)
+      const potentialSlots = availabilityBlocks.filter(block => 
+        !existingEvents.some(event => 
+          new Date(event.start_time) >= new Date(block.start_time) && 
+          new Date(event.start_time) < new Date(block.end_time)
+        )
+      );
+
+      if (potentialSlots.length === 0) {
+        // No suitable slot found, log or handle accordingly
+        console.log('No suitable slot found for review session');
+        return;
+      }
+
+      // Select the first available slot
+      const selectedSlot = potentialSlots[0];
+      const startTime = new Date(selectedSlot.start_time);
+      const endTime = new Date(startTime.getTime() + duration * 60000); // Convert duration to milliseconds
+
+      // Insert review session event
+      const { data: reviewSessionData, error: insertError } = await supabase
+        .from('calendar_events')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          event_type: 'review_session',
+          subject,
+          title: `Review Session: ${topic}`,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          source_session_id: sessionId, // Link back to original session
+          suggested: true
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Review Session Scheduled",
+        description: `A review session for ${topic} has been suggested in your calendar.`,
+      });
+
+    } catch (error) {
+      console.error('Error scheduling review session:', error);
+      toast({
+        title: "Review Session Error",
+        description: "Could not schedule a review session at this time.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
