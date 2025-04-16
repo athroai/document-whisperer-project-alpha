@@ -11,7 +11,6 @@ import { useStudySessions } from '@/hooks/useStudySessions';
 import { useToast } from '@/hooks/use-toast';
 import { useReviewScheduler } from '@/hooks/useReviewScheduler';
 import StudySessionList from '@/components/progress/StudySessionList';
-import { formatDate } from '@/lib/utils';
 
 const ProgressPage: React.FC = () => {
   const { state } = useAuth();

@@ -46,7 +46,7 @@ const StudySessionList: React.FC<StudySessionListProps> = ({
   });
   
   // Group sessions by subject if requested
-  const groupedSessions = groupBySubject 
+  const groupedSessions: [string, StudySession[]][] = groupBySubject 
     ? Object.entries(
         filteredSessions.reduce((acc: {[key: string]: StudySession[]}, session) => {
           const subject = session.subject || 'Other';
@@ -107,7 +107,7 @@ const StudySessionList: React.FC<StudySessionListProps> = ({
           )}
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {(subjectSessions as StudySession[]).map((session) => {
+            {subjectSessions.map((session) => {
               const confidenceChange = session.confidence_after !== undefined && session.confidence_before !== undefined
                 ? session.confidence_after - session.confidence_before
                 : 0;
