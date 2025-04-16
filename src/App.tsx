@@ -21,6 +21,7 @@ import { AthroProvider } from '@/contexts/AthroContext';
 import WelcomePage from '@/pages/WelcomePage';
 import OnboardingPage from '@/pages/OnboardingPage';
 import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
+import ProgressPage from '@/pages/ProgressPage';
 
 const App: React.FC = () => {
   return (
@@ -60,6 +61,12 @@ const App: React.FC = () => {
               <Route path="/quiz" element={
                 <ProtectedRoute>
                   <QuizPage />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/progress" element={
+                <ProtectedRoute>
+                  <ProgressPage />
                 </ProtectedRoute>
               } />
               

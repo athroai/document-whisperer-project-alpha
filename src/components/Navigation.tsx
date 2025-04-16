@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -9,7 +8,8 @@ import {
   Settings, 
   LogOut, 
   Users, 
-  Presentation  // Replacing ChalkboardTeacher with Presentation icon
+  Presentation,
+  BarChart2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,6 +24,7 @@ const Navigation: React.FC = () => {
   const baseNavItems = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Study', path: '/study', icon: BookOpen },
+    { name: 'Progress', path: '/progress', icon: BarChart2 },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     { name: 'Quiz', path: '/quiz', icon: GraduationCap },
     { name: 'Settings', path: '/settings', icon: Settings },
