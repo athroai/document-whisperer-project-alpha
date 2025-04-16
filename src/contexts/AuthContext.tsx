@@ -1,6 +1,6 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AuthState, User } from '../types/auth';
+import { generateUUID } from '@/lib/utils';
 
 type AuthAction = 
   | { type: 'AUTH_START' }
@@ -11,7 +11,7 @@ type AuthAction =
 
 const initialState: AuthState = {
   user: null,
-  loading: true, // Changed to true to prevent flicker during session check
+  loading: true,
   error: null
 };
 
@@ -70,24 +70,20 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Simulating authentication check on app load with persistence
   useEffect(() => {
     const checkAuth = async () => {
       try {
         dispatch({ type: 'AUTH_START' });
-        // Check for existing user session
         const savedUser = localStorage.getItem('athro_user');
         const savedToken = localStorage.getItem('athro_token');
         
         if (savedUser && savedToken) {
           const user = JSON.parse(savedUser);
           
-          // Check if the user is from nexastream for license exemption
           if (user.email.endsWith('@nexastream.co.uk') && !user.licenseExempt) {
             user.licenseExempt = true;
           }
           
-          // Ensure user has an examBoard property, defaulting to 'none'
           if (!user.examBoard) {
             user.examBoard = 'none';
           }
@@ -108,15 +104,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     dispatch({ type: 'AUTH_START' });
     try {
-      // Mock login - would use Firebase auth in actual implementation
       const mockUser: User = {
-        id: '123456789',
+        id: generateUUID(),
         email,
         role: 'student',
         displayName: email.split('@')[0],
         createdAt: new Date(),
         rememberMe,
-        examBoard: 'none', // Default to none instead of undefined
+        examBoard: 'none',
         licenseExempt: email.endsWith('@nexastream.co.uk'),
         confidenceScores: {
           maths: 5,
@@ -125,7 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       };
       
-      // Store auth info based on remember me setting
       if (rememberMe) {
         localStorage.setItem('athro_user', JSON.stringify(mockUser));
         localStorage.setItem('athro_token', 'mock-token-' + Date.now());
@@ -143,14 +137,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, role: 'student' | 'teacher' | 'parent') => {
     dispatch({ type: 'AUTH_START' });
     try {
-      // Mock signup with Nexastream license exemption check
       const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: generateUUID(),
         email,
         role,
         displayName: email.split('@')[0],
         createdAt: new Date(),
-        examBoard: 'none', // Default to none instead of undefined
+        examBoard: 'none',
         licenseExempt: email.endsWith('@nexastream.co.uk'),
         rememberMe: true,
         confidenceScores: {
@@ -173,7 +166,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      // Clear all storage
       localStorage.removeItem('athro_user');
       localStorage.removeItem('athro_token');
       sessionStorage.removeItem('athro_user');
@@ -189,7 +181,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (state.user) {
       const updatedUser = { ...state.user, ...userData };
       
-      // Update local storage if remember me is set
       if (state.user.rememberMe) {
         localStorage.setItem('athro_user', JSON.stringify(updatedUser));
       }

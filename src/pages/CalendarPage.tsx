@@ -77,10 +77,24 @@ const CalendarPage: React.FC = () => {
         return;
       }
 
+      const userId = authState.user.id;
+      
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userId)) {
+        console.error('Invalid UUID format for user ID:', userId);
+        toast({
+          title: 'Error',
+          description: 'Invalid user ID format. Please try logging in again.',
+          variant: 'destructive',
+        });
+        setEvents([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('calendar_events')
         .select('id, title, description, start_time, end_time, event_type')
-        .eq('student_id', authState.user.id)
+        .eq('student_id', userId)
         .or(`event_type.eq.study_session,event_type.eq.quiz`)
         .order('start_time', { ascending: true });
       
