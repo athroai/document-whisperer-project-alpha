@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -208,7 +207,7 @@ Or let me know if you have something else in mind!`;
       char => char.subject.toLowerCase() === currentSubject.toLowerCase()
     );
     
-    return characterInfo?.avatar || '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png';
+    return characterInfo?.avatarUrl || '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png';
   };
   
   // Get the name for the current character

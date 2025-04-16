@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,10 +34,8 @@ const CalendarPage: React.FC = () => {
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const { toast } = useToast();
 
-  // Function to ensure selected date is correctly set 
   const handleDateChange = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      // Create a new Date object at noon to avoid timezone issues
       const adjustedDate = new Date(selectedDate);
       adjustedDate.setHours(12, 0, 0, 0);
       setDate(adjustedDate);
@@ -48,7 +45,6 @@ const CalendarPage: React.FC = () => {
     }
   };
 
-  // Switch to week view when a date is selected
   useEffect(() => {
     if (date) {
       setCurrentWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
@@ -56,7 +52,6 @@ const CalendarPage: React.FC = () => {
     }
   }, [date]);
 
-  // Navigate between weeks
   const goToNextWeek = () => {
     setCurrentWeekStart(addWeeks(currentWeekStart, 1));
   };
@@ -65,24 +60,20 @@ const CalendarPage: React.FC = () => {
     setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   };
 
-  // Get days of current week
   const daysOfWeek = eachDayOfInterval({
     start: currentWeekStart,
     end: endOfWeek(currentWeekStart, { weekStartsOn: 1 })
   });
 
-  // Load events from the database
   const loadEvents = async () => {
     setIsLoadingEvents(true);
     try {
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         throw new Error('User not authenticated');
       }
       
-      // Query calendar events
       const { data, error } = await supabase
         .from('calendar_events')
         .select('*')
@@ -92,24 +83,20 @@ const CalendarPage: React.FC = () => {
       
       if (error) throw error;
       
-      // Transform data to match our CalendarEvent interface
       const formattedEvents: CalendarEvent[] = data.map(event => {
-        // Parse description if it exists
-        let description = {};
+        let description: { subject?: string } = {};
         try {
           if (event.description) {
-            description = JSON.parse(event.description);
+            description = JSON.parse(event.description) as { subject?: string };
           }
         } catch (e) {
           console.error('Error parsing event description:', e);
         }
         
-        // Determine event icon
         const eventIcon = event.event_type === 'study_session' ? BookOpen : 
                           event.event_type === 'quiz' ? GraduationCap : 
                           CalendarIcon;
         
-        // Determine event type for styling                  
         const eventType = event.event_type === 'study_session' ? 'study' : 
                           event.event_type === 'quiz' ? 'quiz' : 
                           'revision';
@@ -139,17 +126,14 @@ const CalendarPage: React.FC = () => {
     }
   };
 
-  // Load events on component mount and when dialogs close
   useEffect(() => {
     loadEvents();
   }, []);
 
-  // Filter events for the selected date
   const selectedDateEvents = events.filter(event => 
     date && isSameDay(event.date, date)
   );
 
-  // Filter events for each day in weekly view
   const getEventsForDay = (day: Date) => {
     return events.filter(event => isSameDay(event.date, day));
   };
@@ -176,7 +160,6 @@ const CalendarPage: React.FC = () => {
         </div>
         
         {viewMode === 'month' ? (
-          // Month View
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1">
               <Card>
@@ -246,7 +229,7 @@ const CalendarPage: React.FC = () => {
                                 'bg-amber-100 text-amber-600'
                               }`}
                             >
-                              <EventIcon className="h-6 w-6" />
+                              {EventIcon && <EventIcon className="h-6 w-6" />}
                             </div>
                             <div className="flex-grow">
                               <div className="flex justify-between">
@@ -274,7 +257,6 @@ const CalendarPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          // Week View
           <Card className="mb-6">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -352,7 +334,6 @@ const CalendarPage: React.FC = () => {
           </Card>
         )}
 
-        {/* Display details for selected day when in week view */}
         {viewMode === 'week' && date && (
           <Card>
             <CardHeader>
@@ -409,7 +390,6 @@ const CalendarPage: React.FC = () => {
         )}
       </div>
       
-      {/* Study Session Dialog */}
       <StudySessionDialog
         open={showStudySessionDialog}
         onOpenChange={setShowStudySessionDialog}
@@ -417,7 +397,6 @@ const CalendarPage: React.FC = () => {
         onSuccess={loadEvents}
       />
       
-      {/* Legacy Add Event Dialog - kept for reference */}
       <Dialog open={showAddEventDialog} onOpenChange={setShowAddEventDialog}>
         <DialogContent>
           <DialogHeader>
