@@ -76,8 +76,7 @@ export function useSessionSubmission({
       const { error: upsertError } = await supabase
         .from('ai_progress_signals')
         .upsert(upsertData, { 
-          onConflict: 'user_id,subject,topic',
-          returning: 'minimal'
+          onConflict: 'user_id,subject,topic'
         });
 
       if (upsertError) throw upsertError;
