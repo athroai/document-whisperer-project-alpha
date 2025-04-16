@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import StudySessionDialog from '@/components/calendar/StudySessionDialog';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CalendarEvent {
   id: number | string;
@@ -33,6 +34,7 @@ const CalendarPage: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const { toast } = useToast();
+  const { state: authState } = useAuth();
 
   const handleDateChange = (selectedDate: Date | undefined) => {
     if (selectedDate) {
@@ -67,22 +69,32 @@ const CalendarPage: React.FC = () => {
 
   const loadEvents = async () => {
     setIsLoadingEvents(true);
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
+      if (!authState.user || !authState.user.id) {
+        console.log('No authenticated user found, skipping event loading');
+        setEvents([]);
+        return;
       }
-      
+
       const { data, error } = await supabase
         .from('calendar_events')
-        .select('*')
-        .eq('student_id', user.id)
+        .select('id, title, description, start_time, end_time, event_type')
+        .eq('student_id', authState.user.id)
         .or(`event_type.eq.study_session,event_type.eq.quiz`)
         .order('start_time', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase query error:', error);
+        throw error;
+      }
       
+      if (!data || data.length === 0) {
+        console.log('No events found for user');
+        setEvents([]);
+        return;
+      }
+
       const formattedEvents: CalendarEvent[] = data.map(event => {
         let description: { subject?: string } = {};
         try {
@@ -115,20 +127,23 @@ const CalendarPage: React.FC = () => {
       
       setEvents(formattedEvents);
     } catch (error) {
-      console.error('Error loading events:', error);
+      console.error('Error loading calendar events:', error);
       toast({
         title: 'Error',
         description: 'Failed to load calendar events.',
         variant: 'destructive',
       });
+      setEvents([]);
     } finally {
       setIsLoadingEvents(false);
     }
   };
 
   useEffect(() => {
-    loadEvents();
-  }, []);
+    if (!authState.loading) {
+      loadEvents();
+    }
+  }, [authState.loading, authState.user]);
 
   const selectedDateEvents = events.filter(event => 
     date && isSameDay(event.date, date)
@@ -159,7 +174,15 @@ const CalendarPage: React.FC = () => {
           </div>
         </div>
         
-        {viewMode === 'month' ? (
+        {!authState.user ? (
+          <Card className="mb-6">
+            <CardContent className="text-center py-10">
+              <CalendarIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="font-medium text-lg mb-2">Authentication Required</h3>
+              <p className="text-gray-500">Please sign in to view and manage your calendar events.</p>
+            </CardContent>
+          </Card>
+        ) : viewMode === 'month' ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1">
               <Card>
