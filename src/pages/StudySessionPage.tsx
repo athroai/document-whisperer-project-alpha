@@ -170,7 +170,7 @@ Or let me know if you have something else in mind!`;
           topics: characterForSubject.topics,
           examBoards: ['wjec', 'aqa', 'ocr'],
           supportsMathNotation: subject === 'Mathematics' || subject === 'Science',
-          avatarUrl: characterForSubject.avatar,
+          avatarUrl: characterForSubject.avatarUrl,
           shortDescription: `Your ${subject} study mentor`,
           fullDescription: characterForSubject.fullDescription,
           tone: characterForSubject.tone
