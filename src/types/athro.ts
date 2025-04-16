@@ -21,7 +21,7 @@ export interface AthroCharacter {
   id: string;
   name: string;
   subject: AthroSubject;
-  avatarUrl: string;
+  avatarUrl: string; // Changed from 'avatar' to 'avatarUrl'
   shortDescription: string;
   fullDescription: string;
   tone: string; // Describes the character's tone for AI prompting

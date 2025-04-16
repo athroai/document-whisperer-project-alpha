@@ -1,4 +1,3 @@
-
 import { AthroCharacter } from '@/types/athro';
 
 export const athroCharacters: AthroCharacter[] = [
@@ -52,7 +51,7 @@ export const athroCharacters: AthroCharacter[] = [
     id: 'athro-welsh',
     name: 'AthroWelsh',
     subject: 'Welsh',
-    avatarUrl: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png', // Reusing existing image for now
+    avatarUrl: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png',
     shortDescription: 'Your GCSE Welsh language mentor',
     fullDescription: 'AthroWelsh helps you develop reading, writing and speaking skills in Welsh, covering both first and second language curricula.',
     tone: 'friendly, patient, encouraging of language exploration',
@@ -64,7 +63,7 @@ export const athroCharacters: AthroCharacter[] = [
     id: 'athro-geography',
     name: 'AthroGeography',
     subject: 'Geography',
-    avatarUrl: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png', // Reusing existing image for now
+    avatarUrl: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png',
     shortDescription: 'Your GCSE Geography guide',
     fullDescription: 'AthroGeography helps you understand physical and human geography concepts, supporting you with case studies and geographical skills.',
     tone: 'exploratory, analytical, environmentally conscious',
@@ -75,7 +74,7 @@ export const athroCharacters: AthroCharacter[] = [
     id: 'athro-languages',
     name: 'AthroLanguages',
     subject: 'Languages',
-    avatarUrl: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png', // Reusing existing image for now
+    avatarUrl: '/lovable-uploads/66f5e352-aee3-488f-bcdf-d8a5ab685360.png',
     shortDescription: 'Your GCSE Modern Foreign Languages tutor',
     fullDescription: 'AthroLanguages helps you develop your skills in French, Spanish, and German for GCSE exams.',
     tone: 'encouraging, pronunciation-focused, culturally aware',
@@ -88,7 +87,7 @@ export const athroCharacters: AthroCharacter[] = [
     id: 'athro-re',
     name: 'AthroRE',
     subject: 'Religious Education',
-    avatarUrl: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png', // Reusing existing image for now
+    avatarUrl: '/lovable-uploads/8b64684a-b978-4763-8cfb-a80b2ce305d4.png',
     shortDescription: 'Your GCSE Religious Studies mentor',
     fullDescription: 'AthroRE helps you explore religious beliefs, teachings and practices, ethical themes, and philosophical questions.',
     tone: 'respectful, balanced, thoughtful, encouraging of critical thinking',
