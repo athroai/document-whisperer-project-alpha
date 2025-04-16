@@ -45,7 +45,7 @@ const SubjectSelector: React.FC<SubjectSelectorProps> = ({
                 <SelectValue placeholder="Select a subject" />
               </SelectTrigger>
               <SelectContent>
-                {subjectList.map((subject) => (
+                {subjectList.filter(subject => subject && subject.trim() !== "").map((subject) => (
                   <SelectItem key={subject} value={subject} className="capitalize">
                     {subject.charAt(0).toUpperCase() + subject.slice(1)}
                   </SelectItem>

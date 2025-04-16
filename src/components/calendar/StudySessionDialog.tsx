@@ -150,7 +150,7 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                 <SelectValue placeholder="Select Topic" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">General Study</SelectItem>
+                <SelectItem value="general">General Study</SelectItem>
                 {currentTopics.map((t) => (
                   <SelectItem key={t} value={t}>
                     {t}

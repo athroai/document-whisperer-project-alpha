@@ -15,8 +15,8 @@ interface FileUploadProps {
 
 const FileUpload: React.FC<FileUploadProps> = ({ userId, userRole }) => {
   const [file, setFile] = useState<File | null>(null);
-  const [subject, setSubject] = useState<string>('');
-  const [fileType, setFileType] = useState<string>('');
+  const [subject, setSubject] = useState<string>('mathematics');
+  const [fileType, setFileType] = useState<string>('paper');
   const [visibility, setVisibility] = useState<string>('private');
   const [label, setLabel] = useState<string>('');
   const [uploading, setUploading] = useState<boolean>(false);
