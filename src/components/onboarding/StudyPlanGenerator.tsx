@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -87,8 +88,8 @@ export const StudyPlanGenerator: React.FC = () => {
             <div key={index} className="mb-4">
               <p>{plan.subject} Study Session</p>
               <PomodoroTimer 
-                initialWorkMinutes={plan.sessions[0].workMinutes}
-                initialBreakMinutes={plan.sessions[0].breakMinutes}
+                className="my-2"
+                onComplete={() => console.log(`${plan.subject} session completed`)}
               />
             </div>
           ))}
