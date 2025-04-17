@@ -86,6 +86,7 @@ export const SlotSelection: React.FC = () => {
     setError(null);
     
     if (!state.user?.id) {
+      setError("Authentication required. Please log in again.");
       toast({
         title: "Authentication Required",
         description: "You need to be signed in to save your preferences.",
@@ -97,11 +98,19 @@ export const SlotSelection: React.FC = () => {
     setSaving(true);
 
     try {
+      console.log("Saving preferences for user:", state.user.id);
+      console.log("Selected days:", selectedDays);
+      
       // Delete any existing preferences
-      await supabase
+      const { error: deleteError } = await supabase
         .from('preferred_study_slots')
         .delete()
         .eq('user_id', state.user.id);
+        
+      if (deleteError) {
+        console.error("Error deleting existing preferences:", deleteError);
+        throw deleteError;
+      }
 
       // Save selected days and their preferences
       const preferencesToSave = selectedDays.map(dayOfWeek => {
@@ -118,20 +127,22 @@ export const SlotSelection: React.FC = () => {
         };
       });
 
+      console.log("Preferences to save:", preferencesToSave);
+
       if (preferencesToSave.length > 0) {
-        const { error: insertError } = await supabase
+        const { data, error: insertError } = await supabase
           .from('preferred_study_slots')
           .insert(preferencesToSave);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Error inserting new preferences:", insertError);
+          throw insertError;
+        }
 
-        toast({
-          title: "Preferences Saved",
-          description: "Your study time preferences have been saved successfully."
-        });
+        console.log("Preferences saved successfully:", data);
         
-        // Update onboarding progress
-        await supabase
+        // Update onboarding progress using upsert with onConflict correctly
+        const { error: upsertError } = await supabase
           .from('onboarding_progress')
           .upsert({
             student_id: state.user.id,
@@ -141,8 +152,19 @@ export const SlotSelection: React.FC = () => {
             onConflict: 'student_id'
           });
           
+        if (upsertError) {
+          console.error("Error updating onboarding progress:", upsertError);
+          throw upsertError;
+        }
+          
+        toast({
+          title: "Preferences Saved",
+          description: "Your study time preferences have been saved successfully."
+        });
+        
         return true;
       }
+      
       return false;
     } catch (error: any) {
       console.error('Error saving preferences:', error);
@@ -159,9 +181,14 @@ export const SlotSelection: React.FC = () => {
   };
 
   const handleContinue = async () => {
-    const saved = await savePreferences();
-    if (saved) {
-      updateOnboardingStep && updateOnboardingStep('diagnosticQuiz');
+    try {
+      const saved = await savePreferences();
+      if (saved) {
+        updateOnboardingStep && updateOnboardingStep('diagnosticQuiz');
+      }
+    } catch (error) {
+      console.error("Error in handleContinue:", error);
+      setError("Failed to proceed to next step. Please try again.");
     }
   };
 

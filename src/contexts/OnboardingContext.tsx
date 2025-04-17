@@ -61,32 +61,41 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const completeOnboarding = async () => {
     if (!state.user) throw new Error('No user logged in');
 
-    const subjectPreferencesPromises = selectedSubjects.map(subject => 
-      supabase.from('student_subject_preferences').insert({
-        student_id: state.user!.id,
-        subject: subject.subject,
-        confidence_level: subject.confidence,
-        priority: subject.priority
-      })
-    );
+    try {
+      // Save subject preferences
+      const subjectPreferencesPromises = selectedSubjects.map(subject => 
+        supabase.from('student_subject_preferences').insert({
+          student_id: state.user!.id,
+          subject: subject.subject,
+          confidence_level: subject.confidence,
+          priority: subject.priority
+        })
+      );
 
-    // Fix: Use upsert method with the correct syntax
-    const onboardingProgressPromise = supabase
-      .from('onboarding_progress')
-      .upsert({
-        student_id: state.user!.id,
-        current_step: 'completed',
-        has_completed_subjects: true,
-        has_completed_availability: true,
-        has_generated_plan: true,
-        has_completed_diagnostic: true,
-        completed_at: new Date().toISOString()
-      });
+      // Update onboarding progress
+      const { error } = await supabase
+        .from('onboarding_progress')
+        .upsert({
+          student_id: state.user!.id,
+          current_step: 'completed',
+          has_completed_subjects: true,
+          has_completed_availability: true,
+          has_generated_plan: true,
+          has_completed_diagnostic: true,
+          completed_at: new Date().toISOString()
+        }, {
+          onConflict: 'student_id'
+        });
 
-    await Promise.all([
-      ...subjectPreferencesPromises, 
-      onboardingProgressPromise
-    ]);
+      if (error) throw error;
+
+      await Promise.all(subjectPreferencesPromises);
+
+      return;
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      throw error;
+    }
   };
 
   return (
