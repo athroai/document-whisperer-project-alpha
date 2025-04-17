@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAthro } from '@/contexts/AthroContext';
-import { Star, CircleHalf, Circle, HelpCircle, BookOpen, Atom, Book, History, MapPin, Languages } from 'lucide-react';
+import { Star, CircleHelp, Circle, HelpCircle, BookOpen, Atom, Book, History, MapPin, Languages } from 'lucide-react';
 
 interface SubjectCardProps {
   subject: string;
@@ -15,20 +14,17 @@ interface SubjectCardProps {
 export const SubjectCard: React.FC<SubjectCardProps> = ({ subject, confidence = 5, progress = 0 }) => {
   const { characters } = useAthro();
   
-  // Find the corresponding Athro character for this subject
   const character = characters.find(char => 
     char.subject.toLowerCase() === subject.toLowerCase()
   ) || characters.find(char => char.id === 'athroai'); // Fallback to AthroAI
   
-  // Display a confidence indicator based on the confidence level
   const getConfidenceIcon = () => {
     if (confidence >= 8) return <Star className="h-5 w-5 text-yellow-500" />;
-    if (confidence >= 5) return <CircleHalf className="h-5 w-5 text-amber-500" />;
+    if (confidence >= 5) return <CircleHelp className="h-5 w-5 text-amber-500" />;
     if (confidence >= 1) return <Circle className="h-5 w-5 text-orange-500" />;
     return <HelpCircle className="h-5 w-5 text-gray-500" />;
   };
   
-  // Get an appropriate icon for the subject
   const getSubjectIcon = () => {
     const subjectLower = subject.toLowerCase();
     
