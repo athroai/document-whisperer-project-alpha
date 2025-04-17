@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
 import { athroCharacters, getAthroById } from '@/config/athrosConfig';
@@ -66,7 +65,6 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     console.log('🚀 Initializing Athro characters');
     
     try {
-      // athroCharacters is now an array, so we can directly use it
       console.log('📋 Loaded characters:', athroCharacters.map(c => c.name).join(', '));
       setCharacters(athroCharacters);
 
@@ -96,7 +94,6 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     if (activeCharacter && characterInitialized.current) {
       console.log('👤 Active character changed to:', activeCharacter.name);
       memoizedClearMessages();
-      // Removed automatic welcome message here
     }
   }, [activeCharacter, memoizedClearMessages]);
 
@@ -123,6 +120,7 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     
     try {
       console.log("📨 Sending message to:", charToUse.name);
+      console.log("Character data:", charToUse);
       return await sendAthroMessage(content, charToUse);
     } catch (error) {
       console.error("💥 Error in sendMessage:", error);

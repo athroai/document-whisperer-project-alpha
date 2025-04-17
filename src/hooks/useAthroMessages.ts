@@ -21,6 +21,7 @@ export function useAthroMessages() {
     const handleCustomMessage = (event: Event) => {
       const customEvent = event as CustomEvent<AthroMessage>;
       if (customEvent.detail) {
+        console.log('Custom message received:', customEvent.detail);
         setMessages(prev => [...prev, customEvent.detail]);
       }
     };
@@ -74,9 +75,11 @@ export function useAthroMessages() {
     setIsTyping(true);
     
     try {
-      // Make the API call to OpenAI
+      // Build the system prompt for this character
       const systemPrompt = buildSystemPrompt(activeCharacter);
+      console.log('System prompt built, length:', systemPrompt.length);
       
+      // Make the API call to OpenAI
       const response = await getOpenAIResponse({
         systemPrompt: systemPrompt,
         userMessage: content,

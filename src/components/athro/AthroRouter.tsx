@@ -18,20 +18,31 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
   context,
   onResponse,
 }) => {
-  React.useEffect(() => {
+  useEffect(() => {
     const processMessage = async () => {
       try {
         console.log(`[AthroRouter] Processing message for ${character.name}`);
+        console.log('[AthroRouter] Character data:', character);
         
-        // Use real API call with project API key
-        console.log('[AthroRouter] Using OpenAI API');
+        // Skip processing welcome message
+        if (message.toLowerCase() === "welcome") {
+          console.log('[AthroRouter] Skipping welcome message');
+          return;
+        }
+        
+        // Build system prompt for the character
         const systemPrompt = buildSystemPrompt(character);
+        console.log('[AthroRouter] System prompt built, length:', systemPrompt.length);
         
+        // Get response from OpenAI
         const response = await getOpenAIResponse({
           systemPrompt,
           userMessage: message,
         });
         
+        console.log('[AthroRouter] Received response, length:', response?.length || 0);
+        
+        // Send response back
         onResponse({
           id: Date.now().toString(),
           senderId: character.id,
@@ -45,7 +56,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         onResponse({
           id: Date.now().toString(),
           senderId: character.id,
-          content: "I'm having trouble processing that right now. Could you try again?",
+          content: "I'm having trouble connecting to my knowledge base right now. Could you try again in a moment?",
           timestamp: new Date().toISOString()
         });
       }

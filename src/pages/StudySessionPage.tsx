@@ -165,9 +165,9 @@ Or let me know if you have something else in mind!`;
         // Create the active character
         const activeChar: AthroCharacter = {
           ...characterForSubject,
-          id: characterForSubject.id || subject.toLowerCase(),
         };
         
+        console.log('Changed to character:', activeChar);
         setActiveCharacter(activeChar);
         
         // Clear messages for new subject
