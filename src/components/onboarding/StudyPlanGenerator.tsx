@@ -68,6 +68,7 @@ export const StudyPlanGenerator: React.FC = () => {
       // Create calendar events and study plan sessions
       const today = new Date();
       const calendarEvents = [];
+      let successfulInserts = 0;
       
       for (const planItem of plan) {
         // Create a study session that starts today at the specified time
@@ -93,7 +94,7 @@ export const StudyPlanGenerator: React.FC = () => {
         
         const { data: eventData, error: eventError } = await supabase.from('calendar_events').insert({
           student_id: state.user.id,
-          user_id: state.user.id, // Make sure both student_id and user_id are set
+          user_id: state.user.id,
           title: `${planItem.subject} Study Session`,
           description: eventDescription,
           event_type: 'study_session',
@@ -103,7 +104,8 @@ export const StudyPlanGenerator: React.FC = () => {
         
         if (eventError) {
           console.error('Error creating calendar event:', eventError);
-          throw eventError;
+          console.error('Error details:', JSON.stringify(eventError));
+          continue; // Continue with next subject instead of failing entire process
         }
         
         if (!eventData || eventData.length === 0) {
@@ -111,6 +113,7 @@ export const StudyPlanGenerator: React.FC = () => {
           continue;
         }
 
+        successfulInserts++;
         console.log(`Successfully created calendar event with ID ${eventData[0].id}`);
         calendarEvents.push(eventData[0]);
         
@@ -128,12 +131,13 @@ export const StudyPlanGenerator: React.FC = () => {
         
         if (sessionError) {
           console.error('Error creating study plan session:', sessionError);
+          console.error('Error details:', JSON.stringify(sessionError));
         }
       }
 
-      console.log(`Successfully created ${calendarEvents.length} calendar events`);
+      console.log(`Successfully created ${successfulInserts} calendar events out of ${plan.length} subjects`);
 
-      if (calendarEvents.length === 0) {
+      if (successfulInserts === 0) {
         toast({
           title: "Warning",
           description: "No study sessions were scheduled. Please try again or check your subjects.",
@@ -142,11 +146,10 @@ export const StudyPlanGenerator: React.FC = () => {
       } else {
         toast({
           title: "Study Plan Created",
-          description: `Successfully scheduled ${calendarEvents.length} study sessions.`,
+          description: `Successfully scheduled ${successfulInserts} study sessions.`,
         });
+        setStudyPlan(plan);
       }
-
-      setStudyPlan(plan);
     } catch (error) {
       console.error('Error generating study plan:', error);
       toast({
