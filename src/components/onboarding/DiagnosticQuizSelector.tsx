@@ -116,7 +116,9 @@ export const DiagnosticQuizSelector: React.FC = () => {
   };
 
   const handleConfidenceChange = (newValue: number[]) => {
-    setSelectedConfidence(newValue[0].toString());
+    if (newValue && newValue.length > 0 && newValue[0] !== undefined) {
+      setSelectedConfidence(String(newValue[0]));
+    }
   };
 
   const handleQuizComplete = async () => {
