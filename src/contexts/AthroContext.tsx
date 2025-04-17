@@ -66,13 +66,13 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     console.log('🚀 Initializing Athro characters');
     
     try {
-      const charactersData = athroCharacters;
-      console.log('📋 Loaded characters:', charactersData.map(c => c.name).join(', '));
-      setCharacters(charactersData);
+      // athroCharacters is now an array, so we can directly use it
+      console.log('📋 Loaded characters:', athroCharacters.map(c => c.name).join(', '));
+      setCharacters(athroCharacters);
 
-      if (charactersData.length > 0) {
-        console.log('🎯 Setting initial active character:', charactersData[0].name);
-        setActiveCharacter(charactersData[0]);
+      if (athroCharacters.length > 0) {
+        console.log('🎯 Setting initial active character:', athroCharacters[0].name);
+        setActiveCharacter(athroCharacters[0]);
         characterInitialized.current = true;
       }
       

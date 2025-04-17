@@ -15,7 +15,7 @@ import StudySessionRecorder from '@/components/study/StudySessionRecorder';
 import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
 
 // Import constants for study subjects
-import { athroCharacters } from '@/config/athrosConfig';
+import { athroCharacters, getAthroBySubject } from '@/config/athrosConfig';
 
 const StudySessionPage: React.FC = () => {
   const { messages, isTyping, sendMessage, clearMessages } = useAthroMessages();
@@ -164,16 +164,8 @@ Or let me know if you have something else in mind!`;
       if (characterForSubject) {
         // Create the active character
         const activeChar: AthroCharacter = {
-          id: subject.toLowerCase(),
-          name: characterForSubject.name,
-          subject: subject as AthroSubject,
-          topics: characterForSubject.topics,
-          examBoards: ['wjec', 'aqa', 'ocr'],
-          supportsMathNotation: subject === 'Mathematics' || subject === 'Science',
-          avatarUrl: characterForSubject.avatarUrl,
-          shortDescription: `Your ${subject} study mentor`,
-          fullDescription: characterForSubject.fullDescription,
-          tone: characterForSubject.tone
+          ...characterForSubject,
+          id: characterForSubject.id || subject.toLowerCase(),
         };
         
         setActiveCharacter(activeChar);
@@ -251,9 +243,9 @@ Or let me know if you have something else in mind!`;
                       onChange={(e) => handleActions.changeSubject(e.target.value)}
                       className="w-full rounded-md border border-gray-300 px-3 py-2"
                     >
-                      {Object.keys(athroCharacters).map((subject) => (
-                        <option key={subject} value={subject}>
-                          {subject}
+                      {athroCharacters.map((character) => (
+                        <option key={character.id} value={character.subject}>
+                          {character.subject}
                         </option>
                       ))}
                     </select>
@@ -262,7 +254,7 @@ Or let me know if you have something else in mind!`;
               </CardContent>
             </Card>
           </div>
-
+          
           <div className="md:col-span-1">
             <Card>
               <CardHeader>

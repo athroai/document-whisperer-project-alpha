@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { AthroCharacter } from '@/types/athro';
-import { athroCharacters } from '@/config/athrosConfig';
+import { athroCharacters, getAthroBySubject } from '@/config/athrosConfig';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,12 +36,10 @@ const StudySessionManager: React.FC<StudySessionManagerProps> = ({
       
       console.log('Session parameters:', { sessionId, subject, topic, confidenceBefore });
       
-      // Find the right character for this subject
-      const characterInfo = Object.entries(athroCharacters).find(
-        ([key]) => key.toLowerCase() === subject.toLowerCase()
-      );
+      // Find the right character for this subject using getAthroBySubject helper
+      const character = getAthroBySubject(subject);
       
-      if (!characterInfo) {
+      if (!character) {
         console.error('No character found for subject:', subject);
         toast({
           title: "Subject Not Found",
@@ -50,42 +48,18 @@ const StudySessionManager: React.FC<StudySessionManagerProps> = ({
         });
         
         // Fall back to Mathematics
-        const defaultChar = Object.entries(athroCharacters).find(
-          ([key]) => key.toLowerCase() === 'mathematics'
-        );
+        const fallbackChar = getAthroBySubject('Mathematics');
         
-        if (defaultChar) {
-          const fallbackChar = defaultChar[1];
-          onSessionStart({
-            id: 'mathematics',
-            name: fallbackChar.name,
+        if (fallbackChar) {
+          onSessionStart(fallbackChar, { 
             subject: 'Mathematics',
-            topics: fallbackChar.topics,
-            examBoards: ['wjec', 'aqa', 'ocr'],
-            supportsMathNotation: true,
-            avatarUrl: fallbackChar.avatarUrl,
-            shortDescription: 'Your Mathematics mentor',
-            fullDescription: fallbackChar.fullDescription,
-            tone: fallbackChar.tone
-          }, { subject: 'Mathematics' });
+            sessionId,
+            topic,
+            confidenceBefore: confidenceBefore || 5
+          });
         }
         return;
       }
-      
-      // Create the character
-      const character = characterInfo[1];
-      const activeCharacter: AthroCharacter = {
-        id: subject.toLowerCase(),
-        name: character.name,
-        subject: subject as any, // Type assertion for AthroSubject
-        topics: character.topics,
-        examBoards: ['wjec', 'aqa', 'ocr'],
-        supportsMathNotation: subject === 'Mathematics' || subject === 'Science',
-        avatarUrl: character.avatarUrl,
-        shortDescription: `Your ${subject} study mentor`,
-        fullDescription: character.fullDescription,
-        tone: character.tone
-      };
       
       // If this is a saved session, load the confidence value
       let loadedConfidence = confidenceBefore;
@@ -137,7 +111,7 @@ const StudySessionManager: React.FC<StudySessionManagerProps> = ({
       }
       
       // Initialize the session with derived confidence value
-      onSessionStart(activeCharacter, {
+      onSessionStart(character, {
         sessionId: sessionId || undefined,
         subject,
         topic: topic || undefined,

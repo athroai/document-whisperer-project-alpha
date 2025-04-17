@@ -1,6 +1,7 @@
 
 export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | string;
 export type ExamBoard = 'wjec' | 'aqa' | 'ocr' | string;
+export type AthroLanguage = 'English' | 'Welsh' | 'French' | 'German' | 'Spanish' | string;
 
 export interface AthroCharacter {
   id: string;
@@ -13,6 +14,8 @@ export interface AthroCharacter {
   shortDescription: string;
   fullDescription: string;
   tone: string;
+  supportsSpecialCharacters?: boolean;
+  supportedLanguages?: AthroLanguage[];
 }
 
 export interface AthroMessage {
