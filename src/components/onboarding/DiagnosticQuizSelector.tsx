@@ -82,7 +82,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
     questions.forEach((question, index) => {
       const userAnswerId = selectedAnswers[index];
       if (userAnswerId) {
-        const selectedAnswer = question.answers.find((a: any) => a.id === userAnswerId);
+        const selectedAnswer = question.answers?.find((a: any) => a.id === userAnswerId);
         if (selectedAnswer && selectedAnswer.isCorrect) {
           correctCount++;
         }
@@ -179,6 +179,9 @@ export const DiagnosticQuizSelector: React.FC = () => {
     const currentQuestion = questions[currentQuestionIndex];
     const isAnswerSelected = selectedAnswers[currentQuestionIndex] !== undefined;
     
+    // Check if answers exist and add error handling
+    const hasAnswers = currentQuestion && currentQuestion.answers && Array.isArray(currentQuestion.answers);
+    
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -191,22 +194,28 @@ export const DiagnosticQuizSelector: React.FC = () => {
         <Progress value={(currentQuestionIndex / questions.length) * 100} className="h-2" />
 
         <div className="p-6 bg-white rounded-lg shadow">
-          <h4 className="text-xl font-medium mb-4">{currentQuestion.text}</h4>
+          <h4 className="text-xl font-medium mb-4">{currentQuestion?.text || "Loading question..."}</h4>
           
           <div className="space-y-3 mt-6">
-            {currentQuestion.answers.map((answer: any) => (
-              <div
-                key={answer.id}
-                onClick={() => handleAnswerSelect(answer.id)}
-                className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedAnswers[currentQuestionIndex] === answer.id 
-                    ? 'border-purple-600 bg-purple-50' 
-                    : 'hover:border-purple-300'
-                }`}
-              >
-                {answer.text}
+            {hasAnswers ? (
+              currentQuestion.answers.map((answer: any) => (
+                <div
+                  key={answer.id}
+                  onClick={() => handleAnswerSelect(answer.id)}
+                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                    selectedAnswers[currentQuestionIndex] === answer.id 
+                      ? 'border-purple-600 bg-purple-50' 
+                      : 'hover:border-purple-300'
+                  }`}
+                >
+                  {answer.text}
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-red-500">
+                No answers available for this question. Please try another quiz.
               </div>
-            ))}
+            )}
           </div>
           
           <div className="mt-6 flex justify-end">
