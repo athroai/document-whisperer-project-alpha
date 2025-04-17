@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,7 @@ const StudySessionLauncher = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { state: authState } = useAuth();
+  const [hasChecked, setHasChecked] = useState(false);
   
   useEffect(() => {
     const checkForScheduledSessions = async () => {
@@ -18,8 +19,23 @@ const StudySessionLauncher = () => {
         return;
       }
       
+      // Get current user ID from context
       const userId = authState.user.id;
       console.log('Checking scheduled sessions for user ID:', userId);
+      
+      // Check Supabase auth status to ensure we're properly authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Error checking Supabase auth status:', authError);
+        return;
+      }
+      
+      if (!user) {
+        console.log('No authenticated Supabase user found');
+        return;
+      }
+      
+      console.log('Supabase auth confirmed, user ID:', user.id);
       
       // Get current date
       const now = new Date();
@@ -27,6 +43,7 @@ const StudySessionLauncher = () => {
       const fifteenMinutesFromNow = new Date(now.getTime() + 15 * 60000);
       
       try {
+        // Query with explicit user ID and RLS will handle permissions
         const { data, error } = await supabase
           .from('calendar_events')
           .select('id, title, description, start_time, end_time, event_type')
@@ -83,8 +100,10 @@ const StudySessionLauncher = () => {
         } else {
           console.log('No upcoming events found for user');
         }
+        setHasChecked(true);
       } catch (error) {
         console.error('Error checking for scheduled sessions:', error);
+        setHasChecked(true);
       }
     };
     
