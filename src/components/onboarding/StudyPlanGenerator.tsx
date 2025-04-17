@@ -13,6 +13,23 @@ export const StudyPlanGenerator: React.FC = () => {
   const { selectedSubjects, availability, completeOnboarding } = useOnboarding();
   const [isGenerating, setIsGenerating] = useState(false);
   const [studyPlan, setStudyPlan] = useState<any[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        console.log("User authenticated:", data.user.id);
+        setIsAuthenticated(true);
+      } else {
+        console.log("No authenticated user found");
+        setIsAuthenticated(false);
+      }
+    };
+    
+    checkAuth();
+  }, []);
 
   const generateStudyPlan = async () => {
     if (!state.user) {
@@ -44,18 +61,23 @@ export const StudyPlanGenerator: React.FC = () => {
         ]
       }));
 
-      // Create a session token to ensure we're authenticated
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get fresh auth session
+      const { data: authData } = await supabase.auth.getUser();
       
-      if (!session) {
-        throw new Error("No active session found. Please log in again.");
+      if (!authData.user) {
+        throw new Error("Authentication required. Please log in again.");
       }
+      
+      console.log("Verified authenticated user:", authData.user.id);
 
-      // Save study plan to Supabase with explicit student_id
-      const { data: planData, error: planError } = await supabase
+      // Try to use a service role client if needed (this might be necessary if RLS policies are being difficult)
+      const client = supabase;
+      
+      // Save study plan to Supabase with explicit user ID
+      const { data: planData, error: planError } = await client
         .from('study_plans')
         .insert({
-          student_id: state.user.id,
+          student_id: authData.user.id,
           name: 'Initial Study Plan',
           description: 'Personalized study plan based on your subjects and availability',
           start_date: new Date().toISOString().split('T')[0],
@@ -109,11 +131,11 @@ export const StudyPlanGenerator: React.FC = () => {
         
         console.log(`Creating calendar event for ${planItem.subject} at ${startDate.toISOString()}`);
         
-        const { data: eventData, error: eventError } = await supabase
+        const { data: eventData, error: eventError } = await client
           .from('calendar_events')
           .insert({
-            student_id: state.user.id,
-            user_id: state.user.id,
+            student_id: authData.user.id,
+            user_id: authData.user.id,
             title: `${planItem.subject} Study Session`,
             description: eventDescription,
             event_type: 'study_session',
@@ -138,7 +160,7 @@ export const StudyPlanGenerator: React.FC = () => {
         calendarEvents.push(eventData[0]);
         
         // Create study plan session linked to the calendar event
-        const { error: sessionError } = await supabase
+        const { error: sessionError } = await client
           .from('study_plan_sessions')
           .insert({
             plan_id: planId,
@@ -206,10 +228,19 @@ export const StudyPlanGenerator: React.FC = () => {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold">Generate Your Personalized Study Plan</h2>
+      
+      {!isAuthenticated && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
+          <p className="text-amber-800">
+            You need to be signed in to generate a study plan. Please refresh the page or sign in again.
+          </p>
+        </div>
+      )}
+      
       {studyPlan.length === 0 ? (
         <Button 
           onClick={generateStudyPlan} 
-          disabled={isGenerating}
+          disabled={isGenerating || !isAuthenticated}
           className="bg-purple-600 hover:bg-purple-700"
         >
           {isGenerating ? 'Generating...' : 'Generate Study Plan'}
