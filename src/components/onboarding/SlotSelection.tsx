@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -102,11 +103,13 @@ export const SlotSelection: React.FC = () => {
                   option => option.count === slot.slot_count && option.duration === slot.slot_duration_minutes
                 );
                 
-                updatedPreferences[dayIndex] = {
-                  ...updatedPreferences[dayIndex],
-                  slotOption: slotOptionIndex !== -1 ? slotOptionIndex : null,
-                  preferredStartHour: slot.preferred_start_hour || 9
-                };
+                if (slotOptionIndex !== -1) {
+                  updatedPreferences[dayIndex] = {
+                    ...updatedPreferences[dayIndex],
+                    slotOption: slotOptionIndex,
+                    preferredStartHour: slot.preferred_start_hour || 9
+                  };
+                }
               }
             });
             
@@ -131,15 +134,22 @@ export const SlotSelection: React.FC = () => {
                 option => option.count === slot.slot_count && option.duration === slot.slot_duration_minutes
               );
               
-              updatedPreferences[dayIndex] = {
-                ...updatedPreferences[dayIndex],
-                slotOption: slotOptionIndex !== -1 ? slotOptionIndex : null,
-                preferredStartHour: slot.preferred_start_hour || 9
-              };
+              if (slotOptionIndex !== -1) {
+                updatedPreferences[dayIndex] = {
+                  ...updatedPreferences[dayIndex],
+                  slotOption: slotOptionIndex,
+                  preferredStartHour: slot.preferred_start_hour || 9
+                };
+              }
             }
           });
           
           setDayPreferences(updatedPreferences);
+          
+          // If we have selected days from existing slots, set the active day to the first one
+          if (days.length > 0) {
+            setActiveDay(days[0]);
+          }
         }
         
         setIsInitialized(true);
@@ -150,19 +160,37 @@ export const SlotSelection: React.FC = () => {
     };
     
     checkAuthStatus();
-  }, [existingSlots, setStudySlots, dayPreferences]);
+  }, [existingSlots, setStudySlots]);
 
   const toggleDaySelection = useCallback((dayIndex: number) => {
     setSelectedDays(prev => {
-      if (prev.includes(dayIndex)) {
-        return prev.filter(d => d !== dayIndex);
-      } else {
-        return [...prev, dayIndex];
+      const newSelectedDays = prev.includes(dayIndex) 
+        ? prev.filter(d => d !== dayIndex)
+        : [...prev, dayIndex];
+      
+      if (!prev.includes(dayIndex)) {
+        // If we're adding a day, automatically set the first slot option
+        setDayPreferences(prevPrefs => 
+          prevPrefs.map(day => 
+            day.dayOfWeek === dayIndex 
+              ? { ...day, slotOption: 0 } // Set to first slot option by default
+              : day
+          )
+        );
       }
+      
+      // If we have days selected, make sure the active day is one of them
+      if (newSelectedDays.length > 0) {
+        if (!newSelectedDays.includes(activeDay)) {
+          setActiveDay(newSelectedDays[0]);
+        }
+      }
+      
+      return newSelectedDays;
     });
-
+    
     setActiveDay(dayIndex);
-  }, []);
+  }, [activeDay]);
 
   const selectSlotOption = useCallback((dayOfWeek: number, optionIndex: number) => {
     setDayPreferences(prev => 
@@ -185,30 +213,60 @@ export const SlotSelection: React.FC = () => {
   }, []);
 
   const getSelectedOption = useCallback((dayOfWeek: number) => {
-    return dayPreferences.find(day => day.dayOfWeek === dayOfWeek)?.slotOption;
+    const preference = dayPreferences.find(day => day.dayOfWeek === dayOfWeek);
+    return preference?.slotOption;
   }, [dayPreferences]);
 
   const getPreferredStartHour = useCallback((dayOfWeek: number) => {
-    return dayPreferences.find(day => day.dayOfWeek === dayOfWeek)?.preferredStartHour || 9;
+    const preference = dayPreferences.find(day => day.dayOfWeek === dayOfWeek);
+    return preference?.preferredStartHour || 9;
   }, [dayPreferences]);
 
   const hasValidSelections = useCallback(() => {
-    return selectedDays.length > 0 && 
-      selectedDays.every(day => 
-        dayPreferences.find(pref => pref.dayOfWeek === day)?.slotOption !== null
-      );
+    if (selectedDays.length === 0) return false;
+    
+    // Check that at least one selected day has a slot option
+    return selectedDays.some(day => 
+      dayPreferences.find(pref => pref.dayOfWeek === day)?.slotOption !== null
+    );
   }, [selectedDays, dayPreferences]);
 
   const savePreferences = async () => {
     setError(null);
     
+    // Check if any days are selected
+    if (selectedDays.length === 0) {
+      setError("Please select at least one day to study.");
+      toast({
+        description: "Please select at least one day to study.",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    // Check if selected days have slot options
+    const hasSlotOptions = selectedDays.some(day => 
+      dayPreferences.find(pref => pref.dayOfWeek === day)?.slotOption !== null
+    );
+    
+    if (!hasSlotOptions) {
+      setError("Please select a study session format for at least one day.");
+      toast({
+        description: "Please select a study session format for at least one day.",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
     // Validate that we have a valid user ID
-    if (!userId) {
-      // Get current user directly from Supabase
+    const currentUserId = state.user?.id || userId;
+    
+    if (!currentUserId) {
+      // Try to get current user directly from Supabase as a final attempt
       const { data } = await supabase.auth.getUser();
-      const currentUserId = data?.user?.id;
+      const authUserId = data?.user?.id;
       
-      if (!currentUserId) {
+      if (!authUserId) {
         const errorMsg = "Authentication required. Please log in again.";
         setError(errorMsg);
         toast({
@@ -219,29 +277,20 @@ export const SlotSelection: React.FC = () => {
         return false;
       }
       
-      setUserId(currentUserId);
+      setUserId(authUserId);
     }
 
     setSaving(true);
 
     try {
-      console.log("Starting to save preferences for user:", userId);
-      
-      // Double check session is active
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) {
-        console.warn("No active Supabase session found, continuing with cached user ID");
-      } else {
-        console.log("Active session confirmed, user ID:", sessionData.session.user.id);
-        // Ensure we're using the most up-to-date user ID
-        setUserId(sessionData.session.user.id);
-      }
+      const userIdToUse = currentUserId || state.user?.id || userId;
+      console.log("Starting to save preferences for user:", userIdToUse);
 
       // Delete existing preferences
       const { error: deleteError } = await supabase
         .from('preferred_study_slots')
         .delete()
-        .eq('user_id', userId);
+        .eq('user_id', userIdToUse);
       
       if (deleteError) {
         console.error("Error deleting existing preferences:", deleteError);
@@ -262,21 +311,17 @@ export const SlotSelection: React.FC = () => {
           const optionIndex = preference?.slotOption ?? 0;
           const slotOption = SLOT_OPTIONS[optionIndex];
           
-          // Format the start time as HH:MM
-          const startHour = preference?.preferredStartHour || 9;
-          
           const preferenceData = {
-            user_id: userId,
+            user_id: userIdToUse,
             day_of_week: dayOfWeek,
             slot_duration_minutes: slotOption.duration,
             slot_count: slotOption.count,
-            preferred_start_hour: startHour,
+            preferred_start_hour: preference?.preferredStartHour || 9,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
           
           console.log("Preparing study slot preference:", preferenceData);
-          
           return preferenceData;
         });
 
@@ -307,7 +352,7 @@ export const SlotSelection: React.FC = () => {
       const { error: progressError } = await supabase
         .from('onboarding_progress')
         .upsert({
-          student_id: userId,
+          student_id: userIdToUse,
           current_step: 'diagnosticQuiz',
           has_completed_availability: true
         }, {
@@ -328,7 +373,7 @@ export const SlotSelection: React.FC = () => {
       console.error('Error saving preferences:', error);
       setError(error.message || "Failed to save preferences");
       toast({
-        description: "Failed to save your preferences. Please try again.",
+        description: error.message || "Failed to save your preferences. Please try again.",
         variant: "destructive"
       });
       return false;
@@ -341,7 +386,7 @@ export const SlotSelection: React.FC = () => {
     try {
       const saved = await savePreferences();
       if (saved) {
-        updateOnboardingStep && updateOnboardingStep('diagnosticQuiz');
+        updateOnboardingStep('diagnosticQuiz');
       }
     } catch (error) {
       console.error("Error in handleContinue:", error);

@@ -25,14 +25,14 @@ const OnboardingContent: React.FC = () => {
   const handleNext = () => {
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < steps.length) {
-      updateOnboardingStep?.(steps[nextIndex].id);
+      updateOnboardingStep(steps[nextIndex].id);
     }
   };
 
   const handlePrevious = () => {
     const prevIndex = currentStepIndex - 1;
     if (prevIndex >= 0) {
-      updateOnboardingStep?.(steps[prevIndex].id);
+      updateOnboardingStep(steps[prevIndex].id);
     }
   };
 
@@ -51,23 +51,6 @@ const OnboardingContent: React.FC = () => {
       </div>
       
       <CurrentComponent />
-      
-      <div className="flex justify-between mt-6">
-        {currentStepIndex > 0 && (
-          <Button variant="outline" onClick={handlePrevious}>
-            Previous
-          </Button>
-        )}
-        
-        {currentStepIndex < steps.length - 1 && (
-          <Button 
-            onClick={handleNext} 
-            className="ml-auto"
-          >
-            Next
-          </Button>
-        )}
-      </div>
     </div>
   );
 };

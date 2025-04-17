@@ -23,17 +23,23 @@ export const DaySelector: React.FC<DaySelectorProps> = ({ selectedDays, toggleDa
       </p>
       
       <div className="flex flex-wrap gap-2 mb-6">
-        {DAYS_OF_WEEK.map((day, index) => (
-          <Button 
-            key={day}
-            variant={isDaySelected(index + 1) ? "default" : "outline"}
-            className={isDaySelected(index + 1) ? "bg-purple-600 hover:bg-purple-700" : ""}
-            onClick={() => toggleDaySelection(index + 1)}
-          >
-            {isDaySelected(index + 1) && <Check className="mr-1 h-4 w-4" />}
-            {day.substring(0, 3)}
-          </Button>
-        ))}
+        {DAYS_OF_WEEK.map((day, index) => {
+          const dayIndex = index + 1;
+          const isSelected = isDaySelected(dayIndex);
+          
+          return (
+            <Button 
+              key={day}
+              type="button"
+              variant={isSelected ? "default" : "outline"}
+              className={isSelected ? "bg-purple-600 hover:bg-purple-700" : ""}
+              onClick={() => toggleDaySelection(dayIndex)}
+            >
+              {isSelected && <Check className="mr-1 h-4 w-4" />}
+              {day.substring(0, 3)}
+            </Button>
+          );
+        })}
       </div>
     </div>
   );

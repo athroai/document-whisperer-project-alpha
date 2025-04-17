@@ -38,46 +38,53 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [studySlots, setStudySlots] = useState<PreferredStudySlot[]>([]);
 
+  // Fetch current onboarding step when component mounts
+  useEffect(() => {
+    const fetchOnboardingStep = async () => {
+      if (!state.user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('onboarding_progress')
+          .select('current_step')
+          .eq('student_id', state.user.id)
+          .maybeSingle();
+          
+        if (error) {
+          console.error('Error fetching onboarding step:', error);
+          return;
+        }
+        
+        if (data && data.current_step) {
+          setCurrentStep(data.current_step);
+        }
+      } catch (err) {
+        console.error('Error in fetchOnboardingStep:', err);
+      }
+    };
+    
+    fetchOnboardingStep();
+  }, [state.user]);
+  
   const updateOnboardingStep = useCallback(async (step: string) => {
+    console.log('Updating onboarding step to:', step);
     setCurrentStep(step);
     
     // If user is authenticated, also update in database
     if (state.user?.id) {
       try {
-        // Check if a record exists first
-        const { data: existingRecord, error: checkError } = await supabase
+        // Use upsert instead of checking first then updating or inserting
+        const { error } = await supabase
           .from('onboarding_progress')
-          .select('*')
-          .eq('student_id', state.user.id)
-          .maybeSingle();
-          
-        if (checkError) {
-          console.error('Error checking onboarding progress:', checkError);
-          return;
-        }
-        
-        if (existingRecord) {
-          // Update existing record
-          const { error: updateError } = await supabase
-            .from('onboarding_progress')
-            .update({ current_step: step })
-            .eq('student_id', state.user.id);
+          .upsert({ 
+            student_id: state.user.id, 
+            current_step: step 
+          }, { 
+            onConflict: 'student_id' 
+          });
             
-          if (updateError) {
-            console.error('Error updating onboarding step:', updateError);
-          }
-        } else {
-          // Insert new record
-          const { error: insertError } = await supabase
-            .from('onboarding_progress')
-            .insert({
-              student_id: state.user.id,
-              current_step: step
-            });
-            
-          if (insertError) {
-            console.error('Error creating onboarding progress:', insertError);
-          }
+        if (error) {
+          console.error('Error updating onboarding step:', error);
         }
       } catch (error) {
         console.error('Error in updateOnboardingStep:', error);

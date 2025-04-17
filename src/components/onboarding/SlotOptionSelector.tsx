@@ -20,7 +20,7 @@ export const SlotOptionSelector: React.FC<SlotOptionSelectorProps> = ({
       {slotOptions.map((option, index) => (
         <Card 
           key={index} 
-          className={`p-4 cursor-pointer ${
+          className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
             selectedOption === index ? 'ring-2 ring-purple-500 border-purple-300' : ''
           }`}
           onClick={() => onSelectOption(index)}
