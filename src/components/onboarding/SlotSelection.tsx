@@ -41,7 +41,6 @@ export const SlotSelection: React.FC = () => {
   const [activeDay, setActiveDay] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize day preferences once
@@ -58,13 +57,15 @@ export const SlotSelection: React.FC = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        if (!state.user?.id) return;
-        
-        setUserId(state.user.id);
+        if (!state.user?.id) {
+          console.log("No authenticated user found");
+          return;
+        }
         
         // Only fetch slots if they aren't already available in context
         if (!existingSlots || existingSlots.length === 0) {
           // Fetch existing study slots
+          console.log("Fetching study slots for user:", state.user.id);
           const { data: slots, error: slotsError } = await supabase
             .from('preferred_study_slots')
             .select('*')
@@ -103,6 +104,8 @@ export const SlotSelection: React.FC = () => {
             });
             
             setDayPreferences(updatedPreferences);
+          } else {
+            console.log("No existing study slots found for user:", state.user.id);
           }
         } else if (existingSlots.length > 0) {
           // Use slots from context instead of fetching
@@ -142,7 +145,7 @@ export const SlotSelection: React.FC = () => {
     if (state.user && !isInitialized) {
       checkAuthStatus();
     }
-  }, [state.user, isInitialized, existingSlots, setStudySlots]);
+  }, [state.user, isInitialized, existingSlots, setStudySlots, dayPreferences]);
 
   const toggleDaySelection = useCallback((dayIndex: number) => {
     setSelectedDays(prev => {
@@ -195,7 +198,7 @@ export const SlotSelection: React.FC = () => {
     setError(null);
     
     // Validate that we have a valid user ID
-    if (!userId) {
+    if (!state.user?.id) {
       const errorMsg = "Authentication required. Please log in again.";
       setError(errorMsg);
       toast({
@@ -209,10 +212,12 @@ export const SlotSelection: React.FC = () => {
     setSaving(true);
 
     try {
+      console.log("Starting to save preferences for user:", state.user.id);
+      
       // Double check session is active
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData?.session) {
-        console.warn("No active Supabase session found, but proceeding with user ID:", userId);
+        console.warn("No active Supabase session found, but proceeding with user ID:", state.user.id);
       } else {
         console.log("Active session confirmed, user ID:", sessionData.session.user.id);
       }
@@ -221,11 +226,13 @@ export const SlotSelection: React.FC = () => {
       const { error: deleteError } = await supabase
         .from('preferred_study_slots')
         .delete()
-        .eq('user_id', userId);
+        .eq('user_id', state.user.id);
       
       if (deleteError) {
         console.error("Error deleting existing preferences:", deleteError);
         // Continue anyway as we'll try to upsert new preferences
+      } else {
+        console.log("Successfully deleted existing preferences");
       }
 
       // Create preferences to save
@@ -244,7 +251,7 @@ export const SlotSelection: React.FC = () => {
           const startHour = preference?.preferredStartHour || 9;
           
           const preferenceData = {
-            user_id: userId,
+            user_id: state.user!.id,
             day_of_week: dayOfWeek,
             slot_duration_minutes: slotOption.duration,
             slot_count: slotOption.count,
@@ -285,7 +292,7 @@ export const SlotSelection: React.FC = () => {
       await supabase
         .from('onboarding_progress')
         .upsert({
-          student_id: userId,
+          student_id: state.user.id,
           current_step: 'diagnosticQuiz',
           has_completed_availability: true
         }, {

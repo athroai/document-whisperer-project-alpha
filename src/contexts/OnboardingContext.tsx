@@ -40,7 +40,24 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateOnboardingStep = useCallback((step: string) => {
     setCurrentStep(step);
-  }, []);
+    
+    // If user is authenticated, also update in database
+    if (state.user?.id) {
+      supabase
+        .from('onboarding_progress')
+        .upsert({
+          student_id: state.user.id,
+          current_step: step
+        }, {
+          onConflict: 'student_id'
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error updating onboarding step:', error);
+          }
+        });
+    }
+  }, [state.user]);
 
   // Fetch existing data when user is available
   useEffect(() => {
@@ -48,6 +65,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (!state.user) return;
       
       try {
+        console.log("Fetching onboarding data for user:", state.user.id);
+        
         // Fetch subject preferences
         const { data: subjectPrefs } = await supabase
           .from('student_subject_preferences')
@@ -64,12 +83,15 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
         
         // Fetch study slots
-        const { data: studySlotsData } = await supabase
+        const { data: studySlotsData, error: slotsError } = await supabase
           .from('preferred_study_slots')
           .select('*')
           .eq('user_id', state.user.id);
           
-        if (studySlotsData && studySlotsData.length > 0) {
+        if (slotsError) {
+          console.error("Error fetching study slots:", slotsError);
+        } else if (studySlotsData && studySlotsData.length > 0) {
+          console.log("Found study slots in context initialization:", studySlotsData);
           setStudySlots(studySlotsData);
         }
         
@@ -116,6 +138,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!state.user) throw new Error('No user logged in');
 
     try {
+      console.log("Completing onboarding for user:", state.user.id);
+      
       // Save subject preferences
       const subjectPreferencesPromises = selectedSubjects.map(subject => 
         supabase.from('student_subject_preferences').upsert({
