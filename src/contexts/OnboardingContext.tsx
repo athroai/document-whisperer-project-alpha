@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
@@ -69,9 +70,10 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       })
     );
 
+    // Fix: Use upsert method with the correct syntax
     const onboardingProgressPromise = supabase
       .from('onboarding_progress')
-      .insert({
+      .upsert({
         student_id: state.user!.id,
         current_step: 'completed',
         has_completed_subjects: true,
@@ -79,7 +81,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         has_generated_plan: true,
         has_completed_diagnostic: true,
         completed_at: new Date().toISOString()
-      }, { onConflict: 'student_id' });
+      });
 
     await Promise.all([
       ...subjectPreferencesPromises, 
