@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -11,11 +12,12 @@ import { toast } from 'sonner';
 import { quizService } from '@/services/quizService';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Question } from '@/types/quiz';
+import { useToast } from '@/hooks/use-toast';
 
 export const DiagnosticQuizSelector: React.FC = () => {
   const { selectedSubjects, updateOnboardingStep } = useOnboarding();
   const { state } = useAuth();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [quizResults, setQuizResults] = useState<Record<string, number>>({});
   const [isLoadingQuestions, setIsLoadingQuestions] = useState<Record<string, boolean>>({});
   const [isGenerating, setIsGenerating] = useState<Record<string, boolean>>({});
@@ -78,7 +80,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
       const currentRetries = retryCount[subject] || 0;
       if (currentRetries < MAX_RETRIES) {
         setRetryCount(prev => ({ ...prev, [subject]: currentRetries + 1 }));
-        toast({
+        uiToast({
           title: "Quiz Generation",
           description: `Retrying ${subject} quiz generation...`,
           variant: "default"
