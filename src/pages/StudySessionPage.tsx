@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { useAthroMessages } from '@/hooks/useAthroMessages';
 import StudySessionManager from '@/components/study/StudySessionManager';
 import StudySessionRecorder from '@/components/study/StudySessionRecorder';
 import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
+import { useSubjects } from '@/hooks/useSubjects';
 
 // Import constants for study subjects
 import { athroCharacters, getAthroBySubject } from '@/config/athrosConfig';
@@ -21,6 +21,7 @@ import { athroCharacters, getAthroBySubject } from '@/config/athrosConfig';
 const StudySessionPage: React.FC = () => {
   const { messages, isTyping, sendMessage, clearMessages } = useAthroMessages();
   const [searchParams] = useSearchParams();
+  const { subjects, isLoading: isSubjectsLoading } = useSubjects();
   
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -222,6 +223,11 @@ Or let me know if you have something else in mind!`;
     return characterInfo?.name || 'AthroAI';
   };
 
+  // If we have subject data from useSubjects, use that, otherwise fall back to athroCharacters
+  const availableSubjects = subjects.length > 0 
+    ? subjects 
+    : athroCharacters.map(char => char.subject);
+
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       {/* Study Session Launcher - Invisible component that checks for calendar events */}
@@ -249,12 +255,19 @@ Or let me know if you have something else in mind!`;
                       value={currentSubject}
                       onChange={(e) => handleActions.changeSubject(e.target.value)}
                       className="w-full rounded-md border border-gray-300 px-3 py-2"
+                      disabled={isSubjectsLoading}
                     >
-                      {athroCharacters.map((character) => (
-                        <option key={character.id} value={character.subject}>
-                          {character.subject}
-                        </option>
-                      ))}
+                      {isSubjectsLoading ? (
+                        <option value="">Loading subjects...</option>
+                      ) : availableSubjects.length > 0 ? (
+                        availableSubjects.map((subject) => (
+                          <option key={subject} value={subject}>
+                            {subject}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">No subjects available</option>
+                      )}
                     </select>
                   </div>
                 </div>
