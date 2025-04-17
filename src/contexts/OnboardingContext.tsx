@@ -23,6 +23,7 @@ interface OnboardingContextType {
   removeSubject: (subject: string) => void;
   updateAvailability: (availability: Availability[]) => void;
   completeOnboarding: () => Promise<void>;
+  updateOnboardingStep: (step: string) => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -32,6 +33,10 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [currentStep, setCurrentStep] = useState('subjects');
   const [selectedSubjects, setSelectedSubjects] = useState<SubjectPreference[]>([]);
   const [availability, setAvailability] = useState<Availability[]>([]);
+
+  const updateOnboardingStep = useCallback((step: string) => {
+    setCurrentStep(step);
+  }, []);
 
   const selectSubject = useCallback((subject: string, confidence: number) => {
     setSelectedSubjects(prev => {
@@ -66,28 +71,19 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       })
     );
 
-    // Insert availability
-    const availabilityPromises = availability.map(slot => 
-      supabase.from('student_availability').insert({
-        student_id: state.user!.id,
-        day_of_week: slot.dayOfWeek,
-        start_time: slot.startTime,
-        end_time: slot.endTime
-      })
-    );
-
     // Update onboarding progress
     const onboardingProgressPromise = supabase.from('onboarding_progress').insert({
       student_id: state.user!.id,
       current_step: 'completed',
       has_completed_subjects: true,
       has_completed_availability: true,
+      has_generated_plan: true,
+      has_completed_diagnostic: true,
       completed_at: new Date().toISOString()
-    });
+    }).upsert();
 
     await Promise.all([
       ...subjectPreferencesPromises, 
-      ...availabilityPromises, 
       onboardingProgressPromise
     ]);
   };
@@ -100,7 +96,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       selectSubject,
       removeSubject,
       updateAvailability,
-      completeOnboarding
+      completeOnboarding,
+      updateOnboardingStep
     }}>
       {children}
     </OnboardingContext.Provider>

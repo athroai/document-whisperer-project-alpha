@@ -2,58 +2,81 @@
 import React, { useState } from 'react';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { SubjectsSelector } from '@/components/onboarding/SubjectsSelector';
-import { AvailabilitySelector } from '@/components/onboarding/AvailabilitySelector';
+import { SlotSelection } from '@/components/onboarding/SlotSelection';
 import { DiagnosticQuizSelector } from '@/components/onboarding/DiagnosticQuizSelector';
 import { StudyPlanGenerator } from '@/components/onboarding/StudyPlanGenerator';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
-const OnboardingPage: React.FC = () => {
-  const [step, setStep] = useState(0);
+const OnboardingContent: React.FC = () => {
+  const { currentStep, updateOnboardingStep } = useOnboarding();
+  
   const steps = [
-    { component: SubjectsSelector, title: 'Select Subjects' },
-    { component: AvailabilitySelector, title: 'Set Availability' },
-    { component: DiagnosticQuizSelector, title: 'Optional Diagnostic Quiz' },
-    { component: StudyPlanGenerator, title: 'Generate Study Plan' }
+    { id: 'subjects', component: SubjectsSelector, title: 'Select Subjects' },
+    { id: 'availability', component: SlotSelection, title: 'Set Study Times' },
+    { id: 'diagnosticQuiz', component: DiagnosticQuizSelector, title: 'Diagnostic Quiz' },
+    { id: 'generatePlan', component: StudyPlanGenerator, title: 'Generate Study Plan' }
   ];
 
-  const CurrentComponent = steps[step].component;
+  const currentStepIndex = steps.findIndex(s => s.id === currentStep);
+  const CurrentComponent = steps[currentStepIndex]?.component || steps[0].component;
 
   const handleNext = () => {
-    if (step < steps.length - 1) {
-      setStep(prev => prev + 1);
+    const nextIndex = currentStepIndex + 1;
+    if (nextIndex < steps.length) {
+      updateOnboardingStep?.(steps[nextIndex].id);
     }
   };
 
   const handlePrevious = () => {
-    if (step > 0) {
-      setStep(prev => prev - 1);
+    const prevIndex = currentStepIndex - 1;
+    if (prevIndex >= 0) {
+      updateOnboardingStep?.(steps[prevIndex].id);
     }
   };
 
   return (
+    <div className="max-w-2xl mx-auto">
+      <Progress 
+        value={((currentStepIndex + 1) / steps.length) * 100} 
+        className="mb-6" 
+      />
+      
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">{steps[currentStepIndex]?.title || 'Onboarding'}</h1>
+        <div className="text-sm text-gray-500">
+          Step {currentStepIndex + 1} of {steps.length}
+        </div>
+      </div>
+      
+      <CurrentComponent />
+      
+      <div className="flex justify-between mt-6">
+        {currentStepIndex > 0 && (
+          <Button variant="outline" onClick={handlePrevious}>
+            Previous
+          </Button>
+        )}
+        
+        {currentStepIndex < steps.length - 1 && (
+          <Button 
+            onClick={handleNext} 
+            className="ml-auto"
+          >
+            Next
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const OnboardingPage: React.FC = () => {
+  return (
     <OnboardingProvider>
       <div className="container mx-auto p-6">
-        <div className="max-w-2xl mx-auto">
-          <Progress 
-            value={((step + 1) / steps.length) * 100} 
-            className="mb-6" 
-          />
-          <h1 className="text-2xl font-bold mb-4">{steps[step].title}</h1>
-          <CurrentComponent />
-          <div className="flex justify-between mt-6">
-            {step > 0 && (
-              <Button variant="outline" onClick={handlePrevious}>
-                Previous
-              </Button>
-            )}
-            {step < steps.length - 1 && (
-              <Button onClick={handleNext}>
-                Next
-              </Button>
-            )}
-          </div>
-        </div>
+        <OnboardingContent />
       </div>
     </OnboardingProvider>
   );
