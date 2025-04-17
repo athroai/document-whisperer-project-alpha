@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,7 +78,9 @@ const CalendarPage: React.FC = () => {
       }
 
       const userId = authState.user.id;
+      console.log("Loading events for user ID:", userId);
       
+      // Validate UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(userId)) {
         console.error('Invalid UUID format for user ID:', userId);
@@ -90,6 +93,7 @@ const CalendarPage: React.FC = () => {
         return;
       }
 
+      // Use proper OR filter with parentheses
       const { data, error } = await supabase
         .from('calendar_events')
         .select('id, title, description, start_time, end_time, event_type')
@@ -106,6 +110,8 @@ const CalendarPage: React.FC = () => {
         setEvents([]);
         return;
       }
+
+      console.log(`Found ${data.length} events`, data);
 
       const formattedEvents: CalendarEvent[] = data.map(event => {
         let description: { subject?: string } = {};
@@ -142,7 +148,7 @@ const CalendarPage: React.FC = () => {
         };
       });
       
-      console.log('Loaded events:', formattedEvents);
+      console.log('Formatted events:', formattedEvents);
       setEvents(formattedEvents);
     } catch (error) {
       console.error('Error loading calendar events:', error);
@@ -158,6 +164,7 @@ const CalendarPage: React.FC = () => {
   };
 
   useEffect(() => {
+    // Load events when auth state changes and is no longer loading
     if (!authState.loading) {
       loadEvents();
     }
@@ -185,6 +192,7 @@ const CalendarPage: React.FC = () => {
         description: 'The event has been removed from your calendar.',
       });
       
+      // Refresh events after deletion
       loadEvents();
     } catch (error) {
       console.error('Error deleting event:', error);
@@ -319,7 +327,8 @@ const CalendarPage: React.FC = () => {
                                   size="sm" 
                                   variant="ghost"
                                   onClick={() => {
-                                    window.location.href = `/study?sessionId=${event.id}&subject=${encodeURIComponent(event.mentor.replace(' Mentor', ''))}`;
+                                    const subject = event.mentor.replace(' Mentor', '');
+                                    window.location.href = `/study?sessionId=${event.id}&subject=${encodeURIComponent(subject)}`;
                                   }}
                                 >
                                   Join Session

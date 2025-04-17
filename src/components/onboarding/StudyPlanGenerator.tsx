@@ -15,11 +15,22 @@ export const StudyPlanGenerator: React.FC = () => {
   const [studyPlan, setStudyPlan] = useState<any[]>([]);
 
   const generateStudyPlan = async () => {
-    if (!state.user) return;
+    if (!state.user) {
+      toast({
+        title: "Authentication Required",
+        description: "You need to be logged in to generate a study plan.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsGenerating(true);
 
     try {
+      console.log("Generating study plan for user:", state.user.id);
+      console.log("Selected subjects:", selectedSubjects);
+      console.log("Availability:", availability);
+      
       // Basic study plan generation logic
       const plan = selectedSubjects.map((subject, index) => ({
         subject: subject.subject,
@@ -34,7 +45,7 @@ export const StudyPlanGenerator: React.FC = () => {
       }));
 
       // Save study plan to Supabase
-      const { data, error } = await supabase.from('study_plans').insert({
+      const { data: planData, error: planError } = await supabase.from('study_plans').insert({
         student_id: state.user.id,
         name: 'Initial Study Plan',
         description: 'Personalized study plan based on your subjects and availability',
@@ -42,10 +53,21 @@ export const StudyPlanGenerator: React.FC = () => {
         end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       }).select();
 
-      if (error) throw error;
+      if (planError) {
+        console.error('Error creating study plan:', planError);
+        throw planError;
+      }
+      
+      if (!planData || planData.length === 0) {
+        throw new Error("Study plan was not created properly");
+      }
+      
+      const planId = planData[0].id;
+      console.log("Created study plan with ID:", planId);
       
       // Create calendar events and study plan sessions
       const today = new Date();
+      const calendarEvents = [];
       
       for (const planItem of plan) {
         // Create a study session that starts today at the specified time
@@ -67,6 +89,8 @@ export const StudyPlanGenerator: React.FC = () => {
           pomodoroBreakMinutes: planItem.sessions[0].breakMinutes
         });
         
+        console.log(`Creating calendar event for ${planItem.subject} at ${startDate.toISOString()}`);
+        
         const { data: eventData, error: eventError } = await supabase.from('calendar_events').insert({
           student_id: state.user.id,
           user_id: state.user.id, // Make sure both student_id and user_id are set
@@ -82,9 +106,17 @@ export const StudyPlanGenerator: React.FC = () => {
           throw eventError;
         }
         
+        if (!eventData || eventData.length === 0) {
+          console.warn(`No event data returned for ${planItem.subject}`);
+          continue;
+        }
+
+        console.log(`Successfully created calendar event with ID ${eventData[0].id}`);
+        calendarEvents.push(eventData[0]);
+        
         // Create study plan session linked to the calendar event
-        await supabase.from('study_plan_sessions').insert({
-          plan_id: data[0].id,
+        const { error: sessionError } = await supabase.from('study_plan_sessions').insert({
+          plan_id: planId,
           subject: planItem.subject,
           start_time: startDate.toISOString(),
           end_time: endDate.toISOString(),
@@ -93,19 +125,33 @@ export const StudyPlanGenerator: React.FC = () => {
           pomodoro_break_minutes: planItem.sessions[0].breakMinutes,
           calendar_event_id: eventData[0].id
         });
+        
+        if (sessionError) {
+          console.error('Error creating study plan session:', sessionError);
+        }
       }
 
-      toast({
-        title: "Study Plan Created",
-        description: "Your study sessions have been scheduled.",
-      });
+      console.log(`Successfully created ${calendarEvents.length} calendar events`);
+
+      if (calendarEvents.length === 0) {
+        toast({
+          title: "Warning",
+          description: "No study sessions were scheduled. Please try again or check your subjects.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Study Plan Created",
+          description: `Successfully scheduled ${calendarEvents.length} study sessions.`,
+        });
+      }
 
       setStudyPlan(plan);
     } catch (error) {
       console.error('Error generating study plan:', error);
       toast({
         title: "Error",
-        description: "Failed to generate study plan. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate study plan. Please try again.",
         variant: "destructive"
       });
     } finally {
