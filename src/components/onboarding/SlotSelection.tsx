@@ -101,15 +101,20 @@ export const SlotSelection: React.FC = () => {
       console.log("Saving preferences for user:", state.user.id);
       console.log("Selected days:", selectedDays);
       
-      // Delete any existing preferences
-      const { error: deleteError } = await supabase
-        .from('preferred_study_slots')
-        .delete()
-        .eq('user_id', state.user.id);
-        
-      if (deleteError) {
-        console.error("Error deleting existing preferences:", deleteError);
-        throw deleteError;
+      try {
+        // Delete any existing preferences - we'll catch the error if table doesn't exist
+        const { error: deleteError } = await supabase
+          .from('preferred_study_slots')
+          .delete()
+          .eq('user_id', state.user.id);
+          
+        if (deleteError) {
+          console.error("Error deleting existing preferences:", deleteError);
+          // We'll continue even if there's an error here, as it might be the first time saving
+        }
+      } catch (deleteErr) {
+        console.error("Exception during delete operation:", deleteErr);
+        // Continue with the insert operation even if delete failed
       }
 
       // Save selected days and their preferences
@@ -130,7 +135,7 @@ export const SlotSelection: React.FC = () => {
       console.log("Preferences to save:", preferencesToSave);
 
       if (preferencesToSave.length > 0) {
-        const { data, error: insertError } = await supabase
+        const { error: insertError } = await supabase
           .from('preferred_study_slots')
           .insert(preferencesToSave);
 
@@ -139,9 +144,9 @@ export const SlotSelection: React.FC = () => {
           throw insertError;
         }
 
-        console.log("Preferences saved successfully:", data);
+        console.log("Preferences saved successfully");
         
-        // Update onboarding progress using upsert with onConflict correctly
+        // Update onboarding progress
         const { error: upsertError } = await supabase
           .from('onboarding_progress')
           .upsert({

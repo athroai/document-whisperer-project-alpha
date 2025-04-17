@@ -455,6 +455,39 @@ export type Database = {
         }
         Relationships: []
       }
+      preferred_study_slots: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          id: string
+          preferred_start_hour: number | null
+          slot_count: number
+          slot_duration_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          id?: string
+          preferred_start_hour?: number | null
+          slot_count: number
+          slot_duration_minutes: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          preferred_start_hour?: number | null
+          slot_count?: number
+          slot_duration_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           confidence_scores: Json
