@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -13,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { DaySelector } from './DaySelector';
 import { SlotOptionSelector } from './SlotOptionSelector';
 import { TimeSlotPreview } from './TimeSlotPreview';
-import { DayPreference, SlotOption } from '@/types/study';
+import { DayPreference, SlotOption, PreferredStudySlot } from '@/types/study';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const SLOT_OPTIONS: SlotOption[] = [
@@ -23,7 +22,6 @@ const SLOT_OPTIONS: SlotOption[] = [
   { name: '6 x 20 min', count: 6, duration: 20, icon: Clock, color: 'bg-cyan-600' }
 ];
 
-// Create time options from 6 AM to 10 PM
 const TIME_OPTIONS = Array.from({ length: 17 }, (_, i) => {
   const hour = i + 6;
   return {
@@ -38,22 +36,20 @@ export const SlotSelection: React.FC = () => {
   const { updateOnboardingStep } = useOnboarding();
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [dayPreferences, setDayPreferences] = useState<DayPreference[]>([]);
-  const [activeDay, setActiveDay] = useState<number>(1); // Monday by default
+  const [activeDay, setActiveDay] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [supabaseSession, setSupabaseSession] = useState<any>(null);
 
-  // Initialize dayPreferences with all days of week
   useEffect(() => {
     const initialPreferences = DAYS_OF_WEEK.map((_, index) => ({
       dayOfWeek: index + 1,
       slotOption: null,
-      preferredStartHour: 9 // Default to 9 AM
+      preferredStartHour: 9
     }));
     setDayPreferences(initialPreferences);
   }, []);
 
-  // Check if the user is authenticated when component mounts
   useEffect(() => {
     if (!state.user) {
       console.log("Warning: No authenticated user detected in SlotSelection");
@@ -61,7 +57,6 @@ export const SlotSelection: React.FC = () => {
     } else {
       console.log("User authenticated in SlotSelection:", state.user.id);
       
-      // Get the current Supabase session
       const checkSupabaseSession = async () => {
         const { data, error } = await supabase.auth.getSession();
         
@@ -76,14 +71,11 @@ export const SlotSelection: React.FC = () => {
           setSupabaseSession(data.session);
         } else {
           console.warn("No Supabase session found");
-          // If we have a state.user but no Supabase session, we need to sync them
           if (state.user) {
             try {
-              // Mock login to Supabase using state.user data
-              // In a real app, this would require proper auth integration
               const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
                 email: state.user.email,
-                password: "mockPassword" // This is just a mock, won't work in production
+                password: "mockPassword"
               });
               
               if (sessionError) {
@@ -104,7 +96,6 @@ export const SlotSelection: React.FC = () => {
     }
   }, [state.user]);
 
-  // Toggle day selection
   const toggleDaySelection = (dayIndex: number) => {
     setSelectedDays(prev => {
       if (prev.includes(dayIndex)) {
@@ -114,7 +105,6 @@ export const SlotSelection: React.FC = () => {
       }
     });
 
-    // Automatically switch to the selected day's tab
     setActiveDay(dayIndex);
   };
 
@@ -154,7 +144,6 @@ export const SlotSelection: React.FC = () => {
   };
 
   const savePreferences = async () => {
-    // Reset error state
     setError(null);
     
     if (!state.user?.id) {
@@ -172,109 +161,71 @@ export const SlotSelection: React.FC = () => {
     setSaving(true);
 
     try {
-      console.log("Saving preferences for user:", state.user.id);
-      console.log("Selected days:", selectedDays);
-      
-      // Check if we have a valid Supabase session
-      if (!supabaseSession) {
-        const { data } = await supabase.auth.getSession();
-        if (!data?.session) {
-          throw new Error("No active Supabase session. Please log in again.");
-        }
-        setSupabaseSession(data.session);
-      }
-      
-      try {
-        // Get existing preferences first
-        const { data: existingPreferences } = await supabase
-          .from('preferred_study_slots')
-          .select()
-          .eq('user_id', state.user.id);
-          
-        console.log("Existing preferences:", existingPreferences);
-        
-        // Delete any existing preferences if they exist
-        if (existingPreferences && existingPreferences.length > 0) {
-          const { error: deleteError } = await supabase
-            .from('preferred_study_slots')
-            .delete()
-            .eq('user_id', state.user.id);
-            
-          if (deleteError) {
-            console.error("Error deleting existing preferences:", deleteError);
-          } else {
-            console.log("Successfully deleted existing preferences");
-          }
-        }
-      } catch (deleteErr) {
-        console.error("Exception during delete operation:", deleteErr);
-        // Continue with the insert operation even if delete failed
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        throw new Error("No active Supabase session");
       }
 
-      // Save selected days and their preferences
-      const preferencesToSave = selectedDays.map(dayOfWeek => {
+      const { error: deleteError } = await supabase
+        .from('preferred_study_slots')
+        .delete()
+        .eq('user_id', state.user.id);
+      
+      if (deleteError) {
+        console.error("Error deleting existing preferences:", deleteError);
+      }
+
+      const preferencesToSave: PreferredStudySlot[] = selectedDays.map(dayOfWeek => {
         const preference = dayPreferences.find(pref => pref.dayOfWeek === dayOfWeek);
         const optionIndex = preference?.slotOption ?? 0;
         const slotOption = SLOT_OPTIONS[optionIndex];
-        const preferredStartHour = preference?.preferredStartHour || 9;
-
+        
         return {
-          user_id: state.user.id,
+          id: '',
+          user_id: state.user!.id,
           day_of_week: dayOfWeek,
           slot_duration_minutes: slotOption.duration,
           slot_count: slotOption.count,
-          preferred_start_hour: preferredStartHour
+          preferred_start_hour: preference?.preferredStartHour || 9,
+          created_at: new Date().toISOString()
         };
       });
 
-      console.log("Preferences to save:", preferencesToSave);
+      const { data, error: insertError } = await supabase
+        .from('preferred_study_slots')
+        .insert(preferencesToSave)
+        .select();
 
-      if (preferencesToSave.length > 0) {
-        // Use the RPC function instead of direct insert to work around RLS
-        const { data, error: insertError } = await supabase
-          .from('preferred_study_slots')
-          .insert(preferencesToSave)
-          .select();
-
-        if (insertError) {
-          console.error("Error inserting new preferences:", insertError);
-          throw new Error(`Failed to save preferences: ${insertError.message}`);
-        }
-
-        console.log("Preferences saved successfully:", data);
-        
-        // Update onboarding progress
-        const { error: upsertError } = await supabase
-          .from('onboarding_progress')
-          .upsert({
-            student_id: state.user.id,
-            current_step: 'diagnosticQuiz',
-            has_completed_availability: true
-          }, {
-            onConflict: 'student_id'
-          });
-          
-        if (upsertError) {
-          console.error("Error updating onboarding progress:", upsertError);
-          toast({
-            title: "Note",
-            description: "Preferences saved but progress update failed. You can still continue."
-          });
-        } else {
-          toast({
-            title: "Preferences Saved",
-            description: "Your study time preferences have been saved successfully."
-          });
-        }
-        
-        return true;
-      } else {
-        toast({
-          title: "No Preferences",
-          description: "Please select at least one day and format before continuing."
-        });
-        return false;
+      if (insertError) {
+        console.error("Error inserting preferences:", insertError);
+        throw new Error(`Failed to save preferences: ${insertError.message}`);
       }
+
+      const { error: progressError } = await supabase
+        .from('onboarding_progress')
+        .upsert({
+          student_id: state.user.id,
+          current_step: 'diagnosticQuiz',
+          has_completed_availability: true
+        }, {
+          onConflict: 'student_id'
+        });
+        
+      if (progressError) {
+        console.error("Error updating onboarding progress:", progressError);
+        toast({
+          title: "Note",
+          description: "Preferences saved but progress update failed.",
+          variant: "default"
+        });
+      }
+
+      toast({
+        title: "Preferences Saved",
+        description: "Your study time preferences have been saved successfully."
+      });
+      
+      return true;
     } catch (error: any) {
       console.error('Error saving preferences:', error);
       setError(error.message || "Failed to save preferences");
