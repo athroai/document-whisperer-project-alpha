@@ -15,41 +15,25 @@ export const StudyPlanGenerator: React.FC = () => {
   const { selectedSubjects, availability, completeOnboarding } = useOnboarding();
   const [isGenerating, setIsGenerating] = useState(false);
   const [studyPlan, setStudyPlan] = useState<any[]>([]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Check authentication status on component mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        console.log("User authenticated:", data.user.id);
-        setIsAuthenticated(true);
-      } else {
-        console.log("No authenticated user found");
-        setIsAuthenticated(false);
-      }
-    };
-    
-    checkAuth();
-  }, []);
-
   const generateStudyPlan = async () => {
-    if (!state.user) {
-      toast({
-        title: "Authentication Required",
-        description: "You need to be logged in to generate a study plan.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     // Clear previous errors
     setError(null);
     setIsGenerating(true);
 
     try {
+      if (!state.user) {
+        toast({
+          title: "Authentication Required",
+          description: "You need to be signed in to generate a study plan. Please refresh the page or sign in again.",
+          variant: "destructive"
+        });
+        setIsGenerating(false);
+        return;
+      }
+
       console.log("Generating study plan for user:", state.user.id);
       console.log("Selected subjects:", selectedSubjects);
       console.log("Availability:", availability);
@@ -108,21 +92,16 @@ export const StudyPlanGenerator: React.FC = () => {
           ]
         };
       });
-
-      // Get fresh auth session
-      const { data: authData } = await supabase.auth.getUser();
       
-      if (!authData.user) {
-        throw new Error("Authentication required. Please log in again.");
-      }
-      
-      console.log("Verified authenticated user:", authData.user.id);
+      // Use the authenticated user ID directly from the state
+      const userId = state.user.id;
+      console.log("Verified authenticated user:", userId);
       
       // Save study plan to Supabase with explicit user ID
       const { data: planData, error: planError } = await supabase
         .from('study_plans')
         .insert({
-          student_id: authData.user.id,
+          student_id: userId,
           name: 'Initial Study Plan',
           description: 'Personalized study plan based on your subjects and availability',
           start_date: new Date().toISOString().split('T')[0],
@@ -171,8 +150,8 @@ export const StudyPlanGenerator: React.FC = () => {
         const { data: eventData, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
-            student_id: authData.user.id,
-            user_id: authData.user.id,
+            student_id: userId,
+            user_id: userId,
             title: `${planItem.subject} Study Session`,
             description: eventDescription,
             event_type: 'study_session',
@@ -276,11 +255,16 @@ export const StudyPlanGenerator: React.FC = () => {
     }
   };
 
+  // Log authentication state for debugging
+  useEffect(() => {
+    console.log("Auth state in StudyPlanGenerator:", state);
+  }, [state]);
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold">Generate Your Personalized Study Plan</h2>
       
-      {!isAuthenticated && (
+      {!state.user && !state.loading && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
           <p className="text-amber-800">
             You need to be signed in to generate a study plan. Please refresh the page or sign in again.
@@ -310,7 +294,7 @@ export const StudyPlanGenerator: React.FC = () => {
           
           <Button 
             onClick={generateStudyPlan} 
-            disabled={isGenerating || !isAuthenticated || selectedSubjects.length === 0 || availability.length === 0}
+            disabled={isGenerating || !state.user || state.loading || selectedSubjects.length === 0 || availability.length === 0}
             className="bg-purple-600 hover:bg-purple-700"
           >
             {isGenerating ? 'Generating...' : 'Generate Study Plan'}
