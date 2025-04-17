@@ -1,3 +1,4 @@
+
 import { Question, Answer, QuizResult, mockQuestions } from '@/types/quiz';
 import { supabase } from '@/lib/supabase';
 
@@ -177,7 +178,30 @@ const realImplementation = {
       }
       
       console.log(`Received ${data.questions.length} questions from edge function`);
-      return data.questions;
+      
+      // If the questions were generated as mock questions, let the user know
+      if (data.fromMock) {
+        console.log("Using mock questions from edge function");
+      }
+      
+      // Process and normalize questions if needed
+      const processedQuestions = data.questions.map((q: any) => {
+        // If it's missing the expected answers array structure
+        if (!q.answers && q.options) {
+          return {
+            ...q,
+            answers: q.options.map((option: string, i: number) => ({
+              id: `answer-${q.id}-${i}`,
+              text: option,
+              isCorrect: option === q.answer
+            }))
+          };
+        }
+        
+        return q;
+      });
+      
+      return processedQuestions;
     } catch (error) {
       console.error("Error generating questions:", error);
       

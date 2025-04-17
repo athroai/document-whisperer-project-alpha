@@ -69,16 +69,35 @@ export const DiagnosticQuizSelector: React.FC = () => {
       
       console.log(`Received ${fetchedQuestions.length} questions:`, fetchedQuestions);
       
-      // Validate questions format
+      // Format validation: check if questions have the expected format
       const validQuestions = fetchedQuestions.filter(q => 
-        q && q.text && Array.isArray(q.answers) && q.answers.length > 0
+        q && 
+        q.text && 
+        ((Array.isArray(q.answers) && q.answers.length > 0) || 
+         (Array.isArray(q.options) && q.options.length > 0))
       );
       
       if (validQuestions.length === 0) {
         throw new Error("Generated questions are in an invalid format");
       }
+
+      // Normalize the question format if needed
+      const normalizedQuestions = validQuestions.map(q => {
+        // If question has options but not answers array, convert it to proper format
+        if (q.options && !q.answers) {
+          return {
+            ...q,
+            answers: q.options.map((option: string, i: number) => ({
+              id: `answer-${q.id}-${i}`,
+              text: option,
+              isCorrect: option === q.answer
+            }))
+          };
+        }
+        return q;
+      });
       
-      setQuestions(validQuestions);
+      setQuestions(normalizedQuestions);
       setCurrentQuestionIndex(0);
       setSelectedAnswers({});
       setIsGenerating(prev => ({ ...prev, [subject]: false }));
@@ -131,7 +150,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
     questions.forEach((question, index) => {
       const userAnswerId = selectedAnswers[index];
       if (userAnswerId) {
-        const selectedAnswer = question.answers?.find((a: any) => a.id === userAnswerId);
+        const selectedAnswer = question.answers?.find(a => a.id === userAnswerId);
         if (selectedAnswer && selectedAnswer.isCorrect) {
           correctCount++;
         }
