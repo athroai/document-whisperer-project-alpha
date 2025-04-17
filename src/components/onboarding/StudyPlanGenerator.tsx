@@ -44,14 +44,24 @@ export const StudyPlanGenerator: React.FC = () => {
         ]
       }));
 
+      // Create a session token to ensure we're authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("No active session found. Please log in again.");
+      }
+
       // Save study plan to Supabase with explicit student_id
-      const { data: planData, error: planError } = await supabase.from('study_plans').insert({
-        student_id: state.user.id,
-        name: 'Initial Study Plan',
-        description: 'Personalized study plan based on your subjects and availability',
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      }).select();
+      const { data: planData, error: planError } = await supabase
+        .from('study_plans')
+        .insert({
+          student_id: state.user.id,
+          name: 'Initial Study Plan',
+          description: 'Personalized study plan based on your subjects and availability',
+          start_date: new Date().toISOString().split('T')[0],
+          end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        })
+        .select();
 
       if (planError) {
         console.error('Error creating study plan:', planError);
@@ -99,15 +109,18 @@ export const StudyPlanGenerator: React.FC = () => {
         
         console.log(`Creating calendar event for ${planItem.subject} at ${startDate.toISOString()}`);
         
-        const { data: eventData, error: eventError } = await supabase.from('calendar_events').insert({
-          student_id: state.user.id,
-          user_id: state.user.id,
-          title: `${planItem.subject} Study Session`,
-          description: eventDescription,
-          event_type: 'study_session',
-          start_time: startDate.toISOString(),
-          end_time: endDate.toISOString()
-        }).select();
+        const { data: eventData, error: eventError } = await supabase
+          .from('calendar_events')
+          .insert({
+            student_id: state.user.id,
+            user_id: state.user.id,
+            title: `${planItem.subject} Study Session`,
+            description: eventDescription,
+            event_type: 'study_session',
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString()
+          })
+          .select();
         
         if (eventError) {
           console.error('Error creating calendar event:', eventError);
@@ -125,16 +138,18 @@ export const StudyPlanGenerator: React.FC = () => {
         calendarEvents.push(eventData[0]);
         
         // Create study plan session linked to the calendar event
-        const { error: sessionError } = await supabase.from('study_plan_sessions').insert({
-          plan_id: planId,
-          subject: planItem.subject,
-          start_time: startDate.toISOString(),
-          end_time: endDate.toISOString(),
-          is_pomodoro: true,
-          pomodoro_work_minutes: planItem.sessions[0].workMinutes,
-          pomodoro_break_minutes: planItem.sessions[0].breakMinutes,
-          calendar_event_id: eventData[0].id
-        });
+        const { error: sessionError } = await supabase
+          .from('study_plan_sessions')
+          .insert({
+            plan_id: planId,
+            subject: planItem.subject,
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString(),
+            is_pomodoro: true,
+            pomodoro_work_minutes: planItem.sessions[0].workMinutes,
+            pomodoro_break_minutes: planItem.sessions[0].breakMinutes,
+            calendar_event_id: eventData[0].id
+          });
         
         if (sessionError) {
           console.error('Error creating study plan session:', sessionError);
