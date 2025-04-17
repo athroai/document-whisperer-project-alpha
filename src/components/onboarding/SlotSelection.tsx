@@ -9,6 +9,8 @@ import { Clock, Calendar, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const SLOT_OPTIONS = [
@@ -18,10 +20,19 @@ const SLOT_OPTIONS = [
   { name: '6 x 20 min', count: 6, duration: 20, icon: Clock, color: 'bg-cyan-600' }
 ];
 
+// Create time options from 6 AM to 10 PM
+const TIME_OPTIONS = Array.from({ length: 17 }, (_, i) => {
+  const hour = i + 6;
+  return {
+    value: hour,
+    label: `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`
+  };
+});
+
 interface DayPreference {
   dayOfWeek: number;
   slotOption: number | null;
-  preferredStartHour?: number;
+  preferredStartHour: number;
 }
 
 export const SlotSelection: React.FC = () => {
@@ -38,7 +49,8 @@ export const SlotSelection: React.FC = () => {
   useEffect(() => {
     const initialPreferences = DAYS_OF_WEEK.map((_, index) => ({
       dayOfWeek: index + 1,
-      slotOption: null
+      slotOption: null,
+      preferredStartHour: 9 // Default to 9 AM
     }));
     setDayPreferences(initialPreferences);
   }, []);
@@ -66,8 +78,22 @@ export const SlotSelection: React.FC = () => {
     );
   };
 
+  const updatePreferredStartHour = (dayOfWeek: number, hour: number) => {
+    setDayPreferences(prev => 
+      prev.map(day => 
+        day.dayOfWeek === dayOfWeek 
+          ? { ...day, preferredStartHour: hour }
+          : day
+      )
+    );
+  };
+
   const getSelectedOption = (dayOfWeek: number) => {
     return dayPreferences.find(day => day.dayOfWeek === dayOfWeek)?.slotOption;
+  };
+
+  const getPreferredStartHour = (dayOfWeek: number) => {
+    return dayPreferences.find(day => day.dayOfWeek === dayOfWeek)?.preferredStartHour || 9;
   };
 
   const isDaySelected = (dayIndex: number) => {
@@ -122,13 +148,14 @@ export const SlotSelection: React.FC = () => {
         const preference = dayPreferences.find(pref => pref.dayOfWeek === dayOfWeek);
         const optionIndex = preference?.slotOption ?? 0;
         const slotOption = SLOT_OPTIONS[optionIndex];
+        const preferredStartHour = preference?.preferredStartHour || 9;
 
         return {
           user_id: state.user.id,
           day_of_week: dayOfWeek,
           slot_duration_minutes: slotOption.duration,
           slot_count: slotOption.count,
-          preferred_start_hour: preference?.preferredStartHour || 9 // Default to 9 AM
+          preferred_start_hour: preferredStartHour
         };
       });
 
@@ -203,16 +230,35 @@ export const SlotSelection: React.FC = () => {
     if (selectedOptionIndex === null) return null;
 
     const option = SLOT_OPTIONS[selectedOptionIndex];
+    const preferredStartHour = getPreferredStartHour(dayOfWeek);
     const slots = [];
 
     for (let i = 0; i < option.count; i++) {
+      // Calculate the start time for each slot
+      const slotStartHour = preferredStartHour + Math.floor((i * option.duration) / 60);
+      const slotStartMinute = (i * option.duration) % 60;
+      
+      const startTimeString = `${slotStartHour}:${slotStartMinute.toString().padStart(2, '0')}`;
+      const endTimeHour = slotStartHour + Math.floor(option.duration / 60);
+      const endTimeMinute = slotStartMinute + (option.duration % 60);
+      
+      // Adjust for minute overflow
+      const adjustedEndHour = endTimeHour + Math.floor(endTimeMinute / 60);
+      const adjustedEndMinute = endTimeMinute % 60;
+      
+      const endTimeString = `${adjustedEndHour}:${adjustedEndMinute.toString().padStart(2, '0')}`;
+      
+      // Format for display
+      const startDisplay = `${slotStartHour > 12 ? slotStartHour - 12 : slotStartHour}:${slotStartMinute.toString().padStart(2, '0')} ${slotStartHour >= 12 ? 'PM' : 'AM'}`;
+      const endDisplay = `${adjustedEndHour > 12 ? adjustedEndHour - 12 : adjustedEndHour}:${adjustedEndMinute.toString().padStart(2, '0')} ${adjustedEndHour >= 12 ? 'PM' : 'AM'}`;
+
       slots.push(
         <div 
           key={i}
           className={`${option.color} rounded-md p-3 text-white shadow-sm`}
         >
           <div className="flex items-center justify-between">
-            <span className="font-medium">{option.duration} min study slot</span>
+            <span className="font-medium">{startDisplay} - {endDisplay}</span>
             <option.icon className="h-4 w-4" />
           </div>
         </div>
@@ -286,6 +332,25 @@ export const SlotSelection: React.FC = () => {
               <TabsContent key={dayIndex} value={dayIndex.toString()}>
                 <h4 className="text-md font-medium mb-3">{DAYS_OF_WEEK[dayIndex - 1]} Study Plan</h4>
                 
+                <div className="mb-4">
+                  <Label htmlFor={`startTime-${dayIndex}`}>Preferred Start Time</Label>
+                  <Select
+                    value={getPreferredStartHour(dayIndex).toString()}
+                    onValueChange={(value) => updatePreferredStartHour(dayIndex, parseInt(value))}
+                  >
+                    <SelectTrigger id={`startTime-${dayIndex}`} className="w-full md:w-[200px]">
+                      <SelectValue placeholder="Select start time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value.toString()}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {SLOT_OPTIONS.map((option, index) => (
                     <Card 
@@ -345,3 +410,4 @@ export const SlotSelection: React.FC = () => {
     </div>
   );
 };
+
