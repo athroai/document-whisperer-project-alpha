@@ -26,6 +26,7 @@ interface OnboardingContextType {
   updateAvailability: (availability: Availability[]) => void;
   completeOnboarding: () => Promise<void>;
   updateOnboardingStep: (step: string) => void;
+  setStudySlots: (slots: PreferredStudySlot[]) => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -63,13 +64,13 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
         
         // Fetch study slots
-        const { data: studySlots } = await supabase
+        const { data: studySlotsData } = await supabase
           .from('preferred_study_slots')
           .select('*')
           .eq('user_id', state.user.id);
           
-        if (studySlots && studySlots.length > 0) {
-          setStudySlots(studySlots);
+        if (studySlotsData && studySlotsData.length > 0) {
+          setStudySlots(studySlotsData);
         }
         
         // Fetch onboarding progress
@@ -161,7 +162,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       removeSubject,
       updateAvailability,
       completeOnboarding,
-      updateOnboardingStep
+      updateOnboardingStep,
+      setStudySlots
     }}>
       {children}
     </OnboardingContext.Provider>

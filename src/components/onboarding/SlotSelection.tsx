@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -34,15 +34,17 @@ const TIME_OPTIONS = Array.from({ length: 17 }, (_, i) => {
 export const SlotSelection: React.FC = () => {
   const { toast } = useToast();
   const { state } = useAuth();
-  const { updateOnboardingStep } = useOnboarding();
+  const { updateOnboardingStep, studySlots: existingSlots, setStudySlots } = useOnboarding();
+  
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [dayPreferences, setDayPreferences] = useState<DayPreference[]>([]);
   const [activeDay, setActiveDay] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [existingSlots, setExistingSlots] = useState<any[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Initialize day preferences once
   useEffect(() => {
     const initialPreferences = DAYS_OF_WEEK.map((_, index) => ({
       dayOfWeek: index + 1,
@@ -52,32 +54,32 @@ export const SlotSelection: React.FC = () => {
     setDayPreferences(initialPreferences);
   }, []);
 
+  // Set up user ID and fetch existing slots only once during component mount
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (!state.user?.id) return;
         
-        if (sessionError) {
-          console.error("Auth session error:", sessionError.message);
-          setError("Authentication error: " + sessionError.message);
-          return;
-        }
+        setUserId(state.user.id);
         
-        if (session?.user?.id) {
-          console.log("Authenticated user ID:", session.user.id);
-          setUserId(session.user.id);
-          
+        // Only fetch slots if they aren't already available in context
+        if (!existingSlots || existingSlots.length === 0) {
           // Fetch existing study slots
           const { data: slots, error: slotsError } = await supabase
             .from('preferred_study_slots')
             .select('*')
-            .eq('user_id', session.user.id);
+            .eq('user_id', state.user.id);
             
           if (slotsError) {
             console.error("Error fetching study slots:", slotsError);
-          } else if (slots && slots.length > 0) {
+            return;
+          }
+          
+          if (slots && slots.length > 0) {
             console.log("Found existing study slots:", slots);
-            setExistingSlots(slots);
+            if (setStudySlots) {
+              setStudySlots(slots);
+            }
             
             // Update selected days based on existing slots
             const days = slots.map(slot => slot.day_of_week);
@@ -87,14 +89,14 @@ export const SlotSelection: React.FC = () => {
             const updatedPreferences = [...dayPreferences];
             slots.forEach(slot => {
               const dayIndex = slot.day_of_week - 1;
-              const slotOptionIndex = SLOT_OPTIONS.findIndex(
-                option => option.count === slot.slot_count && option.duration === slot.slot_duration_minutes
-              );
-              
-              if (dayIndex >= 0 && dayIndex < updatedPreferences.length && slotOptionIndex !== -1) {
+              if (dayIndex >= 0 && dayIndex < updatedPreferences.length) {
+                const slotOptionIndex = SLOT_OPTIONS.findIndex(
+                  option => option.count === slot.slot_count && option.duration === slot.slot_duration_minutes
+                );
+                
                 updatedPreferences[dayIndex] = {
                   ...updatedPreferences[dayIndex],
-                  slotOption: slotOptionIndex,
+                  slotOption: slotOptionIndex !== -1 ? slotOptionIndex : null,
                   preferredStartHour: slot.preferred_start_hour || 9
                 };
               }
@@ -102,27 +104,47 @@ export const SlotSelection: React.FC = () => {
             
             setDayPreferences(updatedPreferences);
           }
+        } else if (existingSlots.length > 0) {
+          // Use slots from context instead of fetching
+          console.log("Using study slots from context:", existingSlots);
           
-        } else {
-          console.warn("No authenticated user found in session");
-          // Use fallback to app context state if available
-          if (state.user?.id) {
-            console.log("Using app context user ID:", state.user.id);
-            setUserId(state.user.id);
-          } else {
-            setError("Authentication required. Please log in again.");
-          }
+          // Update selected days based on existing slots
+          const days = existingSlots.map(slot => slot.day_of_week);
+          setSelectedDays(days);
+          
+          // Update day preferences based on existing slots
+          const updatedPreferences = [...dayPreferences];
+          existingSlots.forEach(slot => {
+            const dayIndex = slot.day_of_week - 1;
+            if (dayIndex >= 0 && dayIndex < updatedPreferences.length) {
+              const slotOptionIndex = SLOT_OPTIONS.findIndex(
+                option => option.count === slot.slot_count && option.duration === slot.slot_duration_minutes
+              );
+              
+              updatedPreferences[dayIndex] = {
+                ...updatedPreferences[dayIndex],
+                slotOption: slotOptionIndex !== -1 ? slotOptionIndex : null,
+                preferredStartHour: slot.preferred_start_hour || 9
+              };
+            }
+          });
+          
+          setDayPreferences(updatedPreferences);
         }
+        
+        setIsInitialized(true);
       } catch (err: any) {
         console.error("Auth check error:", err.message);
         setError("Failed to verify authentication status");
       }
     };
     
-    checkAuthStatus();
-  }, [state.user, dayPreferences]);
+    if (state.user && !isInitialized) {
+      checkAuthStatus();
+    }
+  }, [state.user, isInitialized, existingSlots, setStudySlots]);
 
-  const toggleDaySelection = (dayIndex: number) => {
+  const toggleDaySelection = useCallback((dayIndex: number) => {
     setSelectedDays(prev => {
       if (prev.includes(dayIndex)) {
         return prev.filter(d => d !== dayIndex);
@@ -132,9 +154,9 @@ export const SlotSelection: React.FC = () => {
     });
 
     setActiveDay(dayIndex);
-  };
+  }, []);
 
-  const selectSlotOption = (dayOfWeek: number, optionIndex: number) => {
+  const selectSlotOption = useCallback((dayOfWeek: number, optionIndex: number) => {
     setDayPreferences(prev => 
       prev.map(day => 
         day.dayOfWeek === dayOfWeek 
@@ -142,9 +164,9 @@ export const SlotSelection: React.FC = () => {
           : day
       )
     );
-  };
+  }, []);
 
-  const updatePreferredStartHour = (dayOfWeek: number, hour: number) => {
+  const updatePreferredStartHour = useCallback((dayOfWeek: number, hour: number) => {
     setDayPreferences(prev => 
       prev.map(day => 
         day.dayOfWeek === dayOfWeek 
@@ -152,22 +174,22 @@ export const SlotSelection: React.FC = () => {
           : day
       )
     );
-  };
+  }, []);
 
-  const getSelectedOption = (dayOfWeek: number) => {
+  const getSelectedOption = useCallback((dayOfWeek: number) => {
     return dayPreferences.find(day => day.dayOfWeek === dayOfWeek)?.slotOption;
-  };
+  }, [dayPreferences]);
 
-  const getPreferredStartHour = (dayOfWeek: number) => {
+  const getPreferredStartHour = useCallback((dayOfWeek: number) => {
     return dayPreferences.find(day => day.dayOfWeek === dayOfWeek)?.preferredStartHour || 9;
-  };
+  }, [dayPreferences]);
 
-  const hasValidSelections = () => {
+  const hasValidSelections = useCallback(() => {
     return selectedDays.length > 0 && 
       selectedDays.every(day => 
         dayPreferences.find(pref => pref.dayOfWeek === day)?.slotOption !== null
       );
-  };
+  }, [selectedDays, dayPreferences]);
 
   const savePreferences = async () => {
     setError(null);
@@ -254,6 +276,10 @@ export const SlotSelection: React.FC = () => {
       }
 
       console.log("Successfully saved preferences:", data);
+      
+      if (setStudySlots) {
+        setStudySlots(data);
+      }
 
       // Update onboarding progress
       await supabase
@@ -295,6 +321,16 @@ export const SlotSelection: React.FC = () => {
       setError("Failed to proceed to next step. Please try again.");
     }
   };
+
+  if (!isInitialized) {
+    return (
+      <div className="flex justify-center items-center py-10">
+        <div className="animate-pulse">
+          <p className="text-gray-500">Loading your study preferences...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -391,4 +427,3 @@ export const SlotSelection: React.FC = () => {
     </div>
   );
 };
-
