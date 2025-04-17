@@ -1,9 +1,8 @@
-
 import { Question, Answer, QuizResult, mockQuestions } from '@/types/quiz';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
-// Toggle this to false when connecting to real API
+// Toggle this to false since we're implementing real API
 const useMock = false;
 
 // Mock implementation
@@ -197,15 +196,38 @@ const realImplementation = {
         toast.success(`${subject} questions ready!`);
       }
       
-      const processedQuestions = data.questions.map((q: any) => ({
-        ...q,
-        text: q.text || q.question,  // Support both text and question
-        answers: q.answers || (q.options ? q.options.map((option: string, i: number) => ({
-          id: `answer-${q.id}-${i}`,
-          text: option,
-          isCorrect: option === (q.correctAnswer || q.answer)
-        })) : [])
-      }));
+      // Process the questions to ensure they have the right format
+      const processedQuestions = data.questions.map((q: any, index: number) => {
+        // Use the question's id if available, otherwise generate one
+        const questionId = q.id || `question-${index}-${Date.now()}`;
+        
+        // Ensure we have answers in the correct format
+        let answers;
+        if (q.answers && Array.isArray(q.answers)) {
+          // If answers already in the right format, use them
+          answers = q.answers;
+        } else if (q.options && Array.isArray(q.options)) {
+          // Convert options array to answers array
+          answers = q.options.map((option: string, i: number) => ({
+            id: `answer-${questionId}-${i}`,
+            text: option,
+            isCorrect: option === q.correctAnswer
+          }));
+        } else {
+          // Fallback empty answers
+          answers = [];
+        }
+        
+        return {
+          id: questionId,
+          text: q.text || q.question || `Question ${index + 1}`,
+          answers: answers,
+          difficulty: q.difficulty || difficulty,
+          subject: subject,
+          topic: q.topic || subject,
+          hint: q.hint || "Think carefully about the question."
+        };
+      });
       
       return processedQuestions;
     } catch (error) {
@@ -310,7 +332,7 @@ const realImplementation = {
     
     try {
       // Update confidence scores in student_subject_preferences
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('student_subject_preferences')
         .update({ confidence_level: confidence })
         .eq('student_id', userId)
@@ -328,8 +350,8 @@ const realImplementation = {
         .eq('id', userId)
         .single();
         
-      if (profilesError) {
-        console.error('Error fetching user profile:', profilesError);
+      if (profilesErrors) {
+        console.error('Error fetching user profile:', profilesErrors);
       } else if (profiles) {
         const confidenceScores = profiles.confidence_scores || {};
         confidenceScores[subject] = confidence;

@@ -99,4 +99,3 @@ export const SubjectsSelector: React.FC = () => {
     </div>
   );
 };
-

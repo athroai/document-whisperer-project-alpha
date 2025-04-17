@@ -14,6 +14,7 @@ import { DaySelector } from './DaySelector';
 import { SlotOptionSelector } from './SlotOptionSelector';
 import { TimeSlotPreview } from './TimeSlotPreview';
 import { DayPreference, SlotOption } from '@/types/study';
+import { toast } from 'sonner';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const SLOT_OPTIONS: SlotOption[] = [
@@ -32,7 +33,7 @@ const TIME_OPTIONS = Array.from({ length: 17 }, (_, i) => {
 });
 
 export const SlotSelection: React.FC = () => {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const { state } = useAuth();
   const { updateOnboardingStep, studySlots: existingSlots, setStudySlots } = useOnboarding();
   
@@ -54,12 +55,20 @@ export const SlotSelection: React.FC = () => {
     setDayPreferences(initialPreferences);
   }, []);
 
-  // Set up user ID and fetch existing slots only once during component mount
+  // Set up user ID and fetch existing slots
   useEffect(() => {
-    const checkAuthStatus = async () => {
+    const initializeComponent = async () => {
       try {
-        const { data } = await supabase.auth.getUser();
-        const authenticatedUserId = data?.user?.id;
+        // Always get the current user from supabase auth 
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error("Error fetching user:", userError);
+          setError("Authentication required. Please sign in again.");
+          return;
+        }
+        
+        const authenticatedUserId = userData?.user?.id;
         
         if (!authenticatedUserId) {
           console.log("No authenticated user found");
@@ -70,9 +79,8 @@ export const SlotSelection: React.FC = () => {
         setUserId(authenticatedUserId);
         console.log("Auth check successful, user ID:", authenticatedUserId);
         
-        // Only fetch slots if they aren't already available in context
+        // Fetch existing study slots if needed
         if (!existingSlots || existingSlots.length === 0) {
-          // Fetch existing study slots
           console.log("Fetching study slots for user:", authenticatedUserId);
           const { data: slots, error: slotsError } = await supabase
             .from('preferred_study_slots')
@@ -114,8 +122,11 @@ export const SlotSelection: React.FC = () => {
             });
             
             setDayPreferences(updatedPreferences);
-          } else {
-            console.log("No existing study slots found for user:", authenticatedUserId);
+            
+            // Set active day to first selected day
+            if (days.length > 0) {
+              setActiveDay(days[0]);
+            }
           }
         } else if (existingSlots.length > 0) {
           // Use slots from context instead of fetching
@@ -146,7 +157,7 @@ export const SlotSelection: React.FC = () => {
           
           setDayPreferences(updatedPreferences);
           
-          // If we have selected days from existing slots, set the active day to the first one
+          // Set active day to first selected day
           if (days.length > 0) {
             setActiveDay(days[0]);
           }
@@ -159,8 +170,8 @@ export const SlotSelection: React.FC = () => {
       }
     };
     
-    checkAuthStatus();
-  }, [existingSlots, setStudySlots]);
+    initializeComponent();
+  }, [existingSlots, setStudySlots, dayPreferences]);
 
   const toggleDaySelection = useCallback((dayIndex: number) => {
     setSelectedDays(prev => {
@@ -237,10 +248,7 @@ export const SlotSelection: React.FC = () => {
     // Check if any days are selected
     if (selectedDays.length === 0) {
       setError("Please select at least one day to study.");
-      toast({
-        description: "Please select at least one day to study.",
-        variant: "destructive"
-      });
+      toast.error("Please select at least one day to study.");
       return false;
     }
     
@@ -251,50 +259,37 @@ export const SlotSelection: React.FC = () => {
     
     if (!hasSlotOptions) {
       setError("Please select a study session format for at least one day.");
-      toast({
-        description: "Please select a study session format for at least one day.",
-        variant: "destructive"
-      });
+      toast.error("Please select a study session format for at least one day.");
       return false;
     }
     
-    // Validate that we have a valid user ID
-    const currentUserId = state.user?.id || userId;
+    // Get current user directly from Supabase
+    const { data: userData, error: userError } = await supabase.auth.getUser();
     
-    if (!currentUserId) {
-      // Try to get current user directly from Supabase as a final attempt
-      const { data } = await supabase.auth.getUser();
-      const authUserId = data?.user?.id;
-      
-      if (!authUserId) {
-        const errorMsg = "Authentication required. Please log in again.";
-        setError(errorMsg);
-        toast({
-          description: "You need to be signed in to save your preferences.",
-          variant: "destructive"
-        });
-        console.error("No valid user ID available when trying to save preferences");
-        return false;
-      }
-      
-      setUserId(authUserId);
+    if (userError || !userData?.user?.id) {
+      const errorMsg = "Authentication required. Please log in again.";
+      setError(errorMsg);
+      toast.error("You need to be signed in to save your preferences.");
+      console.error("No valid user ID available when trying to save preferences");
+      return false;
     }
+    
+    const currentUserId = userData.user.id;
 
     setSaving(true);
+    toast.loading("Saving your study preferences...");
 
     try {
-      const userIdToUse = currentUserId || state.user?.id || userId;
-      console.log("Starting to save preferences for user:", userIdToUse);
+      console.log("Starting to save preferences for user:", currentUserId);
 
       // Delete existing preferences
       const { error: deleteError } = await supabase
         .from('preferred_study_slots')
         .delete()
-        .eq('user_id', userIdToUse);
+        .eq('user_id', currentUserId);
       
       if (deleteError) {
         console.error("Error deleting existing preferences:", deleteError);
-        // Continue anyway as we'll try to upsert new preferences
       } else {
         console.log("Successfully deleted existing preferences");
       }
@@ -311,18 +306,13 @@ export const SlotSelection: React.FC = () => {
           const optionIndex = preference?.slotOption ?? 0;
           const slotOption = SLOT_OPTIONS[optionIndex];
           
-          const preferenceData = {
-            user_id: userIdToUse,
+          return {
+            user_id: currentUserId,
             day_of_week: dayOfWeek,
             slot_duration_minutes: slotOption.duration,
             slot_count: slotOption.count,
-            preferred_start_hour: preference?.preferredStartHour || 9,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            preferred_start_hour: preference?.preferredStartHour || 9
           };
-          
-          console.log("Preparing study slot preference:", preferenceData);
-          return preferenceData;
         });
 
       if (preferencesToSave.length === 0) {
@@ -349,33 +339,23 @@ export const SlotSelection: React.FC = () => {
       }
 
       // Update onboarding progress
-      const { error: progressError } = await supabase
+      await supabase
         .from('onboarding_progress')
         .upsert({
-          student_id: userIdToUse,
+          student_id: currentUserId,
           current_step: 'diagnosticQuiz',
           has_completed_availability: true
         }, {
           onConflict: 'student_id'
         });
         
-      if (progressError) {
-        console.warn("Unable to update onboarding progress:", progressError);
-        // Continue anyway as this is not critical
-      }
-        
-      toast({
-        description: "Your study time preferences have been saved successfully."
-      });
+      toast.success("Your study time preferences have been saved successfully.");
       
       return true;
     } catch (error: any) {
       console.error('Error saving preferences:', error);
       setError(error.message || "Failed to save preferences");
-      toast({
-        description: error.message || "Failed to save your preferences. Please try again.",
-        variant: "destructive"
-      });
+      toast.error(error.message || "Failed to save your preferences. Please try again.");
       return false;
     } finally {
       setSaving(false);

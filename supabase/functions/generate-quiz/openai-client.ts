@@ -19,6 +19,7 @@ export async function callOpenAI(apiKey: string, subject: string, difficulty: st
         {
           role: "user",
           content: `Generate ${count} ${difficulty} difficulty multiple-choice questions for GCSE ${subject}. 
+          Each question must have exactly 4 options.
           Return ONLY a JSON array with each question having: 
           id, text, correctAnswer, options, difficulty, subject, topic.
           Do not wrap the JSON in markdown code blocks or add any explanations.`

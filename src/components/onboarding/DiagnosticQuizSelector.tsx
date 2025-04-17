@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { subjects, isLoading } = useSubjects();
   const [retryCount, setRetryCount] = useState<Record<string, number>>({});
+  const [loadingToastId, setLoadingToastId] = useState<string | null>(null);
 
   const MAX_RETRIES = 2;
 
@@ -45,13 +47,19 @@ export const DiagnosticQuizSelector: React.FC = () => {
       const confidence = subjectPreference?.confidence || 5;
       const difficulty = Math.ceil(confidence / 2);
 
-      toast.loading(`Generating ${subject} quiz questions...`);
+      const toastId = toast.loading(`Generating ${subject} quiz questions...`);
+      setLoadingToastId(toastId);
 
       const fetchedQuestions = await quizService.getQuestionsBySubject(
         subject, 
         difficulty,
         5
       );
+      
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+        setLoadingToastId(null);
+      }
       
       if (!fetchedQuestions || fetchedQuestions.length === 0) {
         throw new Error(`No questions were generated for ${subject}`);
@@ -61,7 +69,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
         q && 
         q.text && 
         q.answers && 
-        q.answers.length > 0
+        q.answers.length === 4
       );
       
       if (validQuestions.length === 0) {
@@ -72,17 +80,20 @@ export const DiagnosticQuizSelector: React.FC = () => {
       setCurrentQuestionIndex(0);
       setSelectedAnswers({});
       setIsGenerating(prev => ({ ...prev, [subject]: false }));
+      toast.success(`${subject} quiz ready!`);
 
     } catch (error: any) {
       console.error('Error fetching questions:', error);
       
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+        setLoadingToastId(null);
+      }
+      
       const currentRetries = retryCount[subject] || 0;
       if (currentRetries < MAX_RETRIES) {
         setRetryCount(prev => ({ ...prev, [subject]: currentRetries + 1 }));
-        uiToast({
-          description: `Retrying ${subject} quiz generation...`,
-          variant: "default"
-        });
+        toast.info(`Retrying ${subject} quiz generation...`);
         
         setTimeout(() => startQuiz(subject), 2000);
         return;
@@ -132,33 +143,56 @@ export const DiagnosticQuizSelector: React.FC = () => {
         helpLevel = "high";
       }
       
-      await quizService.saveQuizResult({
-        userId: state.user.id,
-        subject: currentSubject,
-        score: correctCount,
-        totalQuestions: totalQuestions,
-        questionsAsked: questions.map(q => q.id),
-        answers: [],
-        confidenceBefore: 0,
-        confidenceAfter: 0,
-        timestamp: new Date().toISOString()
-      });
+      // Save quiz result to diagnostic_quiz_results table
+      const { data: quizResultData, error: quizResultError } = await supabase
+        .from('diagnostic_quiz_results')
+        .insert({
+          student_id: state.user.id,
+          subject: currentSubject,
+          score: correctCount,
+          total_questions: totalQuestions
+        })
+        .select('id');
+        
+      if (quizResultError) {
+        console.error('Error saving quiz result to diagnostic_quiz_results:', quizResultError);
+        throw new Error('Failed to save quiz results');
+      }
 
+      // Save result to diagnostic_results table
+      const { data: diagData, error: diagError } = await supabase
+        .from('diagnostic_results')
+        .insert({
+          student_id: state.user.id,
+          subject_name: currentSubject,
+          percentage_accuracy: scorePercentage
+        })
+        .select('id');
+        
+      if (diagError) {
+        console.error('Error saving to diagnostic_results:', diagError);
+        throw new Error('Failed to save diagnostic results');
+      }
+
+      // Update confidence level
       const newConfidence = Math.max(1, Math.min(10, Math.round(scorePercentage / 10)));
       
-      await quizService.updateUserConfidenceScores(
-        state.user.id, 
-        currentSubject, 
-        newConfidence
-      );
+      await supabase
+        .from('student_subject_preferences')
+        .upsert({
+          student_id: state.user.id,
+          subject: currentSubject,
+          confidence_level: newConfidence
+        }, { onConflict: 'student_id, subject' });
 
+      // Update or insert student_subjects with help_level
       try {
         const { data: existingSubject } = await supabase
           .from('student_subjects')
           .select('*')
           .eq('student_id', state.user.id)
           .eq('subject_name', currentSubject)
-          .single();
+          .maybeSingle();
         
         if (existingSubject) {
           await supabase
@@ -178,6 +212,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
         console.error("Error updating student_subjects:", e);
       }
 
+      // Update onboarding progress
       await supabase
         .from('onboarding_progress')
         .upsert({
@@ -225,7 +260,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   };
 
   const handleContinue = () => {
-    updateOnboardingStep && updateOnboardingStep('generatePlan');
+    updateOnboardingStep('generatePlan');
   };
 
   if (isLoading) {
@@ -318,7 +353,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {subjectsToShow.map(subject => (
+          {subjectsToShow.map((subject) => (
             <Card key={subject}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -362,7 +397,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
       <div className="flex justify-between mt-6">
         <Button 
           variant="outline"
-          onClick={() => updateOnboardingStep && updateOnboardingStep('generatePlan')}
+          onClick={() => updateOnboardingStep('generatePlan')}
         >
           Skip All Quizzes
         </Button>

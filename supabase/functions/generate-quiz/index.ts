@@ -55,11 +55,17 @@ serve(async (req) => {
             .replace(/```\s*/g, '')
             .trim();
           
-          questions = JSON.parse(jsonContent);
-          
-          // If parsing returned an object with a 'questions' property, use that
-          if (questions.questions && Array.isArray(questions.questions)) {
-            questions = questions.questions;
+          try {
+            questions = JSON.parse(jsonContent);
+            
+            // If parsing returned an object with a 'questions' property, use that
+            if (questions.questions && Array.isArray(questions.questions)) {
+              questions = questions.questions;
+            }
+          } catch (parseError) {
+            console.error("Failed to parse JSON content:", parseError);
+            console.error("Raw content:", content);
+            throw new Error("Invalid JSON format received from OpenAI");
           }
         } else if (typeof content === 'object') {
           // If content is already an object, check if it has a 'questions' array
@@ -78,13 +84,13 @@ serve(async (req) => {
       throw new Error("Invalid question format received from OpenAI");
     }
     
-    // Validate questions have required fields
+    // Validate questions have required fields and exactly 4 options
     const validQuestions = questions.filter(q => 
       q.id && 
       q.text && 
       q.correctAnswer && 
       q.options && 
-      q.options.length > 0
+      q.options.length === 4
     );
 
     if (validQuestions.length === 0) {
