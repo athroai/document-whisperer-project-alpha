@@ -3,8 +3,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
+export interface SubjectWithConfidence {
+  subject: string;
+  confidence: number;
+}
+
 export const useSubjects = () => {
   const [subjects, setSubjects] = useState<string[]>([]);
+  const [subjectsWithConfidence, setSubjectsWithConfidence] = useState<SubjectWithConfidence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { state } = useAuth();
@@ -24,7 +30,7 @@ export const useSubjects = () => {
         // First try to get subjects from student_subject_preferences
         const { data: preferences, error: preferencesError } = await supabase
           .from('student_subject_preferences')
-          .select('subject')
+          .select('subject, confidence_level')
           .eq('student_id', state.user.id);
 
         if (preferencesError && preferencesError.code !== 'PGRST116') {
@@ -35,8 +41,14 @@ export const useSubjects = () => {
         if (preferences && preferences.length > 0) {
           // Use subject preferences if available
           const subjectList = preferences.map(pref => pref.subject);
+          const subjectsWithConfidenceList = preferences.map(pref => ({
+            subject: pref.subject,
+            confidence: pref.confidence_level
+          }));
+          
           console.log('Fetched subjects from preferences:', subjectList);
           setSubjects(subjectList);
+          setSubjectsWithConfidence(subjectsWithConfidenceList);
           setIsLoading(false);
           return;
         }
@@ -55,8 +67,14 @@ export const useSubjects = () => {
         if (subjectData && subjectData.length > 0) {
           // Use student_subjects if available
           const subjectList = subjectData.map(subject => subject.subject_name);
+          const subjectsWithConfidenceList = subjectList.map(subject => ({
+            subject,
+            confidence: 5 // Default confidence
+          }));
+          
           console.log('Fetched subjects from student_subjects:', subjectList);
           setSubjects(subjectList);
+          setSubjectsWithConfidence(subjectsWithConfidenceList);
           setIsLoading(false);
           return;
         }
@@ -66,16 +84,29 @@ export const useSubjects = () => {
           'Mathematics', 'Science', 'English', 'History', 
           'Geography', 'Welsh', 'Languages', 'Religious Education'
         ];
+        const defaultSubjectsWithConfidence = defaultSubjects.map(subject => ({
+          subject,
+          confidence: 5 // Default confidence
+        }));
+        
         console.log('Using default subject list:', defaultSubjects);
         setSubjects(defaultSubjects);
+        setSubjectsWithConfidence(defaultSubjectsWithConfidence);
       } catch (error) {
         console.error('Failed to fetch subjects:', error);
         setError('Failed to fetch subjects');
         // Fall back to default subjects on error
-        setSubjects([
+        const defaultSubjects = [
           'Mathematics', 'Science', 'English', 'History', 
           'Geography', 'Welsh', 'Languages', 'Religious Education'
-        ]);
+        ];
+        const defaultSubjectsWithConfidence = defaultSubjects.map(subject => ({
+          subject,
+          confidence: 5 // Default confidence
+        }));
+        
+        setSubjects(defaultSubjects);
+        setSubjectsWithConfidence(defaultSubjectsWithConfidence);
       } finally {
         setIsLoading(false);
       }
@@ -84,5 +115,10 @@ export const useSubjects = () => {
     fetchSubjects();
   }, [state.user?.id]);
 
-  return { subjects, isLoading, error };
+  return { 
+    subjects, 
+    subjectsWithConfidence,
+    isLoading, 
+    error 
+  };
 };
