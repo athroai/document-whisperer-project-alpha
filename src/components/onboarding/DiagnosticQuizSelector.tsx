@@ -116,7 +116,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
   };
 
   const handleConfidenceChange = (newValue: number[]) => {
-    // Explicitly cast to string to resolve TypeScript error
     setSelectedConfidence(String(newValue[0]));
   };
 
@@ -148,7 +147,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
         helpLevel = "high";
       }
       
-      // Save quiz result to diagnostic_quiz_results table
       const { data: quizResultData, error: quizResultError } = await supabase
         .from('diagnostic_quiz_results')
         .insert({
@@ -164,7 +162,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
         throw new Error('Failed to save quiz results');
       }
 
-      // Save result to diagnostic_results table
       const { data: diagData, error: diagError } = await supabase
         .from('diagnostic_results')
         .insert({
@@ -179,7 +176,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
         throw new Error('Failed to save diagnostic results');
       }
 
-      // Update confidence level
       const newConfidence = Math.max(1, Math.min(10, Math.round(scorePercentage / 10)));
       
       await supabase
@@ -190,7 +186,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
           confidence_level: newConfidence
         }, { onConflict: 'student_id, subject' });
 
-      // Update or insert student_subjects with help_level
       try {
         const { data: existingSubject } = await supabase
           .from('student_subjects')
@@ -217,19 +212,14 @@ export const DiagnosticQuizSelector: React.FC = () => {
         console.error("Error updating student_subjects:", e);
       }
 
-      // Handle onboarding progress - wrap in try/catch to continue even if this fails
-      try {
-        await supabase
-          .from('onboarding_progress')
-          .insert({
-            student_id: state.user.id,
-            current_step: 'diagnosticQuiz',
-            has_completed_diagnostic: true
-          })
-          .select();
-      } catch (e) {
-        console.error("Error updating onboarding_progress:", e);
-      }
+      await supabase
+        .from('onboarding_progress')
+        .insert({
+          student_id: state.user.id,
+          current_step: 'diagnosticQuiz',
+          has_completed_diagnostic: true
+        })
+        .select();
 
       setScore(scorePercentage);
       setQuizCompleted(true);
