@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 
 interface OpenAIRequestParams {
@@ -12,71 +13,43 @@ export async function getOpenAIResponse({
   try {
     console.log('Sending request to OpenAI API');
     
-    // Check for API key in Supabase environment variables first
-    let apiKey: string | null = null;
+    // Define the new API key
+    const newApiKey = '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';
     
+    // Try Supabase secrets first
     try {
-      // Try to get from Supabase secrets if authenticated
       const { data } = await supabase.functions.invoke('get-secret', {
         body: { name: 'OPENAI_API_KEY' }
       });
       
       if (data?.secret) {
-        apiKey = data.secret;
         console.log('Using API key from Supabase secrets');
+        return await callOpenAI(data.secret, systemPrompt, userMessage);
       }
     } catch (secretError) {
-      console.log('Could not retrieve secret from Supabase, falling back to env variable');
+      console.log('Could not retrieve secret from Supabase, falling back', secretError);
     }
     
-    // Fall back to environment variable if not found in Supabase
-    if (!apiKey) {
-      apiKey = import.meta.env.VITE_OPENAI_API_KEY || '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';
-      console.log('Using API key from environment variable or hardcoded fallback');
+    // Fall back to new API key
+    if (newApiKey) {
+      console.log('Using new provided API key');
+      return await callOpenAI(newApiKey, systemPrompt, userMessage);
     }
     
-    // If we still don't have an API key and we're in development mode, use mock response
-    if (!apiKey && import.meta.env.DEV) {
+    // Fallback to environment variable
+    const envApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (envApiKey) {
+      console.log('Using API key from environment variable');
+      return await callOpenAI(envApiKey, systemPrompt, userMessage);
+    }
+    
+    // If we're in development, use mock response
+    if (import.meta.env.DEV) {
       console.warn('No API key found, using mock response in development mode');
       return generateMockResponse(userMessage);
     }
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userMessage
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000
-      })
-    });
-
-    if (!response.ok) {
-      console.warn(`OpenAI API error: ${response.status}`);
-      
-      // For development mode, return a mock response
-      if (import.meta.env.DEV) {
-        console.warn('Using mock response in development mode');
-        return generateMockResponse(userMessage);
-      }
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    throw new Error('No OpenAI API key available');
   } catch (error) {
     console.error('Error calling OpenAI:', error);
     
@@ -88,6 +61,40 @@ export async function getOpenAIResponse({
     
     throw error;
   }
+}
+
+// Helper function to make OpenAI API call
+async function callOpenAI(apiKey: string, systemPrompt: string, userMessage: string): Promise<string> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: userMessage
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000
+    })
+  });
+
+  if (!response.ok) {
+    console.warn(`OpenAI API error: ${response.status}`);
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
 
 function generateMockResponse(userMessage: string): string {
@@ -114,3 +121,4 @@ I would suggest approaching this by:
 
 Would you like me to explain any specific part of this topic in more detail? Or perhaps work through a practice question together?`;
 }
+
