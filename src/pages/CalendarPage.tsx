@@ -3,8 +3,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Calendar as CalendarIcon, Plus, Clock, BookOpen, GraduationCap, ArrowLeft, ArrowRight } from 'lucide-react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -23,6 +21,7 @@ interface CalendarEvent {
   duration: number;
   mentor: string;
   icon?: React.ElementType;
+  description?: string;
 }
 
 const CalendarPage: React.FC = () => {
@@ -94,8 +93,7 @@ const CalendarPage: React.FC = () => {
       const { data, error } = await supabase
         .from('calendar_events')
         .select('id, title, description, start_time, end_time, event_type')
-        .eq('student_id', userId)
-        .or(`event_type.eq.study_session,event_type.eq.quiz`)
+        .or(`student_id.eq.${userId},user_id.eq.${userId}`)
         .order('start_time', { ascending: true });
       
       if (error) {
@@ -127,18 +125,24 @@ const CalendarPage: React.FC = () => {
                           event.event_type === 'quiz' ? 'quiz' : 
                           'revision';
         
+        const startTime = new Date(event.start_time);
+        const endTime = new Date(event.end_time);
+        const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+        
         return {
           id: event.id,
           title: event.title,
-          date: new Date(event.start_time),
+          date: startTime,
           type: eventType as 'study' | 'quiz' | 'revision',
-          time: format(new Date(event.start_time), 'HH:mm'),
-          duration: Math.round((new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000),
+          time: format(startTime, 'HH:mm'),
+          duration: durationMinutes,
           mentor: description.subject ? `${description.subject} Mentor` : 'Athro Mentor',
-          icon: eventIcon
+          icon: eventIcon,
+          description: event.description
         };
       });
       
+      console.log('Loaded events:', formattedEvents);
       setEvents(formattedEvents);
     } catch (error) {
       console.error('Error loading calendar events:', error);
@@ -165,6 +169,31 @@ const CalendarPage: React.FC = () => {
 
   const getEventsForDay = (day: Date) => {
     return events.filter(event => isSameDay(event.date, day));
+  };
+
+  const handleDeleteEvent = async (eventId: string | number) => {
+    try {
+      const { error } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('id', eventId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Event deleted',
+        description: 'The event has been removed from your calendar.',
+      });
+      
+      loadEvents();
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete the event. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -277,6 +306,25 @@ const CalendarPage: React.FC = () => {
                                 <Clock className="h-3 w-3 mr-1" /> 
                                 {event.time} · {event.duration} mins
                               </div>
+                              <div className="mt-3 flex justify-end">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="text-red-500 hover:text-red-700"
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                >
+                                  Delete
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  onClick={() => {
+                                    window.location.href = `/study?sessionId=${event.id}&subject=${encodeURIComponent(event.mentor.replace(' Mentor', ''))}`;
+                                  }}
+                                >
+                                  Join Session
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         );
@@ -341,11 +389,12 @@ const CalendarPage: React.FC = () => {
                           <div 
                             key={String(event.id)} 
                             className={cn(
-                              "p-1 text-xs mb-1 mx-1 rounded",
+                              "p-1 text-xs mb-1 mx-1 rounded cursor-pointer",
                               event.type === 'study' ? "bg-purple-100 text-purple-700" : 
                               event.type === 'quiz' ? "bg-green-100 text-green-700" : 
                               "bg-amber-100 text-amber-700"
                             )}
+                            onClick={() => handleDateChange(event.date)}
                           >
                             <p className="font-medium">{event.title}</p>
                             <p>{event.time}</p>
@@ -410,6 +459,25 @@ const CalendarPage: React.FC = () => {
                             <Clock className="h-3 w-3 mr-1" /> 
                             {event.time} · {event.duration} mins
                           </div>
+                          <div className="mt-3 flex justify-end">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => handleDeleteEvent(event.id)}
+                            >
+                              Delete
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => {
+                                window.location.href = `/study?sessionId=${event.id}&subject=${encodeURIComponent(event.mentor.replace(' Mentor', ''))}`;
+                              }}
+                            >
+                              Join Session
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -433,69 +501,6 @@ const CalendarPage: React.FC = () => {
         selectedDate={date}
         onSuccess={loadEvents}
       />
-      
-      <Dialog open={showAddEventDialog} onOpenChange={setShowAddEventDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Study Session</DialogTitle>
-            <DialogDescription>
-              Schedule a new study session with your Athro mentor
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Session Title</Label>
-              <Input id="title" placeholder="e.g., Algebra Review" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input id="date" type="date" defaultValue={date ? format(date, 'yyyy-MM-dd') : undefined} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
-                <Input id="time" type="time" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="mentor">Choose Mentor</Label>
-              <Select defaultValue="AthroMaths">
-                <SelectTrigger id="mentor">
-                  <SelectValue placeholder="Select Mentor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AthroMaths">AthroMaths</SelectItem>
-                  <SelectItem value="AthroScience">AthroScience</SelectItem>
-                  <SelectItem value="AthroHistory">AthroHistory</SelectItem>
-                  <SelectItem value="AthroEnglish">AthroEnglish</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="duration">Duration (minutes)</Label>
-              <Select defaultValue="30">
-                <SelectTrigger id="duration">
-                  <SelectValue placeholder="Select Duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 minutes</SelectItem>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="45">45 minutes</SelectItem>
-                  <SelectItem value="60">60 minutes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddEventDialog(false)}>Cancel</Button>
-            <Button onClick={() => {
-              setShowAddEventDialog(false);
-            }}>
-              Save Session
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
