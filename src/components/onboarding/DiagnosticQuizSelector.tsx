@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -116,6 +117,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   };
 
   const handleConfidenceChange = (newValue: number[]) => {
+    // Explicitly cast to string to resolve TypeScript error
     setSelectedConfidence(String(newValue[0]));
   };
 
