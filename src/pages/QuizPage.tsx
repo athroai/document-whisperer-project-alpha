@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Question, Answer, QuizResult } from '@/types/quiz';
@@ -171,6 +170,7 @@ const QuizPage: React.FC = () => {
       confidenceBefore: confidence,
       confidenceAfter: confidenceAfter,
       score,
+      totalQuestions: quizQuestions.length,
       timestamp: new Date().toISOString()
     };
 

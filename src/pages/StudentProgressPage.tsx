@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -72,6 +71,7 @@ const StudentProgressPage: React.FC = () => {
       confidenceBefore: 6,
       confidenceAfter: 7,
       score: 3,
+      totalQuestions: 3,
       timestamp: '2025-04-10T10:30:00Z'
     },
     {
@@ -86,6 +86,7 @@ const StudentProgressPage: React.FC = () => {
       confidenceBefore: 7,
       confidenceAfter: 8,
       score: 3,
+      totalQuestions: 3,
       timestamp: '2025-04-08T14:15:00Z'
     },
     {
@@ -100,6 +101,7 @@ const StudentProgressPage: React.FC = () => {
       confidenceBefore: 5,
       confidenceAfter: 6,
       score: 3,
+      totalQuestions: 3,
       timestamp: '2025-04-05T09:45:00Z'
     }
   ];
