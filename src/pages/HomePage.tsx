@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Calendar, GraduationCap, Clock, ArrowRight, Gauge, BookText, Atom, Languages, Book, 
-  MapPin, History, Brain } from 'lucide-react';
+import { BookOpen, Calendar, GraduationCap, Clock, Gauge, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
@@ -12,12 +11,15 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { useAthro } from '@/contexts/AthroContext';
+import { SubjectCard } from '@/components/home/SubjectCard';
+import { useSubjects } from '@/hooks/useSubjects';
 
 const HomePage: React.FC = () => {
   const { state } = useAuth();
   const { user } = state;
   const navigate = useNavigate();
   const { characters } = useAthro();
+  const { subjects, isLoading, error } = useSubjects();
   const [isConfidenceModalOpen, setIsConfidenceModalOpen] = useState(false);
   const [confidenceScore, setConfidenceScore] = useState(5);
   const [currentAthro, setCurrentAthro] = useState({
@@ -45,32 +47,7 @@ const HomePage: React.FC = () => {
     'Religious Education': 51
   };
 
-  const getSubjectIcon = (subject: string) => {
-    switch (subject) {
-      case 'Mathematics':
-        return <BookText className="h-5 w-5 text-purple-600" />;
-      case 'Science':
-        return <Atom className="h-5 w-5 text-green-600" />;
-      case 'English':
-        return <Book className="h-5 w-5 text-blue-600" />;
-      case 'History':
-        return <History className="h-5 w-5 text-amber-600" />;
-      case 'Geography':
-        return <MapPin className="h-5 w-5 text-cyan-600" />;
-      case 'Languages':
-        return <Languages className="h-5 w-5 text-pink-600" />;
-      case 'Welsh':
-        return <Languages className="h-5 w-5 text-red-600" />;
-      case 'Religious Education':
-        return <BookOpen className="h-5 w-5 text-violet-600" />;
-      case 'AthroAI':
-        return <Brain className="h-5 w-5 text-indigo-600" />;
-      case 'Timekeeper':
-        return <Clock className="h-5 w-5 text-amber-600" />;
-      default:
-        return <BookOpen className="h-5 w-5 text-gray-600" />;
-    }
-  };
+  const confidenceScores = user?.confidenceScores || {};
   
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -138,45 +115,36 @@ const HomePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">
-            <h2 className="text-xl font-bold text-gray-800">Subject Mentors</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {subjectCharacters.map((character) => (
-                <Card key={character.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{character.subject}</CardTitle>
-                        <CardDescription>with {character.name}</CardDescription>
-                      </div>
-                      <div className="w-12 h-12 rounded-full overflow-hidden">
-                        <img 
-                          src={character.avatarUrl} 
-                          alt={character.name} 
-                          className="w-full h-full object-cover" 
-                        />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-purple-600 h-2.5 rounded-full" 
-                        style={{ width: `${subjectProgress[character.subject] || 0}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-2">{subjectProgress[character.subject] || 0}% complete</p>
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                    <Link to={`/study?subject=${character.subject.toLowerCase()}`} className="w-full">
-                      <Button variant="outline" className="w-full">
-                        {getSubjectIcon(character.subject)}
-                        <span className="ml-2">Continue</span>
-                      </Button>
-                    </Link>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
+            <h2 className="text-xl font-bold text-gray-800">Your Subjects</h2>
+            
+            {isLoading ? (
+              <p className="text-gray-500">Loading your subjects...</p>
+            ) : error ? (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <p className="text-red-600">Failed to load subjects. Please try again later.</p>
+              </div>
+            ) : subjects.length === 0 ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-6 text-center">
+                <h3 className="text-lg font-medium text-yellow-800 mb-2">No subjects selected yet</h3>
+                <p className="text-yellow-600 mb-4">You haven't selected any subjects to study yet.</p>
+                <Link to="/onboarding">
+                  <Button>
+                    Complete Onboarding
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {subjects.map((subject) => (
+                  <SubjectCard 
+                    key={subject}
+                    subject={subject}
+                    confidence={confidenceScores[subject.toLowerCase()] || 5}
+                    progress={subjectProgress[subject] || Math.floor(Math.random() * 80) + 10}
+                  />
+                ))}
+              </div>
+            )}
             
             <h2 className="text-xl font-bold text-gray-800">System Helpers</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -200,8 +168,8 @@ const HomePage: React.FC = () => {
                   <CardFooter className="pt-0">
                     <Link to={`/study?subject=${character.subject.toLowerCase()}`} className="w-full">
                       <Button variant="outline" className="w-full text-sm">
-                        {getSubjectIcon(character.subject)}
-                        <span className="ml-2">Open {character.name}</span>
+                        <Brain className="h-5 w-5 mr-2" />
+                        <span>Open {character.name}</span>
                       </Button>
                     </Link>
                   </CardFooter>
