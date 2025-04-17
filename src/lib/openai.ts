@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 interface OpenAIRequestParams {
@@ -32,19 +31,14 @@ export async function getOpenAIResponse({
     
     // Fall back to environment variable if not found in Supabase
     if (!apiKey) {
-      apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
-      console.log('Using API key from environment variable');
+      apiKey = import.meta.env.VITE_OPENAI_API_KEY || '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';
+      console.log('Using API key from environment variable or hardcoded fallback');
     }
     
     // If we still don't have an API key and we're in development mode, use mock response
     if (!apiKey && import.meta.env.DEV) {
       console.warn('No API key found, using mock response in development mode');
       return generateMockResponse(userMessage);
-    }
-    
-    // If we don't have an API key at all, throw an error
-    if (!apiKey) {
-      throw new Error('OpenAI API key not found');
     }
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
