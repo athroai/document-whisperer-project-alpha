@@ -66,11 +66,30 @@ serve(async (req) => {
       throw new Error(`OpenAI API error: ${data.error?.message || "Unknown error"}`);
     }
 
-    let questions = JSON.parse(data.choices[0].message.content);
+    let questions;
+    try {
+      questions = JSON.parse(data.choices[0].message.content);
+    } catch (parseError) {
+      console.error("Failed to parse questions:", parseError);
+      throw new Error("Invalid question format received from OpenAI");
+    }
+    
+    // Validate questions have required fields
+    const validQuestions = questions.filter(q => 
+      q.id && 
+      q.text && 
+      q.correctAnswer && 
+      q.options && 
+      q.options.length > 0
+    );
+
+    if (validQuestions.length === 0) {
+      throw new Error("No valid questions generated");
+    }
     
     return new Response(
       JSON.stringify({ 
-        questions, 
+        questions: validQuestions, 
         fromMock: false 
       }), 
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -93,16 +112,12 @@ serve(async (req) => {
 });
 
 function generateMockQuestions() {
-  const mockQuestions = [
+  return [
     {
       id: `mock-math-1`,
       text: "What is the value of x in the equation 3x + 7 = 22?",
-      answers: [
-        { id: "math-1-a", text: "3", isCorrect: false },
-        { id: "math-1-b", text: "5", isCorrect: true },
-        { id: "math-1-c", text: "7", isCorrect: false },
-        { id: "math-1-d", text: "15", isCorrect: false }
-      ],
+      options: ["3", "5", "7", "15"],
+      correctAnswer: "5",
       difficulty: "medium",
       topic: "algebra",
       subject: "Mathematics"
@@ -110,12 +125,8 @@ function generateMockQuestions() {
     {
       id: `mock-math-2`,
       text: "What is the area of a circle with radius 4 units?",
-      answers: [
-        { id: "math-2-a", text: "16π square units", isCorrect: true },
-        { id: "math-2-b", text: "8π square units", isCorrect: false },
-        { id: "math-2-c", text: "4π square units", isCorrect: false },
-        { id: "math-2-d", text: "π square units", isCorrect: false }
-      ],
+      options: ["16π square units", "8π square units", "4π square units", "π square units"],
+      correctAnswer: "16π square units",
       difficulty: "medium",
       topic: "geometry",
       subject: "Mathematics"
@@ -123,12 +134,8 @@ function generateMockQuestions() {
     {
       id: `mock-sci-1`,
       text: "Which of these is a noble gas?",
-      answers: [
-        { id: "sci-1-a", text: "Oxygen", isCorrect: false },
-        { id: "sci-1-b", text: "Chlorine", isCorrect: false },
-        { id: "sci-1-c", text: "Neon", isCorrect: true },
-        { id: "sci-1-d", text: "Sodium", isCorrect: false }
-      ],
+      options: ["Oxygen", "Chlorine", "Neon", "Sodium"],
+      correctAnswer: "Neon",
       difficulty: "medium",
       topic: "periodic table",
       subject: "Science"
@@ -136,12 +143,8 @@ function generateMockQuestions() {
     {
       id: `mock-eng-1`,
       text: "Which literary device involves giving human qualities to non-human things?",
-      answers: [
-        { id: "eng-1-a", text: "Metaphor", isCorrect: false },
-        { id: "eng-1-b", text: "Personification", isCorrect: true },
-        { id: "eng-1-c", text: "Simile", isCorrect: false },
-        { id: "eng-1-d", text: "Alliteration", isCorrect: false }
-      ],
+      options: ["Metaphor", "Personification", "Simile", "Alliteration"],
+      correctAnswer: "Personification",
       difficulty: "medium",
       topic: "literary devices",
       subject: "English"
@@ -149,17 +152,11 @@ function generateMockQuestions() {
     {
       id: `mock-hist-1`,
       text: "Which event marked the start of World War I?",
-      answers: [
-        { id: "hist-1-a", text: "The invasion of Poland", isCorrect: false },
-        { id: "hist-1-b", text: "The bombing of Pearl Harbor", isCorrect: false },
-        { id: "hist-1-c", text: "The assassination of Archduke Franz Ferdinand", isCorrect: true },
-        { id: "hist-1-d", text: "The sinking of the Lusitania", isCorrect: false }
-      ],
+      options: ["The invasion of Poland", "The bombing of Pearl Harbor", "The assassination of Archduke Franz Ferdinand", "The sinking of the Lusitania"],
+      correctAnswer: "The assassination of Archduke Franz Ferdinand",
       difficulty: "medium",
       topic: "world wars",
       subject: "History"
     }
   ];
-  
-  return mockQuestions;
 }
