@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -51,6 +50,14 @@ export const SlotSelection: React.FC = () => {
     }));
     setDayPreferences(initialPreferences);
   }, []);
+
+  // Check if the user is authenticated when component mounts
+  useEffect(() => {
+    if (!state.user) {
+      console.log("Warning: No authenticated user detected in SlotSelection");
+      setError("Please ensure you're logged in to save preferences");
+    }
+  }, [state.user]);
 
   const toggleDaySelection = (dayIndex: number) => {
     setSelectedDays(prev => {
@@ -105,12 +112,14 @@ export const SlotSelection: React.FC = () => {
     setError(null);
     
     if (!state.user?.id) {
-      setError("Authentication required. Please log in again.");
+      const errorMsg = "Authentication required. Please log in again.";
+      setError(errorMsg);
       toast({
         title: "Authentication Required",
         description: "You need to be signed in to save your preferences.",
         variant: "destructive"
       });
+      console.error("No authenticated user found when trying to save preferences");
       return false;
     }
 
@@ -144,7 +153,7 @@ export const SlotSelection: React.FC = () => {
         const preferredStartHour = preference?.preferredStartHour || 9;
 
         return {
-          user_id: state.user.id,
+          user_id: state.user?.id,
           day_of_week: dayOfWeek,
           slot_duration_minutes: slotOption.duration,
           slot_count: slotOption.count,
@@ -155,16 +164,17 @@ export const SlotSelection: React.FC = () => {
       console.log("Preferences to save:", preferencesToSave);
 
       if (preferencesToSave.length > 0) {
-        const { error: insertError } = await supabase
+        const { data, error: insertError } = await supabase
           .from('preferred_study_slots')
-          .insert(preferencesToSave);
+          .insert(preferencesToSave)
+          .select();
 
         if (insertError) {
           console.error("Error inserting new preferences:", insertError);
-          throw insertError;
+          throw new Error(`Failed to save preferences: ${insertError.message}`);
         }
 
-        console.log("Preferences saved successfully");
+        console.log("Preferences saved successfully:", data);
         
         // Update onboarding progress
         const { error: upsertError } = await supabase
@@ -179,18 +189,25 @@ export const SlotSelection: React.FC = () => {
           
         if (upsertError) {
           console.error("Error updating onboarding progress:", upsertError);
-          throw upsertError;
+          toast({
+            title: "Note",
+            description: "Preferences saved but progress update failed. You can still continue."
+          });
+        } else {
+          toast({
+            title: "Preferences Saved",
+            description: "Your study time preferences have been saved successfully."
+          });
         }
-          
-        toast({
-          title: "Preferences Saved",
-          description: "Your study time preferences have been saved successfully."
-        });
         
         return true;
+      } else {
+        toast({
+          title: "No Preferences",
+          description: "Please select at least one day and format before continuing."
+        });
+        return false;
       }
-      
-      return false;
     } catch (error: any) {
       console.error('Error saving preferences:', error);
       setError(error.message || "Failed to save preferences");
