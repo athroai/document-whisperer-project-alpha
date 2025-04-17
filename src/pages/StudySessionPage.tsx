@@ -159,9 +159,7 @@ Or let me know if you have something else in mind!`;
     changeSubject: (subject: string) => {
       setCurrentSubject(subject);
       
-      const characterForSubject = athroCharacters.find(
-        char => char.subject.toLowerCase() === subject.toLowerCase()
-      );
+      const characterForSubject = getAthroBySubject(subject);
       
       if (characterForSubject) {
         // Create the active character
@@ -197,13 +195,7 @@ Or let me know if you have something else in mind!`;
       return activeCharacter.avatarUrl;
     }
     
-    // Fix: Ensure athroCharacters is an array before using find
-    const characters = Array.isArray(athroCharacters) ? athroCharacters : [];
-    
-    const characterInfo = characters.find(
-      char => char.subject.toLowerCase() === currentSubject.toLowerCase()
-    );
-    
+    const characterInfo = getAthroBySubject(currentSubject);
     return characterInfo?.avatarUrl || '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png';
   };
   
@@ -213,13 +205,7 @@ Or let me know if you have something else in mind!`;
       return activeCharacter.name;
     }
     
-    // Fix: Ensure athroCharacters is an array before using find
-    const characters = Array.isArray(athroCharacters) ? athroCharacters : [];
-    
-    const characterInfo = characters.find(
-      char => char.subject.toLowerCase() === currentSubject.toLowerCase()
-    );
-    
+    const characterInfo = getAthroBySubject(currentSubject);
     return characterInfo?.name || 'AthroAI';
   };
 

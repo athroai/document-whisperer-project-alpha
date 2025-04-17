@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { athroCharacters } from '@/config/athrosConfig';
+import { useSubjects } from '@/hooks/useSubjects';
 
 interface StudySessionDialogProps {
   open: boolean;
@@ -30,16 +30,22 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   const [subject, setSubject] = useState('Mathematics');
   const [topic, setTopic] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { subjects, isLoading } = useSubjects();
   
   const { toast } = useToast();
   
   // Get topics for selected subject
   const getTopicsForSubject = (subj: string) => {
-    const char = Object.entries(athroCharacters).find(([key]) => key === subj);
-    return char ? char[1].topics : [];
+    const character = athroCharacters.find(char => char.subject.toLowerCase() === subj.toLowerCase());
+    return character ? character.topics : [];
   };
   
   const currentTopics = getTopicsForSubject(subject);
+
+  // Get available subjects - use user's subjects if available, otherwise use athroCharacters
+  const availableSubjects = subjects.length > 0 
+    ? subjects 
+    : athroCharacters.map(char => char.subject);
 
   const handleSubmit = async () => {
     try {
@@ -132,11 +138,17 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                 <SelectValue placeholder="Select Subject" />
               </SelectTrigger>
               <SelectContent>
-                {Object.keys(athroCharacters).map((subj) => (
-                  <SelectItem key={subj} value={subj}>
-                    {subj}
-                  </SelectItem>
-                ))}
+                {isLoading ? (
+                  <SelectItem value="loading">Loading subjects...</SelectItem>
+                ) : availableSubjects.length > 0 ? (
+                  availableSubjects.map((subj) => (
+                    <SelectItem key={subj} value={subj}>
+                      {subj}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none">No subjects available</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

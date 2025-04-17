@@ -47,6 +47,54 @@ export const athroCharacters = [
     shortDescription: "Your GCSE History mentor specializing in contextual understanding and source analysis",
     examBoards: ["wjec", "aqa", "ocr"],
     supportsMathNotation: false
+  },
+  {
+    id: "geography",
+    name: "AthroGeography",
+    subject: "Geography",
+    avatarUrl: "/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png",
+    topics: ["Physical Geography", "Human Geography", "Environmental Geography", "Map Skills", "Fieldwork", "Sustainable Development"],
+    tone: "Explorative and observant",
+    fullDescription: "AthroGeography helps you understand the relationships between people, places, and the environment through spatial analysis.",
+    shortDescription: "Your GCSE Geography mentor specializing in physical and human geography concepts",
+    examBoards: ["wjec", "aqa", "ocr"],
+    supportsMathNotation: false
+  },
+  {
+    id: "welsh",
+    name: "AthroWelsh",
+    subject: "Welsh",
+    avatarUrl: "/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png",
+    topics: ["Speaking", "Listening", "Reading", "Writing", "Welsh Culture", "Grammar"],
+    tone: "Supportive and culturally engaged",
+    fullDescription: "AthroWelsh guides you through Welsh language learning with a focus on practical communication skills and cultural context.",
+    shortDescription: "Your GCSE Welsh mentor specializing in language skills and cultural understanding",
+    examBoards: ["wjec"],
+    supportsMathNotation: false
+  },
+  {
+    id: "languages",
+    name: "AthroLanguages",
+    subject: "Languages",
+    avatarUrl: "/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png",
+    topics: ["Vocabulary", "Grammar", "Reading Comprehension", "Listening", "Speaking", "Writing", "Cultural Context"],
+    tone: "Patient and conversational",
+    fullDescription: "AthroLanguages helps you develop proficiency in foreign languages through practice and cultural context.",
+    shortDescription: "Your GCSE Modern Languages mentor specializing in language acquisition and practical communication",
+    examBoards: ["wjec", "aqa", "ocr"],
+    supportsMathNotation: false
+  },
+  {
+    id: "religious-education",
+    name: "AthroReligiousStudies",
+    subject: "Religious Education",
+    avatarUrl: "/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png",
+    topics: ["World Religions", "Ethics", "Philosophy", "Sacred Texts", "Religious Practices", "Belief Systems"],
+    tone: "Respectful and informative",
+    fullDescription: "AthroReligiousStudies explores world religions, ethics, and philosophical questions with respect and critical thinking.",
+    shortDescription: "Your GCSE Religious Studies mentor specializing in world religions and ethical frameworks",
+    examBoards: ["wjec", "aqa", "ocr"],
+    supportsMathNotation: false
   }
 ];
 
@@ -56,7 +104,21 @@ export const getAthroById = (id: string) => {
 };
 
 export const getAthroBySubject = (subject: string) => {
-  return athroCharacters.find(char => 
+  // First try exact match
+  let character = athroCharacters.find(char => 
     char.subject.toLowerCase() === subject.toLowerCase()
-  ) || athroCharacters[0];
+  );
+  
+  // If no exact match, try handling special cases
+  if (!character) {
+    if (subject.toLowerCase().includes('religious')) {
+      character = athroCharacters.find(char => char.id === 'religious-education');
+    } else if (subject.toLowerCase().includes('language') || 
+               ['french', 'german', 'spanish'].includes(subject.toLowerCase())) {
+      character = athroCharacters.find(char => char.id === 'languages');
+    }
+  }
+  
+  // Return the found character or the default (Mathematics)
+  return character || athroCharacters[0];
 };
