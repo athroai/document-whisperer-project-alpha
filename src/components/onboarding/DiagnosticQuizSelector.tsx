@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -218,16 +217,19 @@ export const DiagnosticQuizSelector: React.FC = () => {
         console.error("Error updating student_subjects:", e);
       }
 
-      // Update onboarding progress
-      await supabase
-        .from('onboarding_progress')
-        .upsert({
-          student_id: state.user.id,
-          current_step: 'diagnosticQuiz',
-          has_completed_diagnostic: true
-        }, {
-          onConflict: 'student_id'
-        });
+      // Handle onboarding progress - wrap in try/catch to continue even if this fails
+      try {
+        await supabase
+          .from('onboarding_progress')
+          .insert({
+            student_id: state.user.id,
+            current_step: 'diagnosticQuiz',
+            has_completed_diagnostic: true
+          })
+          .select();
+      } catch (e) {
+        console.error("Error updating onboarding_progress:", e);
+      }
 
       setScore(scorePercentage);
       setQuizCompleted(true);
