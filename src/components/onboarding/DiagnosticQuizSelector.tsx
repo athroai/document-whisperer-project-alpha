@@ -10,6 +10,7 @@ import { useSubjects } from '@/hooks/useSubjects';
 import { Loader2, CheckCircle, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { quizService } from '@/services/quizService';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export const DiagnosticQuizSelector: React.FC = () => {
   const { selectedSubjects, updateOnboardingStep } = useOnboarding();
@@ -23,10 +24,13 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const { subjects, isLoading } = useSubjects();
 
   // Use subject preferences from onboarding context
-  const onboardingSubjects = selectedSubjects.map(subject => subject.subject);
+  const onboardingSubjects = selectedSubjects && Array.isArray(selectedSubjects) 
+    ? selectedSubjects.map(subject => subject.subject)
+    : [];
 
   const startQuiz = async (subject: string) => {
     // Already taking a quiz
@@ -37,7 +41,9 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
     try {
       // Determine confidence level from subject preferences
-      const subjectPreference = selectedSubjects.find(s => s.subject === subject);
+      const subjectPreference = selectedSubjects && Array.isArray(selectedSubjects) 
+        ? selectedSubjects.find(s => s.subject === subject)
+        : null;
       const confidence = subjectPreference?.confidence || 5;
       
       // Map confidence (1-10) to difficulty (1-5) by dividing by 2
@@ -56,6 +62,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
     } catch (error) {
       console.error('Error fetching questions:', error);
+      setError('Could not load questions for this subject. Please try again.');
       toast({
         title: "Failed to load quiz",
         description: "Could not load questions for this subject. Please try again.",
@@ -116,6 +123,17 @@ export const DiagnosticQuizSelector: React.FC = () => {
         Math.max(1, Math.min(10, Math.round(scorePercentage / 10)))
       );
 
+      // Update onboarding progress
+      await supabase
+        .from('onboarding_progress')
+        .upsert({
+          student_id: state.user.id,
+          current_step: 'diagnosticQuiz',
+          has_completed_diagnostic: true
+        }, {
+          onConflict: 'student_id'
+        });
+
       setScore(scorePercentage);
       setQuizCompleted(true);
       setQuizResults(prev => ({ ...prev, [currentSubject!]: scorePercentage }));
@@ -124,8 +142,9 @@ export const DiagnosticQuizSelector: React.FC = () => {
         title: "Quiz Completed",
         description: `You scored ${scorePercentage}% on ${currentSubject}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving quiz result:', error);
+      setError(error.message || "Could not save your quiz results");
       toast({
         title: "Error",
         description: "Could not save your quiz results. Please try again.",
@@ -166,7 +185,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const subjectsToShow = onboardingSubjects;
   
   // If no subjects were selected, show a message
-  if (subjectsToShow.length === 0) {
+  if (!subjectsToShow || subjectsToShow.length === 0) {
     return (
       <div className="text-center py-4">
         <p>No subjects selected. Please go back to the previous step to select subjects.</p>
@@ -234,6 +253,13 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <div>
         <p className="mb-4">Take these quick diagnostic quizzes to help us create a personalized study plan:</p>
         

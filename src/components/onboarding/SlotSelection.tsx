@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Clock, Calendar, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const SLOT_OPTIONS = [
@@ -31,6 +32,7 @@ export const SlotSelection: React.FC = () => {
   const [dayPreferences, setDayPreferences] = useState<DayPreference[]>([]);
   const [activeDay, setActiveDay] = useState<number>(1); // Monday by default
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize dayPreferences with all days of week
   useEffect(() => {
@@ -80,13 +82,16 @@ export const SlotSelection: React.FC = () => {
   };
 
   const savePreferences = async () => {
-    if (!state.user) {
+    // Reset error state
+    setError(null);
+    
+    if (!state.user?.id) {
       toast({
         title: "Authentication Required",
         description: "You need to be signed in to save your preferences.",
         variant: "destructive"
       });
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -105,7 +110,7 @@ export const SlotSelection: React.FC = () => {
         const slotOption = SLOT_OPTIONS[optionIndex];
 
         return {
-          user_id: state.user!.id,
+          user_id: state.user.id,
           day_of_week: dayOfWeek,
           slot_duration_minutes: slotOption.duration,
           slot_count: slotOption.count,
@@ -114,32 +119,50 @@ export const SlotSelection: React.FC = () => {
       });
 
       if (preferencesToSave.length > 0) {
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('preferred_study_slots')
           .insert(preferencesToSave);
 
-        if (error) throw error;
+        if (insertError) throw insertError;
 
         toast({
           title: "Preferences Saved",
           description: "Your study time preferences have been saved successfully."
         });
+        
+        // Update onboarding progress
+        await supabase
+          .from('onboarding_progress')
+          .upsert({
+            student_id: state.user.id,
+            current_step: 'diagnosticQuiz',
+            has_completed_availability: true
+          }, {
+            onConflict: 'student_id'
+          });
+          
+        return true;
       }
-    } catch (error) {
+      return false;
+    } catch (error: any) {
       console.error('Error saving preferences:', error);
+      setError(error.message || "Failed to save preferences");
       toast({
         title: "Error",
         description: "Failed to save your preferences. Please try again.",
         variant: "destructive"
       });
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
   const handleContinue = async () => {
-    await savePreferences();
-    updateOnboardingStep && updateOnboardingStep('diagnosticQuiz');
+    const saved = await savePreferences();
+    if (saved) {
+      updateOnboardingStep && updateOnboardingStep('diagnosticQuiz');
+    }
   };
 
   // Visual representation of time slots
@@ -179,6 +202,13 @@ export const SlotSelection: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <div>
         <h3 className="text-lg font-medium mb-2">Select Your Study Days</h3>
         <p className="text-sm text-gray-500 mb-4">
