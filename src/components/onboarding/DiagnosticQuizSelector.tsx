@@ -4,15 +4,12 @@ import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubjects } from '@/hooks/useSubjects';
 
 export const DiagnosticQuizSelector: React.FC = () => {
   const { state } = useAuth();
   const [quizResults, setQuizResults] = useState<Record<string, number>>({});
-
-  const subjects = [
-    'Mathematics', 'Science', 'English', 'History', 
-    'Geography', 'Welsh', 'Languages', 'Religious Education'
-  ];
+  const { subjects, isLoading } = useSubjects();
 
   const handleQuizComplete = async (subject: string, score: number) => {
     if (!state.user) return;
@@ -30,6 +27,10 @@ export const DiagnosticQuizSelector: React.FC = () => {
       console.error('Error saving quiz result:', error);
     }
   };
+
+  if (isLoading) {
+    return <div className="text-center py-4">Loading subjects...</div>;
+  }
 
   return (
     <div className="space-y-4">

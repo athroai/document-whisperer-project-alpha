@@ -4,14 +4,11 @@ import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Check, Plus } from 'lucide-react';
-
-const SUBJECTS = [
-  'Mathematics', 'Science', 'English', 'History', 
-  'Geography', 'Welsh', 'Languages', 'Religious Education'
-];
+import { useSubjects } from '@/hooks/useSubjects';
 
 export const SubjectsSelector: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject } = useOnboarding();
+  const { subjects, isLoading } = useSubjects();
 
   const isSubjectSelected = (subject: string) => {
     return selectedSubjects.some(s => s.subject === subject);
@@ -30,12 +27,16 @@ export const SubjectsSelector: React.FC = () => {
     selectSubject(subject, confidence);
   };
 
+  if (isLoading) {
+    return <div className="text-center py-4">Loading subjects...</div>;
+  }
+
   return (
     <div className="space-y-4">
       <p className="mb-4">Select the subjects you want to study and rate your confidence level:</p>
       
       <div className="space-y-3">
-        {SUBJECTS.map((subject) => {
+        {subjects.map((subject) => {
           const isSelected = isSubjectSelected(subject);
           const currentConfidence = selectedSubjects.find(s => s.subject === subject)?.confidence ?? 5;
           

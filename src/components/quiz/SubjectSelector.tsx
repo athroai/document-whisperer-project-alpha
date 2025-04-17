@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen } from 'lucide-react';
-import { subjectList } from '@/types/quiz';
+import { useSubjects } from '@/hooks/useSubjects';
 
 interface SubjectSelectorProps {
   onStartQuiz: (subject: string) => void;
@@ -23,6 +23,8 @@ const SubjectSelector: React.FC<SubjectSelectorProps> = ({
   selectedSubject, 
   onSubjectChange 
 }) => {
+  const { subjects, isLoading } = useSubjects();
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -40,16 +42,26 @@ const SubjectSelector: React.FC<SubjectSelectorProps> = ({
             <label htmlFor="subject-select" className="block text-sm font-medium mb-2">
               Select Subject
             </label>
-            <Select value={selectedSubject} onValueChange={onSubjectChange}>
+            <Select value={selectedSubject} onValueChange={onSubjectChange} disabled={isLoading}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a subject" />
               </SelectTrigger>
               <SelectContent>
-                {subjectList.filter(subject => subject && subject.trim() !== "").map((subject) => (
-                  <SelectItem key={subject} value={subject} className="capitalize">
-                    {subject.charAt(0).toUpperCase() + subject.slice(1)}
+                {isLoading ? (
+                  <SelectItem value="loading" disabled>
+                    Loading subjects...
                   </SelectItem>
-                ))}
+                ) : subjects.length > 0 ? (
+                  subjects.filter(subject => subject && subject.trim() !== "").map((subject) => (
+                    <SelectItem key={subject} value={subject} className="capitalize">
+                      {subject.charAt(0).toUpperCase() + subject.slice(1)}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-subjects" disabled>
+                    No subjects available
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -59,7 +71,7 @@ const SubjectSelector: React.FC<SubjectSelectorProps> = ({
         <Button 
           onClick={() => onStartQuiz(selectedSubject)} 
           className="w-full"
-          disabled={!selectedSubject}
+          disabled={!selectedSubject || isLoading}
         >
           Start 5-Question Quiz
         </Button>
