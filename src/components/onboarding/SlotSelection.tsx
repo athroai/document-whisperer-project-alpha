@@ -3,17 +3,20 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Clock, Calendar, Check } from 'lucide-react';
+import { Clock, Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { DaySelector } from './DaySelector';
+import { SlotOptionSelector } from './SlotOptionSelector';
+import { TimeSlotPreview } from './TimeSlotPreview';
+import { DayPreference, SlotOption } from '@/types/study';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const SLOT_OPTIONS = [
+const SLOT_OPTIONS: SlotOption[] = [
   { name: '1 x 2 hours', count: 1, duration: 120, icon: Clock, color: 'bg-purple-600' },
   { name: '2 x 1 hour', count: 2, duration: 60, icon: Clock, color: 'bg-indigo-600' },
   { name: '4 x 30 min', count: 4, duration: 30, icon: Clock, color: 'bg-blue-600' },
@@ -28,12 +31,6 @@ const TIME_OPTIONS = Array.from({ length: 17 }, (_, i) => {
     label: `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`
   };
 });
-
-interface DayPreference {
-  dayOfWeek: number;
-  slotOption: number | null;
-  preferredStartHour: number;
-}
 
 export const SlotSelection: React.FC = () => {
   const { toast } = useToast();
@@ -94,10 +91,6 @@ export const SlotSelection: React.FC = () => {
 
   const getPreferredStartHour = (dayOfWeek: number) => {
     return dayPreferences.find(day => day.dayOfWeek === dayOfWeek)?.preferredStartHour || 9;
-  };
-
-  const isDaySelected = (dayIndex: number) => {
-    return selectedDays.includes(dayIndex);
   };
 
   const hasValidSelections = () => {
@@ -224,60 +217,6 @@ export const SlotSelection: React.FC = () => {
     }
   };
 
-  // Visual representation of time slots
-  const renderTimeSlots = (dayOfWeek: number) => {
-    const selectedOptionIndex = getSelectedOption(dayOfWeek);
-    if (selectedOptionIndex === null) return null;
-
-    const option = SLOT_OPTIONS[selectedOptionIndex];
-    const preferredStartHour = getPreferredStartHour(dayOfWeek);
-    const slots = [];
-
-    for (let i = 0; i < option.count; i++) {
-      // Calculate the start time for each slot
-      const slotStartHour = preferredStartHour + Math.floor((i * option.duration) / 60);
-      const slotStartMinute = (i * option.duration) % 60;
-      
-      const startTimeString = `${slotStartHour}:${slotStartMinute.toString().padStart(2, '0')}`;
-      const endTimeHour = slotStartHour + Math.floor(option.duration / 60);
-      const endTimeMinute = slotStartMinute + (option.duration % 60);
-      
-      // Adjust for minute overflow
-      const adjustedEndHour = endTimeHour + Math.floor(endTimeMinute / 60);
-      const adjustedEndMinute = endTimeMinute % 60;
-      
-      const endTimeString = `${adjustedEndHour}:${adjustedEndMinute.toString().padStart(2, '0')}`;
-      
-      // Format for display
-      const startDisplay = `${slotStartHour > 12 ? slotStartHour - 12 : slotStartHour}:${slotStartMinute.toString().padStart(2, '0')} ${slotStartHour >= 12 ? 'PM' : 'AM'}`;
-      const endDisplay = `${adjustedEndHour > 12 ? adjustedEndHour - 12 : adjustedEndHour}:${adjustedEndMinute.toString().padStart(2, '0')} ${adjustedEndHour >= 12 ? 'PM' : 'AM'}`;
-
-      slots.push(
-        <div 
-          key={i}
-          className={`${option.color} rounded-md p-3 text-white shadow-sm`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="font-medium">{startDisplay} - {endDisplay}</span>
-            <option.icon className="h-4 w-4" />
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-2 mt-4">
-        <h4 className="text-sm font-medium text-gray-500">Preview:</h4>
-        <div className="space-y-2">
-          {slots}
-        </div>
-        <p className="text-sm text-gray-500 mt-2">
-          Total: {option.count * option.duration} minutes
-        </p>
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6">
       {error && (
@@ -287,26 +226,10 @@ export const SlotSelection: React.FC = () => {
         </Alert>
       )}
       
-      <div>
-        <h3 className="text-lg font-medium mb-2">Select Your Study Days</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          Choose which days of the week you plan to study
-        </p>
-        
-        <div className="flex flex-wrap gap-2 mb-6">
-          {DAYS_OF_WEEK.map((day, index) => (
-            <Button 
-              key={day}
-              variant={isDaySelected(index + 1) ? "default" : "outline"}
-              className={isDaySelected(index + 1) ? "bg-purple-600 hover:bg-purple-700" : ""}
-              onClick={() => toggleDaySelection(index + 1)}
-            >
-              {isDaySelected(index + 1) && <Check className="mr-1 h-4 w-4" />}
-              {day.substring(0, 3)}
-            </Button>
-          ))}
-        </div>
-      </div>
+      <DaySelector 
+        selectedDays={selectedDays} 
+        toggleDaySelection={toggleDaySelection} 
+      />
 
       {selectedDays.length > 0 && (
         <div>
@@ -351,37 +274,16 @@ export const SlotSelection: React.FC = () => {
                   </Select>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {SLOT_OPTIONS.map((option, index) => (
-                    <Card 
-                      key={index} 
-                      className={`p-4 cursor-pointer ${
-                        getSelectedOption(dayIndex) === index ? 'ring-2 ring-purple-500 border-purple-300' : ''
-                      }`}
-                      onClick={() => selectSlotOption(dayIndex, index)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className={`${option.color} h-8 w-8 rounded-full flex items-center justify-center mr-3`}>
-                            <option.icon className="h-4 w-4 text-white" />
-                          </div>
-                          <div>
-                            <h5 className="font-medium">{option.name}</h5>
-                            <p className="text-sm text-gray-500">
-                              {option.count} session{option.count > 1 ? 's' : ''}, 
-                              {option.count * option.duration} minutes total
-                            </p>
-                          </div>
-                        </div>
-                        {getSelectedOption(dayIndex) === index && (
-                          <Check className="h-5 w-5 text-purple-600" />
-                        )}
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+                <SlotOptionSelector 
+                  slotOptions={SLOT_OPTIONS}
+                  selectedOption={getSelectedOption(dayIndex)}
+                  onSelectOption={(optionIndex) => selectSlotOption(dayIndex, optionIndex)}
+                />
 
-                {renderTimeSlots(dayIndex)}
+                <TimeSlotPreview 
+                  selectedOption={getSelectedOption(dayIndex) !== null ? SLOT_OPTIONS[getSelectedOption(dayIndex)!] : null}
+                  preferredStartHour={getPreferredStartHour(dayIndex)}
+                />
               </TabsContent>
             ))}
           </Tabs>
@@ -410,4 +312,3 @@ export const SlotSelection: React.FC = () => {
     </div>
   );
 };
-

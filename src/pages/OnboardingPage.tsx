@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { SubjectsSelector } from '@/components/onboarding/SubjectsSelector';
 import { SlotSelection } from '@/components/onboarding/SlotSelection';
