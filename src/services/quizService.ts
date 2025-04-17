@@ -193,7 +193,7 @@ const realImplementation = {
             answers: q.options.map((option: string, i: number) => ({
               id: `answer-${q.id}-${i}`,
               text: option,
-              isCorrect: option === q.answer
+              isCorrect: option === q.correctAnswer
             }))
           };
         }
