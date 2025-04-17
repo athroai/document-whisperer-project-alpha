@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -81,7 +80,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
       if (currentRetries < MAX_RETRIES) {
         setRetryCount(prev => ({ ...prev, [subject]: currentRetries + 1 }));
         uiToast({
-          title: "Quiz Generation",
           description: `Retrying ${subject} quiz generation...`,
           variant: "default"
         });
@@ -194,15 +192,13 @@ export const DiagnosticQuizSelector: React.FC = () => {
       setQuizCompleted(true);
       setQuizResults(prev => ({ ...prev, [currentSubject!]: scorePercentage }));
       
-      toast({
-        title: "Quiz Completed",
+      uiToast({
         description: `You scored ${scorePercentage}% on ${currentSubject}`,
       });
     } catch (error: any) {
       console.error('Error saving quiz result:', error);
       setError(error.message || "Could not save your quiz results");
-      toast({
-        title: "Error",
+      uiToast({
         description: "Could not save your quiz results. Please try again.",
         variant: "destructive"
       });
