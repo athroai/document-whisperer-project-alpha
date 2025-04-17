@@ -13,8 +13,39 @@ export async function getOpenAIResponse({
   try {
     console.log('Sending request to OpenAI API');
     
-    // In browser environments, we need to use import.meta.env instead of process.env
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY || 'sk-mock-key-for-development';
+    // Check for API key in Supabase environment variables first
+    let apiKey: string | null = null;
+    
+    try {
+      // Try to get from Supabase secrets if authenticated
+      const { data } = await supabase.functions.invoke('get-secret', {
+        body: { name: 'OPENAI_API_KEY' }
+      });
+      
+      if (data?.secret) {
+        apiKey = data.secret;
+        console.log('Using API key from Supabase secrets');
+      }
+    } catch (secretError) {
+      console.log('Could not retrieve secret from Supabase, falling back to env variable');
+    }
+    
+    // Fall back to environment variable if not found in Supabase
+    if (!apiKey) {
+      apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
+      console.log('Using API key from environment variable');
+    }
+    
+    // If we still don't have an API key and we're in development mode, use mock response
+    if (!apiKey && import.meta.env.DEV) {
+      console.warn('No API key found, using mock response in development mode');
+      return generateMockResponse(userMessage);
+    }
+    
+    // If we don't have an API key at all, throw an error
+    if (!apiKey) {
+      throw new Error('OpenAI API key not found');
+    }
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -66,7 +97,7 @@ export async function getOpenAIResponse({
 }
 
 function generateMockResponse(userMessage: string): string {
-  // Basic mock responses for development
+  // More detailed mock responses that follow the Athro character style
   const responses = [
     `I understand you're asking about "${userMessage.substring(0, 30)}...". This is a fascinating topic in GCSE studies! Let me explain this step by step...`,
     `That's a great question about "${userMessage.substring(0, 30)}...". When we look at this topic in the GCSE curriculum, we need to consider several key points.`,

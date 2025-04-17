@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { getOpenAIResponse } from '@/lib/openai';
 import { buildSystemPrompt } from '@/utils/athroPrompts';
+import { toast } from '@/hooks/use-toast';
 
 interface AthroRouterProps {
   character: AthroCharacter;
@@ -52,6 +53,16 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         
       } catch (error) {
         console.error('[AthroRouter] Error processing message:', error);
+        
+        // Check if this is an API key error
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        if (errorMessage.includes('API key')) {
+          toast({
+            title: "API Key Required",
+            description: "Please set your OpenAI API key in the settings.",
+            variant: "destructive",
+          });
+        }
         
         onResponse({
           id: Date.now().toString(),
