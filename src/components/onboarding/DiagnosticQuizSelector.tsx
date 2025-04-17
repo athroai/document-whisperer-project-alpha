@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -30,13 +29,10 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const { subjects, isLoading } = useSubjects();
   const [retryCount, setRetryCount] = useState<Record<string, number>>({});
 
-  // Use subject preferences from onboarding context
-  const onboardingSubjects = selectedSubjects && Array.isArray(selectedSubjects) 
-    ? selectedSubjects.map(subject => subject.subject)
-    : [];
+  // Limit retries to prevent infinite loading
+  const MAX_RETRIES = 2;
 
   const startQuiz = async (subject: string) => {
-    // Already taking a quiz
     if (currentSubject) return;
 
     setCurrentSubject(subject);
@@ -45,59 +41,32 @@ export const DiagnosticQuizSelector: React.FC = () => {
     setError(null);
 
     try {
-      // Determine confidence level from subject preferences
-      const subjectPreference = selectedSubjects && Array.isArray(selectedSubjects) 
-        ? selectedSubjects.find(s => s.subject === subject)
-        : null;
+      const subjectPreference = selectedSubjects?.find(s => s.subject === subject);
       const confidence = subjectPreference?.confidence || 5;
-      
-      // Map confidence (1-10) to difficulty (1-5) by dividing by 2
       const difficulty = Math.ceil(confidence / 2);
 
-      console.log(`Starting quiz for ${subject} with difficulty ${difficulty}`);
-      
-      // Get dynamically generated questions for the subject
       const fetchedQuestions = await quizService.getQuestionsBySubject(
         subject, 
         difficulty,
-        5 // Get 5 questions for diagnostic quiz
+        5
       );
       
       if (!fetchedQuestions || fetchedQuestions.length === 0) {
         throw new Error("No questions were generated");
       }
-      
-      console.log(`Received ${fetchedQuestions.length} questions:`, fetchedQuestions);
-      
-      // Format validation: check if questions have the expected format
+
       const validQuestions = fetchedQuestions.filter(q => 
         q && 
         q.text && 
-        ((Array.isArray(q.answers) && q.answers.length > 0) || 
-         (Array.isArray(q.options) && q.options.length > 0))
+        q.answers && 
+        q.answers.length > 0
       );
       
       if (validQuestions.length === 0) {
         throw new Error("Generated questions are in an invalid format");
       }
 
-      // Normalize the question format if needed
-      const normalizedQuestions = validQuestions.map(q => {
-        // If question has options but not answers array, convert it to proper format
-        if (q.options && !q.answers) {
-          return {
-            ...q,
-            answers: q.options.map((option: string, i: number) => ({
-              id: `answer-${q.id}-${i}`,
-              text: option,
-              isCorrect: option === q.answer
-            }))
-          };
-        }
-        return q;
-      });
-      
-      setQuestions(normalizedQuestions);
+      setQuestions(validQuestions);
       setCurrentQuestionIndex(0);
       setSelectedAnswers({});
       setIsGenerating(prev => ({ ...prev, [subject]: false }));
@@ -105,25 +74,23 @@ export const DiagnosticQuizSelector: React.FC = () => {
     } catch (error: any) {
       console.error('Error fetching questions:', error);
       
-      // Implement retry logic
       const currentRetries = retryCount[subject] || 0;
-      if (currentRetries < 2) {
+      if (currentRetries < MAX_RETRIES) {
         setRetryCount(prev => ({ ...prev, [subject]: currentRetries + 1 }));
         toast({
-          title: "Retrying quiz generation",
-          description: "We're having trouble creating your quiz. Trying again...",
+          title: "Quiz Generation",
+          description: "Retrying quiz generation...",
           variant: "default"
         });
         
-        // Wait a moment before retrying
         setTimeout(() => startQuiz(subject), 2000);
         return;
       }
       
-      setError('Could not generate questions for this subject. Please try again later.');
+      setError('Could not generate questions. Please try again later or contact support.');
       toast({
-        title: "Failed to create quiz",
-        description: "Could not generate questions for this subject. Please try again later.",
+        title: "Quiz Generation Failed",
+        description: "Could not generate questions. Please try again later.",
         variant: "destructive"
       });
       setCurrentSubject(null);
@@ -267,8 +234,8 @@ export const DiagnosticQuizSelector: React.FC = () => {
   };
 
   const allQuizzesCompleted = () => {
-    return onboardingSubjects.length > 0 && 
-      onboardingSubjects.every(subject => quizResults[subject]);
+    return selectedSubjects.length > 0 && 
+      selectedSubjects.every(subject => quizResults[subject.subject]);
   };
 
   const handleContinue = () => {
@@ -279,10 +246,8 @@ export const DiagnosticQuizSelector: React.FC = () => {
     return <div className="text-center py-4">Loading subjects...</div>;
   }
 
-  // Only show subjects that were selected during onboarding
-  const subjectsToShow = onboardingSubjects;
+  const subjectsToShow = selectedSubjects?.map(subject => subject.subject) || [];
   
-  // If no subjects were selected, show a message
   if (!subjectsToShow || subjectsToShow.length === 0) {
     return (
       <div className="text-center py-4">
@@ -291,7 +256,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
     );
   }
 
-  // If user is currently taking a quiz
   if (currentSubject && questions.length > 0) {
     const currentQuestion = questions[currentQuestionIndex];
     const isAnswerSelected = selectedAnswers[currentQuestionIndex] !== undefined;

@@ -1,4 +1,3 @@
-
 import { Question, Answer, QuizResult, mockQuestions } from '@/types/quiz';
 import { supabase } from '@/lib/supabase';
 
@@ -157,7 +156,6 @@ const realImplementation = {
     console.log(`Fetching ${count} questions for ${subject} at difficulty ${difficulty}`);
     
     try {
-      // Call our Supabase edge function to generate quiz questions
       const { data, error } = await supabase.functions.invoke('generate-quiz', {
         body: { 
           subject,
@@ -169,45 +167,28 @@ const realImplementation = {
       
       if (error) {
         console.error("Error from edge function:", error);
-        throw new Error(`Failed to generate quiz: ${error.message}`);
+        return [];
       }
       
-      if (!data || !data.questions || !Array.isArray(data.questions)) {
+      if (!data || !data.questions) {
         console.error("Invalid response format from edge function:", data);
-        throw new Error("Invalid response format from quiz generator");
+        return [];
       }
       
-      console.log(`Received ${data.questions.length} questions from edge function`);
-      
-      // If the questions were generated as mock questions, let the user know
-      if (data.fromMock) {
-        console.log("Using mock questions from edge function");
-      }
-      
-      // Process and normalize questions if needed
-      const processedQuestions = data.questions.map((q: any) => {
-        // If it's missing the expected answers array structure
-        if (!q.answers && q.options) {
-          return {
-            ...q,
-            answers: q.options.map((option: string, i: number) => ({
-              id: `answer-${q.id}-${i}`,
-              text: option,
-              isCorrect: option === q.correctAnswer
-            }))
-          };
-        }
-        
-        return q;
-      });
+      const processedQuestions = data.questions.map((q: any) => ({
+        ...q,
+        text: q.text || q.question,  // Support both text and question
+        answers: q.answers || (q.options ? q.options.map((option: string, i: number) => ({
+          id: `answer-${q.id}-${i}`,
+          text: option,
+          isCorrect: option === (q.correctAnswer || q.answer)
+        })) : [])
+      }));
       
       return processedQuestions;
     } catch (error) {
       console.error("Error generating questions:", error);
-      
-      // Fall back to mock questions in case of failure
-      console.warn("Falling back to mock questions due to error");
-      return mockImplementation.getQuestionsBySubject(subject, difficulty, count, examBoard);
+      return mockQuestions.filter(q => q.subject === subject).slice(0, count);
     }
   },
   
