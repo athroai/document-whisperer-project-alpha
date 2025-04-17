@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -117,8 +116,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   };
 
   const handleConfidenceChange = (newValue: number[]) => {
-    // Convert the first number in the array to a string
-    setSelectedConfidence(String(newValue[0]));
+    setSelectedConfidence(newValue[0].toString());
   };
 
   const handleQuizComplete = async () => {
