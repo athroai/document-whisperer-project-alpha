@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -507,3 +506,6 @@ const subjectColorMap: Record<string, string> = {
   'Languages': 'bg-indigo-100 border-indigo-300',
   'Religious Education': 'bg-pink-100 border-pink-300'
 };
+
+// Default color for subjects not in the map
+const defaultColor = 'bg-gray-100 border-gray-300';

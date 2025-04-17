@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
@@ -61,7 +60,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const completeOnboarding = async () => {
     if (!state.user) throw new Error('No user logged in');
 
-    // Insert subject preferences
     const subjectPreferencesPromises = selectedSubjects.map(subject => 
       supabase.from('student_subject_preferences').insert({
         student_id: state.user!.id,
@@ -71,16 +69,17 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       })
     );
 
-    // Update onboarding progress
-    const onboardingProgressPromise = supabase.from('onboarding_progress').insert({
-      student_id: state.user!.id,
-      current_step: 'completed',
-      has_completed_subjects: true,
-      has_completed_availability: true,
-      has_generated_plan: true,
-      has_completed_diagnostic: true,
-      completed_at: new Date().toISOString()
-    }).upsert();
+    const onboardingProgressPromise = supabase
+      .from('onboarding_progress')
+      .insert({
+        student_id: state.user!.id,
+        current_step: 'completed',
+        has_completed_subjects: true,
+        has_completed_availability: true,
+        has_generated_plan: true,
+        has_completed_diagnostic: true,
+        completed_at: new Date().toISOString()
+      }, { onConflict: 'student_id' });
 
     await Promise.all([
       ...subjectPreferencesPromises, 
