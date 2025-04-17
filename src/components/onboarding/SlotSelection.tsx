@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -56,6 +57,8 @@ export const SlotSelection: React.FC = () => {
     if (!state.user) {
       console.log("Warning: No authenticated user detected in SlotSelection");
       setError("Please ensure you're logged in to save preferences");
+    } else {
+      console.log("User authenticated in SlotSelection:", state.user.id);
     }
   }, [state.user]);
 
@@ -130,15 +133,26 @@ export const SlotSelection: React.FC = () => {
       console.log("Selected days:", selectedDays);
       
       try {
-        // Delete any existing preferences - we'll catch the error if table doesn't exist
-        const { error: deleteError } = await supabase
+        // Get existing preferences first
+        const { data: existingPreferences } = await supabase
           .from('preferred_study_slots')
-          .delete()
+          .select()
           .eq('user_id', state.user.id);
           
-        if (deleteError) {
-          console.error("Error deleting existing preferences:", deleteError);
-          // We'll continue even if there's an error here, as it might be the first time saving
+        console.log("Existing preferences:", existingPreferences);
+        
+        // Delete any existing preferences if they exist
+        if (existingPreferences && existingPreferences.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('preferred_study_slots')
+            .delete()
+            .eq('user_id', state.user.id);
+            
+          if (deleteError) {
+            console.error("Error deleting existing preferences:", deleteError);
+          } else {
+            console.log("Successfully deleted existing preferences");
+          }
         }
       } catch (deleteErr) {
         console.error("Exception during delete operation:", deleteErr);
@@ -153,7 +167,7 @@ export const SlotSelection: React.FC = () => {
         const preferredStartHour = preference?.preferredStartHour || 9;
 
         return {
-          user_id: state.user?.id,
+          user_id: state.user.id,
           day_of_week: dayOfWeek,
           slot_duration_minutes: slotOption.duration,
           slot_count: slotOption.count,
