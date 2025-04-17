@@ -30,3 +30,14 @@ export interface StudySession {
   summary?: string;
   created_at: string;
 }
+
+export interface PreferredStudySlot {
+  id: string;
+  user_id: string;
+  day_of_week: number;
+  slot_duration_minutes: number;
+  slot_count: number;
+  preferred_start_hour: number;
+  created_at?: string;
+  updated_at?: string;
+}

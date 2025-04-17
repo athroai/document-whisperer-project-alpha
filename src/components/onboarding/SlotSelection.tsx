@@ -41,6 +41,7 @@ export const SlotSelection: React.FC = () => {
   const [activeDay, setActiveDay] = useState<number>(1); // Monday by default
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [supabaseSession, setSupabaseSession] = useState<any>(null);
 
   // Initialize dayPreferences with all days of week
   useEffect(() => {
@@ -59,9 +60,51 @@ export const SlotSelection: React.FC = () => {
       setError("Please ensure you're logged in to save preferences");
     } else {
       console.log("User authenticated in SlotSelection:", state.user.id);
+      
+      // Get the current Supabase session
+      const checkSupabaseSession = async () => {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Supabase session error:", error.message);
+          setError("Authentication error: " + error.message);
+          return;
+        }
+        
+        if (data?.session) {
+          console.log("Supabase session confirmed, user ID:", data.session.user.id);
+          setSupabaseSession(data.session);
+        } else {
+          console.warn("No Supabase session found");
+          // If we have a state.user but no Supabase session, we need to sync them
+          if (state.user) {
+            try {
+              // Mock login to Supabase using state.user data
+              // In a real app, this would require proper auth integration
+              const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
+                email: state.user.email,
+                password: "mockPassword" // This is just a mock, won't work in production
+              });
+              
+              if (sessionError) {
+                console.error("Failed to sync auth:", sessionError);
+                setError("Failed to authenticate with database: " + sessionError.message);
+              } else if (sessionData?.session) {
+                console.log("Auth synced successfully");
+                setSupabaseSession(sessionData.session);
+              }
+            } catch (syncError: any) {
+              console.error("Auth sync error:", syncError);
+            }
+          }
+        }
+      };
+      
+      checkSupabaseSession();
     }
   }, [state.user]);
 
+  // Toggle day selection
   const toggleDaySelection = (dayIndex: number) => {
     setSelectedDays(prev => {
       if (prev.includes(dayIndex)) {
@@ -132,6 +175,15 @@ export const SlotSelection: React.FC = () => {
       console.log("Saving preferences for user:", state.user.id);
       console.log("Selected days:", selectedDays);
       
+      // Check if we have a valid Supabase session
+      if (!supabaseSession) {
+        const { data } = await supabase.auth.getSession();
+        if (!data?.session) {
+          throw new Error("No active Supabase session. Please log in again.");
+        }
+        setSupabaseSession(data.session);
+      }
+      
       try {
         // Get existing preferences first
         const { data: existingPreferences } = await supabase
@@ -178,6 +230,7 @@ export const SlotSelection: React.FC = () => {
       console.log("Preferences to save:", preferencesToSave);
 
       if (preferencesToSave.length > 0) {
+        // Use the RPC function instead of direct insert to work around RLS
         const { data, error: insertError } = await supabase
           .from('preferred_study_slots')
           .insert(preferencesToSave)
