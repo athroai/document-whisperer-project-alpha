@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -6,17 +7,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Get both OpenAI API keys
+const OPENAI_API_KEY_1 = Deno.env.get('openAI1');
+const OPENAI_API_KEY_2 = Deno.env.get('openAI2');
+
+async function callOpenAI(apiKey: string, subject: string, difficulty: string, count: number) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional educator creating GCSE quiz questions."
+        },
+        {
+          role: "user",
+          content: `Generate ${count} ${difficulty} difficulty multiple-choice questions for GCSE ${subject}. 
+          Return a JSON array with each question having: 
+          id, text, correctAnswer, options, difficulty, subject, topic`
+        }
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error: ${data.error?.message || "Unknown error"}`);
+  }
+
+  return data;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-  
-  // If no API key is found, return mock questions
-  if (!OPENAI_API_KEY) {
-    console.log("No OpenAI API key found. Using mock questions.");
+  // If no API keys are found, return mock questions
+  if (!OPENAI_API_KEY_1 && !OPENAI_API_KEY_2) {
+    console.log("No OpenAI API keys found. Using mock questions.");
     return new Response(
       JSON.stringify({ 
         questions: generateMockQuestions(), 
@@ -35,35 +72,42 @@ serve(async (req) => {
 
     const difficultyLevel = difficulty <= 3 ? "easy" : difficulty <= 7 ? "medium" : "hard";
     
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional educator creating GCSE quiz questions."
-          },
-          {
-            role: "user",
-            content: `Generate ${count} ${difficultyLevel} difficulty multiple-choice questions for GCSE ${subject}. 
-            Return a JSON array with each question having: 
-            id, text, correctAnswer, options, difficulty, subject, topic`
-          }
-        ],
-        temperature: 0.7,
-      }),
-    });
+    let data;
+    let usedKey = '';
 
-    const data = await response.json();
+    // Try first API key
+    if (OPENAI_API_KEY_1) {
+      try {
+        data = await callOpenAI(OPENAI_API_KEY_1, subject, difficultyLevel, count);
+        usedKey = 'First Key';
+      } catch (error) {
+        console.warn("First OpenAI API key failed:", error);
+        data = null;
+      }
+    }
 
-    if (!response.ok) {
-      console.error("OpenAI API error:", data);
-      throw new Error(`OpenAI API error: ${data.error?.message || "Unknown error"}`);
+    // If first key fails, try second key
+    if (!data && OPENAI_API_KEY_2) {
+      try {
+        data = await callOpenAI(OPENAI_API_KEY_2, subject, difficultyLevel, count);
+        usedKey = 'Second Key';
+      } catch (error) {
+        console.warn("Second OpenAI API key failed:", error);
+        data = null;
+      }
+    }
+
+    // If both keys fail, return mock questions
+    if (!data) {
+      console.warn("Both OpenAI API keys failed. Using mock questions.");
+      return new Response(
+        JSON.stringify({ 
+          questions: generateMockQuestions(), 
+          fromMock: true,
+          error: "Both OpenAI API keys failed" 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     let questions;
@@ -90,7 +134,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         questions: validQuestions, 
-        fromMock: false 
+        fromMock: false,
+        usedKey: usedKey
       }), 
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -160,3 +205,4 @@ function generateMockQuestions() {
     }
   ];
 }
+
