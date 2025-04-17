@@ -70,8 +70,10 @@ export function useAthroMessages() {
       timestamp: new Date().toISOString(),
     };
     
+    // Update messages with user's message first
     setMessages(prevMessages => [...prevMessages, userMessage]);
     
+    // Set typing indicator
     setIsTyping(true);
     
     try {
@@ -90,11 +92,13 @@ export function useAthroMessages() {
         responsePreview: response ? response.substring(0, 50) + '...' : 'Empty response'
       });
       
+      // Check if this request was cancelled
       if (!activeRequests.current.has(requestId)) {
         console.warn('Request was cancelled');
         return userMessage;
       }
       
+      // Create Athro response message
       const athroResponse: AthroMessage = {
         id: (Date.now() + 1).toString(),
         senderId: activeCharacter.id,
@@ -102,12 +106,14 @@ export function useAthroMessages() {
         timestamp: new Date().toISOString(),
       };
       
+      // Update messages with Athro's response
       setMessages(prevMessages => [...prevMessages, athroResponse]);
       
       return userMessage;
     } catch (error) {
       console.error('Error getting AI response:', error);
       
+      // Only show error message if request wasn't cancelled
       if (activeRequests.current.has(requestId)) {
         const errorMessage: AthroMessage = {
           id: (Date.now() + 1).toString(),
@@ -116,11 +122,13 @@ export function useAthroMessages() {
           timestamp: new Date().toISOString(),
         };
         
+        // Add error message to conversation
         setMessages(prevMessages => [...prevMessages, errorMessage]);
       }
       
       return null;
     } finally {
+      // Clean up regardless of success or failure
       activeRequests.current.delete(requestId);
       setIsTyping(false);
     }

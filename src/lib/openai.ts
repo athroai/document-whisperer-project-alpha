@@ -13,11 +13,14 @@ export async function getOpenAIResponse({
   try {
     console.log('Sending request to OpenAI API');
     
+    // In browser environments, we need to use import.meta.env instead of process.env
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY || 'sk-mock-key-for-development';
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY || 'sk-mock-key-for-development'}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -37,8 +40,10 @@ export async function getOpenAIResponse({
     });
 
     if (!response.ok) {
+      console.warn(`OpenAI API error: ${response.status}`);
+      
       // For development mode, return a mock response
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.warn('Using mock response in development mode');
         return generateMockResponse(userMessage);
       }
@@ -51,7 +56,7 @@ export async function getOpenAIResponse({
     console.error('Error calling OpenAI:', error);
     
     // In development, provide a mock response
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.warn('Using mock response due to error');
       return generateMockResponse(userMessage);
     }
