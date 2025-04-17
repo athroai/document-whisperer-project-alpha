@@ -34,7 +34,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   
   const { toast } = useToast();
   
-  // Get topics for selected subject
   const getTopicsForSubject = (subj: string) => {
     const character = athroCharacters.find(char => char.subject.toLowerCase() === subj.toLowerCase());
     return character ? character.topics : [];
@@ -42,7 +41,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   
   const currentTopics = getTopicsForSubject(subject);
 
-  // Get available subjects - use user's subjects if available, otherwise use athroCharacters
   const availableSubjects = subjects.length > 0 
     ? subjects 
     : athroCharacters.map(char => char.subject);
@@ -51,34 +49,26 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     try {
       setIsSubmitting(true);
       
-      // Format date and time
       const startDateTime = new Date(`${date}T${startTime}`);
       const durationMinutes = parseInt(duration, 10);
       const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60000);
       
-      // Create session description with subject and topic info
-      const sessionDescription = JSON.stringify({
-        subject: subject,
-        topic: topic || undefined,
-        description: `Study session for ${subject}${topic ? ` on ${topic}` : ''}.`
-      });
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
+      if (userError || !user) {
         throw new Error('User not authenticated');
       }
       
-      // Create calendar event
       const { data, error } = await supabase
         .from('calendar_events')
         .insert({
+          user_id: user.id,
           title: title || `Study: ${subject}${topic ? ` - ${topic}` : ''}`,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           event_type: 'study_session',
-          description: sessionDescription,
+          subject: subject,
+          topic: topic || null,
           student_id: user.id
         })
         .select();
@@ -93,7 +83,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
       if (onSuccess) onSuccess();
       onOpenChange(false);
       
-      // Reset form
       setTitle('');
       setTopic('');
       

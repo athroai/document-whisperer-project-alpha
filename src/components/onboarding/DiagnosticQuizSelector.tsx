@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -31,6 +30,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const { subjects, isLoading } = useSubjects();
   const [retryCount, setRetryCount] = useState<Record<string, number>>({});
   const [loadingToastId, setLoadingToastId] = useState<string | null>(null);
+  const [selectedConfidence, setSelectedConfidence] = useState<string>('');
 
   const MAX_RETRIES = 2;
 
@@ -113,6 +113,10 @@ export const DiagnosticQuizSelector: React.FC = () => {
       ...prev,
       [currentQuestionIndex]: answerId
     }));
+  };
+
+  const handleConfidenceChange = (newValue: number[]) => {
+    setSelectedConfidence(newValue[0].toString());
   };
 
   const handleQuizComplete = async () => {
