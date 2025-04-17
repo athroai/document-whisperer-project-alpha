@@ -20,6 +20,7 @@ interface OnboardingContextType {
   selectedSubjects: SubjectPreference[];
   availability: Availability[];
   selectSubject: (subject: string, confidence: number) => void;
+  removeSubject: (subject: string) => void;
   updateAvailability: (availability: Availability[]) => void;
   completeOnboarding: () => Promise<void>;
 }
@@ -42,6 +43,10 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       return [...prev, { subject, confidence }];
     });
+  }, []);
+
+  const removeSubject = useCallback((subject: string) => {
+    setSelectedSubjects(prev => prev.filter(s => s.subject !== subject));
   }, []);
 
   const updateAvailability = useCallback((newAvailability: Availability[]) => {
@@ -93,6 +98,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       selectedSubjects,
       availability,
       selectSubject,
+      removeSubject,
       updateAvailability,
       completeOnboarding
     }}>
