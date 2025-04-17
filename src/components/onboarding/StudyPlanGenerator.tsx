@@ -44,7 +44,7 @@ export const StudyPlanGenerator: React.FC = () => {
         ]
       }));
 
-      // Save study plan to Supabase
+      // Save study plan to Supabase with explicit student_id
       const { data: planData, error: planError } = await supabase.from('study_plans').insert({
         student_id: state.user.id,
         name: 'Initial Study Plan',
@@ -55,7 +55,14 @@ export const StudyPlanGenerator: React.FC = () => {
 
       if (planError) {
         console.error('Error creating study plan:', planError);
-        throw planError;
+        console.error('Error details:', JSON.stringify(planError));
+        toast({
+          title: "Error",
+          description: `Failed to create study plan: ${planError.message}`,
+          variant: "destructive"
+        });
+        setIsGenerating(false);
+        return;
       }
       
       if (!planData || planData.length === 0) {

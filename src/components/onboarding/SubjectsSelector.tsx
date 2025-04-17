@@ -15,7 +15,7 @@ export const SubjectsSelector: React.FC = () => {
   return (
     <div className="space-y-4">
       <p>Select the subjects you want to study and your confidence level:</p>
-      {SUBJECTS.map(subject => {
+      {SUBJECTS.map((subject) => {
         const currentConfidence = selectedSubjects.find(s => s.subject === subject)?.confidence ?? 5;
         
         return (
