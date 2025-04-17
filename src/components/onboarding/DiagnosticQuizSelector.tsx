@@ -7,10 +7,11 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubjects } from '@/hooks/useSubjects';
-import { Loader2, CheckCircle, BookOpen } from 'lucide-react';
+import { Loader2, CheckCircle, BookOpen, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { quizService } from '@/services/quizService';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Question } from '@/types/quiz';
 
 export const DiagnosticQuizSelector: React.FC = () => {
   const { selectedSubjects, updateOnboardingStep } = useOnboarding();
@@ -18,14 +19,16 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const { toast } = useToast();
   const [quizResults, setQuizResults] = useState<Record<string, number>>({});
   const [isLoadingQuestions, setIsLoadingQuestions] = useState<Record<string, boolean>>({});
+  const [isGenerating, setIsGenerating] = useState<Record<string, boolean>>({});
   const [currentSubject, setCurrentSubject] = useState<string | null>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { subjects, isLoading } = useSubjects();
+  const [retryCount, setRetryCount] = useState<Record<string, number>>({});
 
   // Use subject preferences from onboarding context
   const onboardingSubjects = selectedSubjects && Array.isArray(selectedSubjects) 
@@ -38,6 +41,8 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
     setCurrentSubject(subject);
     setIsLoadingQuestions(prev => ({ ...prev, [subject]: true }));
+    setIsGenerating(prev => ({ ...prev, [subject]: true }));
+    setError(null);
 
     try {
       // Determine confidence level from subject preferences
@@ -48,27 +53,62 @@ export const DiagnosticQuizSelector: React.FC = () => {
       
       // Map confidence (1-10) to difficulty (1-5) by dividing by 2
       const difficulty = Math.ceil(confidence / 2);
+
+      console.log(`Starting quiz for ${subject} with difficulty ${difficulty}`);
       
-      // Get questions for the subject
+      // Get dynamically generated questions for the subject
       const fetchedQuestions = await quizService.getQuestionsBySubject(
         subject, 
         difficulty,
-        10 // Get 10 questions
+        5 // Get 5 questions for diagnostic quiz
       );
       
-      setQuestions(fetchedQuestions);
+      if (!fetchedQuestions || fetchedQuestions.length === 0) {
+        throw new Error("No questions were generated");
+      }
+      
+      console.log(`Received ${fetchedQuestions.length} questions:`, fetchedQuestions);
+      
+      // Validate questions format
+      const validQuestions = fetchedQuestions.filter(q => 
+        q && q.text && Array.isArray(q.answers) && q.answers.length > 0
+      );
+      
+      if (validQuestions.length === 0) {
+        throw new Error("Generated questions are in an invalid format");
+      }
+      
+      setQuestions(validQuestions);
       setCurrentQuestionIndex(0);
       setSelectedAnswers({});
+      setIsGenerating(prev => ({ ...prev, [subject]: false }));
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching questions:', error);
-      setError('Could not load questions for this subject. Please try again.');
+      
+      // Implement retry logic
+      const currentRetries = retryCount[subject] || 0;
+      if (currentRetries < 2) {
+        setRetryCount(prev => ({ ...prev, [subject]: currentRetries + 1 }));
+        toast({
+          title: "Retrying quiz generation",
+          description: "We're having trouble creating your quiz. Trying again...",
+          variant: "default"
+        });
+        
+        // Wait a moment before retrying
+        setTimeout(() => startQuiz(subject), 2000);
+        return;
+      }
+      
+      setError('Could not generate questions for this subject. Please try again later.');
       toast({
-        title: "Failed to load quiz",
-        description: "Could not load questions for this subject. Please try again.",
+        title: "Failed to create quiz",
+        description: "Could not generate questions for this subject. Please try again later.",
         variant: "destructive"
       });
       setCurrentSubject(null);
+      setIsGenerating(prev => ({ ...prev, [subject]: false }));
     } finally {
       setIsLoadingQuestions(prev => ({ ...prev, [subject]: false }));
     }
@@ -86,6 +126,8 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
     // Count correct answers
     let correctCount = 0;
+    let totalQuestions = questions.length;
+    
     questions.forEach((question, index) => {
       const userAnswerId = selectedAnswers[index];
       if (userAnswerId) {
@@ -97,31 +139,68 @@ export const DiagnosticQuizSelector: React.FC = () => {
     });
 
     // Calculate score percentage
-    const scorePercentage = Math.round((correctCount / questions.length) * 100);
+    const scorePercentage = Math.round((correctCount / totalQuestions) * 100);
     
     try {
-      // Save to diagnostic_quiz_results
-      await supabase.from('diagnostic_quiz_results').insert({
-        student_id: state.user.id,
+      console.log(`Quiz completed for ${currentSubject}. Score: ${correctCount}/${totalQuestions} (${scorePercentage}%)`);
+      
+      // Determine help level based on score
+      let helpLevel = "medium";
+      if (scorePercentage >= 80) {
+        helpLevel = "low";
+      } else if (scorePercentage <= 40) {
+        helpLevel = "high";
+      }
+      
+      // Save quiz result to both tables
+      await quizService.saveQuizResult({
+        userId: state.user.id,
         subject: currentSubject,
         score: correctCount,
-        total_questions: questions.length
+        totalQuestions: totalQuestions,
+        questionsAsked: questions.map(q => q.id),
+        answers: [],
+        confidenceBefore: 0,
+        confidenceAfter: 0,
+        timestamp: new Date().toISOString()
       });
 
-      // Save to diagnostic_results with percentage format
-      await supabase.from('diagnostic_results').insert({
-        student_id: state.user.id,
-        subject_name: currentSubject,
-        percentage_accuracy: scorePercentage
-      });
-
+      // Calculate new confidence level (1-10 scale)
+      const newConfidence = Math.max(1, Math.min(10, Math.round(scorePercentage / 10)));
+      
       // Update user confidence in the subject
       await quizService.updateUserConfidenceScores(
         state.user.id, 
         currentSubject, 
-        // Map score to confidence level (1-10)
-        Math.max(1, Math.min(10, Math.round(scorePercentage / 10)))
+        newConfidence
       );
+
+      // Update student_subjects with help_level if it exists
+      try {
+        const { data: existingSubject } = await supabase
+          .from('student_subjects')
+          .select('*')
+          .eq('student_id', state.user.id)
+          .eq('subject_name', currentSubject)
+          .single();
+        
+        if (existingSubject) {
+          await supabase
+            .from('student_subjects')
+            .update({ help_level: helpLevel })
+            .eq('id', existingSubject.id);
+        } else {
+          await supabase
+            .from('student_subjects')
+            .insert({
+              student_id: state.user.id,
+              subject_name: currentSubject,
+              help_level: helpLevel
+            });
+        }
+      } catch (e) {
+        console.error("Error updating student_subjects:", e);
+      }
 
       // Update onboarding progress
       await supabase
@@ -198,9 +277,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
     const currentQuestion = questions[currentQuestionIndex];
     const isAnswerSelected = selectedAnswers[currentQuestionIndex] !== undefined;
     
-    // Check if answers exist and add error handling
-    const hasAnswers = currentQuestion && currentQuestion.answers && Array.isArray(currentQuestion.answers);
-    
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -216,23 +292,23 @@ export const DiagnosticQuizSelector: React.FC = () => {
           <h4 className="text-xl font-medium mb-4">{currentQuestion?.text || "Loading question..."}</h4>
           
           <div className="space-y-3 mt-6">
-            {hasAnswers ? (
+            {currentQuestion?.answers && Array.isArray(currentQuestion.answers) && currentQuestion.answers.length > 0 ? (
               currentQuestion.answers.map((answer: any) => (
-                <div
+                <button
                   key={answer.id}
                   onClick={() => handleAnswerSelect(answer.id)}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                  className={`p-4 w-full border rounded-lg text-left transition-all ${
                     selectedAnswers[currentQuestionIndex] === answer.id 
                       ? 'border-purple-600 bg-purple-50' 
-                      : 'hover:border-purple-300'
+                      : 'hover:border-purple-300 hover:bg-gray-50'
                   }`}
                 >
                   {answer.text}
-                </div>
+                </button>
               ))
             ) : (
-              <div className="p-4 text-red-500">
-                No answers available for this question. Please try another quiz.
+              <div className="p-4 text-amber-500">
+                Loading answer choices...
               </div>
             )}
           </div>
@@ -294,8 +370,10 @@ export const DiagnosticQuizSelector: React.FC = () => {
                       onClick={() => startQuiz(subject)}
                       className="bg-purple-600 hover:bg-purple-700"
                     >
-                      {isLoadingQuestions[subject] ? (
-                        <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading</>
+                      {isGenerating[subject] ? (
+                        <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Generating</>
+                      ) : isLoadingQuestions[subject] ? (
+                        <><RefreshCw className="h-4 w-4 animate-spin mr-2" /> Loading</>
                       ) : (
                         'Take Quiz'
                       )}
@@ -313,7 +391,10 @@ export const DiagnosticQuizSelector: React.FC = () => {
       </div>
       
       <div className="flex justify-between mt-6">
-        <Button variant="outline">
+        <Button 
+          variant="outline"
+          onClick={() => updateOnboardingStep && updateOnboardingStep('generatePlan')}
+        >
           Skip All Quizzes
         </Button>
         <Button 

@@ -8,15 +8,21 @@ export interface QuizQuestion {
 // Question interface for the quiz system
 export interface Question {
   id: string;
-  question: string;
-  answer: string;
-  type: 'multiple-choice' | 'short-answer';
-  options?: string[];
-  difficulty: number;
+  text: string; // The question text
+  answers?: {
+    id: string;
+    text: string;
+    isCorrect: boolean;
+  }[];
+  difficulty: number | string;
   subject: string;
-  topic: string;
-  hint: string;
+  topic?: string;
+  hint?: string;
   examBoard?: string;
+  question?: string; // For backwards compatibility
+  answer?: string; // For backwards compatibility
+  type?: 'multiple-choice' | 'short-answer';
+  options?: string[]; // For backwards compatibility
 }
 
 // Answer interface for user responses
@@ -36,12 +42,11 @@ export const subjectList = [
 // Quiz result interface with all required properties
 export interface QuizResult {
   id?: string;
+  userId?: string;
   subject: string;
   score: number;
   totalQuestions: number;
   questions?: QuizQuestion[];
-  // New properties for extended quiz functionality
-  userId?: string;
   questionsAsked: string[];
   answers: Answer[];
   confidenceBefore: number;

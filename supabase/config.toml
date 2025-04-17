@@ -1,0 +1,29 @@
+
+project_id = "napltpaxwatxdmkothec"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+
+[storage]
+file_size_limit = "50MiB"
+
+[functions.generate-quiz]
+verify_jwt = true
+
+[functions.get-secret]
+verify_jwt = true

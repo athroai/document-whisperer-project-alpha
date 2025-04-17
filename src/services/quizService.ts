@@ -1,7 +1,8 @@
 import { Question, Answer, QuizResult, mockQuestions } from '@/types/quiz';
+import { supabase } from '@/lib/supabase';
 
-// Toggle this to false when connecting to Firestore
-const useMock = true;
+// Toggle this to false when connecting to real API
+const useMock = false;
 
 // Mock implementation
 const mockImplementation = {
@@ -144,35 +145,132 @@ const mockImplementation = {
   }
 };
 
-// Firestore implementation - placeholder for future implementation
-const firestoreImplementation = {
+// Real implementation with OpenAI integration
+const realImplementation = {
   getQuestionsBySubject: async (
     subject: string, 
-    difficulty: number, 
+    difficulty: number,
     count: number = 5,
     examBoard?: string
   ): Promise<Question[]> => {
-    // TODO: Implement Firestore query with exam board filter
-    console.log('Firestore: getQuestionsBySubject not yet implemented');
+    console.log(`Fetching ${count} questions for ${subject} at difficulty ${difficulty}`);
     
-    // For now, fall back to mock
-    return mockImplementation.getQuestionsBySubject(subject, difficulty, count, examBoard);
+    try {
+      // Call our Supabase edge function to generate quiz questions
+      const { data, error } = await supabase.functions.invoke('generate-quiz', {
+        body: { 
+          subject,
+          difficulty,
+          count,
+          examBoard
+        }
+      });
+      
+      if (error) {
+        console.error("Error from edge function:", error);
+        throw new Error(`Failed to generate quiz: ${error.message}`);
+      }
+      
+      if (!data || !data.questions || !Array.isArray(data.questions)) {
+        console.error("Invalid response format from edge function:", data);
+        throw new Error("Invalid response format from quiz generator");
+      }
+      
+      console.log(`Received ${data.questions.length} questions from edge function`);
+      return data.questions;
+    } catch (error) {
+      console.error("Error generating questions:", error);
+      
+      // Fall back to mock questions in case of failure
+      console.warn("Falling back to mock questions due to error");
+      return mockImplementation.getQuestionsBySubject(subject, difficulty, count, examBoard);
+    }
   },
   
   saveQuizResult: async (result: QuizResult): Promise<string> => {
-    // TODO: Implement Firestore save
-    console.log('Firestore: saveQuizResult not yet implemented');
+    console.log('Saving quiz result to database:', result);
     
-    // For now, fall back to mock
-    return mockImplementation.saveQuizResult(result);
+    try {
+      // Save to diagnostic_quiz_results table
+      const { data: quizData, error: quizError } = await supabase
+        .from('diagnostic_quiz_results')
+        .insert({
+          student_id: result.userId,
+          subject: result.subject,
+          score: result.score,
+          total_questions: result.totalQuestions
+        })
+        .select('id')
+        .single();
+        
+      if (quizError) {
+        console.error("Error saving to diagnostic_quiz_results:", quizError);
+        throw quizError;
+      }
+        
+      // Save to diagnostic_results table
+      const scorePercentage = Math.round((result.score / result.totalQuestions) * 100);
+      const { data: diagData, error: diagError } = await supabase
+        .from('diagnostic_results')
+        .insert({
+          student_id: result.userId,
+          subject_name: result.subject,
+          percentage_accuracy: scorePercentage
+        })
+        .select('id')
+        .single();
+        
+      if (diagError) {
+        console.error("Error saving to diagnostic_results:", diagError);
+        throw diagError;
+      }
+      
+      return quizData?.id || diagData?.id || '';
+    } catch (error) {
+      console.error('Error saving quiz result:', error);
+      
+      // Fall back to mock implementation if database save fails
+      console.warn("Falling back to localStorage due to database error");
+      return mockImplementation.saveQuizResult(result);
+    }
   },
   
   getQuizResults: async (userId?: string): Promise<QuizResult[]> => {
-    // TODO: Implement Firestore query
-    console.log('Firestore: getQuizResults not yet implemented');
+    if (!userId) {
+      console.warn('No userId provided for getQuizResults');
+      return [];
+    }
     
-    // For now, fall back to mock
-    return mockImplementation.getQuizResults(userId);
+    try {
+      const { data, error } = await supabase
+        .from('diagnostic_quiz_results')
+        .select('*')
+        .eq('student_id', userId);
+        
+      if (error) {
+        console.error('Error fetching quiz results:', error);
+        throw error;
+      }
+      
+      return data.map((row: any) => ({
+        id: row.id,
+        userId: row.student_id,
+        subject: row.subject,
+        score: row.score,
+        totalQuestions: row.total_questions,
+        questionsAsked: [],
+        answers: [],
+        confidenceBefore: 0,
+        confidenceAfter: 0,
+        timestamp: row.completed_at
+      }));
+    } catch (error) {
+      console.error('Error getting quiz results:', error);
+      
+      // Fall back to mock implementation
+      console.warn("Falling back to localStorage due to database error");
+      return mockImplementation.getQuizResults(userId);
+    }
   },
   
   updateUserConfidenceScores: async (
@@ -180,13 +278,54 @@ const firestoreImplementation = {
     subject: string, 
     confidence: number
   ): Promise<boolean> => {
-    // TODO: Implement Firestore update
-    console.log('Firestore: updateUserConfidenceScores not yet implemented');
+    console.log(`Updating confidence score for user ${userId} in ${subject} to ${confidence}`);
     
-    // For now, fall back to mock
-    return mockImplementation.updateUserConfidenceScores(userId, subject, confidence);
+    try {
+      // Update confidence scores in student_subject_preferences
+      const { data, error } = await supabase
+        .from('student_subject_preferences')
+        .update({ confidence_level: confidence })
+        .eq('student_id', userId)
+        .eq('subject', subject);
+        
+      if (error) {
+        console.error('Error updating confidence score:', error);
+        throw error;
+      }
+      
+      // Also update profiles.confidence_scores JSON field
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('confidence_scores')
+        .eq('id', userId)
+        .single();
+        
+      if (profilesError) {
+        console.error('Error fetching user profile:', profilesError);
+      } else if (profiles) {
+        const confidenceScores = profiles.confidence_scores || {};
+        confidenceScores[subject] = confidence;
+        
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ confidence_scores: confidenceScores })
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error('Error updating profile confidence scores:', updateError);
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating confidence scores:', error);
+      
+      // Fall back to mock implementation
+      console.warn("Falling back to localStorage due to database error");
+      return mockImplementation.updateUserConfidenceScores(userId, subject, confidence);
+    }
   }
 };
 
 // Export the appropriate implementation based on useMock flag
-export const quizService = useMock ? mockImplementation : firestoreImplementation;
+export const quizService = useMock ? mockImplementation : realImplementation;

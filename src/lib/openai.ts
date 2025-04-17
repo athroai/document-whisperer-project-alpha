@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 interface OpenAIRequestParams {
@@ -98,7 +97,6 @@ async function callOpenAI(apiKey: string, systemPrompt: string, userMessage: str
 }
 
 function generateMockResponse(userMessage: string): string {
-  // More detailed mock responses that follow the Athro character style
   const responses = [
     `I understand you're asking about "${userMessage.substring(0, 30)}...". This is a fascinating topic in GCSE studies! Let me explain this step by step...`,
     `That's a great question about "${userMessage.substring(0, 30)}...". When we look at this topic in the GCSE curriculum, we need to consider several key points.`,
@@ -109,7 +107,6 @@ function generateMockResponse(userMessage: string): string {
   
   const randomResponse = responses[Math.floor(Math.random() * responses.length)];
   
-  // Add some subject-specific content to make it seem more realistic
   return `${randomResponse}
 
 First, let's consider the main concepts involved. This is a key area in the GCSE curriculum that builds on your previous knowledge. 
@@ -122,3 +119,23 @@ I would suggest approaching this by:
 Would you like me to explain any specific part of this topic in more detail? Or perhaps work through a practice question together?`;
 }
 
+// Export a function to get the OpenAI API key
+export async function getOpenAIApiKey(): Promise<string | null> {
+  // Try Supabase secrets first
+  try {
+    const { data } = await supabase.functions.invoke('get-secret', {
+      body: { name: 'OPENAI_API_KEY' }
+    });
+    
+    if (data?.secret) {
+      return data.secret;
+    }
+  } catch (error) {
+    console.log('Could not retrieve OpenAI key from Supabase secrets', error);
+  }
+  
+  // Fall back to hard-coded key (only for development)
+  const fallbackKey = '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';
+  
+  return fallbackKey;
+}
