@@ -4,10 +4,9 @@ import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import PomodoroTimer from '@/components/PomodoroTimer';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const StudyPlanGenerator: React.FC = () => {
@@ -199,6 +198,7 @@ export const StudyPlanGenerator: React.FC = () => {
           ...eventData[0],
           subject: planItem.subject,
           formattedStart: `${dayOfWeek}, ${format(startDate, 'h:mm a')}`,
+          formattedEnd: format(endDate, 'h:mm a'),
           dayOfWeek: planItem.sessions[0].dayOfWeek
         });
         
@@ -324,11 +324,11 @@ export const StudyPlanGenerator: React.FC = () => {
                   <CalendarIcon className="h-4 w-4 mr-1" />
                   <span>Scheduled for {event.formattedStart}</span>
                 </div>
-                <PomodoroTimer 
-                  className="my-2"
-                  onComplete={() => console.log(`${event.subject} session completed`)}
-                />
-                <div className="mt-2 pt-2 border-t border-gray-100">
+                <div className="mt-1 flex items-center text-sm text-gray-600">
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span>{event.formattedStart} - {event.formattedEnd}</span>
+                </div>
+                <div className="mt-3 pt-2 border-t border-gray-100">
                   <p className="text-xs text-gray-500">
                     This session has been added to your calendar.
                   </p>

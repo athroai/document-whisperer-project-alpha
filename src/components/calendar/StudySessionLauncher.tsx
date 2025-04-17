@@ -28,7 +28,7 @@ const StudySessionLauncher = () => {
         const { data, error } = await supabase
           .from('calendar_events')
           .select('id, title, description, start_time, end_time, event_type')
-          .eq('student_id', authState.user.id)
+          .or(`student_id.eq.${authState.user.id},user_id.eq.${authState.user.id}`)
           .eq('event_type', 'study_session')
           .gte('start_time', fiveMinutesAgo.toISOString())
           .lte('start_time', fifteenMinutesFromNow.toISOString())
