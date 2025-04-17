@@ -94,9 +94,10 @@ Return the result as a valid JSON array of question objects. Do not include any 
       }
       
       // Process each question to ensure it has the expected format
+      // Note the mapping of 'question' to 'text' to match our Question interface
       questions = questions.map((q, index) => ({
         id: `gpt-${Date.now()}-${index}`,
-        text: q.question,
+        text: q.question, // Map question to text
         answers: q.options.map((option, i) => ({
           id: `answer-${index}-${i}`,
           text: option,

@@ -58,7 +58,7 @@ export interface QuizResult {
 export const mockQuestions: Question[] = [
   {
     id: "m1",
-    question: "What is 35 + 27?",
+    text: "What is 35 + 27?",
     answer: "62",
     type: "short-answer",
     difficulty: 2,
@@ -68,7 +68,7 @@ export const mockQuestions: Question[] = [
   },
   {
     id: "m2",
-    question: "What is 78 - 23?",
+    text: "What is 78 - 23?",
     answer: "55",
     type: "short-answer",
     difficulty: 2,
@@ -78,7 +78,7 @@ export const mockQuestions: Question[] = [
   },
   {
     id: "m3",
-    question: "What is 1/2 + 3/10?",
+    text: "What is 1/2 + 3/10?",
     answer: "4/5",
     type: "short-answer",
     difficulty: 3,
@@ -88,7 +88,7 @@ export const mockQuestions: Question[] = [
   },
   {
     id: "s1",
-    question: "Which gas do plants absorb from the atmosphere?",
+    text: "Which gas do plants absorb from the atmosphere?",
     answer: "Carbon dioxide",
     type: "multiple-choice",
     options: ["Oxygen", "Carbon dioxide", "Nitrogen", "Hydrogen"],
@@ -99,7 +99,7 @@ export const mockQuestions: Question[] = [
   },
   {
     id: "s2",
-    question: "The process by which plants make their own food is called:",
+    text: "The process by which plants make their own food is called:",
     answer: "photosynthesis",
     type: "multiple-choice",
     options: ["respiration", "photosynthesis", "digestion", "excretion"],
@@ -110,7 +110,7 @@ export const mockQuestions: Question[] = [
   },
   {
     id: "s3",
-    question: "What force pulls objects toward the center of the Earth?",
+    text: "What force pulls objects toward the center of the Earth?",
     answer: "gravity",
     type: "short-answer",
     difficulty: 1,
@@ -120,7 +120,7 @@ export const mockQuestions: Question[] = [
   },
   {
     id: "e1",
-    question: "Which of these words is spelled correctly?",
+    text: "Which of these words is spelled correctly?",
     answer: "beautiful",
     type: "multiple-choice",
     options: ["beautifull", "beutiful", "beautiful", "beautifull"],
@@ -131,7 +131,7 @@ export const mockQuestions: Question[] = [
   },
   {
     id: "e2",
-    question: "Which of these is a proper noun?",
+    text: "Which of these is a proper noun?",
     answer: "London",
     type: "multiple-choice",
     options: ["city", "building", "London", "country"],
@@ -142,7 +142,7 @@ export const mockQuestions: Question[] = [
   },
   {
     id: "e3",
-    question: "Which word is a verb?",
+    text: "Which word is a verb?",
     answer: "run",
     type: "multiple-choice",
     options: ["happy", "run", "beautiful", "quick"],
