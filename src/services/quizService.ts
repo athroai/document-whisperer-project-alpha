@@ -1,5 +1,6 @@
 import { Question, Answer, QuizResult, mockQuestions } from '@/types/quiz';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 // Toggle this to false when connecting to real API
 const useMock = false;
@@ -167,12 +168,24 @@ const realImplementation = {
       
       if (error) {
         console.error("Error from edge function:", error);
+        toast.error("Could not generate quiz questions");
         return [];
       }
       
       if (!data || !data.questions) {
         console.error("Invalid response format from edge function:", data);
+        toast.error("Could not generate quiz questions");
         return [];
+      }
+
+      // Log which API key was used (for monitoring)
+      if (data.usedKey) {
+        console.log("Quiz generated using:", data.usedKey);
+      }
+
+      // If using mock questions, show a warning toast
+      if (data.fromMock) {
+        toast.warning("Using sample questions - quiz generation service unavailable");
       }
       
       const processedQuestions = data.questions.map((q: any) => ({
@@ -188,6 +201,7 @@ const realImplementation = {
       return processedQuestions;
     } catch (error) {
       console.error("Error generating questions:", error);
+      toast.error("Could not generate quiz questions");
       return mockQuestions.filter(q => q.subject === subject).slice(0, count);
     }
   },
