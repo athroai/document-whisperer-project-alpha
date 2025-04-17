@@ -7,7 +7,7 @@ import { Check, Plus } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
 
 export const SubjectsSelector: React.FC = () => {
-  const { selectedSubjects, selectSubject, removeSubject } = useOnboarding();
+  const { selectedSubjects, selectSubject, removeSubject, updateOnboardingStep } = useOnboarding();
   const { subjects, isLoading } = useSubjects();
 
   const isSubjectSelected = (subject: string) => {
@@ -25,6 +25,12 @@ export const SubjectsSelector: React.FC = () => {
 
   const handleConfidenceChange = (subject: string, confidence: number) => {
     selectSubject(subject, confidence);
+  };
+
+  const handleContinue = () => {
+    if (selectedSubjects.length > 0) {
+      updateOnboardingStep('availability');
+    }
   };
 
   if (isLoading) {
@@ -77,12 +83,20 @@ export const SubjectsSelector: React.FC = () => {
       </div>
 
       {selectedSubjects.length > 0 && (
-        <div className="pt-4 border-t mt-6">
+        <div className="pt-4 border-t mt-6 flex justify-between items-center">
           <p className="text-sm font-medium text-green-600">
             {selectedSubjects.length} {selectedSubjects.length === 1 ? 'subject' : 'subjects'} selected
           </p>
+          <Button 
+            onClick={handleContinue}
+            disabled={selectedSubjects.length === 0}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            Continue
+          </Button>
         </div>
       )}
     </div>
   );
 };
+
