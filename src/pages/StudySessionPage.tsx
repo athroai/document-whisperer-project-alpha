@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -195,7 +196,10 @@ Or let me know if you have something else in mind!`;
       return activeCharacter.avatarUrl;
     }
     
-    const characterInfo = athroCharacters.find(
+    // Fix: Ensure athroCharacters is an array before using find
+    const characters = Array.isArray(athroCharacters) ? athroCharacters : [];
+    
+    const characterInfo = characters.find(
       char => char.subject.toLowerCase() === currentSubject.toLowerCase()
     );
     
@@ -208,7 +212,10 @@ Or let me know if you have something else in mind!`;
       return activeCharacter.name;
     }
     
-    const characterInfo = athroCharacters.find(
+    // Fix: Ensure athroCharacters is an array before using find
+    const characters = Array.isArray(athroCharacters) ? athroCharacters : [];
+    
+    const characterInfo = characters.find(
       char => char.subject.toLowerCase() === currentSubject.toLowerCase()
     );
     
