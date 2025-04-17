@@ -39,7 +39,6 @@ const StudySessionLauncher = () => {
           throw error;
         }
         
-        // If there's a session starting soon or just started
         if (data && data.length > 0) {
           console.log('Found upcoming events:', data.length);
           for (const upcomingSession of data) {

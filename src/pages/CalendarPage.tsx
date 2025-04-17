@@ -79,9 +79,11 @@ const CalendarPage: React.FC = () => {
       const userId = authState.user.id;
       console.log("Loading events for user ID:", userId);
       
+      console.log(`Querying for student_id.eq.${userId} or user_id.eq.${userId}`);
+      
       const { data, error } = await supabase
         .from('calendar_events')
-        .select('id, title, description, start_time, end_time, event_type')
+        .select('*')
         .or(`student_id.eq.${userId},user_id.eq.${userId}`)
         .order('start_time', { ascending: true });
       
@@ -98,7 +100,7 @@ const CalendarPage: React.FC = () => {
 
       console.log(`Found ${data.length} events`, data);
 
-      const formattedEvents: CalendarEvent[] = data.map(event => {
+      const formattedEvents = data.map(event => {
         let description: { subject?: string } = {};
         try {
           if (event.description) {
@@ -149,10 +151,14 @@ const CalendarPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!authState.loading) {
+    if (authState.user) {
+      console.log("Auth state loaded, loading events for user:", authState.user.id);
       loadEvents();
+    } else if (!authState.loading) {
+      console.log("No authenticated user found or user loading complete");
+      setEvents([]);
     }
-  }, [authState.loading, authState.user]);
+  }, [authState.user, authState.loading]);
 
   const selectedDateEvents = events.filter(event => 
     date && isSameDay(event.date, date)

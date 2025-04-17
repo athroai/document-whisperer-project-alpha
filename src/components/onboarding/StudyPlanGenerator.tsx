@@ -80,10 +80,15 @@ export const StudyPlanGenerator: React.FC = () => {
         const [startHours, startMinutes] = availabilitySlot.startTime.split(':').map(Number);
         const [endHours, endMinutes] = availabilitySlot.endTime.split(':').map(Number);
         
-        // Create date objects for the session
+        // Calculate the next occurrence of this day of week
         const startDate = new Date(today);
         startDate.setDate(startDate.getDate() + (availabilitySlot.dayOfWeek - startDate.getDay() + 7) % 7);
         startDate.setHours(startHours, startMinutes, 0, 0);
+        
+        // If the calculated date is in the past (earlier today), move it to next week
+        if (startDate < today) {
+          startDate.setDate(startDate.getDate() + 7);
+        }
         
         const endDate = new Date(startDate);
         endDate.setHours(endHours, endMinutes, 0, 0);
