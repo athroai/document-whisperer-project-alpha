@@ -1,66 +1,18 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { generateMockQuestions } from "./mock-questions.ts";
+import { generateQuestions } from "./openai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Get both OpenAI API keys
-const OPENAI_API_KEY_1 = Deno.env.get('openAI1');
-const OPENAI_API_KEY_2 = Deno.env.get('openAI2');
-
-async function callOpenAI(apiKey: string, subject: string, difficulty: string, count: number) {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are a professional educator creating GCSE quiz questions."
-        },
-        {
-          role: "user",
-          content: `Generate ${count} ${difficulty} difficulty multiple-choice questions for GCSE ${subject}. 
-          Return a JSON array with each question having: 
-          id, text, correctAnswer, options, difficulty, subject, topic`
-        }
-      ],
-      temperature: 0.7,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${data.error?.message || "Unknown error"}`);
-  }
-
-  return data;
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
-  }
-
-  // If no API keys are found, return mock questions
-  if (!OPENAI_API_KEY_1 && !OPENAI_API_KEY_2) {
-    console.log("No OpenAI API keys found. Using mock questions.");
-    return new Response(
-      JSON.stringify({ 
-        questions: generateMockQuestions(), 
-        fromMock: true 
-      }), 
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   }
 
   try {
@@ -72,30 +24,8 @@ serve(async (req) => {
 
     const difficultyLevel = difficulty <= 3 ? "easy" : difficulty <= 7 ? "medium" : "hard";
     
-    let data;
-    let usedKey = '';
-
-    // Try first API key
-    if (OPENAI_API_KEY_1) {
-      try {
-        data = await callOpenAI(OPENAI_API_KEY_1, subject, difficultyLevel, count);
-        usedKey = 'First Key';
-      } catch (error) {
-        console.warn("First OpenAI API key failed:", error);
-        data = null;
-      }
-    }
-
-    // If first key fails, try second key
-    if (!data && OPENAI_API_KEY_2) {
-      try {
-        data = await callOpenAI(OPENAI_API_KEY_2, subject, difficultyLevel, count);
-        usedKey = 'Second Key';
-      } catch (error) {
-        console.warn("Second OpenAI API key failed:", error);
-        data = null;
-      }
-    }
+    // Try to generate questions using OpenAI
+    const { data, usedKey } = await generateQuestions(subject, difficultyLevel, count);
 
     // If both keys fail, return mock questions
     if (!data) {
@@ -155,54 +85,3 @@ serve(async (req) => {
     );
   }
 });
-
-function generateMockQuestions() {
-  return [
-    {
-      id: `mock-math-1`,
-      text: "What is the value of x in the equation 3x + 7 = 22?",
-      options: ["3", "5", "7", "15"],
-      correctAnswer: "5",
-      difficulty: "medium",
-      topic: "algebra",
-      subject: "Mathematics"
-    },
-    {
-      id: `mock-math-2`,
-      text: "What is the area of a circle with radius 4 units?",
-      options: ["16π square units", "8π square units", "4π square units", "π square units"],
-      correctAnswer: "16π square units",
-      difficulty: "medium",
-      topic: "geometry",
-      subject: "Mathematics"
-    },
-    {
-      id: `mock-sci-1`,
-      text: "Which of these is a noble gas?",
-      options: ["Oxygen", "Chlorine", "Neon", "Sodium"],
-      correctAnswer: "Neon",
-      difficulty: "medium",
-      topic: "periodic table",
-      subject: "Science"
-    },
-    {
-      id: `mock-eng-1`,
-      text: "Which literary device involves giving human qualities to non-human things?",
-      options: ["Metaphor", "Personification", "Simile", "Alliteration"],
-      correctAnswer: "Personification",
-      difficulty: "medium",
-      topic: "literary devices",
-      subject: "English"
-    },
-    {
-      id: `mock-hist-1`,
-      text: "Which event marked the start of World War I?",
-      options: ["The invasion of Poland", "The bombing of Pearl Harbor", "The assassination of Archduke Franz Ferdinand", "The sinking of the Lusitania"],
-      correctAnswer: "The assassination of Archduke Franz Ferdinand",
-      difficulty: "medium",
-      topic: "world wars",
-      subject: "History"
-    }
-  ];
-}
-
