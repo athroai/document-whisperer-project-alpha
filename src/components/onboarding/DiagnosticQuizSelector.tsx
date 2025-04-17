@@ -30,7 +30,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const { subjects, isLoading } = useSubjects();
   const [retryCount, setRetryCount] = useState<Record<string, number>>({});
   const [loadingToastId, setLoadingToastId] = useState<string | null>(null);
-  const [selectedConfidence, setSelectedConfidence] = useState<string>('');
+  const [selectedConfidence, setSelectedConfidence] = useState<string>('5');
 
   const MAX_RETRIES = 2;
 
@@ -116,7 +116,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   };
 
   const handleConfidenceChange = (newValue: number[]) => {
-    setSelectedConfidence(newValue[0].toString());
+    setSelectedConfidence(String(newValue[0]));
   };
 
   const handleQuizComplete = async () => {
