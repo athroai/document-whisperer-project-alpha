@@ -1,79 +1,73 @@
 
-// src/lib/openai.ts
+import { supabase } from '@/lib/supabase';
 
-// Hardcoded project API key for all users - safe to store here as it's a project-specific key
-const PROJECT_API_KEY = "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";
+interface OpenAIRequestParams {
+  systemPrompt: string;
+  userMessage: string;
+}
 
 export async function getOpenAIResponse({
   systemPrompt,
-  userMessage,
-  apiKey,
-}: {
-  systemPrompt: string;
-  userMessage: string;
-  apiKey?: string;  // Made optional since we now have a project key
-}) {
-  console.log('🔌 Starting OpenAI API request with message:', userMessage.substring(0, 50) + '...');
-  
-  // Always use the project API key first, then fall back to other sources
-  const effectiveApiKey = PROJECT_API_KEY || localStorage.getItem('athro_admin_openai_key') || apiKey;
-  
+  userMessage
+}: OpenAIRequestParams): Promise<string> {
   try {
-    // Use a proper API key check
-    if (!effectiveApiKey || effectiveApiKey.length < 20) {
-      console.error('❌ Invalid OpenAI API key - missing or too short');
-      throw new Error('Invalid API key provided. Please check your API key.');
-    }
-    
-    // Full URL for clarity in debugging
-    const apiUrl = 'https://api.openai.com/v1/chat/completions';
-    console.log('🔍 Request URL:', apiUrl);
-    
-    const requestBody = {
-      model: 'gpt-4o', 
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      temperature: 0.7,
-    };
-    
-    console.log('📦 Request payload:', {
-      model: requestBody.model,
-      messages: [
-        { role: 'system', content: systemPrompt.substring(0, 50) + '...' },
-        { role: 'user', content: userMessage },
-      ],
-    });
-
-    const res = await fetch(apiUrl, {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${effectiveApiKey}`,
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY || 'sk-mock-key-for-development'}`
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        model: 'gpt-4-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: userMessage
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
     });
 
-    console.log('📥 OpenAI API response status:', res.status);
-    
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      console.error('❌ OpenAI API error response:', errorData);
-      throw new Error(errorData.error?.message || `Failed with status: ${res.status}`);
+    if (!response.ok) {
+      // For development mode, return a mock response
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Using mock response in development mode');
+        return generateMockResponse(userMessage);
+      }
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
-    const data = await res.json();
-    console.log('✅ OpenAI API response received successfully');
-    return data.choices[0].message.content.trim();
+    const data = await response.json();
+    return data.choices[0].message.content;
   } catch (error) {
-    console.error('🔥 Error in getOpenAIResponse:', error);
+    console.error('Error calling OpenAI:', error);
     
-    // More detailed error logging based on error type
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('📶 Network error detected - possibly CORS or connectivity issue');
+    // In development, provide a mock response
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Using mock response due to error');
+      return generateMockResponse(userMessage);
     }
     
-    throw error; // Rethrow so the caller can handle it appropriately
+    throw error;
   }
+}
+
+function generateMockResponse(userMessage: string): string {
+  // Basic mock responses for development
+  const responses = [
+    `I understand you're asking about "${userMessage.substring(0, 30)}...". This is a fascinating topic in GCSE studies.`,
+    `That's a great question about "${userMessage.substring(0, 30)}...". Let me explain step by step.`,
+    `When we look at "${userMessage.substring(0, 30)}..." in the context of GCSE curriculum, we need to consider several key points.`,
+    `I'd be happy to help you with "${userMessage.substring(0, 30)}...". This concept is important for your exams.`,
+    `Let's break down "${userMessage.substring(0, 30)}..." into simpler parts so it's easier to understand.`
+  ];
+  
+  return responses[Math.floor(Math.random() * responses.length)] + 
+    '\n\nRemember this is a development environment response. In production, you would receive a proper educational answer from the AI mentor.';
 }

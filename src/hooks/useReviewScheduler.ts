@@ -1,7 +1,9 @@
 
-import { addDays, startOfDay } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { addDays } from 'date-fns';
 
 interface UseReviewSchedulerProps {
   sessionId?: string;
@@ -9,82 +11,80 @@ interface UseReviewSchedulerProps {
   topic?: string;
 }
 
-export function useReviewScheduler({ sessionId, subject, topic }: UseReviewSchedulerProps) {
+export function useReviewScheduler({
+  sessionId,
+  subject,
+  topic
+}: UseReviewSchedulerProps) {
+  const { state } = useAuth();
   const { toast } = useToast();
+  const [isScheduling, setIsScheduling] = useState(false);
 
-  const scheduleReviewSession = async (subject: string, topic: string, duration: number) => {
+  const scheduleReviewSession = async (
+    subject: string, 
+    topic?: string, 
+    durationMinutes: number = 30
+  ) => {
+    if (!state.user || !state.user.id) {
+      console.error('Cannot schedule review: User not authenticated');
+      return;
+    }
+    
+    setIsScheduling(true);
+    
     try {
-      // Find an open slot within the next 5 days
-      const startDate = startOfDay(new Date());
-      const endDate = addDays(startDate, 5);
-
-      // First, get the user's availability blocks
-      const { data: availabilityBlocks, error: availError } = await supabase
-        .from('availability_blocks')
-        .select('*')
-        .gte('start_time', startDate.toISOString())
-        .lte('start_time', endDate.toISOString());
-
-      if (availError) throw availError;
-
-      // Get existing calendar events in this period
-      const { data: existingEvents, error: eventError } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .gte('start_time', startDate.toISOString())
-        .lte('start_time', endDate.toISOString());
-
-      if (eventError) throw eventError;
-
-      // Simple slot finding logic (can be made more sophisticated later)
-      const potentialSlots = availabilityBlocks.filter(block => 
-        !existingEvents.some(event => 
-          new Date(event.start_time) >= new Date(block.start_time) && 
-          new Date(event.start_time) < new Date(block.end_time)
-        )
-      );
-
-      if (potentialSlots.length === 0) {
-        // No suitable slot found, log or handle accordingly
-        console.log('No suitable slot found for review session');
-        return;
-      }
-
-      // Select the first available slot
-      const selectedSlot = potentialSlots[0];
-      const startTime = new Date(selectedSlot.start_time);
-      const endTime = new Date(startTime.getTime() + duration * 60000); // Convert duration to milliseconds
-
-      // Insert review session event
-      const { data: reviewSessionData, error: insertError } = await supabase
+      // Schedule review 2-3 days from now
+      const reviewDate = addDays(new Date(), 2 + Math.floor(Math.random() * 2));
+      
+      // Set to a reasonable time (4 PM)
+      reviewDate.setHours(16, 0, 0, 0);
+      
+      // End time based on duration
+      const endDate = new Date(reviewDate.getTime() + durationMinutes * 60000);
+      
+      // Create session description
+      const sessionDescription = JSON.stringify({
+        subject,
+        topic,
+        description: `Review session for ${subject}${topic ? ` on ${topic}` : ''}.`,
+        isReview: true
+      });
+      
+      // Create calendar event
+      const { data, error } = await supabase
         .from('calendar_events')
         .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          event_type: 'review_session',
-          subject,
-          title: `Review Session: ${topic}`,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-          source_session_id: sessionId, // Link back to original session
+          title: `Review: ${subject}${topic ? ` - ${topic}` : ''}`,
+          start_time: reviewDate.toISOString(),
+          end_time: endDate.toISOString(),
+          event_type: 'study_session',
+          description: sessionDescription,
+          student_id: state.user.id,
+          source_session_id: sessionId,
           suggested: true
-        });
-
-      if (insertError) throw insertError;
-
+        })
+        .select();
+      
+      if (error) throw error;
+      
       toast({
-        title: "Review Session Scheduled",
-        description: `A review session for ${topic} has been suggested in your calendar.`,
+        title: 'Review Session Scheduled',
+        description: `A review session has been added to your calendar for ${reviewDate.toLocaleDateString()}.`,
       });
-
+      
+      return data?.[0]?.id;
     } catch (error) {
       console.error('Error scheduling review session:', error);
       toast({
-        title: "Review Session Error",
-        description: "Could not schedule a review session at this time.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'There was a problem scheduling your review session.',
+        variant: 'destructive',
       });
+      return null;
+    } finally {
+      setIsScheduling(false);
     }
   };
 
-  return { scheduleReviewSession };
+  return { scheduleReviewSession, isScheduling };
 }
