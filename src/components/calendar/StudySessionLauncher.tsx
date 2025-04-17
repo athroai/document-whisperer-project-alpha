@@ -13,7 +13,10 @@ const StudySessionLauncher = () => {
   
   useEffect(() => {
     const checkForScheduledSessions = async () => {
-      if (!authState.user || !authState.user.id) return;
+      if (!authState.user || !authState.user.id) {
+        console.log('No authenticated user found');
+        return;
+      }
       
       // Get current date
       const now = new Date();
@@ -21,6 +24,7 @@ const StudySessionLauncher = () => {
       const fifteenMinutesFromNow = new Date(now.getTime() + 15 * 60000);
       
       try {
+        console.log('Loading events for user ID:', authState.user.id);
         const { data, error } = await supabase
           .from('calendar_events')
           .select('id, title, description, start_time, end_time, event_type')
@@ -30,10 +34,14 @@ const StudySessionLauncher = () => {
           .lte('start_time', fifteenMinutesFromNow.toISOString())
           .order('start_time', { ascending: true });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching calendar events:', error);
+          throw error;
+        }
         
         // If there's a session starting soon or just started
         if (data && data.length > 0) {
+          console.log('Found upcoming events:', data.length);
           for (const upcomingSession of data) {
             let description: any = {};
             
@@ -71,6 +79,8 @@ const StudySessionLauncher = () => {
               localStorage.setItem(`notified_session_${upcomingSession.id}`, 'true');
             }
           }
+        } else {
+          console.log('No events found for user');
         }
       } catch (error) {
         console.error('Error checking for scheduled sessions:', error);

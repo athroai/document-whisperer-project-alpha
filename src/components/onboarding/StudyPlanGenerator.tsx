@@ -8,6 +8,7 @@ import PomodoroTimer from '@/components/PomodoroTimer';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const StudyPlanGenerator: React.FC = () => {
   const { state } = useAuth();
@@ -17,6 +18,7 @@ export const StudyPlanGenerator: React.FC = () => {
   const [studyPlan, setStudyPlan] = useState<any[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -44,12 +46,27 @@ export const StudyPlanGenerator: React.FC = () => {
       return;
     }
 
+    // Clear previous errors
+    setError(null);
     setIsGenerating(true);
 
     try {
       console.log("Generating study plan for user:", state.user.id);
       console.log("Selected subjects:", selectedSubjects);
       console.log("Availability:", availability);
+
+      // Check if subjects and availability are present
+      if (!selectedSubjects || selectedSubjects.length === 0) {
+        setError("No subjects selected. Please go back to the subjects step and select at least one subject.");
+        setIsGenerating(false);
+        return;
+      }
+
+      if (!availability || availability.length === 0) {
+        setError("No availability set. Please go back to the availability step and set your study time.");
+        setIsGenerating(false);
+        return;
+      }
       
       // Create session dates based on availability
       const today = new Date();
@@ -60,13 +77,16 @@ export const StudyPlanGenerator: React.FC = () => {
           throw new Error("No availability found. Please set your availability first.");
         }
         
+        // Convert time strings to hours and minutes
         const [startHours, startMinutes] = availabilitySlot.startTime.split(':').map(Number);
         const [endHours, endMinutes] = availabilitySlot.endTime.split(':').map(Number);
         
+        // Create date objects for the session
         const startDate = new Date(today);
+        startDate.setDate(startDate.getDate() + (availabilitySlot.dayOfWeek - startDate.getDay() + 7) % 7);
         startDate.setHours(startHours, startMinutes, 0, 0);
         
-        const endDate = new Date(today);
+        const endDate = new Date(startDate);
         endDate.setHours(endHours, endMinutes, 0, 0);
         
         return {
@@ -79,7 +99,7 @@ export const StudyPlanGenerator: React.FC = () => {
               endTime: availabilitySlot.endTime,
               workMinutes: 25,
               breakMinutes: 5,
-              dayOfWeek: availabilitySlot.dayOfWeek || (new Date().getDay() || 7)
+              dayOfWeek: availabilitySlot.dayOfWeek
             }
           ]
         };
@@ -93,12 +113,9 @@ export const StudyPlanGenerator: React.FC = () => {
       }
       
       console.log("Verified authenticated user:", authData.user.id);
-
-      // Try to use a service role client if needed (this might be necessary if RLS policies are being difficult)
-      const client = supabase;
       
       // Save study plan to Supabase with explicit user ID
-      const { data: planData, error: planError } = await client
+      const { data: planData, error: planError } = await supabase
         .from('study_plans')
         .insert({
           student_id: authData.user.id,
@@ -147,7 +164,7 @@ export const StudyPlanGenerator: React.FC = () => {
         
         console.log(`Creating calendar event for ${planItem.subject} at ${startDate.toISOString()}`);
         
-        const { data: eventData, error: eventError } = await client
+        const { data: eventData, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
             student_id: authData.user.id,
@@ -173,15 +190,20 @@ export const StudyPlanGenerator: React.FC = () => {
 
         successfulInserts++;
         console.log(`Successfully created calendar event with ID ${eventData[0].id}`);
+        
+        // Format day for display
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayOfWeek = dayNames[startDate.getDay()];
+        
         savedEvents.push({
           ...eventData[0],
           subject: planItem.subject,
-          formattedStart: format(startDate, 'EEEE, h:mm a'),
+          formattedStart: `${dayOfWeek}, ${format(startDate, 'h:mm a')}`,
           dayOfWeek: planItem.sessions[0].dayOfWeek
         });
         
         // Create study plan session linked to the calendar event
-        const { error: sessionError } = await client
+        const { error: sessionError } = await supabase
           .from('study_plan_sessions')
           .insert({
             plan_id: planId,
@@ -203,6 +225,7 @@ export const StudyPlanGenerator: React.FC = () => {
       console.log(`Successfully created ${successfulInserts} calendar events out of ${planItemsWithDates.length} subjects`);
 
       if (successfulInserts === 0) {
+        setError("No study sessions were scheduled. Please check your availability settings and try again.");
         toast({
           title: "Warning",
           description: "No study sessions were scheduled. Please try again or check your subjects.",
@@ -218,6 +241,7 @@ export const StudyPlanGenerator: React.FC = () => {
       }
     } catch (error) {
       console.error('Error generating study plan:', error);
+      setError(error instanceof Error ? error.message : "Failed to generate study plan");
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to generate study plan. Please try again.",
@@ -258,15 +282,35 @@ export const StudyPlanGenerator: React.FC = () => {
           </p>
         </div>
       )}
+
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
       {studyPlan.length === 0 ? (
-        <Button 
-          onClick={generateStudyPlan} 
-          disabled={isGenerating || !isAuthenticated}
-          className="bg-purple-600 hover:bg-purple-700"
-        >
-          {isGenerating ? 'Generating...' : 'Generate Study Plan'}
-        </Button>
+        <div className="space-y-4">
+          {selectedSubjects.length === 0 && (
+            <Alert className="mb-4">
+              <AlertDescription>You haven't selected any subjects. Please go back to the subjects step to select at least one subject.</AlertDescription>
+            </Alert>
+          )}
+          
+          {availability.length === 0 && (
+            <Alert className="mb-4">
+              <AlertDescription>You haven't set your availability. Please go back to the availability step to set when you can study.</AlertDescription>
+            </Alert>
+          )}
+          
+          <Button 
+            onClick={generateStudyPlan} 
+            disabled={isGenerating || !isAuthenticated || selectedSubjects.length === 0 || availability.length === 0}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            {isGenerating ? 'Generating...' : 'Generate Study Plan'}
+          </Button>
+        </div>
       ) : (
         <div className="space-y-6">
           <h3 className="text-lg font-medium">Your Study Plan</h3>
@@ -275,9 +319,6 @@ export const StudyPlanGenerator: React.FC = () => {
               <div key={index} className="bg-white rounded-lg shadow p-4 border border-gray-200">
                 <div className="flex justify-between items-start">
                   <p className="font-medium text-purple-700">{event.subject} Study Session</p>
-                  <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                    ID: {event.id}
-                  </span>
                 </div>
                 <div className="mt-2 flex items-center text-sm text-gray-600">
                   <CalendarIcon className="h-4 w-4 mr-1" />
