@@ -1,7 +1,8 @@
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
+import { PreferredStudySlot } from '@/types/study';
 
 interface SubjectPreference {
   subject: string;
@@ -19,6 +20,7 @@ interface OnboardingContextType {
   currentStep: string;
   selectedSubjects: SubjectPreference[];
   availability: Availability[];
+  studySlots: PreferredStudySlot[];
   selectSubject: (subject: string, confidence: number) => void;
   removeSubject: (subject: string) => void;
   updateAvailability: (availability: Availability[]) => void;
@@ -33,10 +35,61 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [currentStep, setCurrentStep] = useState('subjects');
   const [selectedSubjects, setSelectedSubjects] = useState<SubjectPreference[]>([]);
   const [availability, setAvailability] = useState<Availability[]>([]);
+  const [studySlots, setStudySlots] = useState<PreferredStudySlot[]>([]);
 
   const updateOnboardingStep = useCallback((step: string) => {
     setCurrentStep(step);
   }, []);
+
+  // Fetch existing data when user is available
+  useEffect(() => {
+    const fetchOnboardingData = async () => {
+      if (!state.user) return;
+      
+      try {
+        // Fetch subject preferences
+        const { data: subjectPrefs } = await supabase
+          .from('student_subject_preferences')
+          .select('*')
+          .eq('student_id', state.user.id);
+          
+        if (subjectPrefs && subjectPrefs.length > 0) {
+          const formattedSubjects = subjectPrefs.map(pref => ({
+            subject: pref.subject,
+            confidence: pref.confidence_level,
+            priority: pref.priority
+          }));
+          setSelectedSubjects(formattedSubjects);
+        }
+        
+        // Fetch study slots
+        const { data: studySlots } = await supabase
+          .from('preferred_study_slots')
+          .select('*')
+          .eq('user_id', state.user.id);
+          
+        if (studySlots && studySlots.length > 0) {
+          setStudySlots(studySlots);
+        }
+        
+        // Fetch onboarding progress
+        const { data: progress } = await supabase
+          .from('onboarding_progress')
+          .select('*')
+          .eq('student_id', state.user.id)
+          .single();
+          
+        if (progress && progress.current_step) {
+          setCurrentStep(progress.current_step);
+        }
+        
+      } catch (err) {
+        console.error('Error fetching onboarding data:', err);
+      }
+    };
+    
+    fetchOnboardingData();
+  }, [state.user]);
 
   const selectSubject = useCallback((subject: string, confidence: number) => {
     setSelectedSubjects(prev => {
@@ -64,12 +117,12 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       // Save subject preferences
       const subjectPreferencesPromises = selectedSubjects.map(subject => 
-        supabase.from('student_subject_preferences').insert({
+        supabase.from('student_subject_preferences').upsert({
           student_id: state.user!.id,
           subject: subject.subject,
           confidence_level: subject.confidence,
           priority: subject.priority
-        })
+        }, { onConflict: 'student_id, subject' })
       );
 
       // Update onboarding progress
@@ -103,6 +156,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       currentStep,
       selectedSubjects,
       availability,
+      studySlots,
       selectSubject,
       removeSubject,
       updateAvailability,

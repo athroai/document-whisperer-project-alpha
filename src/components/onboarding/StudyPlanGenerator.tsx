@@ -9,6 +9,7 @@ import { Calendar as CalendarIcon, Clock, BookOpen, CheckCircle } from 'lucide-r
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { PreferredStudySlot } from '@/types/study';
 
 export const StudyPlanGenerator: React.FC = () => {
   const { state } = useAuth();
@@ -22,6 +23,7 @@ export const StudyPlanGenerator: React.FC = () => {
   const [authVerified, setAuthVerified] = useState(false);
   const [diagnosticResults, setDiagnosticResults] = useState<Record<string, number>>({});
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [studySlots, setStudySlots] = useState<PreferredStudySlot[]>([]);
 
   // Load diagnostic results for the selected subjects
   useEffect(() => {
@@ -50,6 +52,38 @@ export const StudyPlanGenerator: React.FC = () => {
     fetchDiagnosticResults();
   }, [state.user]);
 
+  // Fetch preferred study slots when component loads
+  useEffect(() => {
+    const fetchStudySlots = async () => {
+      if (!state.user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('preferred_study_slots')
+          .select('*')
+          .eq('user_id', state.user.id);
+          
+        if (error) {
+          console.error('Error fetching study slots:', error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          console.log('Found study slots:', data);
+          setStudySlots(data);
+        } else {
+          console.warn('No study slots found for user:', state.user.id);
+        }
+      } catch (err) {
+        console.error('Exception when fetching study slots:', err);
+      }
+    };
+    
+    if (state.user) {
+      fetchStudySlots();
+    }
+  }, [state.user]);
+
   useEffect(() => {
     const checkAuth = async () => {
       const supabaseUser = await verifyAuth();
@@ -75,23 +109,6 @@ export const StudyPlanGenerator: React.FC = () => {
     if (score < 50) return 4;
     if (score <= 80) return Math.round(3.5 - (score - 50) * 0.03); // Linear scale from ~3.5 to ~2.5
     return 1;
-  };
-
-  // Fetch preferred study slots
-  const fetchPreferredStudySlots = async () => {
-    if (!state.user?.id) return null;
-    
-    const { data, error } = await supabase
-      .from('preferred_study_slots')
-      .select('*')
-      .eq('user_id', state.user.id);
-      
-    if (error) {
-      console.error('Error fetching study slots:', error);
-      return null;
-    }
-    
-    return data;
   };
 
   const generateStudyPlan = async () => {
@@ -129,13 +146,22 @@ export const StudyPlanGenerator: React.FC = () => {
         return;
       }
 
-      // Fetch the user's preferred study slots
-      const studySlots = await fetchPreferredStudySlots();
-      
+      // Check if we have study slots available
       if (!studySlots || studySlots.length === 0) {
-        setError("No study slots found. Please go back to set your study time preferences.");
-        setIsGenerating(false);
-        return;
+        // Try fetching them again just to be sure
+        const { data: freshStudySlots } = await supabase
+          .from('preferred_study_slots')
+          .select('*')
+          .eq('user_id', state.user.id);
+          
+        if (!freshStudySlots || freshStudySlots.length === 0) {
+          setError("No study slots found. Please go back to set your study time preferences.");
+          setIsGenerating(false);
+          return;
+        }
+        
+        // Update our state with the freshly fetched slots
+        setStudySlots(freshStudySlots);
       }
 
       setGenerationProgress(30);
