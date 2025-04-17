@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -42,6 +41,7 @@ export const SlotSelection: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Initialize day preferences once
   useEffect(() => {
@@ -57,19 +57,26 @@ export const SlotSelection: React.FC = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        if (!state.user?.id) {
+        const { data } = await supabase.auth.getUser();
+        const authenticatedUserId = data?.user?.id;
+        
+        if (!authenticatedUserId) {
           console.log("No authenticated user found");
+          setError("Authentication required. Please sign in again.");
           return;
         }
+        
+        setUserId(authenticatedUserId);
+        console.log("Auth check successful, user ID:", authenticatedUserId);
         
         // Only fetch slots if they aren't already available in context
         if (!existingSlots || existingSlots.length === 0) {
           // Fetch existing study slots
-          console.log("Fetching study slots for user:", state.user.id);
+          console.log("Fetching study slots for user:", authenticatedUserId);
           const { data: slots, error: slotsError } = await supabase
             .from('preferred_study_slots')
             .select('*')
-            .eq('user_id', state.user.id);
+            .eq('user_id', authenticatedUserId);
             
           if (slotsError) {
             console.error("Error fetching study slots:", slotsError);
@@ -105,7 +112,7 @@ export const SlotSelection: React.FC = () => {
             
             setDayPreferences(updatedPreferences);
           } else {
-            console.log("No existing study slots found for user:", state.user.id);
+            console.log("No existing study slots found for user:", authenticatedUserId);
           }
         } else if (existingSlots.length > 0) {
           // Use slots from context instead of fetching
@@ -142,10 +149,8 @@ export const SlotSelection: React.FC = () => {
       }
     };
     
-    if (state.user && !isInitialized) {
-      checkAuthStatus();
-    }
-  }, [state.user, isInitialized, existingSlots, setStudySlots, dayPreferences]);
+    checkAuthStatus();
+  }, [existingSlots, setStudySlots, dayPreferences]);
 
   const toggleDaySelection = useCallback((dayIndex: number) => {
     setSelectedDays(prev => {
@@ -198,35 +203,45 @@ export const SlotSelection: React.FC = () => {
     setError(null);
     
     // Validate that we have a valid user ID
-    if (!state.user?.id) {
-      const errorMsg = "Authentication required. Please log in again.";
-      setError(errorMsg);
-      toast({
-        description: "You need to be signed in to save your preferences.",
-        variant: "destructive"
-      });
-      console.error("No valid user ID available when trying to save preferences");
-      return false;
+    if (!userId) {
+      // Get current user directly from Supabase
+      const { data } = await supabase.auth.getUser();
+      const currentUserId = data?.user?.id;
+      
+      if (!currentUserId) {
+        const errorMsg = "Authentication required. Please log in again.";
+        setError(errorMsg);
+        toast({
+          description: "You need to be signed in to save your preferences.",
+          variant: "destructive"
+        });
+        console.error("No valid user ID available when trying to save preferences");
+        return false;
+      }
+      
+      setUserId(currentUserId);
     }
 
     setSaving(true);
 
     try {
-      console.log("Starting to save preferences for user:", state.user.id);
+      console.log("Starting to save preferences for user:", userId);
       
       // Double check session is active
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData?.session) {
-        console.warn("No active Supabase session found, but proceeding with user ID:", state.user.id);
+        console.warn("No active Supabase session found, continuing with cached user ID");
       } else {
         console.log("Active session confirmed, user ID:", sessionData.session.user.id);
+        // Ensure we're using the most up-to-date user ID
+        setUserId(sessionData.session.user.id);
       }
 
       // Delete existing preferences
       const { error: deleteError } = await supabase
         .from('preferred_study_slots')
         .delete()
-        .eq('user_id', state.user.id);
+        .eq('user_id', userId);
       
       if (deleteError) {
         console.error("Error deleting existing preferences:", deleteError);
@@ -251,7 +266,7 @@ export const SlotSelection: React.FC = () => {
           const startHour = preference?.preferredStartHour || 9;
           
           const preferenceData = {
-            user_id: state.user!.id,
+            user_id: userId,
             day_of_week: dayOfWeek,
             slot_duration_minutes: slotOption.duration,
             slot_count: slotOption.count,
@@ -289,15 +304,20 @@ export const SlotSelection: React.FC = () => {
       }
 
       // Update onboarding progress
-      await supabase
+      const { error: progressError } = await supabase
         .from('onboarding_progress')
         .upsert({
-          student_id: state.user.id,
+          student_id: userId,
           current_step: 'diagnosticQuiz',
           has_completed_availability: true
         }, {
           onConflict: 'student_id'
         });
+        
+      if (progressError) {
+        console.warn("Unable to update onboarding progress:", progressError);
+        // Continue anyway as this is not critical
+      }
         
       toast({
         description: "Your study time preferences have been saved successfully."

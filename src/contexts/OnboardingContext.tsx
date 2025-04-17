@@ -38,24 +38,50 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [studySlots, setStudySlots] = useState<PreferredStudySlot[]>([]);
 
-  const updateOnboardingStep = useCallback((step: string) => {
+  const updateOnboardingStep = useCallback(async (step: string) => {
     setCurrentStep(step);
     
     // If user is authenticated, also update in database
     if (state.user?.id) {
-      supabase
-        .from('onboarding_progress')
-        .upsert({
-          student_id: state.user.id,
-          current_step: step
-        }, {
-          onConflict: 'student_id'
-        })
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error updating onboarding step:', error);
+      try {
+        // Check if a record exists first
+        const { data: existingRecord, error: checkError } = await supabase
+          .from('onboarding_progress')
+          .select('*')
+          .eq('student_id', state.user.id)
+          .maybeSingle();
+          
+        if (checkError) {
+          console.error('Error checking onboarding progress:', checkError);
+          return;
+        }
+        
+        if (existingRecord) {
+          // Update existing record
+          const { error: updateError } = await supabase
+            .from('onboarding_progress')
+            .update({ current_step: step })
+            .eq('student_id', state.user.id);
+            
+          if (updateError) {
+            console.error('Error updating onboarding step:', updateError);
           }
-        });
+        } else {
+          // Insert new record
+          const { error: insertError } = await supabase
+            .from('onboarding_progress')
+            .insert({
+              student_id: state.user.id,
+              current_step: step
+            });
+            
+          if (insertError) {
+            console.error('Error creating onboarding progress:', insertError);
+          }
+        }
+      } catch (error) {
+        console.error('Error in updateOnboardingStep:', error);
+      }
     }
   }, [state.user]);
 
@@ -100,7 +126,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .from('onboarding_progress')
           .select('*')
           .eq('student_id', state.user.id)
-          .single();
+          .maybeSingle();
           
         if (progress && progress.current_step) {
           setCurrentStep(progress.current_step);
