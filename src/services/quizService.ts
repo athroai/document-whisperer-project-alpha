@@ -1,3 +1,4 @@
+
 import { Question, Answer, QuizResult, mockQuestions } from '@/types/quiz';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -157,6 +158,9 @@ const realImplementation = {
     console.log(`Fetching ${count} questions for ${subject} at difficulty ${difficulty}`);
     
     try {
+      // Display a loading toast
+      const loadingToast = toast.loading(`Generating ${subject} questions...`);
+      
       const { data, error } = await supabase.functions.invoke('generate-quiz', {
         body: { 
           subject,
@@ -166,15 +170,18 @@ const realImplementation = {
         }
       });
       
+      // Dismiss the loading toast
+      toast.dismiss(loadingToast);
+      
       if (error) {
         console.error("Error from edge function:", error);
-        toast.error("Could not generate quiz questions");
+        toast.error(`Could not generate ${subject} questions`);
         return [];
       }
       
       if (!data || !data.questions) {
         console.error("Invalid response format from edge function:", data);
-        toast.error("Could not generate quiz questions");
+        toast.error(`Could not generate ${subject} questions`);
         return [];
       }
 
@@ -185,7 +192,9 @@ const realImplementation = {
 
       // If using mock questions, show a warning toast
       if (data.fromMock) {
-        toast.warning("Using sample questions - quiz generation service unavailable");
+        toast.warning(`Using sample ${subject} questions - quiz generation service unavailable`);
+      } else {
+        toast.success(`${subject} questions ready!`);
       }
       
       const processedQuestions = data.questions.map((q: any) => ({
@@ -201,7 +210,7 @@ const realImplementation = {
       return processedQuestions;
     } catch (error) {
       console.error("Error generating questions:", error);
-      toast.error("Could not generate quiz questions");
+      toast.error(`Could not generate ${subject} questions`);
       return mockQuestions.filter(q => q.subject === subject).slice(0, count);
     }
   },

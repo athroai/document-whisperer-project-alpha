@@ -14,16 +14,18 @@ export async function callOpenAI(apiKey: string, subject: string, difficulty: st
       messages: [
         {
           role: "system",
-          content: "You are a professional educator creating GCSE quiz questions."
+          content: "You are a professional educator creating GCSE quiz questions. Return ONLY valid JSON array without any markdown formatting, code blocks, or explanations."
         },
         {
           role: "user",
           content: `Generate ${count} ${difficulty} difficulty multiple-choice questions for GCSE ${subject}. 
-          Return a JSON array with each question having: 
-          id, text, correctAnswer, options, difficulty, subject, topic`
+          Return ONLY a JSON array with each question having: 
+          id, text, correctAnswer, options, difficulty, subject, topic.
+          Do not wrap the JSON in markdown code blocks or add any explanations.`
         }
       ],
       temperature: 0.7,
+      response_format: { type: "json_object" }, // Enforce JSON format
     }),
   });
 

@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubjects } from '@/hooks/useSubjects';
 import { Loader2, CheckCircle, BookOpen, RefreshCw } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { quizService } from '@/services/quizService';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Question } from '@/types/quiz';
@@ -29,7 +29,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const { subjects, isLoading } = useSubjects();
   const [retryCount, setRetryCount] = useState<Record<string, number>>({});
 
-  // Limit retries to prevent infinite loading
   const MAX_RETRIES = 2;
 
   const startQuiz = async (subject: string) => {
@@ -45,6 +44,8 @@ export const DiagnosticQuizSelector: React.FC = () => {
       const confidence = subjectPreference?.confidence || 5;
       const difficulty = Math.ceil(confidence / 2);
 
+      toast.loading(`Generating ${subject} quiz questions...`);
+
       const fetchedQuestions = await quizService.getQuestionsBySubject(
         subject, 
         difficulty,
@@ -52,7 +53,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
       );
       
       if (!fetchedQuestions || fetchedQuestions.length === 0) {
-        throw new Error("No questions were generated");
+        throw new Error(`No questions were generated for ${subject}`);
       }
 
       const validQuestions = fetchedQuestions.filter(q => 
@@ -63,7 +64,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
       );
       
       if (validQuestions.length === 0) {
-        throw new Error("Generated questions are in an invalid format");
+        throw new Error(`Generated questions for ${subject} are in an invalid format`);
       }
 
       setQuestions(validQuestions);
@@ -79,7 +80,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
         setRetryCount(prev => ({ ...prev, [subject]: currentRetries + 1 }));
         toast({
           title: "Quiz Generation",
-          description: "Retrying quiz generation...",
+          description: `Retrying ${subject} quiz generation...`,
           variant: "default"
         });
         
@@ -87,12 +88,8 @@ export const DiagnosticQuizSelector: React.FC = () => {
         return;
       }
       
-      setError('Could not generate questions. Please try again later or contact support.');
-      toast({
-        title: "Quiz Generation Failed",
-        description: "Could not generate questions. Please try again later.",
-        variant: "destructive"
-      });
+      setError(`Could not generate ${subject} questions. Please try again later or contact support.`);
+      toast.error(`Could not generate ${subject} questions. Please try again later.`);
       setCurrentSubject(null);
       setIsGenerating(prev => ({ ...prev, [subject]: false }));
     } finally {
@@ -110,7 +107,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const handleQuizComplete = async () => {
     if (!state.user || !currentSubject) return;
 
-    // Count correct answers
     let correctCount = 0;
     let totalQuestions = questions.length;
     
@@ -124,13 +120,11 @@ export const DiagnosticQuizSelector: React.FC = () => {
       }
     });
 
-    // Calculate score percentage
     const scorePercentage = Math.round((correctCount / totalQuestions) * 100);
     
     try {
       console.log(`Quiz completed for ${currentSubject}. Score: ${correctCount}/${totalQuestions} (${scorePercentage}%)`);
       
-      // Determine help level based on score
       let helpLevel = "medium";
       if (scorePercentage >= 80) {
         helpLevel = "low";
@@ -138,7 +132,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
         helpLevel = "high";
       }
       
-      // Save quiz result to both tables
       await quizService.saveQuizResult({
         userId: state.user.id,
         subject: currentSubject,
@@ -151,17 +144,14 @@ export const DiagnosticQuizSelector: React.FC = () => {
         timestamp: new Date().toISOString()
       });
 
-      // Calculate new confidence level (1-10 scale)
       const newConfidence = Math.max(1, Math.min(10, Math.round(scorePercentage / 10)));
       
-      // Update user confidence in the subject
       await quizService.updateUserConfidenceScores(
         state.user.id, 
         currentSubject, 
         newConfidence
       );
 
-      // Update student_subjects with help_level if it exists
       try {
         const { data: existingSubject } = await supabase
           .from('student_subjects')
@@ -188,7 +178,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
         console.error("Error updating student_subjects:", e);
       }
 
-      // Update onboarding progress
       await supabase
         .from('onboarding_progress')
         .upsert({
@@ -216,7 +205,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
         variant: "destructive"
       });
     } finally {
-      // Reset quiz state after a delay to show results
       setTimeout(() => {
         setCurrentSubject(null);
         setQuestions([]);

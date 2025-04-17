@@ -42,9 +42,39 @@ serve(async (req) => {
 
     let questions;
     try {
-      questions = JSON.parse(data.choices[0].message.content);
+      // Check if the response contains a 'questions' array directly or needs JSON parsing
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        const content = data.choices[0].message.content;
+        
+        // Try to parse the content if it's a string
+        if (typeof content === 'string') {
+          // Remove markdown code block formatting if present
+          const jsonContent = content
+            .replace(/```json\s*/g, '')
+            .replace(/```\s*$/g, '')
+            .replace(/```\s*/g, '')
+            .trim();
+          
+          questions = JSON.parse(jsonContent);
+          
+          // If parsing returned an object with a 'questions' property, use that
+          if (questions.questions && Array.isArray(questions.questions)) {
+            questions = questions.questions;
+          }
+        } else if (typeof content === 'object') {
+          // If content is already an object, check if it has a 'questions' array
+          questions = content.questions || content;
+        }
+      }
+      
+      // If questions is still not defined or not an array, throw an error
+      if (!questions || !Array.isArray(questions)) {
+        console.error("Invalid response format:", data);
+        throw new Error("Invalid question format received from OpenAI");
+      }
     } catch (parseError) {
       console.error("Failed to parse questions:", parseError);
+      console.error("Raw content:", data.choices?.[0]?.message?.content);
       throw new Error("Invalid question format received from OpenAI");
     }
     
