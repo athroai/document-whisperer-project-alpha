@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const StudySessionLauncher = () => {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ const StudySessionLauncher = () => {
       try {
         const { data, error } = await supabase
           .from('calendar_events')
-          .select('id, title, description, start_time, event_type')
+          .select('id, title, description, start_time, end_time, event_type')
           .eq('student_id', authState.user.id)
           .eq('event_type', 'study_session')
           .gte('start_time', fiveMinutesAgo.toISOString())
@@ -33,41 +34,42 @@ const StudySessionLauncher = () => {
         
         // If there's a session starting soon or just started
         if (data && data.length > 0) {
-          const upcomingSession = data[0];
-          let description: any = {};
-          
-          try {
-            if (upcomingSession.description) {
-              description = JSON.parse(upcomingSession.description);
-            }
-          } catch (e) {
-            console.error('Error parsing session description:', e);
-          }
-          
-          // Only prompt for sessions in the next 15 minutes or that started in the last 5
-          const startTime = new Date(upcomingSession.start_time);
-          
-          // Check if within notification window and haven't shown for this session
-          const sessionNotified = localStorage.getItem(`notified_session_${upcomingSession.id}`);
-          if (!sessionNotified) {
-            toast({
-              title: "Scheduled Study Session",
-              description: `You have a ${description.subject || ''} session starting at ${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-              action: (
-                <button
-                  onClick={() => {
-                    navigate(`/study?sessionId=${upcomingSession.id}&subject=${description.subject || ''}&topic=${description.topic || ''}`);
-                  }}
-                  className="bg-purple-600 text-white px-3 py-1 rounded text-xs"
-                >
-                  Start Now
-                </button>
-              ),
-              duration: 10000,
-            });
+          for (const upcomingSession of data) {
+            let description: any = {};
             
-            // Mark this session as notified
-            localStorage.setItem(`notified_session_${upcomingSession.id}`, 'true');
+            try {
+              if (upcomingSession.description) {
+                description = JSON.parse(upcomingSession.description);
+              }
+            } catch (e) {
+              console.error('Error parsing session description:', e);
+            }
+            
+            // Only prompt for sessions in the next 15 minutes or that started in the last 5
+            const startTime = new Date(upcomingSession.start_time);
+            
+            // Check if within notification window and haven't shown for this session
+            const sessionNotified = localStorage.getItem(`notified_session_${upcomingSession.id}`);
+            if (!sessionNotified) {
+              toast({
+                title: "Scheduled Study Session",
+                description: `You have a ${description.subject || ''} session starting at ${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+                action: (
+                  <Button
+                    onClick={() => {
+                      navigate(`/study?sessionId=${upcomingSession.id}&subject=${description.subject || ''}&topic=${description.topic || ''}`);
+                    }}
+                    className="bg-purple-600 text-white px-3 py-1 rounded text-xs"
+                  >
+                    Start Now
+                  </Button>
+                ),
+                duration: 10000,
+              });
+              
+              // Mark this session as notified
+              localStorage.setItem(`notified_session_${upcomingSession.id}`, 'true');
+            }
           }
         }
       } catch (error) {
@@ -75,11 +77,24 @@ const StudySessionLauncher = () => {
       }
     };
     
+    // Check immediately on route change to /calendar
+    const handleRouteChange = () => {
+      if (window.location.pathname === '/calendar') {
+        checkForScheduledSessions();
+      }
+    };
+    
+    // Add event listener for route changes
+    window.addEventListener('popstate', handleRouteChange);
+    
     // Check immediately and then every 5 minutes
     checkForScheduledSessions();
     const interval = setInterval(checkForScheduledSessions, 5 * 60000);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('popstate', handleRouteChange);
+    };
   }, [navigate, toast, authState.user]);
   
   return null; // This is a utility component, not rendering anything

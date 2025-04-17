@@ -30,6 +30,7 @@ const App: React.FC = () => {
         <AthroProvider>
           <div className="min-h-screen flex flex-col">
             <Navigation />
+            <StudySessionLauncher />
             <Routes>
               <Route path="/" element={<WelcomePage />} />
               <Route path="/onboarding" element={

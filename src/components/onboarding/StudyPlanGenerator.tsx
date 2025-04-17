@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import PomodoroTimer from '@/components/PomodoroTimer';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 export const StudyPlanGenerator: React.FC = () => {
   const { state } = useAuth();
@@ -14,6 +16,7 @@ export const StudyPlanGenerator: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [studyPlan, setStudyPlan] = useState<any[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -48,18 +51,39 @@ export const StudyPlanGenerator: React.FC = () => {
       console.log("Selected subjects:", selectedSubjects);
       console.log("Availability:", availability);
       
-      // Basic study plan generation logic
-      const plan = selectedSubjects.map((subject, index) => ({
-        subject: subject.subject,
-        sessions: [
-          {
-            startTime: availability[index % availability.length]?.startTime || '18:00',
-            endTime: availability[index % availability.length]?.endTime || '19:30',
-            workMinutes: 25,
-            breakMinutes: 5
-          }
-        ]
-      }));
+      // Create session dates based on availability
+      const today = new Date();
+      const planItemsWithDates = selectedSubjects.map((subject, index) => {
+        const availabilitySlot = availability[index % availability.length];
+        
+        if (!availabilitySlot) {
+          throw new Error("No availability found. Please set your availability first.");
+        }
+        
+        const [startHours, startMinutes] = availabilitySlot.startTime.split(':').map(Number);
+        const [endHours, endMinutes] = availabilitySlot.endTime.split(':').map(Number);
+        
+        const startDate = new Date(today);
+        startDate.setHours(startHours, startMinutes, 0, 0);
+        
+        const endDate = new Date(today);
+        endDate.setHours(endHours, endMinutes, 0, 0);
+        
+        return {
+          subject: subject.subject,
+          startDate,
+          endDate,
+          sessions: [
+            {
+              startTime: availabilitySlot.startTime,
+              endTime: availabilitySlot.endTime,
+              workMinutes: 25,
+              breakMinutes: 5,
+              dayOfWeek: availabilitySlot.dayOfWeek || (new Date().getDay() || 7)
+            }
+          ]
+        };
+      });
 
       // Get fresh auth session
       const { data: authData } = await supabase.auth.getUser();
@@ -105,22 +129,14 @@ export const StudyPlanGenerator: React.FC = () => {
       console.log("Created study plan with ID:", planId);
       
       // Create calendar events and study plan sessions
-      const today = new Date();
-      const calendarEvents = [];
       let successfulInserts = 0;
+      const savedEvents = [];
       
-      for (const planItem of plan) {
-        // Create a study session that starts today at the specified time
-        const [hours, minutes] = planItem.sessions[0].startTime.split(':').map(Number);
-        const [endHours, endMinutes] = planItem.sessions[0].endTime.split(':').map(Number);
+      for (const planItem of planItemsWithDates) {
+        const startDate = planItem.startDate;
+        const endDate = planItem.endDate;
         
-        const startDate = new Date(today);
-        startDate.setHours(hours, minutes, 0, 0);
-        
-        const endDate = new Date(today);
-        endDate.setHours(endHours, endMinutes, 0, 0);
-        
-        // Create calendar event
+        // Create event description
         const eventDescription = JSON.stringify({
           subject: planItem.subject,
           topic: null,
@@ -157,7 +173,12 @@ export const StudyPlanGenerator: React.FC = () => {
 
         successfulInserts++;
         console.log(`Successfully created calendar event with ID ${eventData[0].id}`);
-        calendarEvents.push(eventData[0]);
+        savedEvents.push({
+          ...eventData[0],
+          subject: planItem.subject,
+          formattedStart: format(startDate, 'EEEE, h:mm a'),
+          dayOfWeek: planItem.sessions[0].dayOfWeek
+        });
         
         // Create study plan session linked to the calendar event
         const { error: sessionError } = await client
@@ -179,7 +200,7 @@ export const StudyPlanGenerator: React.FC = () => {
         }
       }
 
-      console.log(`Successfully created ${successfulInserts} calendar events out of ${plan.length} subjects`);
+      console.log(`Successfully created ${successfulInserts} calendar events out of ${planItemsWithDates.length} subjects`);
 
       if (successfulInserts === 0) {
         toast({
@@ -192,7 +213,8 @@ export const StudyPlanGenerator: React.FC = () => {
           title: "Study Plan Created",
           description: `Successfully scheduled ${successfulInserts} study sessions.`,
         });
-        setStudyPlan(plan);
+        setStudyPlan(planItemsWithDates);
+        setCalendarEvents(savedEvents);
       }
     } catch (error) {
       console.error('Error generating study plan:', error);
@@ -213,8 +235,8 @@ export const StudyPlanGenerator: React.FC = () => {
         title: "Onboarding Complete",
         description: "You're all set! Your study plan has been created.",
       });
-      // Redirect to dashboard or home page
-      window.location.href = '/dashboard';
+      // Redirect to calendar or home page
+      window.location.href = '/calendar';
     } catch (error) {
       console.error("Error completing onboarding:", error);
       toast({
@@ -249,14 +271,35 @@ export const StudyPlanGenerator: React.FC = () => {
         <div className="space-y-6">
           <h3 className="text-lg font-medium">Your Study Plan</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {studyPlan.map((plan, index) => (
+            {calendarEvents.map((event, index) => (
               <div key={index} className="bg-white rounded-lg shadow p-4 border border-gray-200">
-                <p className="font-medium text-purple-700">{plan.subject} Study Session</p>
-                <p className="text-sm text-gray-500 mt-1">Scheduled daily</p>
+                <div className="flex justify-between items-start">
+                  <p className="font-medium text-purple-700">{event.subject} Study Session</p>
+                  <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+                    ID: {event.id}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center text-sm text-gray-600">
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  <span>Scheduled for {event.formattedStart}</span>
+                </div>
                 <PomodoroTimer 
                   className="my-2"
-                  onComplete={() => console.log(`${plan.subject} session completed`)}
+                  onComplete={() => console.log(`${event.subject} session completed`)}
                 />
+                <div className="mt-2 pt-2 border-t border-gray-100">
+                  <p className="text-xs text-gray-500">
+                    This session has been added to your calendar.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="link"
+                    className="p-0 h-auto mt-1 text-purple-600"
+                    onClick={() => window.location.href = '/calendar'}
+                  >
+                    View in Calendar
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
