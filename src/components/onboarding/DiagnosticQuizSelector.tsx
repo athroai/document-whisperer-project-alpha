@@ -36,8 +36,17 @@ export const DiagnosticQuizSelector: React.FC = () => {
     return <div className="text-center py-4">Loading subjects...</div>;
   }
 
-  // Filter subjects to only show selected subjects from onboarding
-  const subjectsToShow = onboardingSubjects.length > 0 ? onboardingSubjects : subjects;
+  // Only show subjects that were selected during onboarding
+  const subjectsToShow = onboardingSubjects;
+  
+  // If no subjects were selected, show a message
+  if (subjectsToShow.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <p>No subjects selected. Please go back to the previous step to select subjects.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
