@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -7,12 +8,14 @@ import { useQuiz } from '@/hooks/useQuiz';
 import { SubjectQuizCard } from './quiz/SubjectQuizCard';
 import { QuizQuestion } from './quiz/QuizQuestion';
 import { useToast } from '@/hooks/use-toast';
+import { ConfidenceLabel, confidenceOptions } from '@/types/confidence';
+import { cn } from '@/lib/utils';
 
 export const DiagnosticQuizSelector: React.FC = () => {
   const { toast: uiToast } = useToast();
   const { selectedSubjects, updateOnboardingStep } = useOnboarding();
   const { subjects, isLoading: isLoadingSubjects } = useSubjects();
-  const [selectedConfidence, setSelectedConfidence] = useState<number>(5);
+  const [selectedConfidence, setSelectedConfidence] = useState<ConfidenceLabel>("Neutral");
   
   const { 
     currentSubject,
@@ -35,15 +38,9 @@ export const DiagnosticQuizSelector: React.FC = () => {
     }
   });
 
-  const handleConfidenceChange = (newValue: (string | number)[]) => {
-    const value = newValue?.[0] ?? 5;
-    setSelectedConfidence(typeof value === 'string' ? parseInt(value, 10) : value);
-  };
-
   const handleStartQuiz = (subject: string) => {
     const subjectPreference = selectedSubjects?.find(s => s.subject === subject);
-    const confidence = subjectPreference?.confidence || selectedConfidence;
-    startQuiz(subject, confidence);
+    startQuiz(subject, selectedConfidence);
   };
 
   const allQuizzesCompleted = () => {
@@ -86,7 +83,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {error && (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -94,22 +91,41 @@ export const DiagnosticQuizSelector: React.FC = () => {
         </Alert>
       )}
       
-      <div>
-        <p className="mb-4">Take these quick diagnostic quizzes to help us create a personalized study plan:</p>
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">How confident are you in these subjects?</h3>
+        <p className="text-sm text-muted-foreground">
+          We'll use this to choose how challenging your quiz should be.
+        </p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {subjectsToShow.map((subject) => (
-            <SubjectQuizCard
-              key={subject}
-              subject={subject}
-              score={quizResults[subject]}
-              isLoading={isLoadingQuestions[subject] || false}
-              isGenerating={isGenerating[subject] || false}
-              onStartQuiz={() => handleStartQuiz(subject)}
-              disabled={currentSubject !== null}
-            />
+        <div className="flex flex-wrap gap-2">
+          {confidenceOptions.map((confidence) => (
+            <Button
+              key={confidence}
+              onClick={() => setSelectedConfidence(confidence)}
+              variant={selectedConfidence === confidence ? "default" : "outline"}
+              className={cn(
+                "flex-1 min-w-[120px]",
+                selectedConfidence === confidence && "bg-purple-600 hover:bg-purple-700"
+              )}
+            >
+              {confidence}
+            </Button>
           ))}
         </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {subjectsToShow.map((subject) => (
+          <SubjectQuizCard
+            key={subject}
+            subject={subject}
+            score={quizResults[subject]}
+            isLoading={isLoadingQuestions[subject] || false}
+            isGenerating={isGenerating[subject] || false}
+            onStartQuiz={() => handleStartQuiz(subject)}
+            disabled={currentSubject !== null}
+          />
+        ))}
       </div>
       
       <div className="flex justify-between mt-6">

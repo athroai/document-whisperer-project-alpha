@@ -4,8 +4,8 @@ import { Question } from '@/types/quiz';
 import { quizService } from '@/services/quizService';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { ConfidenceLabel, confidenceToNumber } from '@/types/confidence';
 
-// Define the MAX_RETRIES constant
 const MAX_RETRIES = 2;
 
 interface UseQuizProps {
@@ -27,11 +27,11 @@ export function useQuiz({ onQuizComplete }: UseQuizProps = {}) {
   const [loadingToastId, setLoadingToastId] = useState<string | null>(null);
   const [quizResults, setQuizResults] = useState<Record<string, number>>({});
 
-  const startQuiz = async (subject: string, confidence: string | number) => {
+  const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
     if (currentSubject) return;
 
-    const numericConfidence = typeof confidence === 'string' ? parseInt(confidence, 10) : confidence;
-    const difficulty = Math.ceil(numericConfidence / 2);
+    const numericConfidence = confidenceToNumber(confidence);
+    const difficulty = Math.ceil(numericConfidence / 5);
 
     setCurrentSubject(subject);
     setIsLoadingQuestions(prev => ({ ...prev, [subject]: true }));
