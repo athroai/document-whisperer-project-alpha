@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { quizService } from '@/services/quizService';
@@ -150,14 +151,14 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         .select('id');
 
       const confidenceValue = Math.max(1, Math.min(10, Math.round(scorePercentage / 10)));
-      const newConfidence = numberToConfidenceString(confidenceValue);
+      const confidenceString = numberToConfidenceString(confidenceValue);
       
       await supabase
         .from('student_subject_preferences')
         .upsert({
           student_id: state.user.id,
           subject: subjectString,
-          confidence_level: newConfidence
+          confidence_level: confidenceString  // Pass the string version
         }, { onConflict: 'student_id, subject' });
 
       try {
