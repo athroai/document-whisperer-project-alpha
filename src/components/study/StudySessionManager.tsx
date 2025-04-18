@@ -5,6 +5,7 @@ import { AthroCharacter } from '@/types/athro';
 import { athroCharacters, getAthroBySubject } from '@/config/athrosConfig';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { verifyAuth } from '@/lib/supabase';
 
 // Ensure these imports are valid based on your project structure
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +36,17 @@ const StudySessionManager: React.FC<StudySessionManagerProps> = ({
       const confidenceBefore = confidenceParam ? parseInt(confidenceParam, 10) : undefined;
       
       console.log('Session parameters:', { sessionId, subject, topic, confidenceBefore });
+      
+      // Verify authentication first before proceeding
+      const authUser = await verifyAuth();
+      if (!authUser && !authState.user) {
+        toast({
+          title: "Authentication Required",
+          description: "You need to be signed in to start a study session",
+          variant: "destructive",
+        });
+        return;
+      }
       
       // Find the right character for this subject using getAthroBySubject helper
       const character = getAthroBySubject(subject);
@@ -123,7 +135,7 @@ const StudySessionManager: React.FC<StudySessionManagerProps> = ({
     if (location.pathname.includes('/study')) {
       initializeSessionFromParams();
     }
-  }, [searchParams, location, onSessionStart, authState.user]);
+  }, [searchParams, location, onSessionStart, authState.user, toast]);
 
   return null; // This is a logic component with no visible UI
 };

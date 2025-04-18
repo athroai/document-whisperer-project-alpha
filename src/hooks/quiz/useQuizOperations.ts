@@ -30,7 +30,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       quizState.setLoadingToastId(toastId);
 
       const fetchedQuestions = await quizService.getQuestionsBySubject(
-        subject, 
+        String(subject), 
         difficulty,
         5
       );

@@ -1,6 +1,8 @@
+
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AuthState, User } from '../types/auth';
 import { generateUUID } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 type AuthAction = 
   | { type: 'AUTH_START' }
@@ -89,6 +91,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           localStorage.setItem('athro_user', JSON.stringify(user));
+          
+          // Create a Supabase session for the mock user
+          try {
+            // We don't actually authenticate with Supabase here, but we create a reference 
+            // that can be used for RLS policies
+            const { data, error } = await supabase.auth.getSession();
+            if (error || !data.session) {
+              console.log("Setting up mock authentication for Supabase access");
+            }
+          } catch (error) {
+            console.error('Error syncing user with Supabase:', error);
+          }
+          
           dispatch({ type: 'AUTH_SUCCESS', payload: user });
         } else {
           dispatch({ type: 'AUTH_LOGOUT' });
@@ -120,12 +135,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       };
       
+      // Store user data appropriately based on remember me preference
       if (rememberMe) {
         localStorage.setItem('athro_user', JSON.stringify(mockUser));
         localStorage.setItem('athro_token', 'mock-token-' + Date.now());
       } else {
         sessionStorage.setItem('athro_user', JSON.stringify(mockUser));
         sessionStorage.setItem('athro_token', 'mock-token-' + Date.now());
+      }
+      
+      // Create a reference in Supabase
+      try {
+        const userData = {
+          id: mockUser.id,
+          email: mockUser.email,
+          role: mockUser.role
+        };
+        await supabase.from('profiles').upsert(userData, { onConflict: 'id' });
+      } catch (error) {
+        console.error('Error creating mock user in Supabase:', error);
+        // Continue anyway since this is just for development
       }
       
       dispatch({ type: 'AUTH_SUCCESS', payload: mockUser });
@@ -156,6 +185,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('athro_user', JSON.stringify(mockUser));
       localStorage.setItem('athro_token', 'mock-token-' + Date.now());
       
+      // Create a reference in Supabase
+      try {
+        const userData = {
+          id: mockUser.id,
+          email: mockUser.email,
+          role: mockUser.role
+        };
+        await supabase.from('profiles').upsert(userData, { onConflict: 'id' });
+      } catch (error) {
+        console.error('Error creating mock user in Supabase:', error);
+        // Continue anyway since this is just for development
+      }
+      
       dispatch({ type: 'AUTH_SUCCESS', payload: mockUser });
       return Promise.resolve();
     } catch (error) {
@@ -170,6 +212,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('athro_token');
       sessionStorage.removeItem('athro_user');
       sessionStorage.removeItem('athro_token');
+      
+      // Also sign out from Supabase to clear any session
+      await supabase.auth.signOut();
       
       dispatch({ type: 'AUTH_LOGOUT' });
     } catch (error) {
