@@ -1,19 +1,50 @@
 
-export function getConfidenceLabel(confidenceChange: number): string {
-  if (confidenceChange > 1) return "Much better";
-  if (confidenceChange === 1) return "Slightly better";
-  if (confidenceChange === 0) return "No change";
+import { ConfidenceLabel } from '@/types/confidence';
+
+export function getConfidenceLabel(confidenceBefore: ConfidenceLabel, confidenceAfter: ConfidenceLabel): string {
+  const confidenceOrder = [
+    "Very unsure",
+    "Slightly unsure",
+    "Neutral",
+    "Slightly confident",
+    "Very confident"
+  ];
+  
+  const beforeIndex = confidenceOrder.indexOf(confidenceBefore);
+  const afterIndex = confidenceOrder.indexOf(confidenceAfter);
+  
+  if (afterIndex > beforeIndex) return "Much better";
+  if (afterIndex === beforeIndex + 1) return "Slightly better";
+  if (afterIndex === beforeIndex) return "No change";
   return "Still unsure";
 }
 
-export function getConfidenceColor(confidenceChange: number): string {
-  if (confidenceChange > 1) return "bg-green-100 text-green-800";
-  if (confidenceChange === 1) return "bg-lime-100 text-lime-800";
-  if (confidenceChange === 0) return "bg-yellow-100 text-yellow-800";
-  return "bg-red-100 text-red-800";
+export function getConfidenceColor(label: string): string {
+  switch (label) {
+    case "Much better":
+      return "bg-green-100 text-green-800";
+    case "Slightly better":
+      return "bg-lime-100 text-lime-800";
+    case "No change":
+      return "bg-yellow-100 text-yellow-800";
+    default:
+      return "bg-red-100 text-red-800";
+  }
 }
 
-export function parseConfidence(value: string | number): number {
-  if (typeof value === 'number') return value;
-  return parseInt(value, 10) || 5; // Default to 5 if parsing fails
+// Helper to ensure confidence value is a valid label
+export function parseConfidence(value: string): ConfidenceLabel {
+  if (typeof value !== 'string') return "Neutral";
+  
+  const validLabels: ConfidenceLabel[] = [
+    "Very confident",
+    "Slightly confident",
+    "Neutral",
+    "Slightly unsure",
+    "Very unsure"
+  ];
+  
+  return validLabels.includes(value as ConfidenceLabel) 
+    ? value as ConfidenceLabel 
+    : "Neutral";
 }

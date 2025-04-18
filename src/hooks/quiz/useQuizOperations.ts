@@ -1,9 +1,10 @@
+
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { quizService } from '@/services/quizService';
 import { supabase } from '@/lib/supabase';
 import { Question } from '@/types/quiz';
-import { ConfidenceLabel, confidenceToNumber } from '@/types/confidence';
+import { ConfidenceLabel, getDifficultyFromConfidence } from '@/types/confidence';
 import { useQuizState, UseQuizStateProps } from './useQuizState';
 
 const MAX_RETRIES = 2;
@@ -16,8 +17,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
     if (quizState.currentSubject) return;
 
     const subjectString = String(subject);
-    const numericConfidence = confidenceToNumber(confidence);
-    const difficulty = Math.ceil(numericConfidence / 5);
+    const difficulty = getDifficultyFromConfidence(confidence);
 
     quizState.setCurrentSubject(subjectString);
     quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: true }));
@@ -129,7 +129,8 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       } else if (scorePercentage <= 40) {
         helpLevel = "high";
       }
-      
+
+      // Update database records with score
       await supabase
         .from('diagnostic_quiz_results')
         .insert({
@@ -149,15 +150,18 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         })
         .select('id');
 
-      const confidenceValue = Math.max(1, Math.min(10, Math.round(scorePercentage / 10)));
-      const confidenceString = numberToConfidenceString(confidenceValue);
+      const confidenceValue = scorePercentage >= 80 ? "Very confident" :
+                            scorePercentage >= 60 ? "Slightly confident" :
+                            scorePercentage >= 40 ? "Neutral" :
+                            scorePercentage >= 20 ? "Slightly unsure" :
+                            "Very unsure";
       
       await supabase
         .from('student_subject_preferences')
         .upsert({
           student_id: state.user.id,
           subject: subjectString,
-          confidence_level: confidenceString
+          confidence_level: confidenceValue
         }, { onConflict: 'student_id, subject' });
 
       try {
