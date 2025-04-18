@@ -17,18 +17,19 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
 
     const numericConfidence = confidenceToNumber(confidence);
     const difficulty = Math.ceil(numericConfidence / 5);
+    const subjectString = String(subject);
 
-    quizState.setCurrentSubject(subject);
-    quizState.setIsLoadingQuestions(prev => ({ ...prev, [subject]: true }));
-    quizState.setIsGenerating(prev => ({ ...prev, [subject]: true }));
+    quizState.setCurrentSubject(subjectString);
+    quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: true }));
+    quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: true }));
     quizState.setError(null);
 
     try {
-      const toastId = toast.loading(`Generating ${subject} quiz questions...`);
+      const toastId = toast.loading(`Generating ${subjectString} quiz questions...`);
       quizState.setLoadingToastId(toastId);
 
       const fetchedQuestions = await quizService.getQuestionsBySubject(
-        subject, 
+        subjectString, 
         difficulty,
         5
       );
@@ -39,7 +40,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       }
       
       if (!fetchedQuestions || fetchedQuestions.length === 0) {
-        throw new Error(`No questions were generated for ${subject}`);
+        throw new Error(`No questions were generated for ${subjectString}`);
       }
 
       const validQuestions = fetchedQuestions.filter(q => 
@@ -50,14 +51,14 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       );
       
       if (validQuestions.length === 0) {
-        throw new Error(`Generated questions for ${subject} are in an invalid format`);
+        throw new Error(`Generated questions for ${subjectString} are in an invalid format`);
       }
 
       quizState.setQuestions(validQuestions);
       quizState.setCurrentQuestionIndex(0);
       quizState.setSelectedAnswers({});
-      quizState.setIsGenerating(prev => ({ ...prev, [subject]: false }));
-      toast.success(`${subject} quiz ready!`);
+      quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: false }));
+      toast.success(`${subjectString} quiz ready!`);
 
     } catch (error: any) {
       console.error('Error fetching questions:', error);
@@ -67,21 +68,21 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         quizState.setLoadingToastId(null);
       }
       
-      const currentRetries = quizState.retryCount[subject] || 0;
+      const currentRetries = quizState.retryCount[subjectString] || 0;
       if (currentRetries < MAX_RETRIES) {
-        quizState.setRetryCount(prev => ({ ...prev, [subject]: currentRetries + 1 }));
-        toast.info(`Retrying ${subject} quiz generation...`);
+        quizState.setRetryCount(prev => ({ ...prev, [subjectString]: currentRetries + 1 }));
+        toast.info(`Retrying ${subjectString} quiz generation...`);
         
-        setTimeout(() => startQuiz(subject, confidence), 2000);
+        setTimeout(() => startQuiz(subjectString, confidence), 2000);
         return;
       }
       
-      quizState.setError(`Could not generate ${subject} questions. Please try again later or contact support.`);
-      toast.error(`Could not generate ${subject} questions. Please try again later.`);
+      quizState.setError(`Could not generate ${subjectString} questions. Please try again later or contact support.`);
+      toast.error(`Could not generate ${subjectString} questions. Please try again later.`);
       quizState.setCurrentSubject(null);
-      quizState.setIsGenerating(prev => ({ ...prev, [subject]: false }));
+      quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: false }));
     } finally {
-      quizState.setIsLoadingQuestions(prev => ({ ...prev, [subject]: false }));
+      quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: false }));
     }
   };
 
@@ -117,9 +118,10 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
     });
 
     const scorePercentage = Math.round((correctCount / totalQuestions) * 100);
+    const subjectString = String(quizState.currentSubject);
     
     try {
-      console.log(`Quiz completed for ${quizState.currentSubject}. Score: ${correctCount}/${totalQuestions} (${scorePercentage}%)`);
+      console.log(`Quiz completed for ${subjectString}. Score: ${correctCount}/${totalQuestions} (${scorePercentage}%)`);
       
       let helpLevel = "medium";
       if (scorePercentage >= 80) {
@@ -132,7 +134,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         .from('diagnostic_quiz_results')
         .insert({
           student_id: state.user.id,
-          subject: quizState.currentSubject,
+          subject: subjectString,
           score: correctCount,
           total_questions: totalQuestions
         })
@@ -142,7 +144,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         .from('diagnostic_results')
         .insert({
           student_id: state.user.id,
-          subject_name: quizState.currentSubject,
+          subject_name: subjectString,
           percentage_accuracy: scorePercentage
         })
         .select('id');
@@ -154,7 +156,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         .from('student_subject_preferences')
         .upsert({
           student_id: state.user.id,
-          subject: quizState.currentSubject,
+          subject: subjectString,
           confidence_level: newConfidence
         }, { onConflict: 'student_id, subject' });
 
@@ -163,7 +165,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
           .from('student_subjects')
           .select('*')
           .eq('student_id', state.user.id)
-          .eq('subject_name', quizState.currentSubject)
+          .eq('subject_name', subjectString)
           .maybeSingle();
         
         if (existingSubject) {
@@ -176,7 +178,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
             .from('student_subjects')
             .insert({
               student_id: state.user.id,
-              subject_name: quizState.currentSubject,
+              subject_name: subjectString,
               help_level: helpLevel
             });
         }
@@ -195,13 +197,13 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
 
       quizState.setScore(scorePercentage);
       quizState.setQuizCompleted(true);
-      quizState.setQuizResults(prev => ({ ...prev, [quizState.currentSubject!]: scorePercentage }));
+      quizState.setQuizResults(prev => ({ ...prev, [subjectString]: scorePercentage }));
       
       if (quizState.onQuizComplete) {
-        quizState.onQuizComplete(quizState.currentSubject, scorePercentage);
+        quizState.onQuizComplete(subjectString, scorePercentage);
       }
       
-      toast.success(`You scored ${scorePercentage}% on ${quizState.currentSubject}`);
+      toast.success(`You scored ${scorePercentage}% on ${subjectString}`);
     } catch (error: any) {
       console.error('Error saving quiz result:', error);
       quizState.setError(error.message || "Could not save your quiz results");
