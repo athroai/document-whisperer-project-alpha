@@ -23,7 +23,13 @@ export function useQuizState({ onQuizComplete }: UseQuizStateProps = {}): UseQui
     questions,
     setQuestions,
     currentQuestionIndex,
-    setCurrentQuestionIndex,
+    setCurrentQuestionIndex: (indexOrFn: number | ((prev: number) => number)) => {
+      if (typeof indexOrFn === 'function') {
+        setCurrentQuestionIndex(prev => indexOrFn(prev));
+      } else {
+        setCurrentQuestionIndex(indexOrFn);
+      }
+    },
     selectedAnswers,
     setSelectedAnswers,
     quizCompleted,

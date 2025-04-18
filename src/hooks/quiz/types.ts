@@ -20,7 +20,7 @@ export interface UseQuizState {
   quizResults: Record<string, number>;
   setCurrentSubject: (subject: string | null) => void;
   setQuestions: (questions: Question[]) => void;
-  setCurrentQuestionIndex: (index: number) => void;
+  setCurrentQuestionIndex: (index: number | ((prevIndex: number) => number)) => void;
   setSelectedAnswers: (answers: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => void;
   setQuizCompleted: (completed: boolean) => void;
   setScore: (score: number) => void;

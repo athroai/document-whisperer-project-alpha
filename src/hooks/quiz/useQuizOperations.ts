@@ -14,7 +14,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const quizState = useQuizState(props);
 
   const startQuiz = async (subjectParam: string, confidence: ConfidenceLabel) => {
-    const subject = subjectParam.trim();
+    const subject = String(subjectParam).trim();
     
     if (quizState.currentSubject) return;
     if (!subject) return;
@@ -96,7 +96,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
 
   const handleNextQuestion = () => {
     if (quizState.currentQuestionIndex < quizState.questions.length - 1) {
-      quizState.setCurrentQuestionIndex(prevIndex => prevIndex + 1);
+      quizState.setCurrentQuestionIndex((prevIndex: number) => prevIndex + 1);
     } else {
       handleQuizComplete();
     }
