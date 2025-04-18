@@ -19,7 +19,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
     const numericConfidence = confidenceToNumber(confidence);
     const difficulty = Math.ceil(numericConfidence / 5);
 
-    quizState.setCurrentSubject(subjectString); // Now we're passing a string
+    quizState.setCurrentSubject(subjectString); // Now passing a properly converted string
     quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: true }));
     quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: true }));
     quizState.setError(null);

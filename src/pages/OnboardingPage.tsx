@@ -10,6 +10,7 @@ import { useOnboarding } from '@/contexts/OnboardingContext';
 const OnboardingContent: React.FC = () => {
   const { currentStep, updateOnboardingStep } = useOnboarding();
   
+  // Modified step sequence to skip diagnostic quiz
   const steps = [
     { id: 'subjects', component: SubjectsSelector, title: 'Select Subjects' },
     { id: 'availability', component: SlotSelection, title: 'Set Study Times' },

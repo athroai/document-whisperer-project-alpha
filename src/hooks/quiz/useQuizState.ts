@@ -7,6 +7,7 @@ export interface UseQuizStateProps {
 }
 
 export function useQuizState({ onQuizComplete }: UseQuizStateProps = {}) {
+  // Changed to explicitly type currentSubject as string | null
   const [currentSubject, setCurrentSubject] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
