@@ -13,7 +13,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const quizState = useQuizState(props);
 
   const startQuiz = async (subjectParam: string | number, confidence: ConfidenceLabel) => {
-    const subject = String(subjectParam).trim();
+    const subject = String(subjectParam);
     
     if (quizState.currentSubject) return;
     if (!subject) return;
