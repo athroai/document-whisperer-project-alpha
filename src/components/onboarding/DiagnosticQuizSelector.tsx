@@ -30,13 +30,13 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const { subjects, isLoading } = useSubjects();
   const [retryCount, setRetryCount] = useState<Record<string, number>>({});
   const [loadingToastId, setLoadingToastId] = useState<string | null>(null);
-  const [selectedConfidence, setSelectedConfidence] = useState<string>('5');
+  const [selectedConfidence, setSelectedConfidence] = useState<string | number>(5);
 
   const MAX_RETRIES = 2;
 
   const handleConfidenceChange = (newValue: (string | number)[]) => {
-    const value = newValue?.[0] ?? "";
-    setSelectedConfidence(String(value));
+    const value = newValue?.[0] ?? 5;
+    setSelectedConfidence(value);
   };
 
   const startQuiz = async (subject: string) => {
@@ -49,7 +49,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
     try {
       const subjectPreference = selectedSubjects?.find(s => s.subject === subject);
-      const confidence = subjectPreference?.confidence || 5;
+      const confidence = Number(subjectPreference?.confidence || selectedConfidence);
       const difficulty = Math.ceil(confidence / 2);
 
       const toastId = toast.loading(`Generating ${subject} quiz questions...`);
@@ -184,7 +184,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
         .upsert({
           student_id: state.user.id,
           subject: currentSubject,
-          confidence_level: newConfidence
+          confidence_level: String(newConfidence)
         }, { onConflict: 'student_id, subject' });
 
       try {
