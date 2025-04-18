@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { quizService } from '@/services/quizService';
@@ -158,7 +157,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         .upsert({
           student_id: state.user.id,
           subject: subjectString,
-          confidence_level: confidenceString  // Pass the string version
+          confidence_level: confidenceString
         }, { onConflict: 'student_id, subject' });
 
       try {
