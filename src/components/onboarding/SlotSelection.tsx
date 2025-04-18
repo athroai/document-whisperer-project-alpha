@@ -39,11 +39,10 @@ export const SlotSelection: React.FC = () => {
   
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [dayPreferences, setDayPreferences] = useState<DayPreference[]>([]);
-  const [activeDay, setActiveDay] = useState<number>(1);
+  const [activeDay, setActiveDay] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
 
   // Initialize day preferences once
   useEffect(() => {
@@ -53,125 +52,81 @@ export const SlotSelection: React.FC = () => {
       preferredStartHour: 9
     }));
     setDayPreferences(initialPreferences);
+    setIsInitialized(true);
   }, []);
 
-  // Set up user ID and fetch existing slots
+  // Set up existing slots if available
   useEffect(() => {
-    const initializeComponent = async () => {
-      try {
-        // Always get the current user from supabase auth 
-        const { data: userData, error: userError } = await supabase.auth.getUser();
+    const initializeExistingSlots = () => {
+      if (existingSlots && existingSlots.length > 0) {
+        console.log("Using study slots from context:", existingSlots);
         
-        if (userError) {
-          console.error("Error fetching user:", userError);
-          setError("Authentication required. Please sign in again.");
-          return;
-        }
+        // Update selected days based on existing slots
+        const days = existingSlots.map(slot => slot.day_of_week);
+        setSelectedDays(days);
         
-        const authenticatedUserId = userData?.user?.id;
-        
-        if (!authenticatedUserId) {
-          console.log("No authenticated user found");
-          setError("Authentication required. Please sign in again.");
-          return;
-        }
-        
-        setUserId(authenticatedUserId);
-        console.log("Auth check successful, user ID:", authenticatedUserId);
-        
-        // Fetch existing study slots if needed
-        if (!existingSlots || existingSlots.length === 0) {
-          console.log("Fetching study slots for user:", authenticatedUserId);
-          const { data: slots, error: slotsError } = await supabase
-            .from('preferred_study_slots')
-            .select('*')
-            .eq('user_id', authenticatedUserId);
+        // Update day preferences based on existing slots
+        const updatedPreferences = [...dayPreferences];
+        existingSlots.forEach(slot => {
+          const dayIndex = slot.day_of_week - 1;
+          if (dayIndex >= 0 && dayIndex < updatedPreferences.length) {
+            const slotOptionIndex = SLOT_OPTIONS.findIndex(
+              option => option.count === slot.slot_count && option.duration === slot.slot_duration_minutes
+            );
             
-          if (slotsError) {
-            console.error("Error fetching study slots:", slotsError);
-            return;
-          }
-          
-          if (slots && slots.length > 0) {
-            console.log("Found existing study slots:", slots);
-            if (setStudySlots) {
-              setStudySlots(slots);
-            }
-            
-            // Update selected days based on existing slots
-            const days = slots.map(slot => slot.day_of_week);
-            setSelectedDays(days);
-            
-            // Update day preferences based on existing slots
-            const updatedPreferences = [...dayPreferences];
-            slots.forEach(slot => {
-              const dayIndex = slot.day_of_week - 1;
-              if (dayIndex >= 0 && dayIndex < updatedPreferences.length) {
-                const slotOptionIndex = SLOT_OPTIONS.findIndex(
-                  option => option.count === slot.slot_count && option.duration === slot.slot_duration_minutes
-                );
-                
-                if (slotOptionIndex !== -1) {
-                  updatedPreferences[dayIndex] = {
-                    ...updatedPreferences[dayIndex],
-                    slotOption: slotOptionIndex,
-                    preferredStartHour: slot.preferred_start_hour || 9
-                  };
-                }
-              }
-            });
-            
-            setDayPreferences(updatedPreferences);
-            
-            // Set active day to first selected day
-            if (days.length > 0) {
-              setActiveDay(days[0]);
+            if (slotOptionIndex !== -1) {
+              updatedPreferences[dayIndex] = {
+                ...updatedPreferences[dayIndex],
+                slotOption: slotOptionIndex,
+                preferredStartHour: slot.preferred_start_hour || 9
+              };
             }
           }
-        } else if (existingSlots.length > 0) {
-          // Use slots from context instead of fetching
-          console.log("Using study slots from context:", existingSlots);
-          
-          // Update selected days based on existing slots
-          const days = existingSlots.map(slot => slot.day_of_week);
-          setSelectedDays(days);
-          
-          // Update day preferences based on existing slots
-          const updatedPreferences = [...dayPreferences];
-          existingSlots.forEach(slot => {
-            const dayIndex = slot.day_of_week - 1;
-            if (dayIndex >= 0 && dayIndex < updatedPreferences.length) {
-              const slotOptionIndex = SLOT_OPTIONS.findIndex(
-                option => option.count === slot.slot_count && option.duration === slot.slot_duration_minutes
-              );
-              
-              if (slotOptionIndex !== -1) {
-                updatedPreferences[dayIndex] = {
-                  ...updatedPreferences[dayIndex],
-                  slotOption: slotOptionIndex,
-                  preferredStartHour: slot.preferred_start_hour || 9
-                };
-              }
-            }
-          });
-          
-          setDayPreferences(updatedPreferences);
-          
-          // Set active day to first selected day
-          if (days.length > 0) {
-            setActiveDay(days[0]);
-          }
-        }
+        });
         
-        setIsInitialized(true);
-      } catch (err: any) {
-        console.error("Auth check error:", err.message);
-        setError("Failed to verify authentication status");
+        setDayPreferences(updatedPreferences);
+        
+        // Set active day to first selected day
+        if (days.length > 0) {
+          setActiveDay(days[0]);
+        }
       }
     };
     
-    initializeComponent();
-  }, [existingSlots, setStudySlots, dayPreferences]);
+    if (isInitialized && dayPreferences.length > 0) {
+      initializeExistingSlots();
+    }
+  }, [existingSlots, isInitialized, dayPreferences]);
+
+  // Fetch existing study slots from database if not in context
+  useEffect(() => {
+    const fetchExistingSlots = async () => {
+      if (!state.user?.id) return;
+      if (existingSlots && existingSlots.length > 0) return;
+
+      try {
+        console.log("Fetching study slots for user:", state.user.id);
+        const { data: slots, error: slotsError } = await supabase
+          .from('preferred_study_slots')
+          .select('*')
+          .eq('user_id', state.user.id);
+          
+        if (slotsError) {
+          console.error("Error fetching study slots:", slotsError);
+          return;
+        }
+        
+        if (slots && slots.length > 0 && setStudySlots) {
+          console.log("Found existing study slots:", slots);
+          setStudySlots(slots);
+        }
+      } catch (err) {
+        console.error("Error fetching study slots:", err);
+      }
+    };
+    
+    fetchExistingSlots();
+  }, [state.user, existingSlots, setStudySlots]);
 
   const toggleDaySelection = useCallback((dayIndex: number) => {
     setSelectedDays(prev => {
@@ -192,9 +147,11 @@ export const SlotSelection: React.FC = () => {
       
       // If we have days selected, make sure the active day is one of them
       if (newSelectedDays.length > 0) {
-        if (!newSelectedDays.includes(activeDay)) {
+        if (!newSelectedDays.includes(activeDay || 0)) {
           setActiveDay(newSelectedDays[0]);
         }
+      } else {
+        setActiveDay(null);
       }
       
       return newSelectedDays;
@@ -207,7 +164,7 @@ export const SlotSelection: React.FC = () => {
     setDayPreferences(prev => 
       prev.map(day => 
         day.dayOfWeek === dayOfWeek 
-          ? { ...day, slotOption: day.slotOption === optionIndex ? null : optionIndex }
+          ? { ...day, slotOption: optionIndex }
           : day
       )
     );
@@ -263,19 +220,14 @@ export const SlotSelection: React.FC = () => {
       return false;
     }
     
-    // Get current user directly from Supabase
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    
-    if (userError || !userData?.user?.id) {
+    if (!state.user?.id) {
       const errorMsg = "Authentication required. Please log in again.";
       setError(errorMsg);
       toast.error("You need to be signed in to save your preferences.");
-      console.error("No valid user ID available when trying to save preferences");
       return false;
     }
     
-    const currentUserId = userData.user.id;
-
+    const currentUserId = state.user.id;
     setSaving(true);
     toast.loading("Saving your study preferences...");
 
@@ -319,7 +271,7 @@ export const SlotSelection: React.FC = () => {
         throw new Error("No valid study preferences to save. Please select at least one day and slot option.");
       }
 
-      console.log("Full payload for preferred_study_slots:", preferencesToSave);
+      console.log("Preferences to save:", preferencesToSave);
 
       // Insert new preferences
       const { data, error: insertError } = await supabase
@@ -406,7 +358,7 @@ export const SlotSelection: React.FC = () => {
           </p>
 
           <Tabs 
-            value={activeDay.toString()} 
+            value={activeDay?.toString()} 
             onValueChange={(value) => setActiveDay(Number(value))}
             className="w-full"
           >
