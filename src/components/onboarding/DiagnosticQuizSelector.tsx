@@ -13,7 +13,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
   const { toast: uiToast } = useToast();
   const { selectedSubjects, updateOnboardingStep } = useOnboarding();
   const { subjects, isLoading: isLoadingSubjects } = useSubjects();
-  const [selectedConfidence, setSelectedConfidence] = useState<string | number>(5);
+  const [selectedConfidence, setSelectedConfidence] = useState<number>(5);
   
   const { 
     currentSubject,
@@ -38,12 +38,12 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
   const handleConfidenceChange = (newValue: (string | number)[]) => {
     const value = newValue?.[0] ?? 5;
-    setSelectedConfidence(value);
+    setSelectedConfidence(typeof value === 'string' ? parseInt(value, 10) : value);
   };
 
   const handleStartQuiz = (subject: string) => {
     const subjectPreference = selectedSubjects?.find(s => s.subject === subject);
-    const confidence = Number(subjectPreference?.confidence || selectedConfidence);
+    const confidence = subjectPreference?.confidence || selectedConfidence;
     startQuiz(subject, confidence);
   };
 
