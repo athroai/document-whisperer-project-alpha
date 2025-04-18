@@ -1,10 +1,9 @@
-
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { quizService } from '@/services/quizService';
 import { supabase } from '@/lib/supabase';
 import { Question } from '@/types/quiz';
-import { ConfidenceLabel, confidenceToNumber, numberToConfidenceString } from '@/types/confidence';
+import { ConfidenceLabel, confidenceToNumber } from '@/types/confidence';
 import { useQuizState, UseQuizStateProps } from './useQuizState';
 
 const MAX_RETRIES = 2;
@@ -16,7 +15,6 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
     if (quizState.currentSubject) return;
 
-    // Always ensure subject is a string
     const subjectString = String(subject);
     const numericConfidence = confidenceToNumber(confidence);
     const difficulty = Math.ceil(numericConfidence / 5);

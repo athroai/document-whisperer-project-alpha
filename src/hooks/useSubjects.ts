@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,7 +90,7 @@ export const useSubjects = () => {
         
         console.log('Using default subject list:', defaultSubjects);
         setSubjects(defaultSubjects);
-        setSubjectsWithConfidence(defaultSubjectsWithConfidenceList);
+        setSubjectsWithConfidence(defaultSubjectsWithConfidence);
       } catch (error) {
         console.error('Failed to fetch subjects:', error);
         setError('Failed to fetch subjects');
