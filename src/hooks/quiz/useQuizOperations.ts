@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { quizService } from '@/services/quizService';
@@ -13,7 +12,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const { state } = useAuth();
   const quizState = useQuizState(props);
 
-  const startQuiz = async (subjectParam: string, confidence: ConfidenceLabel) => {
+  const startQuiz = async (subjectParam: string | number, confidence: ConfidenceLabel) => {
     const subject = String(subjectParam).trim();
     
     if (quizState.currentSubject) return;
@@ -30,7 +29,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       quizState.setLoadingToastId(toastId);
 
       const fetchedQuestions = await quizService.getQuestionsBySubject(
-        String(subject), 
+        subject, 
         difficulty,
         5
       );

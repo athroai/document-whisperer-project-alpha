@@ -17,17 +17,39 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Helper function to verify authentication
 export const verifyAuth = async () => {
   try {
-    const { data, error } = await supabase.auth.getSession();
-    
-    // If no session exists but we have a mock user in local storage, create a custom session
-    if ((!data?.session || error) && localStorage.getItem('athro_user')) {
+    // First check for mock user for development environment
+    if (localStorage.getItem('athro_user')) {
       const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
       
       if (mockUser.id) {
         console.log('Using mock authentication for Supabase');
+        
+        // Create a Supabase reference for the mock user
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .upsert({ 
+              id: mockUser.id, 
+              email: mockUser.email,
+              role: mockUser.role,
+              name: mockUser.displayName || mockUser.email.split('@')[0]
+            }, { 
+              onConflict: 'id' 
+            });
+            
+          if (error) {
+            console.warn('Warning: Could not sync mock user with Supabase profiles:', error.message);
+          }
+        } catch (err) {
+          console.warn('Error syncing mock user:', err);
+        }
+        
         return mockUser;
       }
     }
+    
+    // If no mock user, try to get Supabase session
+    const { data, error } = await supabase.auth.getSession();
     
     if (error) {
       console.error('Auth verification error:', error.message);
@@ -47,4 +69,3 @@ export const verifyAuth = async () => {
     return null;
   }
 };
-
