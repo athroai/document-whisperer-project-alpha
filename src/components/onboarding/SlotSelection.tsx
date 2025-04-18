@@ -295,7 +295,7 @@ export const SlotSelection: React.FC = () => {
         .from('onboarding_progress')
         .upsert({
           student_id: currentUserId,
-          current_step: 'diagnosticQuiz',
+          current_step: 'generatePlan',  // Changed from 'diagnosticQuiz' to 'generatePlan'
           has_completed_availability: true
         }, {
           onConflict: 'student_id'
@@ -318,7 +318,7 @@ export const SlotSelection: React.FC = () => {
     try {
       const saved = await savePreferences();
       if (saved) {
-        updateOnboardingStep('diagnosticQuiz');
+        updateOnboardingStep('generatePlan'); // Changed from 'diagnosticQuiz' to 'generatePlan'
       }
     } catch (error) {
       console.error("Error in handleContinue:", error);
