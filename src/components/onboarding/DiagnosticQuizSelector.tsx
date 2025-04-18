@@ -39,7 +39,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
   });
 
   const handleStartQuiz = (subject: string) => {
-    const subjectPreference = selectedSubjects?.find(s => s.subject === subject);
     startQuiz(subject, selectedConfidence);
   };
 
