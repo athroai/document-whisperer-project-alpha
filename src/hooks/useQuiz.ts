@@ -1,9 +1,13 @@
+
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Question } from '@/types/quiz';
 import { quizService } from '@/services/quizService';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Define the MAX_RETRIES constant
+const MAX_RETRIES = 2;
 
 interface UseQuizProps {
   onQuizComplete?: (subject: string, score: number) => void;
