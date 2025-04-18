@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { quizService } from '@/services/quizService';
@@ -19,7 +20,9 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
     const numericConfidence = confidenceToNumber(confidence);
     const difficulty = Math.ceil(numericConfidence / 5);
 
-    quizState.setCurrentSubject(subjectString);
+    // The issue is here - we need to explicitly handle the SetStateAction<string> expectation
+    // By ensuring we're setting a string value explicitly
+    quizState.setCurrentSubject(String(subjectString));
     quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: true }));
     quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: true }));
     quizState.setError(null);

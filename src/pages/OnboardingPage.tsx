@@ -8,9 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 
 const OnboardingContent: React.FC = () => {
-  const { currentStep, updateOnboardingStep } = useOnboarding();
+  const { currentStep } = useOnboarding();
   
-  // Modified step sequence to skip diagnostic quiz
+  // Modified step sequence to skip diagnostic quiz entirely
   const steps = [
     { id: 'subjects', component: SubjectsSelector, title: 'Select Subjects' },
     { id: 'availability', component: SlotSelection, title: 'Set Study Times' },
