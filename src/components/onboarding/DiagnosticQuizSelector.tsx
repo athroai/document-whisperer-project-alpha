@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -144,4 +145,4 @@ export const DiagnosticQuizSelector: React.FC = () => {
       </div>
     </div>
   );
-}
+};
