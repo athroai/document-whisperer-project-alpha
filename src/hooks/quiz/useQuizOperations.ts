@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { quizService } from '@/services/quizService';
@@ -17,7 +18,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
 
     const numericConfidence = confidenceToNumber(confidence);
     const difficulty = Math.ceil(numericConfidence / 5);
-    const subjectString = String(subject);
+    const subjectString = String(subject); // Ensure subject is a string
 
     quizState.setCurrentSubject(subjectString);
     quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: true }));

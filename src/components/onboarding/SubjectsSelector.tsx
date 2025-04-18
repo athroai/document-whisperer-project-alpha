@@ -2,9 +2,11 @@
 import React from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { Check, Plus } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ConfidenceLabel, confidenceOptions } from '@/types/confidence';
+import { confidenceToNumber } from '@/types/confidence';
 
 export const SubjectsSelector: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject, updateOnboardingStep } = useOnboarding();
@@ -18,13 +20,13 @@ export const SubjectsSelector: React.FC = () => {
     if (isSubjectSelected(subject)) {
       removeSubject(subject);
     } else {
-      // Default confidence of 5 when selecting a new subject
-      selectSubject(subject, 5);
+      // Default confidence of "Neutral" when selecting a new subject
+      selectSubject(subject, confidenceToNumber("Neutral"));
     }
   };
 
-  const handleConfidenceChange = (subject: string, confidence: number) => {
-    selectSubject(subject, confidence);
+  const handleConfidenceChange = (subject: string, confidence: ConfidenceLabel) => {
+    selectSubject(subject, confidenceToNumber(confidence));
   };
 
   const handleContinue = () => {
@@ -44,7 +46,13 @@ export const SubjectsSelector: React.FC = () => {
       <div className="space-y-3">
         {subjects.map((subject) => {
           const isSelected = isSubjectSelected(subject);
-          const currentConfidence = selectedSubjects.find(s => s.subject === subject)?.confidence ?? 5;
+          const subjectData = selectedSubjects.find(s => s.subject === subject);
+          const currentConfidence = subjectData?.confidence ?? confidenceToNumber("Neutral");
+          
+          // Find the confidence label that corresponds to this numeric value
+          const currentConfidenceLabel = confidenceOptions.find(
+            option => confidenceToNumber(option) === currentConfidence
+          ) || "Neutral";
           
           return (
             <div key={subject} className="border rounded-lg p-4 bg-white">
@@ -66,15 +74,22 @@ export const SubjectsSelector: React.FC = () => {
               
               {isSelected && (
                 <div className="flex items-center space-x-4 mt-2">
-                  <span className="text-sm text-gray-500 w-24">Confidence:</span>
-                  <Slider
-                    value={[currentConfidence]}
-                    max={10}
-                    step={1}
-                    onValueChange={(value) => handleConfidenceChange(subject, value[0])}
-                    className="flex-1"
-                  />
-                  <span className="text-sm font-medium w-12 text-center">{currentConfidence}/10</span>
+                  <span className="text-sm text-gray-500 min-w-24">Confidence:</span>
+                  <Select
+                    value={String(currentConfidenceLabel)}
+                    onValueChange={(value) => handleConfidenceChange(subject, value as ConfidenceLabel)}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select confidence level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {confidenceOptions.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
