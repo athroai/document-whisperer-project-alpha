@@ -148,14 +148,15 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         })
         .select('id');
 
-      const newConfidence = Math.max(1, Math.min(10, Math.round(scorePercentage / 10)));
+      // Convert the numeric confidence to a string format for database storage
+      const newConfidence = String(Math.max(1, Math.min(10, Math.round(scorePercentage / 10))));
       
       await supabase
         .from('student_subject_preferences')
         .upsert({
           student_id: state.user.id,
           subject: quizState.currentSubject,
-          confidence_level: String(newConfidence)
+          confidence_level: newConfidence
         }, { onConflict: 'student_id, subject' });
 
       try {
