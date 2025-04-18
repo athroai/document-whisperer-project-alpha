@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
@@ -27,6 +26,7 @@ interface OnboardingContextType {
   completeOnboarding: () => Promise<void>;
   updateOnboardingStep: (step: string) => void;
   setStudySlots: (slots: PreferredStudySlot[]) => void;
+  updateStudySlots: (slot: { dayOfWeek: number, slotCount: number, slotDurationMinutes: number, preferredStartHour: number }) => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -38,7 +38,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [studySlots, setStudySlots] = useState<PreferredStudySlot[]>([]);
 
-  // Fetch current onboarding step when component mounts
   useEffect(() => {
     const fetchOnboardingStep = async () => {
       if (!state.user?.id) return;
@@ -70,10 +69,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     console.log('Updating onboarding step to:', step);
     setCurrentStep(step);
     
-    // If user is authenticated, also update in database
     if (state.user?.id) {
       try {
-        // Use upsert instead of checking first then updating or inserting
         const { error } = await supabase
           .from('onboarding_progress')
           .upsert({ 
@@ -92,7 +89,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [state.user]);
 
-  // Fetch existing data when user is available
   useEffect(() => {
     const fetchOnboardingData = async () => {
       if (!state.user) return;
@@ -100,7 +96,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       try {
         console.log("Fetching onboarding data for user:", state.user.id);
         
-        // Fetch subject preferences
         const { data: subjectPrefs } = await supabase
           .from('student_subject_preferences')
           .select('*')
@@ -115,7 +110,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setSelectedSubjects(formattedSubjects);
         }
         
-        // Fetch study slots
         const { data: studySlotsData, error: slotsError } = await supabase
           .from('preferred_study_slots')
           .select('*')
@@ -128,7 +122,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setStudySlots(studySlotsData);
         }
         
-        // Fetch onboarding progress
         const { data: progress } = await supabase
           .from('onboarding_progress')
           .select('*')
@@ -173,7 +166,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       console.log("Completing onboarding for user:", state.user.id);
       
-      // Save subject preferences
       const subjectPreferencesPromises = selectedSubjects.map(subject => 
         supabase.from('student_subject_preferences').upsert({
           student_id: state.user!.id,
@@ -183,7 +175,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }, { onConflict: 'student_id, subject' })
       );
 
-      // Update onboarding progress
       const { error } = await supabase
         .from('onboarding_progress')
         .upsert({
@@ -209,6 +200,48 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  const updateStudySlots = useCallback(({ dayOfWeek, slotCount, slotDurationMinutes, preferredStartHour }: {
+    dayOfWeek: number,
+    slotCount: number,
+    slotDurationMinutes: number,
+    preferredStartHour: number
+  }) => {
+    if (!state.user?.id) return;
+    
+    const newSlot = {
+      id: `temp-${Date.now()}`,
+      user_id: state.user.id,
+      day_of_week: dayOfWeek,
+      slot_count: slotCount,
+      slot_duration_minutes: slotDurationMinutes,
+      preferred_start_hour: preferredStartHour,
+      created_at: new Date().toISOString()
+    };
+    
+    setStudySlots(prev => [...prev, newSlot]);
+    
+    if (state.user?.id) {
+      try {
+        supabase
+          .from('preferred_study_slots')
+          .insert({
+            user_id: state.user.id,
+            day_of_week: dayOfWeek,
+            slot_count: slotCount,
+            slot_duration_minutes: slotDurationMinutes,
+            preferred_start_hour: preferredStartHour
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error adding study slot:', error);
+            }
+          });
+      } catch (error) {
+        console.error('Error in updateStudySlots:', error);
+      }
+    }
+  }, [state.user, setStudySlots]);
+
   return (
     <OnboardingContext.Provider value={{
       currentStep,
@@ -220,7 +253,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       updateAvailability,
       completeOnboarding,
       updateOnboardingStep,
-      setStudySlots
+      setStudySlots,
+      updateStudySlots
     }}>
       {children}
     </OnboardingContext.Provider>
