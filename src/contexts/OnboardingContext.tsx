@@ -2,10 +2,11 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
 import { PreferredStudySlot } from '@/types/study';
+import { ConfidenceLabel } from '@/types/confidence';
 
 interface SubjectPreference {
   subject: string;
-  confidence: number;
+  confidence: ConfidenceLabel;
   priority?: number;
 }
 
@@ -20,7 +21,7 @@ interface OnboardingContextType {
   selectedSubjects: SubjectPreference[];
   availability: Availability[];
   studySlots: PreferredStudySlot[];
-  selectSubject: (subject: string, confidence: number) => void;
+  selectSubject: (subject: string, confidence: ConfidenceLabel) => void;
   removeSubject: (subject: string) => void;
   updateAvailability: (availability: Availability[]) => void;
   completeOnboarding: () => Promise<void>;
@@ -140,7 +141,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     fetchOnboardingData();
   }, [state.user]);
 
-  const selectSubject = useCallback((subject: string, confidence: number) => {
+  const selectSubject = useCallback((subject: string, confidence: ConfidenceLabel) => {
     setSelectedSubjects(prev => {
       const existingIndex = prev.findIndex(s => s.subject === subject);
       if (existingIndex !== -1) {

@@ -1,10 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { ConfidenceLabel } from '@/types/confidence';
 
 export interface SubjectWithConfidence {
   subject: string;
-  confidence: number;
+  confidence: ConfidenceLabel;
 }
 
 export const useSubjects = () => {

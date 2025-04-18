@@ -131,7 +131,6 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         helpLevel = "high";
       }
 
-      // Update database records with score
       await supabase
         .from('diagnostic_quiz_results')
         .insert({
@@ -225,7 +224,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   return {
     ...quizState,
     startQuiz,
-    handleAnswerSelect: quizState.handleAnswerSelect || (() => {}),
-    handleNextQuestion: quizState.handleNextQuestion || (() => {})
+    handleAnswerSelect,
+    handleNextQuestion
   };
 }

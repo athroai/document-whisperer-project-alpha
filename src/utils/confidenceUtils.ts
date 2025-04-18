@@ -1,7 +1,10 @@
 
 import { ConfidenceLabel } from '@/types/confidence';
 
-export function getConfidenceChange(beforeLabel: ConfidenceLabel, afterLabel: ConfidenceLabel): string {
+export function getConfidenceChange(beforeLabel: string | number | ConfidenceLabel, afterLabel: string | number | ConfidenceLabel): string {
+  const before = parseConfidence(beforeLabel);
+  const after = parseConfidence(afterLabel);
+  
   const confidenceOrder = [
     "Very unsure",
     "Slightly unsure",
@@ -10,8 +13,8 @@ export function getConfidenceChange(beforeLabel: ConfidenceLabel, afterLabel: Co
     "Very confident"
   ];
   
-  const beforeIndex = confidenceOrder.indexOf(beforeLabel);
-  const afterIndex = confidenceOrder.indexOf(afterLabel);
+  const beforeIndex = confidenceOrder.indexOf(before);
+  const afterIndex = confidenceOrder.indexOf(after);
   
   if (afterIndex > beforeIndex + 1) return "Much better";
   if (afterIndex > beforeIndex) return "Slightly better";
@@ -33,7 +36,7 @@ export function getConfidenceColor(label: string): string {
 }
 
 // Helper to ensure confidence value is a valid label
-export function parseConfidence(value: string | number): ConfidenceLabel {
+export function parseConfidence(value: string | number | undefined | null): ConfidenceLabel {
   if (value === undefined || value === null) return "Neutral";
   
   // Handle number to string conversion (legacy support)
