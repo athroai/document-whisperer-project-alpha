@@ -1,6 +1,6 @@
 
-import { useQuizOperations } from './quiz/useQuizOperations';
+import { UseQuizStateProps, useQuizOperations } from './quiz/useQuizOperations';
 
-export function useQuiz(props = {}) {
+export function useQuiz(props: UseQuizStateProps = {}) {
   return useQuizOperations(props);
 }

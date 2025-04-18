@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,8 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
   const handleStartQuiz = (subject: string) => {
     if (!subject.trim()) return;
-    startQuiz(subject, selectedConfidence);
+    // Explicitly pass a string to startQuiz
+    startQuiz(String(subject), selectedConfidence);
   };
 
   const allQuizzesCompleted = () => {
@@ -121,7 +123,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
             score={quizResults[subject]}
             isLoading={isLoadingQuestions[subject] || false}
             isGenerating={isGenerating[subject] || false}
-            onStartQuiz={() => handleStartQuiz(subject)}
+            onStartQuiz={() => handleStartQuiz(String(subject))}
             disabled={currentSubject !== null}
           />
         ))}

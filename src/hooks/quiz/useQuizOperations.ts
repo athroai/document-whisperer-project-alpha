@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,11 +14,15 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const { state } = useAuth();
   const quizState = useQuizState(props);
 
-  const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
+  const startQuiz = async (subjectParam: string | number, confidence: ConfidenceLabel) => {
+    // Convert subject to string to ensure type safety
+    const subject = String(subjectParam).trim();
+    
     if (quizState.currentSubject) return;
+    if (!subject) return;
 
     const difficulty = getDifficultyFromConfidence(confidence);
-    quizState.setCurrentSubject(subject);
+    quizState.setCurrentSubject(subject); // Now passing a string
     quizState.setIsLoadingQuestions(prev => ({ ...prev, [subject]: true }));
     quizState.setIsGenerating(prev => ({ ...prev, [subject]: true }));
     quizState.setError(null);
@@ -221,7 +226,18 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   return {
     ...quizState,
     startQuiz,
-    handleAnswerSelect,
-    handleNextQuestion
+    handleAnswerSelect: (answerId: string) => {
+      quizState.setSelectedAnswers(prev => ({
+        ...prev,
+        [quizState.currentQuestionIndex]: answerId
+      }));
+    },
+    handleNextQuestion: () => {
+      if (quizState.currentQuestionIndex < quizState.questions.length - 1) {
+        quizState.setCurrentQuestionIndex(prevIndex => prevIndex + 1);
+      } else {
+        handleQuizComplete();
+      }
+    }
   };
 }
