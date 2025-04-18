@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConfidenceLabel } from '@/types/confidence';
+import { parseConfidence } from '@/utils/confidenceUtils';
 
 export interface SubjectWithConfidence {
   subject: string;
@@ -44,7 +45,7 @@ export const useSubjects = () => {
           const subjectList = preferences.map(pref => pref.subject);
           const subjectsWithConfidenceList = preferences.map(pref => ({
             subject: pref.subject,
-            confidence: pref.confidence_level
+            confidence: pref.confidence_level as ConfidenceLabel
           }));
           
           console.log('Fetched subjects from preferences:', subjectList);
@@ -70,7 +71,7 @@ export const useSubjects = () => {
           const subjectList = subjectData.map(subject => subject.subject_name);
           const subjectsWithConfidenceList = subjectList.map(subject => ({
             subject,
-            confidence: 5 // Default confidence
+            confidence: "Neutral" as ConfidenceLabel // Default confidence
           }));
           
           console.log('Fetched subjects from student_subjects:', subjectList);
@@ -87,7 +88,7 @@ export const useSubjects = () => {
         ];
         const defaultSubjectsWithConfidence = defaultSubjects.map(subject => ({
           subject,
-          confidence: 5 // Default confidence
+          confidence: "Neutral" as ConfidenceLabel // Default confidence
         }));
         
         console.log('Using default subject list:', defaultSubjects);
@@ -103,7 +104,7 @@ export const useSubjects = () => {
         ];
         const defaultSubjectsWithConfidence = defaultSubjects.map(subject => ({
           subject,
-          confidence: 5 // Default confidence
+          confidence: "Neutral" as ConfidenceLabel // Default confidence
         }));
         
         setSubjects(defaultSubjects);
