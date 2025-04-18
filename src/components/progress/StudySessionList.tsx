@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar, Clock, RefreshCw, BookOpen, ArrowRight } from 'lucide-react';
 import { formatDistance, format } from 'date-fns';
 import { StudySession } from '@/types/study';
-import { getConfidenceLabel, getConfidenceColor } from '@/utils/confidenceUtils';
+import { getConfidenceChange, getConfidenceColor } from '@/utils/confidenceUtils';
 
 interface StudySessionListProps {
   sessions: StudySession[];
@@ -111,8 +111,8 @@ const StudySessionList: React.FC<StudySessionListProps> = ({
               const confidenceChange = session.confidence_after !== undefined && session.confidence_before !== undefined
                 ? session.confidence_after - session.confidence_before
                 : 0;
-              const confidenceLabel = getConfidenceLabel(confidenceChange);
-              const confidenceColor = getConfidenceColor(confidenceChange);
+              const confidenceLabel = getConfidenceChange(confidenceChange);
+              const confidenceColor = getConfidenceColor(confidenceLabel);
               
               return (
                 <Card key={session.id} className="flex flex-col h-full">

@@ -31,3 +31,15 @@ export const getDifficultyFromConfidence = (label: ConfidenceLabel): number => {
       return 2;
   }
 };
+
+// Add the missing function to convert between string and number representations
+export const confidenceToNumber = (label: ConfidenceLabel): number => {
+  const index = confidenceOptions.indexOf(label);
+  return index >= 0 ? index + 1 : 3; // Default to middle (Neutral)
+};
+
+// Convert a number back to a confidence label
+export const numberToConfidenceLabel = (value: number): ConfidenceLabel => {
+  const index = Math.min(Math.max(Math.round(value) - 1, 0), confidenceOptions.length - 1);
+  return confidenceOptions[index];
+};

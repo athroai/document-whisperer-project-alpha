@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Check, Plus } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ConfidenceLabel, confidenceOptions } from '@/types/confidence';
-import { confidenceToNumber } from '@/types/confidence';
+import { ConfidenceLabel, confidenceOptions, confidenceToNumber } from '@/types/confidence';
 
 export const SubjectsSelector: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject, updateOnboardingStep } = useOnboarding();
@@ -50,9 +49,8 @@ export const SubjectsSelector: React.FC = () => {
           const currentConfidence = subjectData?.confidence ?? confidenceToNumber("Neutral");
           
           // Find the confidence label that corresponds to this numeric value
-          const currentConfidenceLabel = confidenceOptions.find(
-            option => confidenceToNumber(option) === currentConfidence
-          ) || "Neutral";
+          const confidenceIndex = Math.min(Math.max(Math.round(currentConfidence) - 1, 0), confidenceOptions.length - 1);
+          const currentConfidenceLabel = confidenceOptions[confidenceIndex];
           
           return (
             <div key={subject} className="border rounded-lg p-4 bg-white">

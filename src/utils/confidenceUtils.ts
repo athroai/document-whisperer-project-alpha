@@ -19,6 +19,14 @@ export function getConfidenceLabel(confidenceBefore: ConfidenceLabel, confidence
   return "Still unsure";
 }
 
+// Overloaded version to handle number differences for backward compatibility
+export function getConfidenceChange(change: number): string {
+  if (change >= 2) return "Much better";
+  if (change === 1) return "Slightly better";
+  if (change === 0) return "No change";
+  return "Still unsure";
+}
+
 export function getConfidenceColor(label: string): string {
   switch (label) {
     case "Much better":
