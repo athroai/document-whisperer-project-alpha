@@ -1,12 +1,13 @@
+
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar, Clock, RefreshCw, BookOpen, ArrowRight } from 'lucide-react';
 import { formatDistance, format } from 'date-fns';
 import { StudySession } from '@/types/study';
-import { getConfidenceChange, getConfidenceColor } from '@/utils/confidenceUtils';
+import { getConfidenceChange, getConfidenceColor, parseConfidence } from '@/utils/confidenceUtils';
 import { ConfidenceLabel } from '@/types/confidence';
 
 interface StudySessionListProps {
@@ -31,10 +32,10 @@ const StudySessionList: React.FC<StudySessionListProps> = ({
     // Filter by confidence
     if (confidenceFilter === 'unsure') {
       // Include "Still unsure" or "No change" sessions
-      if (session.confidence_after && session.confidence_before) {
+      if (session.confidence_after !== undefined && session.confidence_before !== undefined) {
         const confidenceChange = getConfidenceChange(
-          session.confidence_before as ConfidenceLabel,
-          session.confidence_after as ConfidenceLabel
+          parseConfidence(session.confidence_before),
+          parseConfidence(session.confidence_after)
         );
         if (confidenceChange !== "Still unsure" && confidenceChange !== "No change") return false;
       }
@@ -111,10 +112,10 @@ const StudySessionList: React.FC<StudySessionListProps> = ({
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {subjectSessions.map((session) => {
-              const confidenceLabel = session.confidence_after && session.confidence_before
+              const confidenceLabel = session.confidence_after !== undefined && session.confidence_before !== undefined
                 ? getConfidenceChange(
-                    session.confidence_before as ConfidenceLabel, 
-                    session.confidence_after as ConfidenceLabel
+                    parseConfidence(session.confidence_before),
+                    parseConfidence(session.confidence_after)
                   )
                 : "No change";
                 
@@ -154,9 +155,9 @@ const StudySessionList: React.FC<StudySessionListProps> = ({
                       
                       <div className="flex items-center mt-2">
                         <span className="text-gray-600 font-medium">Confidence:</span>
-                        <span className="mx-2">{session.confidence_before || 'N/A'}</span>
+                        <span className="mx-2">{session.confidence_before !== undefined ? parseConfidence(session.confidence_before) : 'N/A'}</span>
                         <ArrowRight className="h-3 w-3 text-gray-400" />
-                        <span className="ml-2">{session.confidence_after || 'N/A'}</span>
+                        <span className="ml-2">{session.confidence_after !== undefined ? parseConfidence(session.confidence_after) : 'N/A'}</span>
                       </div>
                       
                       {session.notes && (

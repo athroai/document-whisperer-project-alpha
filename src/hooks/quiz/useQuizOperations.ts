@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Question } from '@/types/quiz';
 import { ConfidenceLabel, getDifficultyFromConfidence } from '@/types/confidence';
 import { useQuizState, UseQuizStateProps } from './useQuizState';
+import { parseConfidence } from '@/utils/confidenceUtils';
 
 const MAX_RETRIES = 2;
 
@@ -150,7 +151,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         })
         .select('id');
 
-      const confidenceValue = scorePercentage >= 80 ? "Very confident" :
+      const confidenceValue: ConfidenceLabel = scorePercentage >= 80 ? "Very confident" :
                             scorePercentage >= 60 ? "Slightly confident" :
                             scorePercentage >= 40 ? "Neutral" :
                             scorePercentage >= 20 ? "Slightly unsure" :
@@ -224,7 +225,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   return {
     ...quizState,
     startQuiz,
-    handleAnswerSelect,
-    handleNextQuestion
+    handleAnswerSelect: quizState.handleAnswerSelect || (() => {}),
+    handleNextQuestion: quizState.handleNextQuestion || (() => {})
   };
 }

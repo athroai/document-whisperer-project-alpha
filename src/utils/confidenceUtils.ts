@@ -33,9 +33,19 @@ export function getConfidenceColor(label: string): string {
 }
 
 // Helper to ensure confidence value is a valid label
-export function parseConfidence(value: string): ConfidenceLabel {
-  if (typeof value !== 'string') return "Neutral";
+export function parseConfidence(value: string | number): ConfidenceLabel {
+  if (value === undefined || value === null) return "Neutral";
   
+  // Handle number to string conversion (legacy support)
+  if (typeof value === 'number') {
+    if (value >= 8) return "Very confident";
+    if (value >= 6) return "Slightly confident";
+    if (value >= 4) return "Neutral";
+    if (value >= 2) return "Slightly unsure";
+    return "Very unsure";
+  }
+  
+  // For string values
   const validLabels: ConfidenceLabel[] = [
     "Very confident",
     "Slightly confident",

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -68,7 +69,7 @@ export const SubjectsSelector: React.FC = () => {
                 <div className="flex items-center space-x-4 mt-2">
                   <span className="text-sm text-gray-500 min-w-24">Confidence:</span>
                   <Select
-                    value={currentConfidence}
+                    value={String(currentConfidence)}
                     onValueChange={(value) => handleConfidenceChange(subject, value as ConfidenceLabel)}
                   >
                     <SelectTrigger className="flex-1">
