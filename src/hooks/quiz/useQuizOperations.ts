@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +18,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
     if (quizState.currentSubject) return;
 
     // Ensure subject is a string
-    const subjectString = String(subject);
+    const subjectString = String(subject).trim();
     const difficulty = getDifficultyFromConfidence(confidence);
 
     quizState.setCurrentSubject(subjectString);
