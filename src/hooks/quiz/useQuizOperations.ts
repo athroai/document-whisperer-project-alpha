@@ -5,8 +5,8 @@ import { quizService } from '@/services/quizService';
 import { supabase } from '@/lib/supabase';
 import { Question } from '@/types/quiz';
 import { ConfidenceLabel, getDifficultyFromConfidence } from '@/types/confidence';
-import { useQuizState, UseQuizStateProps } from './useQuizState';
 import { parseConfidence } from '@/utils/confidenceUtils';
+import { useQuizState, UseQuizStateProps } from './useQuizState';
 
 const MAX_RETRIES = 2;
 
@@ -14,13 +14,14 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const { state } = useAuth();
   const quizState = useQuizState(props);
 
-  const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
+  const startQuiz = async (subject: string | number, confidence: ConfidenceLabel) => {
     if (quizState.currentSubject) return;
 
     // Ensure subject is a string
     const subjectString = String(subject).trim();
     const difficulty = getDifficultyFromConfidence(confidence);
 
+    // Explicitly convert subject to string
     quizState.setCurrentSubject(subjectString);
     quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: true }));
     quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: true }));
