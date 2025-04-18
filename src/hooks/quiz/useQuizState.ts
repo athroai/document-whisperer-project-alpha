@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { Question } from '@/types/quiz';
-import { ConfidenceLabel } from '@/types/confidence';
 
 export interface UseQuizStateProps {
   onQuizComplete?: (subject: string, score: number) => void;
@@ -49,4 +48,3 @@ export function useQuizState({ onQuizComplete }: UseQuizStateProps = {}) {
     onQuizComplete
   };
 }
-
