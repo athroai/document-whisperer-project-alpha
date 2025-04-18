@@ -12,16 +12,14 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const { state } = useAuth();
   const quizState = useQuizState(props);
 
-  const startQuiz = async (subjectParam: string | number, confidence: ConfidenceLabel) => {
-    const subject = String(subjectParam);
-    
+  const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
     if (quizState.currentSubject) return;
-    if (!subject) return;
+    if (!subject.trim()) return;
 
-    const difficulty = getDifficultyFromConfidence(confidence);
-    quizState.setCurrentSubject(subject);
-    quizState.setIsLoadingQuestions(prev => ({ ...prev, [subject]: true }));
-    quizState.setIsGenerating(prev => ({ ...prev, [subject]: true }));
+    const trimmedSubject = subject.trim();
+    quizState.setCurrentSubject(trimmedSubject);
+    quizState.setIsLoadingQuestions(prev => ({ ...prev, [trimmedSubject]: true }));
+    quizState.setIsGenerating(prev => ({ ...prev, [trimmedSubject]: true }));
     quizState.setError(null);
 
     try {
@@ -30,7 +28,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
 
       const fetchedQuestions = await quizService.getQuestionsBySubject(
         subject, 
-        difficulty,
+        getDifficultyFromConfidence(confidence),
         5
       );
       
@@ -57,7 +55,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       quizState.setQuestions(validQuestions);
       quizState.setCurrentQuestionIndex(0);
       quizState.setSelectedAnswers({});
-      quizState.setIsGenerating(prev => ({ ...prev, [subject]: false }));
+      quizState.setIsGenerating(prev => ({ ...prev, [trimmedSubject]: false }));
       toast.success(`${subject} quiz ready!`);
 
     } catch (error: any) {
@@ -80,9 +78,9 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       quizState.setError(`Could not generate ${subject} questions. Please try again later.`);
       toast.error(`Could not generate ${subject} questions. Please try again later.`);
       quizState.setCurrentSubject(null);
-      quizState.setIsGenerating(prev => ({ ...prev, [subject]: false }));
+      quizState.setIsGenerating(prev => ({ ...prev, [trimmedSubject]: false }));
     } finally {
-      quizState.setIsLoadingQuestions(prev => ({ ...prev, [subject]: false }));
+      quizState.setIsLoadingQuestions(prev => ({ ...prev, [trimmedSubject]: false }));
     }
   };
 
