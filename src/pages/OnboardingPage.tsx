@@ -3,9 +3,7 @@ import React from 'react';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { SubjectsSelector } from '@/components/onboarding/SubjectsSelector';
 import { SlotSelection } from '@/components/onboarding/SlotSelection';
-import { DiagnosticQuizSelector } from '@/components/onboarding/DiagnosticQuizSelector';
 import { StudyPlanGenerator } from '@/components/onboarding/StudyPlanGenerator';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 
@@ -15,26 +13,11 @@ const OnboardingContent: React.FC = () => {
   const steps = [
     { id: 'subjects', component: SubjectsSelector, title: 'Select Subjects' },
     { id: 'availability', component: SlotSelection, title: 'Set Study Times' },
-    { id: 'diagnosticQuiz', component: DiagnosticQuizSelector, title: 'Diagnostic Quiz' },
     { id: 'generatePlan', component: StudyPlanGenerator, title: 'Generate Study Plan' }
   ];
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
   const CurrentComponent = steps[currentStepIndex]?.component || steps[0].component;
-
-  const handleNext = () => {
-    const nextIndex = currentStepIndex + 1;
-    if (nextIndex < steps.length) {
-      updateOnboardingStep(steps[nextIndex].id);
-    }
-  };
-
-  const handlePrevious = () => {
-    const prevIndex = currentStepIndex - 1;
-    if (prevIndex >= 0) {
-      updateOnboardingStep(steps[prevIndex].id);
-    }
-  };
 
   return (
     <div className="max-w-2xl mx-auto">
