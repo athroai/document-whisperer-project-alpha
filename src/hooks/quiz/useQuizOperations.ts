@@ -15,7 +15,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const startQuiz = async (subject: string | number, confidence: ConfidenceLabel) => {
     if (quizState.currentSubject) return;
 
-    const subjectString = String(subject);
+    const subjectString: string = String(subject);
     const numericConfidence = confidenceToNumber(confidence);
     const difficulty = Math.ceil(numericConfidence / 5);
 
