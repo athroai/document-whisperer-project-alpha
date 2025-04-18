@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { quizService } from '@/services/quizService';
@@ -15,6 +16,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
     if (quizState.currentSubject) return;
 
+    // Always ensure subject is a string
     const subjectString = String(subject);
     const numericConfidence = confidenceToNumber(confidence);
     const difficulty = Math.ceil(numericConfidence / 5);

@@ -91,7 +91,7 @@ export const useSubjects = () => {
         
         console.log('Using default subject list:', defaultSubjects);
         setSubjects(defaultSubjects);
-        setSubjectsWithConfidence(defaultSubjectsWithConfidence);
+        setSubjectsWithConfidence(defaultSubjectsWithConfidenceList);
       } catch (error) {
         console.error('Failed to fetch subjects:', error);
         setError('Failed to fetch subjects');

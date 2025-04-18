@@ -147,4 +147,4 @@ export const DiagnosticQuizSelector: React.FC = () => {
       </div>
     </div>
   );
-};
+}
