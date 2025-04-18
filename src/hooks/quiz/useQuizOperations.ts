@@ -5,7 +5,6 @@ import { quizService } from '@/services/quizService';
 import { supabase } from '@/lib/supabase';
 import { Question } from '@/types/quiz';
 import { ConfidenceLabel, getDifficultyFromConfidence } from '@/types/confidence';
-import { parseConfidence } from '@/utils/confidenceUtils';
 import { useQuizState, UseQuizStateProps } from './useQuizState';
 
 const MAX_RETRIES = 2;
@@ -18,21 +17,17 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
     if (quizState.currentSubject) return;
 
     const difficulty = getDifficultyFromConfidence(confidence);
-
-    // Explicitly convert subject to string if it's not already a string
-    const subjectString = subject.toString().trim();
-
-    quizState.setCurrentSubject(subjectString);
-    quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: true }));
-    quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: true }));
+    quizState.setCurrentSubject(subject);
+    quizState.setIsLoadingQuestions(prev => ({ ...prev, [subject]: true }));
+    quizState.setIsGenerating(prev => ({ ...prev, [subject]: true }));
     quizState.setError(null);
 
     try {
-      const toastId = toast.loading(`Generating ${subjectString} quiz questions...`);
+      const toastId = toast.loading(`Generating ${subject} quiz questions...`);
       quizState.setLoadingToastId(toastId);
 
       const fetchedQuestions = await quizService.getQuestionsBySubject(
-        subjectString, 
+        subject, 
         difficulty,
         5
       );
@@ -43,7 +38,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       }
       
       if (!fetchedQuestions || fetchedQuestions.length === 0) {
-        throw new Error(`No questions were generated for ${subjectString}`);
+        throw new Error(`No questions were generated for ${subject}`);
       }
 
       const validQuestions = fetchedQuestions.filter(q => 
@@ -54,14 +49,14 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       );
       
       if (validQuestions.length === 0) {
-        throw new Error(`Generated questions for ${subjectString} are in an invalid format`);
+        throw new Error(`Generated questions for ${subject} are in an invalid format`);
       }
 
       quizState.setQuestions(validQuestions);
       quizState.setCurrentQuestionIndex(0);
       quizState.setSelectedAnswers({});
-      quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: false }));
-      toast.success(`${subjectString} quiz ready!`);
+      quizState.setIsGenerating(prev => ({ ...prev, [subject]: false }));
+      toast.success(`${subject} quiz ready!`);
 
     } catch (error: any) {
       console.error('Error fetching questions:', error);
@@ -71,21 +66,21 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         quizState.setLoadingToastId(null);
       }
       
-      const currentRetries = quizState.retryCount[subjectString] || 0;
+      const currentRetries = quizState.retryCount[subject] || 0;
       if (currentRetries < MAX_RETRIES) {
-        quizState.setRetryCount(prev => ({ ...prev, [subjectString]: currentRetries + 1 }));
-        toast.info(`Retrying ${subjectString} quiz generation...`);
+        quizState.setRetryCount(prev => ({ ...prev, [subject]: currentRetries + 1 }));
+        toast.info(`Retrying ${subject} quiz generation...`);
         
-        setTimeout(() => startQuiz(subjectString, confidence), 2000);
+        setTimeout(() => startQuiz(subject, confidence), 2000);
         return;
       }
       
-      quizState.setError(`Could not generate ${subjectString} questions. Please try again later or contact support.`);
-      toast.error(`Could not generate ${subjectString} questions. Please try again later.`);
+      quizState.setError(`Could not generate ${subject} questions. Please try again later or contact support.`);
+      toast.error(`Could not generate ${subject} questions. Please try again later.`);
       quizState.setCurrentSubject(null);
-      quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: false }));
+      quizState.setIsGenerating(prev => ({ ...prev, [subject]: false }));
     } finally {
-      quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: false }));
+      quizState.setIsLoadingQuestions(prev => ({ ...prev, [subject]: false }));
     }
   };
 

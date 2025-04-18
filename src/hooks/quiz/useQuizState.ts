@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Question } from '@/types/quiz';
 
@@ -7,7 +6,6 @@ export interface UseQuizStateProps {
 }
 
 export function useQuizState({ onQuizComplete }: UseQuizStateProps = {}) {
-  // Explicitly type currentSubject as string | null only
   const [currentSubject, setCurrentSubject] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
