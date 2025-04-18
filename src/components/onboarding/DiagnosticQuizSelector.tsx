@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,10 @@ export const DiagnosticQuizSelector: React.FC = () => {
   });
 
   const handleStartQuiz = (subject: string) => {
-    startQuiz(subject, selectedConfidence);
+    // Ensure subject is always treated as a string
+    if (subject) {
+      startQuiz(String(subject), selectedConfidence);
+    }
   };
 
   const allQuizzesCompleted = () => {
