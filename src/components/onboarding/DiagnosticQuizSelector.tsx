@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
     }
   });
 
-  const handleStartQuiz = (subject: string | number) => {
+  const handleStartQuiz = (subject: string) => {
     const subjectString = String(subject).trim();
     if (subjectString) {
       startQuiz(subjectString, selectedConfidence);

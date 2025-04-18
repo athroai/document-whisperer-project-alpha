@@ -1,5 +1,5 @@
 
-export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | string;
+export type AthroSubject = string; // Simplified to just string
 export type ExamBoard = 'wjec' | 'aqa' | 'ocr' | string;
 export type AthroLanguage = 'English' | 'Welsh' | 'French' | 'German' | 'Spanish' | string;
 

@@ -15,7 +15,7 @@ export interface Question {
     isCorrect: boolean;
   }[];
   difficulty: number | string;
-  subject: string;
+  subject: string; // Explicitly string only
   topic?: string;
   hint?: string;
   examBoard?: string;
@@ -43,7 +43,7 @@ export const subjectList = [
 export interface QuizResult {
   id?: string;
   userId?: string;
-  subject: string;
+  subject: string; // Explicitly string only
   score: number;
   totalQuestions: number;
   questions?: QuizQuestion[];
