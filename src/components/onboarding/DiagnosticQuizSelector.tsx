@@ -34,6 +34,11 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
   const MAX_RETRIES = 2;
 
+  const handleConfidenceChange = (newValue: (string | number)[]) => {
+    const value = newValue?.[0] ?? "";
+    setSelectedConfidence(String(value));
+  };
+
   const startQuiz = async (subject: string) => {
     if (currentSubject) return;
 
@@ -113,11 +118,6 @@ export const DiagnosticQuizSelector: React.FC = () => {
       ...prev,
       [currentQuestionIndex]: answerId
     }));
-  };
-
-  const handleConfidenceChange = (newValue: Array<string | number>) => {
-    const safeValue = String(newValue[0] ?? '5');
-    setSelectedConfidence(safeValue);
   };
 
   const handleQuizComplete = async () => {
