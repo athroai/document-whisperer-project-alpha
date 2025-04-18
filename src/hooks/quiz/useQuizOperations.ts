@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { quizService } from '@/services/quizService';
@@ -13,11 +12,11 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const { state } = useAuth();
   const quizState = useQuizState(props);
 
-  const startQuiz = async (subject: string | number, confidence: ConfidenceLabel) => {
+  const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
     if (quizState.currentSubject) return;
 
-    // Ensure subject is always treated as a string, and trimmed
-    const subjectString = String(subject).trim();
+    // Validate and clean the subject string
+    const subjectString = subject.trim();
     const numericConfidence = confidenceToNumber(confidence);
     const difficulty = Math.ceil(numericConfidence / 5);
 
