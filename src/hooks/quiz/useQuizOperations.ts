@@ -147,7 +147,8 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         })
         .select('id');
 
-      const newConfidence = numberToConfidenceString(Math.max(1, Math.min(10, Math.round(scorePercentage / 10))));
+      const confidenceValue = Math.max(1, Math.min(10, Math.round(scorePercentage / 10)));
+      const newConfidence = numberToConfidenceString(confidenceValue);
       
       await supabase
         .from('student_subject_preferences')
