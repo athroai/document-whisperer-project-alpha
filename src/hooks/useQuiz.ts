@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Question } from '@/types/quiz';
@@ -24,11 +23,12 @@ export function useQuiz({ onQuizComplete }: UseQuizProps = {}) {
   const [retryCount, setRetryCount] = useState<Record<string, number>>({});
   const [loadingToastId, setLoadingToastId] = useState<string | null>(null);
   const [quizResults, setQuizResults] = useState<Record<string, number>>({});
-  
-  const MAX_RETRIES = 2;
 
-  const startQuiz = async (subject: string, confidence: number) => {
+  const startQuiz = async (subject: string, confidence: string | number) => {
     if (currentSubject) return;
+
+    const numericConfidence = typeof confidence === 'string' ? parseInt(confidence, 10) : confidence;
+    const difficulty = Math.ceil(numericConfidence / 2);
 
     setCurrentSubject(subject);
     setIsLoadingQuestions(prev => ({ ...prev, [subject]: true }));
@@ -36,7 +36,6 @@ export function useQuiz({ onQuizComplete }: UseQuizProps = {}) {
     setError(null);
 
     try {
-      const difficulty = Math.ceil(confidence / 2);
       const toastId = toast.loading(`Generating ${subject} quiz questions...`);
       setLoadingToastId(toastId);
 
