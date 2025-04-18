@@ -37,9 +37,10 @@ export const DiagnosticQuizSelector: React.FC = () => {
     }
   });
 
-  const handleStartQuiz = (subject: string) => {
-    if (typeof subject === "string" && subject.trim()) {
-      startQuiz(subject, selectedConfidence);
+  const handleStartQuiz = (subject: string | number) => {
+    const subjectString = String(subject).trim();
+    if (subjectString) {
+      startQuiz(subjectString, selectedConfidence);
     }
   };
 
@@ -118,7 +119,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
         {subjectsToShow.map((subject) => (
           <SubjectQuizCard
             key={subject}
-            subject={subject}
+            subject={String(subject)}
             score={quizResults[subject]}
             isLoading={isLoadingQuestions[subject] || false}
             isGenerating={isGenerating[subject] || false}
