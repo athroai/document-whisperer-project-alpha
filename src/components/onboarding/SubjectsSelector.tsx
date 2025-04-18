@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { Check, Plus } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ConfidenceLabel, confidenceOptions, confidenceToNumber } from '@/types/confidence';
+import { ConfidenceLabel, confidenceOptions } from '@/types/confidence';
 
 export const SubjectsSelector: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject, updateOnboardingStep } = useOnboarding();
@@ -19,13 +18,12 @@ export const SubjectsSelector: React.FC = () => {
     if (isSubjectSelected(subject)) {
       removeSubject(subject);
     } else {
-      // Default confidence of "Neutral" when selecting a new subject
-      selectSubject(subject, confidenceToNumber("Neutral"));
+      selectSubject(subject, "Neutral");
     }
   };
 
   const handleConfidenceChange = (subject: string, confidence: ConfidenceLabel) => {
-    selectSubject(subject, confidenceToNumber(confidence));
+    selectSubject(subject, confidence);
   };
 
   const handleContinue = () => {
@@ -46,11 +44,7 @@ export const SubjectsSelector: React.FC = () => {
         {subjects.map((subject) => {
           const isSelected = isSubjectSelected(subject);
           const subjectData = selectedSubjects.find(s => s.subject === subject);
-          const currentConfidence = subjectData?.confidence ?? confidenceToNumber("Neutral");
-          
-          // Find the confidence label that corresponds to this numeric value
-          const confidenceIndex = Math.min(Math.max(Math.round(currentConfidence) - 1, 0), confidenceOptions.length - 1);
-          const currentConfidenceLabel = confidenceOptions[confidenceIndex];
+          const currentConfidence = subjectData?.confidence || "Neutral";
           
           return (
             <div key={subject} className="border rounded-lg p-4 bg-white">
@@ -74,7 +68,7 @@ export const SubjectsSelector: React.FC = () => {
                 <div className="flex items-center space-x-4 mt-2">
                   <span className="text-sm text-gray-500 min-w-24">Confidence:</span>
                   <Select
-                    value={String(currentConfidenceLabel)}
+                    value={currentConfidence}
                     onValueChange={(value) => handleConfidenceChange(subject, value as ConfidenceLabel)}
                   >
                     <SelectTrigger className="flex-1">

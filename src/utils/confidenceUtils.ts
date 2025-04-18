@@ -1,29 +1,21 @@
 
 import { ConfidenceLabel } from '@/types/confidence';
 
-export function getConfidenceLabel(confidenceBefore: ConfidenceLabel, confidenceAfter: ConfidenceLabel): string {
+export function getConfidenceChange(beforeLabel: ConfidenceLabel, afterLabel: ConfidenceLabel): string {
   const confidenceOrder = [
     "Very unsure",
     "Slightly unsure",
     "Neutral",
-    "Slightly confident",
+    "Slightly confident", 
     "Very confident"
   ];
   
-  const beforeIndex = confidenceOrder.indexOf(confidenceBefore);
-  const afterIndex = confidenceOrder.indexOf(confidenceAfter);
+  const beforeIndex = confidenceOrder.indexOf(beforeLabel);
+  const afterIndex = confidenceOrder.indexOf(afterLabel);
   
-  if (afterIndex > beforeIndex) return "Much better";
-  if (afterIndex === beforeIndex + 1) return "Slightly better";
+  if (afterIndex > beforeIndex + 1) return "Much better";
+  if (afterIndex > beforeIndex) return "Slightly better";
   if (afterIndex === beforeIndex) return "No change";
-  return "Still unsure";
-}
-
-// Overloaded version to handle number differences for backward compatibility
-export function getConfidenceChange(change: number): string {
-  if (change >= 2) return "Much better";
-  if (change === 1) return "Slightly better";
-  if (change === 0) return "No change";
   return "Still unsure";
 }
 

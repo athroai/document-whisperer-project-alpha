@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,6 +7,7 @@ import { Calendar, Clock, RefreshCw, BookOpen, ArrowRight } from 'lucide-react';
 import { formatDistance, format } from 'date-fns';
 import { StudySession } from '@/types/study';
 import { getConfidenceChange, getConfidenceColor } from '@/utils/confidenceUtils';
+import { ConfidenceLabel } from '@/types/confidence';
 
 interface StudySessionListProps {
   sessions: StudySession[];
@@ -30,11 +30,14 @@ const StudySessionList: React.FC<StudySessionListProps> = ({
   const filteredSessions = sessions.filter(session => {
     // Filter by confidence
     if (confidenceFilter === 'unsure') {
-      const confidenceChange = session.confidence_after !== undefined && session.confidence_before !== undefined
-        ? session.confidence_after - session.confidence_before
-        : 0;
       // Include "Still unsure" or "No change" sessions
-      if (confidenceChange > 0) return false;
+      if (session.confidence_after && session.confidence_before) {
+        const confidenceChange = getConfidenceChange(
+          session.confidence_before as ConfidenceLabel,
+          session.confidence_after as ConfidenceLabel
+        );
+        if (confidenceChange !== "Still unsure" && confidenceChange !== "No change") return false;
+      }
     }
     
     // Filter by subject
@@ -108,10 +111,13 @@ const StudySessionList: React.FC<StudySessionListProps> = ({
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {subjectSessions.map((session) => {
-              const confidenceChange = session.confidence_after !== undefined && session.confidence_before !== undefined
-                ? session.confidence_after - session.confidence_before
-                : 0;
-              const confidenceLabel = getConfidenceChange(confidenceChange);
+              const confidenceLabel = session.confidence_after && session.confidence_before
+                ? getConfidenceChange(
+                    session.confidence_before as ConfidenceLabel, 
+                    session.confidence_after as ConfidenceLabel
+                  )
+                : "No change";
+                
               const confidenceColor = getConfidenceColor(confidenceLabel);
               
               return (
