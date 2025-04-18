@@ -12,3 +12,8 @@ export function getConfidenceColor(confidenceChange: number): string {
   if (confidenceChange === 0) return "bg-yellow-100 text-yellow-800";
   return "bg-red-100 text-red-800";
 }
+
+export function parseConfidence(value: string | number): number {
+  if (typeof value === 'number') return value;
+  return parseInt(value, 10) || 5; // Default to 5 if parsing fails
+}

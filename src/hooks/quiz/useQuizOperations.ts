@@ -148,7 +148,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
         })
         .select('id');
 
-      // Convert the numeric confidence to a string format for database storage
+      // Convert the numeric confidence score to a string before saving
       const newConfidence = String(Math.max(1, Math.min(10, Math.round(scorePercentage / 10))));
       
       await supabase

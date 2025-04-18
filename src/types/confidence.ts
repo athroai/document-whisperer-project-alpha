@@ -19,3 +19,8 @@ export const confidenceToNumber = (label: ConfidenceLabel): number => {
   };
   return confidenceMap[label];
 };
+
+// Convert number to string for database storage
+export const numberToConfidenceString = (value: number): string => {
+  return String(value);
+};
