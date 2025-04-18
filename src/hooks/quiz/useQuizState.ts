@@ -6,10 +6,10 @@ import { UseQuizStateProps, UseQuizState } from './types';
 export function useQuizState({ onQuizComplete }: UseQuizStateProps = {}): UseQuizState {
   const [currentSubject, setCurrentSubject] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [score, setScore] = useState(0);
+  const [quizCompleted, setQuizCompleted] = useState<boolean>(false);
+  const [score, setScore] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState<Record<string, boolean>>({});
   const [isGenerating, setIsGenerating] = useState<Record<string, boolean>>({});

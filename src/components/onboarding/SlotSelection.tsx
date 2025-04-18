@@ -35,10 +35,10 @@ const SLOT_OPTIONS: SlotOption[] = [
 
 export const SlotSelection: React.FC = () => {
   const { updateOnboardingStep, updateStudySlots } = useOnboarding();
-  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri default
-  const [selectedOption, setSelectedOption] = useState<number | null>(0); // Default to first option
-  const [preferredStartHour, setPreferredStartHour] = useState<number>(16); // Default to 4 PM
-  
+  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [selectedOption, setSelectedOption] = useState<number | null>(0);
+  const [preferredStartHour, setPreferredStartHour] = useState<number>(16);
+
   const toggleDaySelection = (dayIndex: number) => {
     if (selectedDays.includes(dayIndex)) {
       setSelectedDays(selectedDays.filter(day => day !== dayIndex));
@@ -46,7 +46,7 @@ export const SlotSelection: React.FC = () => {
       setSelectedDays([...selectedDays, dayIndex]);
     }
   };
-  
+
   const handleContinue = () => {
     if (selectedDays.length === 0 || selectedOption === null) {
       return;
@@ -63,7 +63,6 @@ export const SlotSelection: React.FC = () => {
       });
     });
     
-    // Skip diagnostic quiz and go directly to plan generation
     updateOnboardingStep('generatePlan');
   };
 
@@ -73,7 +72,7 @@ export const SlotSelection: React.FC = () => {
     if (hour === 12) return '12 PM';
     return `${hour - 12} PM`;
   };
-  
+
   return (
     <div className="space-y-6">
       <DaySelector 

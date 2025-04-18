@@ -27,7 +27,7 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
       quizState.setLoadingToastId(toastId);
 
       const fetchedQuestions = await quizService.getQuestionsBySubject(
-        trimmedSubject, 
+        trimmedSubject,
         getDifficultyFromConfidence(confidence),
         5
       );
