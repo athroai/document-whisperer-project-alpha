@@ -23,11 +23,11 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
     quizState.setError(null);
 
     try {
-      const toastId = toast.loading(`Generating ${subject} quiz questions...`);
+      const toastId = toast.loading(`Generating ${trimmedSubject} quiz questions...`);
       quizState.setLoadingToastId(toastId);
 
       const fetchedQuestions = await quizService.getQuestionsBySubject(
-        subject, 
+        trimmedSubject, 
         getDifficultyFromConfidence(confidence),
         5
       );

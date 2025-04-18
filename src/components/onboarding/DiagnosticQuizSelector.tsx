@@ -30,7 +30,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
     handleNextQuestion,
     setError
   } = useQuiz({
-    onQuizComplete: (subject, score) => {
+    onQuizComplete: (subject: string, score: number) => {
       uiToast({
         description: `You scored ${score}% on ${subject}`,
       });
