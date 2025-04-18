@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,6 +9,7 @@ import { TimeSlotPreview } from './TimeSlotPreview';
 import { SlotOption } from '@/types/study';
 import { Calendar, Clock } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { toast } from 'sonner';
 
 const SLOT_OPTIONS: SlotOption[] = [
   {
@@ -34,10 +36,11 @@ const SLOT_OPTIONS: SlotOption[] = [
 ];
 
 export const SlotSelection: React.FC = () => {
-  const { updateOnboardingStep, updateStudySlots } = useOnboarding();
+  const { updateOnboardingStep, updateStudySlots, studySlots, setStudySlots } = useOnboarding();
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [selectedOption, setSelectedOption] = useState<number | null>(0);
   const [preferredStartHour, setPreferredStartHour] = useState<number>(16);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const toggleDaySelection = (dayIndex: number) => {
     if (selectedDays.includes(dayIndex)) {
@@ -47,23 +50,57 @@ export const SlotSelection: React.FC = () => {
     }
   };
 
-  const handleContinue = () => {
+  // Clear existing slots when component mounts to avoid duplicates
+  useEffect(() => {
+    setStudySlots([]);
+  }, [setStudySlots]);
+
+  const handleContinue = async () => {
     if (selectedDays.length === 0 || selectedOption === null) {
+      toast.error("Please select at least one day and a study session type");
       return;
     }
     
     const selectedSlotOption = SLOT_OPTIONS[selectedOption];
+    setIsSubmitting(true);
     
-    selectedDays.forEach(dayOfWeek => {
-      updateStudySlots({
-        dayOfWeek,
-        slotCount: selectedSlotOption.count,
-        slotDurationMinutes: selectedSlotOption.duration,
-        preferredStartHour
+    try {
+      // Clear any existing slots first
+      setStudySlots([]);
+      
+      // Create in-memory slots immediately for each selected day
+      const newSlots = selectedDays.map(dayOfWeek => ({
+        id: `temp-${Date.now()}-${dayOfWeek}`,
+        user_id: 'temp-user-id', // Will be replaced when user is available
+        day_of_week: dayOfWeek,
+        slot_count: selectedSlotOption.count,
+        slot_duration_minutes: selectedSlotOption.duration,
+        preferred_start_hour: preferredStartHour,
+        created_at: new Date().toISOString()
+      }));
+      
+      // Update context with all new slots at once
+      setStudySlots(newSlots);
+      
+      // Store each slot separately, but don't block UI if this fails
+      selectedDays.forEach(dayOfWeek => {
+        updateStudySlots({
+          dayOfWeek,
+          slotCount: selectedSlotOption.count,
+          slotDurationMinutes: selectedSlotOption.duration,
+          preferredStartHour
+        });
       });
-    });
-    
-    updateOnboardingStep('generatePlan');
+      
+      // Proceed to next step regardless of database save success
+      updateOnboardingStep('generatePlan');
+    } catch (error) {
+      console.error('Error saving study slots:', error);
+      // Continue anyway since we've stored slots in context
+      updateOnboardingStep('generatePlan');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getTimeLabel = (hour: number) => {
@@ -131,17 +168,19 @@ export const SlotSelection: React.FC = () => {
         <Button
           variant="outline"
           onClick={() => updateOnboardingStep('subjects')}
+          disabled={isSubmitting}
         >
           Back
         </Button>
         <Button
           onClick={handleContinue}
-          disabled={selectedDays.length === 0 || selectedOption === null}
+          disabled={selectedDays.length === 0 || selectedOption === null || isSubmitting}
           className="bg-purple-600 hover:bg-purple-700"
         >
-          Continue to Generate Study Plan
+          {isSubmitting ? "Saving..." : "Continue to Generate Study Plan"}
         </Button>
       </div>
     </div>
   );
 };
+

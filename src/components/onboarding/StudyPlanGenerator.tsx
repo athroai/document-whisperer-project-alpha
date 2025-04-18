@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { PreferredStudySlot } from '@/types/study';
 export const StudyPlanGenerator: React.FC = () => {
   const { state } = useAuth();
   const { toast } = useToast();
-  const { selectedSubjects, completeOnboarding } = useOnboarding();
+  const { selectedSubjects, completeOnboarding, updateOnboardingStep, studySlots } = useOnboarding();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
   const [studyPlan, setStudyPlan] = useState<any[]>([]);
@@ -23,7 +24,7 @@ export const StudyPlanGenerator: React.FC = () => {
   const [authVerified, setAuthVerified] = useState(false);
   const [diagnosticResults, setDiagnosticResults] = useState<Record<string, number>>({});
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [studySlots, setStudySlots] = useState<PreferredStudySlot[]>([]);
+  const [localStudySlots, setLocalStudySlots] = useState<PreferredStudySlot[]>([]);
 
   // Load diagnostic results for the selected subjects
   useEffect(() => {
@@ -54,6 +55,13 @@ export const StudyPlanGenerator: React.FC = () => {
 
   // Fetch preferred study slots when component loads
   useEffect(() => {
+    // First use the slots directly from OnboardingContext if available
+    if (studySlots && studySlots.length > 0) {
+      console.log('Using study slots from context:', studySlots);
+      setLocalStudySlots(studySlots);
+      return;
+    }
+    
     const fetchStudySlots = async () => {
       if (!state.user) return;
       
@@ -69,10 +77,10 @@ export const StudyPlanGenerator: React.FC = () => {
         }
         
         if (data && data.length > 0) {
-          console.log('Found study slots:', data);
-          setStudySlots(data);
+          console.log('Found study slots from database:', data);
+          setLocalStudySlots(data);
         } else {
-          console.warn('No study slots found for user:', state.user.id);
+          console.warn('No study slots found in database for user:', state.user.id);
         }
       } catch (err) {
         console.error('Exception when fetching study slots:', err);
@@ -82,7 +90,7 @@ export const StudyPlanGenerator: React.FC = () => {
     if (state.user) {
       fetchStudySlots();
     }
-  }, [state.user]);
+  }, [state.user, studySlots]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -109,6 +117,28 @@ export const StudyPlanGenerator: React.FC = () => {
     if (score < 50) return 4;
     if (score <= 80) return Math.round(3.5 - (score - 50) * 0.03); // Linear scale from ~3.5 to ~2.5
     return 1;
+  };
+
+  // Create default study slots if none are available
+  const generateDefaultStudySlots = (): PreferredStudySlot[] => {
+    if (!state.user) return [];
+    
+    const defaultSlots: PreferredStudySlot[] = [];
+    
+    // Generate default slots for weekdays (Monday to Friday)
+    for (let day = 1; day <= 5; day++) {
+      defaultSlots.push({
+        id: `default-${day}`,
+        user_id: state.user.id,
+        day_of_week: day,
+        slot_count: 2,
+        slot_duration_minutes: 45,
+        preferred_start_hour: 16
+      });
+    }
+    
+    console.log('Generated default study slots:', defaultSlots);
+    return defaultSlots;
   };
 
   const generateStudyPlan = async () => {
@@ -146,22 +176,19 @@ export const StudyPlanGenerator: React.FC = () => {
         return;
       }
 
-      // Check if we have study slots available
-      if (!studySlots || studySlots.length === 0) {
-        // Try fetching them again just to be sure
-        const { data: freshStudySlots } = await supabase
-          .from('preferred_study_slots')
-          .select('*')
-          .eq('user_id', state.user.id);
-          
-        if (!freshStudySlots || freshStudySlots.length === 0) {
-          setError("No study slots found. Please go back to set your study time preferences.");
-          setIsGenerating(false);
-          return;
-        }
-        
-        // Update our state with the freshly fetched slots
-        setStudySlots(freshStudySlots);
+      // Check if we have study slots available - if not, use default slots
+      let slotsToUse = localStudySlots;
+      
+      if (!slotsToUse || slotsToUse.length === 0) {
+        console.log('No stored study slots found, generating default slots');
+        slotsToUse = generateDefaultStudySlots();
+        setLocalStudySlots(slotsToUse);
+      }
+      
+      if (slotsToUse.length === 0) {
+        setError("Could not generate study slots. Please try refreshing the page.");
+        setIsGenerating(false);
+        return;
       }
 
       setGenerationProgress(30);
@@ -206,7 +233,7 @@ export const StudyPlanGenerator: React.FC = () => {
       const savedEvents = [];
       
       // Sort slots by day of week
-      const sortedSlots = [...studySlots].sort((a, b) => a.day_of_week - b.day_of_week);
+      const sortedSlots = [...slotsToUse].sort((a, b) => a.day_of_week - b.day_of_week);
       
       // Track how many sessions we've created and total needed
       let createdSessions = 0;
@@ -264,47 +291,53 @@ export const StudyPlanGenerator: React.FC = () => {
             }
           }
           
-          // Create calendar event
-          const { data: eventData, error: eventError } = await supabase
-            .from('calendar_events')
-            .insert({
-              student_id: state.user.id,
-              user_id: state.user.id,
-              title: sessionTitle,
-              description: eventDescription,
-              event_type: 'study_session',
-              start_time: startTime.toISOString(),
-              end_time: endTime.toISOString()
-            })
-            .select();
-            
-          if (eventError) {
-            console.error('Error creating calendar event:', eventError);
-            continue;
-          }
-          
-          if (eventData && eventData.length > 0) {
-            // Also create study plan session
-            await supabase
-              .from('study_plan_sessions')
+          try {
+            // Create calendar event
+            const { data: eventData, error: eventError } = await supabase
+              .from('calendar_events')
               .insert({
-                plan_id: planId,
-                subject: subjectData.subject,
+                student_id: state.user.id,
+                user_id: state.user.id,
+                title: sessionTitle,
+                description: eventDescription,
+                event_type: 'study_session',
                 start_time: startTime.toISOString(),
-                end_time: endTime.toISOString(),
-                is_pomodoro: true,
-                pomodoro_work_minutes: Math.min(slot.slot_duration_minutes, 25),
-                pomodoro_break_minutes: 5,
-                calendar_event_id: eventData[0].id
-              });
+                end_time: endTime.toISOString()
+              })
+              .select();
               
-            // Add to saved events
-            savedEvents.push({
-              ...eventData[0],
-              subject: subjectData.subject,
-              formattedStart: format(startTime, 'EEEE, h:mm a'),
-              formattedEnd: format(endTime, 'h:mm a')
-            });
+            if (eventError) {
+              console.error('Error creating calendar event:', eventError);
+              continue;
+            }
+            
+            if (eventData && eventData.length > 0) {
+              // Also create study plan session
+              await supabase
+                .from('study_plan_sessions')
+                .insert({
+                  plan_id: planId,
+                  subject: subjectData.subject,
+                  start_time: startTime.toISOString(),
+                  end_time: endTime.toISOString(),
+                  is_pomodoro: true,
+                  pomodoro_work_minutes: Math.min(slot.slot_duration_minutes, 25),
+                  pomodoro_break_minutes: 5,
+                  calendar_event_id: eventData[0].id
+                }).then(({ error }) => {
+                  if (error) console.error('Error creating study plan session:', error);
+                });
+                
+              // Add to saved events
+              savedEvents.push({
+                ...eventData[0],
+                subject: subjectData.subject,
+                formattedStart: format(startTime, 'EEEE, h:mm a'),
+                formattedEnd: format(endTime, 'h:mm a')
+              });
+            }
+          } catch (err) {
+            console.error('Error creating events:', err);
           }
           
           slotIndex++;
@@ -535,3 +568,4 @@ const subjectColorMap: Record<string, string> = {
 
 // Default color for subjects not in the map
 const defaultColor = 'bg-gray-100 border-gray-300';
+
