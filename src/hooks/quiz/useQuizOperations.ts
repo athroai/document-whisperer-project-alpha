@@ -14,14 +14,14 @@ export function useQuizOperations(props: UseQuizStateProps = {}) {
   const { state } = useAuth();
   const quizState = useQuizState(props);
 
-  const startQuiz = async (subject: string | number, confidence: ConfidenceLabel) => {
+  const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
     if (quizState.currentSubject) return;
 
-    // Ensure subject is a string
-    const subjectString = String(subject).trim();
     const difficulty = getDifficultyFromConfidence(confidence);
 
-    // Explicitly convert subject to string
+    // Explicitly convert subject to string if it's not already a string
+    const subjectString = subject.toString().trim();
+
     quizState.setCurrentSubject(subjectString);
     quizState.setIsLoadingQuestions(prev => ({ ...prev, [subjectString]: true }));
     quizState.setIsGenerating(prev => ({ ...prev, [subjectString]: true }));
