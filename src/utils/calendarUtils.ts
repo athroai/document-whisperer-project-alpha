@@ -113,42 +113,19 @@ export const createEventSeries = (event: CalendarEvent, occurrences: number = 10
   return series;
 };
 
-// Find optimal time to schedule a study session
 export const findOptimalStudyTime = (
   user_id: string,
   subject: string,
   durationMinutes: number = 60,
   existingEvents: CalendarEvent[],
-  blockedTimes: BlockedTimePreference[],
-  timePreferences: UserTimePreference
+  blockedTimes: BlockedTimePreference[]
 ): Date | null => {
   const now = new Date();
-  
-  // Start searching from tomorrow at the preferred time of day
   const startSearch = new Date(now);
   startSearch.setDate(now.getDate() + 1);
+  startSearch.setHours(9, 0, 0, 0);
   
-  // Set preferred starting hour based on time preference
-  let preferredHour = 9; // Default to morning
-  
-  switch (timePreferences.preferred_study_time_of_day) {
-    case 'morning':
-      preferredHour = 9;
-      break;
-    case 'afternoon':
-      preferredHour = 13;
-      break;
-    case 'evening':
-      preferredHour = 17;
-      break;
-    case 'night':
-      preferredHour = 20;
-      break;
-  }
-  
-  startSearch.setHours(preferredHour, 0, 0, 0);
-  
-  return findNextAvailableTimeSlot(startSearch, durationMinutes, existingEvents, blockedTimes, timePreferences);
+  return findNextAvailableTimeSlot(startSearch, durationMinutes, existingEvents, blockedTimes);
 };
 
 // Helper function to identify blocked time conflicts
@@ -177,17 +154,18 @@ export const getBlockedTimeConflicts = (
   return conflicts;
 };
 
-// Function to find next available time slot from preference
 export const findNextAvailableTimeSlot = (
   startTime: Date,
   durationMinutes: number,
   existingEvents: CalendarEvent[],
   blockedTimes: BlockedTimePreference[]
 ): Date | null => {
+  const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+
   // Check against existing calendar events
   for (const event of existingEvents) {
-    const eventStart = fromGMTString(event.start_time);
-    const eventEnd = fromGMTString(event.end_time);
+    const eventStart = new Date(event.start_time);
+    const eventEnd = new Date(event.end_time);
     
     if (
       (startTime >= eventStart && startTime < eventEnd) || // Start time is within an existing event
@@ -199,20 +177,9 @@ export const findNextAvailableTimeSlot = (
   }
   
   // Check against blocked times
-  const dayOfWeek = startTime.getDay();
-  const startTimeString = format(startTime, 'HH:mm');
-  const endTimeString = format(endTime, 'HH:mm');
-  
-  for (const blockedTime of blockedTimes) {
-    if (blockedTime.day_of_week === dayOfWeek) {
-      if (
-        (startTimeString >= blockedTime.start_time && startTimeString < blockedTime.end_time) ||
-        (endTimeString > blockedTime.start_time && endTimeString <= blockedTime.end_time) ||
-        (startTimeString <= blockedTime.start_time && endTimeString >= blockedTime.end_time)
-      ) {
-        return null;
-      }
-    }
+  const conflicts = getBlockedTimeConflicts(startTime, endTime, blockedTimes);
+  if (conflicts.length > 0) {
+    return null;
   }
   
   return startTime;

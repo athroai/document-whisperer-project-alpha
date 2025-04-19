@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format } from 'date-fns';
-import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 import { athroCharacters } from '@/config/athrosConfig';
 import { useSubjects } from '@/hooks/useSubjects';
+import { useStudySessionForm } from '@/hooks/calendar/useStudySessionForm';
+import TimeSelector from './TimeSelector';
 
 interface StudySessionDialogProps {
   open: boolean;
@@ -23,15 +25,8 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   selectedDate,
   onSuccess
 }) => {
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState(selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
-  const [startTime, setStartTime] = useState('15:00');
-  const [duration, setDuration] = useState('30');
-  const [subject, setSubject] = useState('Mathematics');
-  const [topic, setTopic] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { formData, setters } = useStudySessionForm(selectedDate);
   const { subjects, isLoading } = useSubjects();
-  
   const { toast } = useToast();
   
   const getTopicsForSubject = (subj: string) => {
@@ -39,18 +34,15 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     return character ? character.topics : [];
   };
   
-  const currentTopics = getTopicsForSubject(subject);
-
-  const availableSubjects = subjects.length > 0 
-    ? subjects 
-    : athroCharacters.map(char => char.subject);
+  const currentTopics = getTopicsForSubject(formData.subject);
+  const availableSubjects = subjects.length > 0 ? subjects : athroCharacters.map(char => char.subject);
 
   const handleSubmit = async () => {
     try {
-      setIsSubmitting(true);
+      setters.setIsSubmitting(true);
       
-      const startDateTime = new Date(`${date}T${startTime}`);
-      const durationMinutes = parseInt(duration, 10);
+      const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
+      const durationMinutes = parseInt(formData.duration, 10);
       const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60000);
       
       const hour = startDateTime.getHours();
@@ -60,7 +52,7 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
           description: "Please select a time between 3 PM and 11 PM",
           variant: "destructive",
         });
-        setIsSubmitting(false);
+        setters.setIsSubmitting(false);
         return;
       }
       
@@ -74,12 +66,12 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         .from('calendar_events')
         .insert({
           user_id: user.id,
-          title: title || `Study: ${subject}${topic ? ` - ${topic}` : ''}`,
+          title: formData.title || `Study: ${formData.subject}${formData.topic ? ` - ${formData.topic}` : ''}`,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           event_type: 'study_session',
-          subject: subject,
-          topic: topic || null,
+          subject: formData.subject,
+          topic: formData.topic || null,
           student_id: user.id
         })
         .select();
@@ -94,8 +86,8 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
       if (onSuccess) onSuccess();
       onOpenChange(false);
       
-      setTitle('');
-      setTopic('');
+      setters.setTitle('');
+      setters.setTopic('');
       
     } catch (error) {
       console.error('Error creating study session:', error);
@@ -105,11 +97,9 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         variant: 'destructive',
       });
     } finally {
-      setIsSubmitting(false);
+      setters.setIsSubmitting(false);
     }
   };
-
-  const validHours = Array.from({ length: 9 }, (_, i) => i + 15);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,16 +115,16 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
             <Label htmlFor="title">Session Title (Optional)</Label>
             <Input 
               id="title" 
-              placeholder={`Study: ${subject}${topic ? ` - ${topic}` : ''}`}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              placeholder={`Study: ${formData.subject}${formData.topic ? ` - ${formData.topic}` : ''}`}
+              value={formData.title}
+              onChange={(e) => setters.setTitle(e.target.value)}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
             <Select 
-              value={subject} 
-              onValueChange={setSubject}
+              value={formData.subject} 
+              onValueChange={setters.setSubject}
             >
               <SelectTrigger id="subject">
                 <SelectValue placeholder="Select Subject" />
@@ -157,8 +147,8 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
           <div className="space-y-2">
             <Label htmlFor="topic">Topic (Optional)</Label>
             <Select 
-              value={topic} 
-              onValueChange={setTopic}
+              value={formData.topic} 
+              onValueChange={setters.setTopic}
             >
               <SelectTrigger id="topic">
                 <SelectValue placeholder="Select Topic" />
@@ -166,68 +156,19 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
               <SelectContent>
                 <SelectItem value="general">General Study</SelectItem>
                 {currentTopics.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
-                  </SelectItem>
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input 
-                id="date" 
-                type="date" 
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="time">Start Time (3 PM - 11 PM)</Label>
-              <Select
-                value={startTime}
-                onValueChange={setStartTime}
-              >
-                <SelectTrigger id="time">
-                  <SelectValue placeholder="Select Time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {validHours.map(hour => {
-                    const hourFormatted = hour.toString().padStart(2, '0');
-                    return (
-                      <>
-                        <SelectItem key={`${hour}-00`} value={`${hourFormatted}:00`}>
-                          {hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`}
-                        </SelectItem>
-                        <SelectItem key={`${hour}-30`} value={`${hourFormatted}:30`}>
-                          {hour > 12 ? `${hour - 12}:30 PM` : `${hour}:30 AM`}
-                        </SelectItem>
-                      </>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration (minutes)</Label>
-            <Select 
-              value={duration} 
-              onValueChange={setDuration}
-            >
-              <SelectTrigger id="duration">
-                <SelectValue placeholder="Select Duration" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="15">15 minutes</SelectItem>
-                <SelectItem value="30">30 minutes</SelectItem>
-                <SelectItem value="45">45 minutes</SelectItem>
-                <SelectItem value="60">60 minutes</SelectItem>
-                <SelectItem value="90">90 minutes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <TimeSelector 
+            date={formData.date}
+            startTime={formData.startTime}
+            duration={formData.duration}
+            onDateChange={setters.setDate}
+            onStartTimeChange={setters.setStartTime}
+            onDurationChange={setters.setDuration}
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -235,9 +176,9 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isSubmitting}
+            disabled={formData.isSubmitting}
           >
-            {isSubmitting ? 'Scheduling...' : 'Schedule Session'}
+            {formData.isSubmitting ? 'Scheduling...' : 'Schedule Session'}
           </Button>
         </DialogFooter>
       </DialogContent>

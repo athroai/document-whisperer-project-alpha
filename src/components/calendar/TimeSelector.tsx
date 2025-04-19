@@ -1,54 +1,82 @@
 
 import React from 'react';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface TimeSelectorProps {
-  hour: number;
-  minute: number;
-  timeString: string;
-  onHourChange: (value: number[]) => void;
-  onMinuteChange: (value: number[]) => void;
+  date: string;
+  startTime: string;
+  duration: string;
+  onDateChange: (value: string) => void;
+  onStartTimeChange: (value: string) => void;
+  onDurationChange: (value: string) => void;
 }
 
 const TimeSelector: React.FC<TimeSelectorProps> = ({
-  hour,
-  minute,
-  timeString,
-  onHourChange,
-  onMinuteChange
+  date,
+  startTime,
+  duration,
+  onDateChange,
+  onStartTimeChange,
+  onDurationChange
 }) => {
+  const validHours = Array.from({ length: 9 }, (_, i) => i + 15); // 15-23 (3 PM - 11 PM)
+
   return (
-    <div className="col-span-3 space-y-4">
+    <div className="grid grid-cols-2 gap-4">
       <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <Label className="text-sm text-gray-500">Hour: {hour}</Label>
-          <div className="flex items-center bg-gray-100 px-2 py-1 rounded text-sm">
-            <Clock className="h-3 w-3 mr-1 text-gray-500" />
-            <span>{timeString}</span>
-          </div>
-        </div>
-        <Slider
-          id="hour-slider"
-          value={[hour]}
-          min={0}
-          max={23}
-          step={1}
-          onValueChange={onHourChange}
+        <Label htmlFor="date">Date</Label>
+        <Input 
+          id="date" 
+          type="date" 
+          value={date}
+          onChange={(e) => onDateChange(e.target.value)}
         />
       </div>
-
       <div className="space-y-2">
-        <Label className="text-sm text-gray-500">Minute: {minute}</Label>
-        <Slider
-          id="minute-slider"
-          value={[minute]}
-          min={0}
-          max={55}
-          step={5}
-          onValueChange={onMinuteChange}
-        />
+        <Label htmlFor="time">Start Time (3 PM - 11 PM)</Label>
+        <Select
+          value={startTime}
+          onValueChange={onStartTimeChange}
+        >
+          <SelectTrigger id="time">
+            <SelectValue placeholder="Select Time" />
+          </SelectTrigger>
+          <SelectContent>
+            {validHours.map(hour => {
+              const hourFormatted = hour.toString().padStart(2, '0');
+              return (
+                <React.Fragment key={`hour-${hour}`}>
+                  <SelectItem value={`${hourFormatted}:00`}>
+                    {hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`}
+                  </SelectItem>
+                  <SelectItem value={`${hourFormatted}:30`}>
+                    {hour > 12 ? `${hour - 12}:30 PM` : `${hour}:30 AM`}
+                  </SelectItem>
+                </React.Fragment>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2 col-span-2">
+        <Label htmlFor="duration">Duration (minutes)</Label>
+        <Select 
+          value={duration} 
+          onValueChange={onDurationChange}
+        >
+          <SelectTrigger id="duration">
+            <SelectValue placeholder="Select Duration" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="15">15 minutes</SelectItem>
+            <SelectItem value="30">30 minutes</SelectItem>
+            <SelectItem value="45">45 minutes</SelectItem>
+            <SelectItem value="60">60 minutes</SelectItem>
+            <SelectItem value="90">90 minutes</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

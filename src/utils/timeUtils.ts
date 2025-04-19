@@ -1,6 +1,5 @@
-
 import { format, parseISO, addDays, addWeeks, addMonths, isSameDay, getDay } from 'date-fns';
-import { CalendarEvent } from '@/types/calendar';
+import { CalendarEvent, BlockedTimePreference, UserTimePreference } from '@/types/calendar';
 
 export const toGMTString = (date: Date): string => {
   return date.toISOString().replace('Z', '+00:00');
