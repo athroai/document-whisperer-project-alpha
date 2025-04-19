@@ -11,8 +11,8 @@ export interface User {
   createdAt: Date;
   rememberMe: boolean;
   licenseExempt?: boolean;
-  schoolId?: string;  // Added this property for LicenseCheck and ProtectedRoute
-  examBoard?: import('@/types/athro').ExamBoard;  // Updated to use the ExamBoard type from athro.ts
+  schoolId?: string;
+  examBoard?: import('@/types/athro').ExamBoard;
   confidenceScores?: {
     [subject: string]: number;
   };

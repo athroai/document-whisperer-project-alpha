@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { format, parse, startOfToday, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, isSameMonth, isToday } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +15,7 @@ const BigCalendarView: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
-  const { events, suggestedEvents, fetchEvents } = useCalendarEvents();
+  const { events, suggestedEvents, fetchEvents, isLoading } = useCalendarEvents();
   
   const refreshEvents = useCallback(async () => {
     await fetchEvents();
