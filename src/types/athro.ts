@@ -13,3 +13,23 @@ export interface AthroCharacter {
   examBoards: string[];
   topics: string[];
 }
+
+export interface AthroMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date | string;
+  attachments?: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface AthroSubject {
+  id: string;
+  name: string;
+  topics: string[];
+  examBoards: ExamBoard[];
+}
+
+export type AthroLanguage = 'en' | 'fr' | 'es' | 'de';
+
+export type ExamBoard = 'AQA' | 'Edexcel' | 'OCR' | 'WJEC' | 'CCEA';

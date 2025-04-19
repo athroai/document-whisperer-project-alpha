@@ -10,6 +10,7 @@ import { AthroAi } from '@/components/onboarding/AthroAi';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { OnboardingProvider } from '@/contexts/OnboardingContext';
 
 const steps = [
   { id: 'subjects', title: 'Select Your Subjects', component: SubjectSelectionStep },
@@ -19,7 +20,7 @@ const steps = [
   { id: 'chat', title: 'Meet Your Study Assistant', component: AthroAi }
 ];
 
-const AthroOnboardingPage: React.FC = () => {
+const OnboardingContent: React.FC = () => {
   const { state } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   
@@ -100,6 +101,14 @@ const AthroOnboardingPage: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const AthroOnboardingPage: React.FC = () => {
+  return (
+    <OnboardingProvider>
+      <OnboardingContent />
+    </OnboardingProvider>
   );
 };
 
