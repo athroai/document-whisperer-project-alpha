@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +28,12 @@ export const useCalendarEvents = () => {
     generateSuggestedSessions,
     acceptSuggestedEvent
   } = useSuggestedEvents(events);
+
+  const {
+    createDbEvent,
+    updateDbEvent,
+    deleteDbEvent
+  } = useDbCalendarEvents();
 
   const clearEvents = useCallback(() => {
     setEvents([]);
