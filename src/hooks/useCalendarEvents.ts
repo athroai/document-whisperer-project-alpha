@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,9 +10,10 @@ import { fetchDatabaseEvents } from '@/services/calendarEventService';
 
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { state: authState } = useAuth();
+  const isFetchingRef = useRef(false);
   
   const {
     localEvents,
@@ -44,14 +45,20 @@ export const useCalendarEvents = () => {
   }, [authState.user]);
 
   const fetchEvents = useCallback(async () => {
+    // Prevent multiple concurrent fetch operations
+    if (isFetchingRef.current) {
+      console.log('Already fetching events, skipping duplicate request');
+      return events;
+    }
+    
     try {
+      isFetchingRef.current = true;
       setIsLoading(true);
       const userId = getCurrentUserId();
       
       if (!userId) {
         console.log('No authenticated user, not fetching calendar events');
         setEvents([]);
-        setIsLoading(false);
         return [];
       }
 
@@ -91,8 +98,9 @@ export const useCalendarEvents = () => {
       return localEvents;
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
-  }, [getCurrentUserId, localEvents, generateSuggestedSessions, toast]);
+  }, [getCurrentUserId, localEvents, generateSuggestedSessions, toast, events]);
 
   const createEvent = async (
     eventData: Partial<CalendarEvent>,

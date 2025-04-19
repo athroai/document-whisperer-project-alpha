@@ -42,6 +42,11 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
     end: endOfMonth(currentMonth)
   });
 
+  const handleAddSession = () => {
+    setSelectedDate(new Date());
+    setShowCreateDialog(true);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -54,7 +59,7 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
     <div className="space-y-5">
       <CalendarHeader
         onRefresh={onRetryLoad || (() => {})}
-        onAddSession={() => setShowCreateDialog(true)}
+        onAddSession={handleAddSession}
       />
 
       {events.length === 0 ? (

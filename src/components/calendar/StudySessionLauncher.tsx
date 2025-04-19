@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +11,7 @@ const StudySessionLauncher = () => {
   const { toast } = useToast();
   const { state: authState } = useAuth();
   const [hasChecked, setHasChecked] = useState(false);
+  const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   useEffect(() => {
     const checkForScheduledSessions = async () => {
@@ -23,25 +25,26 @@ const StudySessionLauncher = () => {
       console.log('Checking scheduled sessions for user ID:', userId);
       
       // Check Supabase auth status to ensure we're properly authenticated
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError) {
-        console.error('Error checking Supabase auth status:', authError);
-        return;
-      }
-      
-      if (!user) {
-        console.log('No authenticated Supabase user found');
-        return;
-      }
-      
-      console.log('Supabase auth confirmed, user ID:', user.id);
-      
-      // Get current date
-      const now = new Date();
-      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60000);
-      const fifteenMinutesFromNow = new Date(now.getTime() + 15 * 60000);
-      
       try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) {
+          console.error('Error checking Supabase auth status:', authError);
+          return;
+        }
+        
+        if (!user) {
+          console.log('No authenticated Supabase user found');
+          return;
+        }
+        
+        console.log('Supabase auth confirmed, user ID:', user.id);
+        
+        // Get current date
+        const now = new Date();
+        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60000);
+        const fifteenMinutesFromNow = new Date(now.getTime() + 15 * 60000);
+        
         // Query with explicit user ID and RLS will handle permissions
         const { data, error } = await supabase
           .from('calendar_events')
@@ -54,7 +57,7 @@ const StudySessionLauncher = () => {
         
         if (error) {
           console.error('Error fetching calendar events:', error);
-          throw error;
+          return;
         }
         
         if (data && data.length > 0) {
@@ -70,12 +73,11 @@ const StudySessionLauncher = () => {
               console.error('Error parsing session description:', e);
             }
             
-            // Only prompt for sessions in the next 15 minutes or that started in the last 5
-            const startTime = new Date(upcomingSession.start_time);
-            
             // Check if within notification window and haven't shown for this session
             const sessionNotified = localStorage.getItem(`notified_session_${upcomingSession.id}`);
             if (!sessionNotified) {
+              const startTime = new Date(upcomingSession.start_time);
+              
               toast({
                 title: "Scheduled Study Session",
                 description: `You have a ${description.subject || ''} session starting at ${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
@@ -99,6 +101,7 @@ const StudySessionLauncher = () => {
         } else {
           console.log('No upcoming events found for user');
         }
+        
         setHasChecked(true);
       } catch (error) {
         console.error('Error checking for scheduled sessions:', error);
@@ -106,36 +109,22 @@ const StudySessionLauncher = () => {
       }
     };
     
-    // Check immediately on route change to /calendar
-    const handleRouteChange = () => {
-      if (window.location.pathname === '/calendar' && authState.user?.id) {
-        checkForScheduledSessions();
-      }
-    };
-    
-    // Add event listener for route changes
-    window.addEventListener('popstate', handleRouteChange);
-    
-    // Only check for sessions if a user is logged in
+    // Check for sessions if user is logged in
     if (authState.user?.id) {
-      // Initial check
       checkForScheduledSessions();
       
-      // Set up interval - only if user is logged in
-      const interval = setInterval(checkForScheduledSessions, 5 * 60000);
-      
-      // Clean up interval when component unmounts or user logs out
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener('popstate', handleRouteChange);
-      };
-    } else {
-      // Just clean up event listener when component unmounts
-      return () => {
-        window.removeEventListener('popstate', handleRouteChange);
-      };
+      // Set up interval using a ref to track it
+      checkTimeoutRef.current = setInterval(checkForScheduledSessions, 5 * 60000);
     }
-  }, [navigate, toast, authState.user]);
+    
+    // Clean up interval when component unmounts or user logs out
+    return () => {
+      if (checkTimeoutRef.current) {
+        clearInterval(checkTimeoutRef.current);
+        checkTimeoutRef.current = null;
+      }
+    };
+  }, [navigate, toast, authState.user?.id]);
   
   return null; // This is a utility component, not rendering anything
 };

@@ -16,8 +16,7 @@ const CalendarPage: React.FC = () => {
   const { state: authState } = useAuth();
   const location = useLocation();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadAttempts, setLoadAttempts] = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Check if we're coming from onboarding
   useEffect(() => {
@@ -36,7 +35,7 @@ const CalendarPage: React.FC = () => {
     }
   }, [location.search, toast]);
   
-  // Separate effect for authentication and loading events
+  // Load calendar events only once when the component mounts or auth state changes
   useEffect(() => {
     let isMounted = true;
     
@@ -47,15 +46,12 @@ const CalendarPage: React.FC = () => {
         return;
       }
       
-      if (isRefreshing) return;
-      
       try {
-        setIsRefreshing(true);
         console.log("Loading calendar events for user:", authState.user.id);
-        const fetchedEvents = await fetchEvents();
+        await fetchEvents();
         
         if (isMounted) {
-          console.log("Calendar events loaded:", fetchedEvents?.length || 0);
+          console.log("Calendar events loaded successfully");
           setIsInitialLoad(false);
         }
       } catch (err) {
@@ -68,30 +64,23 @@ const CalendarPage: React.FC = () => {
             variant: "destructive"
           });
         }
-      } finally {
-        if (isMounted) setIsRefreshing(false);
       }
     };
     
     if (authState.user?.id) {
       loadCalendarEvents();
+    } else {
+      setIsInitialLoad(false);
     }
     
-    // Clean up function
     return () => {
       isMounted = false;
-    };
-  }, [authState.user, fetchEvents, toast, loadAttempts, isRefreshing]);
-  
-  // Separate effect for cleanup on unmount
-  useEffect(() => {
-    return () => {
       clearEvents();
     };
-  }, [clearEvents]);
+  }, [authState.user?.id, clearEvents, fetchEvents, toast, refreshTrigger]);
   
   const handleRetryLoad = () => {
-    setLoadAttempts(prev => prev + 1);
+    setRefreshTrigger(prev => prev + 1);
     toast({
       title: "Refreshing calendar",
       description: "Attempting to reload your calendar events..."
@@ -108,12 +97,6 @@ const CalendarPage: React.FC = () => {
           </div>
         </div>
         
-        {isRefreshing && (
-          <div className="mb-4 text-center text-gray-500">
-            Loading your study schedule...
-          </div>
-        )}
-        
         <SuggestedStudySessions />
         
         {isLoading && isInitialLoad ? (
@@ -122,7 +105,7 @@ const CalendarPage: React.FC = () => {
           </div>
         ) : (
           <BigCalendarView 
-            key={`calendar-${events.length}-${loadAttempts}`} 
+            key={`calendar-${refreshTrigger}`}
             onRetryLoad={handleRetryLoad}
           />
         )}
