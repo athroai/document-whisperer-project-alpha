@@ -14,13 +14,12 @@ const CalendarPage: React.FC = () => {
   const { state: authState } = useAuth();
   
   useEffect(() => {
-    // Clear previous events when component mounts or user changes
-    clearEvents();
-    
     // Only fetch events if a user is logged in
     if (authState.user?.id) {
       // Initial fetch of events when the page loads
-      fetchEvents();
+      fetchEvents().catch(err => {
+        console.error('Error fetching calendar events:', err);
+      });
     }
     
     // Check if we're coming from a completed study schedule setup
@@ -36,7 +35,12 @@ const CalendarPage: React.FC = () => {
       // Clean up the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [toast, fetchEvents, clearEvents, authState.user]);
+    
+    // Clear events when component unmounts
+    return () => {
+      clearEvents();
+    };
+  }, [toast, fetchEvents, clearEvents, authState.user]); // Add proper dependencies
 
   return (
     <div className="min-h-screen bg-gray-50">

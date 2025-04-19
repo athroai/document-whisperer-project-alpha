@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isToday } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import CreateStudySession from './CreateStudySession';
 import { Badge } from '@/components/ui/badge';
 import { CalendarEvent } from '@/types/calendar';
 import { getEventColor } from '@/utils/calendarUtils';
-import { toGMTString, fromGMTString, formatGMTTime } from '@/utils/timeUtils';
+import { fromGMTString, formatGMTTime } from '@/utils/timeUtils';
 
 const BigCalendarView: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -20,14 +21,14 @@ const BigCalendarView: React.FC = () => {
     fetchEvents().catch(err => {
       console.error('Error fetching initial events:', err);
     });
-  }, []);
+  }, [fetchEvents]);
   
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setShowCreateDialog(true);
   };
 
-  const handleCreateSuccess = (newEvent: CalendarEvent) => {
+  const handleCreateSuccess = () => {
     fetchEvents().catch(err => {
       console.error('Error fetching events after creation:', err);
     });
@@ -43,15 +44,18 @@ const BigCalendarView: React.FC = () => {
   };
 
   const getEventsForDay = (day: Date) => {
-    const allEvents = [...events, ...suggestedEvents];
+    const allEvents = [...events, ...suggestedEvents].filter(Boolean);
+    
     return allEvents.filter(event => {
       try {
+        if (!event.start_time) return false;
+        
         const eventStart = fromGMTString(event.start_time);
         return eventStart.getFullYear() === day.getFullYear() &&
                eventStart.getMonth() === day.getMonth() &&
                eventStart.getDate() === day.getDate();
       } catch (err) {
-        console.error('Error parsing event date:', err);
+        console.error('Error parsing event date:', err, event);
         return false;
       }
     });
@@ -79,11 +83,10 @@ const BigCalendarView: React.FC = () => {
           </div>
           {dayEvents.slice(0, 2).map((event, eventIndex) => {
             const colorStyle = getEventColor(event.subject);
-            const startTime = fromGMTString(event.start_time);
             
             return (
               <div 
-                key={eventIndex} 
+                key={`${event.id}-${eventIndex}`}
                 className={`text-xs p-1 mb-1 rounded truncate ${colorStyle.bg} ${colorStyle.text}`}
                 title={`${event.title} (${formatGMTTime(event.start_time)})`}
               >

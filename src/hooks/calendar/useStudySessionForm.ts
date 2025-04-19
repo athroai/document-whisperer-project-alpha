@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { format, addHours, parse } from 'date-fns';
+import { format, addMinutes, parse } from 'date-fns';
 import { CalendarEvent } from '@/types/calendar';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { toGMTString } from '@/utils/timeUtils';
@@ -30,7 +30,7 @@ export const useStudySessionForm = (
       
       // Calculate end time based on duration
       const durationInMinutes = parseInt(duration, 10);
-      const endDateTime = new Date(startDateTime.getTime() + durationInMinutes * 60 * 1000);
+      const endDateTime = addMinutes(startDateTime, durationInMinutes);
       
       const eventData = {
         title: title || `${subject} Study Session`,
@@ -43,7 +43,7 @@ export const useStudySessionForm = (
       
       const createdEvent = await createEvent(eventData, true);
       
-      if (onSuccess) {
+      if (onSuccess && createdEvent) {
         onSuccess(createdEvent);
       }
       
