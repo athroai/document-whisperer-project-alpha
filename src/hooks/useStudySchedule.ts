@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -58,28 +57,40 @@ export const useStudySchedule = () => {
   const handleSessionTimeChange = (dayIndex: number, sessionIndex: number, hour: number) => {
     setDayPreferences(prev => {
       const dayPrefIndex = prev.findIndex(p => p.dayIndex === dayIndex);
+      let newPrefs = [...prev];
+      
       if (dayPrefIndex === -1) {
-        return [
+        // Initialize new day preferences
+        const defaultTimes = Array(sessionsPerDay).fill({
+          startHour: 15,
+          durationMinutes: getSessionDurationForCount(sessionsPerDay)
+        });
+        defaultTimes[sessionIndex] = { ...defaultTimes[sessionIndex], startHour: hour };
+        
+        newPrefs = [
           ...prev,
           {
             dayIndex,
-            sessionTimes: Array(sessionsPerDay).fill({
-              startHour: 15,
-              durationMinutes: getSessionDurationForCount(sessionsPerDay)
-            }).map((time, i) =>
-              i === sessionIndex ? { ...time, startHour: hour } : time
-            )
+            sessionTimes: defaultTimes
           }
         ];
+      } else {
+        // Update existing day preferences
+        const updatedTimes = [...newPrefs[dayPrefIndex].sessionTimes];
+        updatedTimes[sessionIndex] = { 
+          ...updatedTimes[sessionIndex], 
+          startHour: hour 
+        };
+        
+        // Sort sessions by start time
+        updatedTimes.sort((a, b) => a.startHour - b.startHour);
+        
+        newPrefs[dayPrefIndex] = {
+          ...newPrefs[dayPrefIndex],
+          sessionTimes: updatedTimes
+        };
       }
-
-      const newPrefs = [...prev];
-      newPrefs[dayPrefIndex] = {
-        ...newPrefs[dayPrefIndex],
-        sessionTimes: newPrefs[dayPrefIndex].sessionTimes.map((time, i) =>
-          i === sessionIndex ? { ...time, startHour: hour } : time
-        )
-      };
+      
       return newPrefs;
     });
   };

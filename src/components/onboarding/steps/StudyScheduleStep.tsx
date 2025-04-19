@@ -21,6 +21,13 @@ export const StudyScheduleStep: React.FC = () => {
     handleSessionsPerDayChange,
     handleContinue
   } = useStudySchedule();
+  
+  const navigate = useNavigate();
+
+  const onContinue = async () => {
+    await handleContinue();
+    navigate('/calendar');  // Navigate to calendar after completion
+  };
 
   return (
     <div className="space-y-6">
@@ -82,17 +89,17 @@ export const StudyScheduleStep: React.FC = () => {
       <div className="pt-6 flex justify-between">
         <Button
           variant="outline"
-          onClick={() => window.location.href = '/subjects'}
+          onClick={() => navigate('/subjects')}
           disabled={isSubmitting}
         >
           Back
         </Button>
         <Button
-          onClick={handleContinue}
+          onClick={onContinue}
           disabled={selectedDays.length === 0 || isSubmitting}
           className="bg-purple-600 hover:bg-purple-700"
         >
-          {isSubmitting ? "Saving..." : "Continue to Generate Study Plan"}
+          {isSubmitting ? "Saving..." : "Continue to Calendar"}
         </Button>
       </div>
     </div>
