@@ -81,6 +81,48 @@ const BigCalendarView: React.FC = () => {
     };
   };
 
+  // Add the CSS to the document head
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .athro-calendar .rbc-header {
+        background-color: #f8f7fd;
+        padding: 10px;
+        font-weight: 600;
+      }
+      .athro-calendar .rbc-event {
+        padding: 4px 6px !important;
+        border-radius: 4px !important;
+      }
+      .athro-calendar .rbc-event-content {
+        font-size: 0.95em;
+      }
+      .athro-calendar .rbc-today {
+        background-color: #f0eaff;
+      }
+      .athro-calendar .rbc-selected {
+        background-color: rgba(155, 135, 245, 0.2) !important;
+      }
+      .athro-calendar .rbc-toolbar {
+        margin-bottom: 1rem;
+      }
+      .athro-calendar .rbc-toolbar button {
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+      }
+      .athro-calendar .rbc-toolbar button.rbc-active {
+        background-color: #9b87f5;
+        color: white;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Clean up function to remove style when component unmounts
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -108,38 +150,6 @@ const BigCalendarView: React.FC = () => {
           />
         </div>
       </Card>
-
-      <style jsx global>{`
-        .athro-calendar .rbc-header {
-          background-color: #f8f7fd;
-          padding: 10px;
-          font-weight: 600;
-        }
-        .athro-calendar .rbc-event {
-          padding: 4px 6px !important;
-          border-radius: 4px !important;
-        }
-        .athro-calendar .rbc-event-content {
-          font-size: 0.95em;
-        }
-        .athro-calendar .rbc-today {
-          background-color: #f0eaff;
-        }
-        .athro-calendar .rbc-selected {
-          background-color: rgba(155, 135, 245, 0.2) !important;
-        }
-        .athro-calendar .rbc-toolbar {
-          margin-bottom: 1rem;
-        }
-        .athro-calendar .rbc-toolbar button {
-          border-radius: 0.375rem;
-          padding: 0.5rem 0.75rem;
-        }
-        .athro-calendar .rbc-toolbar button.rbc-active {
-          background-color: #9b87f5;
-          color: white;
-        }
-      `}</style>
 
       <CreateStudySession
         isOpen={showCreateDialog}
