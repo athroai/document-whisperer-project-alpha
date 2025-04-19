@@ -1,4 +1,3 @@
-
 import { ConfidenceLabel } from '@/types/confidence';
 import { Question } from '@/types/quiz';
 
@@ -55,7 +54,6 @@ export interface UseQuizOperationsProps extends UseQuizStateProps {
   };
 }
 
-// Extending the QuizOperations interface to include all properties used in DiagnosticQuizSelector
 export interface ExtendedQuizOperations {
   state: {
     questions: { [questionId: string]: any };
@@ -69,9 +67,8 @@ export interface ExtendedQuizOperations {
   submitQuiz: () => void;
   resetQuiz: () => void;
   
-  // Additional properties used in DiagnosticQuizSelector
   currentSubject: string | null;
-  questions: QuizQuestion[];
+  questions: Question[];
   currentQuestionIndex: number;
   selectedAnswers: { [key: number]: string };
   error: string | null;

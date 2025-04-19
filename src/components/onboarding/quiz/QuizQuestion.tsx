@@ -41,18 +41,18 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
         <h4 className="text-xl font-medium mb-4">{question?.text || "Loading question..."}</h4>
         
         <div className="space-y-3 mt-6">
-          {question?.answers && Array.isArray(question.answers) && question.answers.length > 0 ? (
-            question.answers.map((answer) => (
+          {question?.options && Array.isArray(question.options) && question.options.length > 0 ? (
+            question.options.map((option, index) => (
               <button
-                key={answer.id}
-                onClick={() => onAnswerSelect(answer.id)}
+                key={`option-${index}`}
+                onClick={() => onAnswerSelect(`option-${index}`)}
                 className={`p-4 w-full border rounded-lg text-left transition-all ${
-                  selectedAnswerId === answer.id 
+                  selectedAnswerId === `option-${index}` 
                     ? 'border-purple-600 bg-purple-50' 
                     : 'hover:border-purple-300 hover:bg-gray-50'
                 }`}
               >
-                {answer.text}
+                {option}
               </button>
             ))
           ) : (

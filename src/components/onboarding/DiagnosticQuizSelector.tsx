@@ -79,7 +79,7 @@ export const DiagnosticQuizSelector: React.FC = () => {
           id: currentQuestion.id,
           text: currentQuestion.question,
           options: currentQuestion.options,
-          correctAnswerIndex: currentQuestion.correctAnswer
+          correctAnswer: currentQuestion.correctAnswer // This is the correct property name according to Question type
         }}
         currentIndex={currentQuestionIndex}
         totalQuestions={questions.length}
