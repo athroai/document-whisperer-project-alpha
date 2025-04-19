@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -6,16 +5,22 @@ import { CalendarEvent } from '@/types/calendar';
 import { useLocalEvents } from './calendar/useLocalEvents';
 import { fetchDatabaseEvents, createDatabaseEvent } from '@/services/calendarEventService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudentRecord } from '@/contexts/StudentRecordContext';
+import { useSubjects } from '@/hooks/useSubjects';
 
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [suggestedEvents, setSuggestedEvents] = useState<CalendarEvent[]>([]);
   const { localEvents, setLocalEvents, clearLocalEvents } = useLocalEvents();
   const { toast } = useToast();
   const { state: authState } = useAuth();
+  const { studentRecord, getRecommendedSubject } = useStudentRecord();
+  const { subjectsWithConfidence } = useSubjects();
 
   const clearEvents = () => {
     setEvents([]);
+    setSuggestedEvents([]);
     clearLocalEvents();
   };
 
@@ -47,6 +52,8 @@ export const useCalendarEvents = () => {
       const combinedEvents = [...dbEvents, ...filteredLocalEvents];
       setEvents(combinedEvents);
       
+      generateSuggestedSessions();
+      
       return combinedEvents;
     } catch (error) {
       console.error('Error in fetchEvents:', error);
@@ -55,6 +62,80 @@ export const useCalendarEvents = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const generateSuggestedSessions = () => {
+    if (!authState.user?.id) return;
+
+    try {
+      const recommendedSubject = getRecommendedSubject();
+      if (!recommendedSubject) return;
+
+      const subjectData = subjectsWithConfidence.find(s => s.subject.toLowerCase() === recommendedSubject.toLowerCase());
+      
+      const now = new Date();
+      const nextWeek = new Date(now);
+      nextWeek.setDate(now.getDate() + 7);
+      
+      const availableSlots = findAvailableTimeSlots(now, nextWeek);
+      
+      if (availableSlots.length === 0) return;
+      
+      const newSuggestions = availableSlots.slice(0, 3).map((slot, index) => {
+        const sessionLength = 45;
+        
+        const endTime = new Date(slot);
+        endTime.setMinutes(endTime.getMinutes() + sessionLength);
+        
+        return {
+          id: `suggested-${authState.user?.id}-${recommendedSubject}-${index}`,
+          title: `Suggested ${recommendedSubject} Study`,
+          subject: recommendedSubject,
+          topic: '',
+          start_time: slot.toISOString(),
+          end_time: endTime.toISOString(),
+          event_type: 'study_session',
+          suggested: true
+        };
+      });
+      
+      setSuggestedEvents(newSuggestions);
+      
+    } catch (error) {
+      console.error('Error generating suggested sessions:', error);
+    }
+  };
+
+  const findAvailableTimeSlots = (startDate: Date, endDate: Date): Date[] => {
+    const slots: Date[] = [];
+    const existingSlots = new Set<string>();
+    
+    events.forEach(event => {
+      const start = new Date(event.start_time);
+      const hourKey = `${start.toDateString()}-${start.getHours()}`;
+      existingSlots.add(hourKey);
+    });
+    
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      if (currentDate.getHours() >= 20) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setHours(9, 0, 0, 0);
+        continue;
+      }
+      
+      if (currentDate.getHours() >= 9 && currentDate.getHours() < 20) {
+        const hourKey = `${currentDate.toDateString()}-${currentDate.getHours()}`;
+        
+        if (!existingSlots.has(hourKey)) {
+          slots.push(new Date(currentDate));
+        }
+      }
+      
+      currentDate.setHours(currentDate.getHours() + 1);
+    }
+    
+    return slots;
   };
 
   const createEvent = async (
@@ -247,13 +328,38 @@ export const useCalendarEvents = () => {
     }
   };
 
+  const acceptSuggestedEvent = async (suggestedEvent: CalendarEvent): Promise<boolean> => {
+    try {
+      const { id, suggested, ...eventData } = suggestedEvent;
+      
+      await createEvent({
+        ...eventData,
+        title: eventData.title.replace('Suggested ', '')
+      });
+      
+      setSuggestedEvents(prev => prev.filter(e => e.id !== suggestedEvent.id));
+      
+      toast({
+        title: "Study Session Added",
+        description: `${eventData.subject} study session has been added to your calendar.`,
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error accepting suggested event:', error);
+      return false;
+    }
+  };
+
   return {
     events,
+    suggestedEvents,
     isLoading,
     fetchEvents,
     clearEvents,
     createEvent,
     updateEvent,
-    deleteEvent
+    deleteEvent,
+    acceptSuggestedEvent
   };
 };

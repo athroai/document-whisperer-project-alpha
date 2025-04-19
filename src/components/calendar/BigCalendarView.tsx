@@ -8,12 +8,13 @@ import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import CreateStudySession from './CreateStudySession';
 import { Badge } from '@/components/ui/badge';
 import { CalendarEvent } from '@/types/calendar';
+import { getEventColor } from '@/utils/calendarUtils';
 
 const BigCalendarView: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
-  const { events, fetchEvents } = useCalendarEvents();
+  const { events, suggestedEvents, fetchEvents } = useCalendarEvents();
   
   // Load events when component mounts or when refreshEvents is called
   const refreshEvents = useCallback(async () => {
@@ -55,7 +56,8 @@ const BigCalendarView: React.FC = () => {
 
   // Get events for a specific day
   const getEventsForDay = (day: Date) => {
-    return events.filter(event => {
+    const allEvents = [...events, ...suggestedEvents];
+    return allEvents.filter(event => {
       const eventStart = new Date(event.start_time);
       return isSameDay(eventStart, day);
     });
@@ -64,6 +66,9 @@ const BigCalendarView: React.FC = () => {
   // Function to determine day class based on events
   const getDayClass = (day: Date) => {
     const dayEvents = getEventsForDay(day);
+    if (dayEvents.some(e => e.suggested)) {
+      return "bg-purple-50 border border-purple-300 border-dashed rounded-md relative";
+    }
     if (dayEvents.length > 0) {
       return "bg-purple-50 rounded-md relative";
     }
@@ -83,15 +88,20 @@ const BigCalendarView: React.FC = () => {
         </div>
         {dayEvents.length > 0 && (
           <div className="space-y-1">
-            {dayEvents.slice(0, 3).map((event, index) => (
-              <div 
-                key={event.id + index} 
-                className={`text-xs p-1 rounded truncate ${getEventColor(event.subject)}`}
-                title={`${event.title} (${format(new Date(event.start_time), 'HH:mm')} - ${format(new Date(event.end_time), 'HH:mm')})`}
-              >
-                {format(new Date(event.start_time), 'HH:mm')} - {event.title}
-              </div>
-            ))}
+            {dayEvents.slice(0, 3).map((event, index) => {
+              const colorStyle = getEventColor(event.subject);
+              return (
+                <div 
+                  key={event.id + index} 
+                  className={`text-xs p-1 rounded truncate ${
+                    event.suggested ? 'border border-dashed border-purple-400' : ''
+                  } ${colorStyle.bg} ${colorStyle.text}`}
+                  title={`${event.title} (${format(new Date(event.start_time), 'HH:mm')} - ${format(new Date(event.end_time), 'HH:mm')})`}
+                >
+                  {format(new Date(event.start_time), 'HH:mm')} - {event.title}
+                </div>
+              );
+            })}
             {dayEvents.length > 3 && (
               <div className="text-xs text-gray-500 font-medium text-center">
                 +{dayEvents.length - 3} more
@@ -101,22 +111,6 @@ const BigCalendarView: React.FC = () => {
         )}
       </div>
     );
-  };
-
-  // Function to get event background color based on subject
-  const getEventColor = (subject?: string) => {
-    const subjectColorMap: Record<string, string> = {
-      'Mathematics': 'bg-purple-100 text-purple-800',
-      'Science': 'bg-blue-100 text-blue-800',
-      'English': 'bg-green-100 text-green-800',
-      'History': 'bg-amber-100 text-amber-800',
-      'Geography': 'bg-teal-100 text-teal-800',
-      'Welsh': 'bg-red-100 text-red-800',
-      'Languages': 'bg-indigo-100 text-indigo-800',
-      'Religious Education': 'bg-pink-100 text-pink-800'
-    };
-    
-    return subject && subjectColorMap[subject] ? subjectColorMap[subject] : 'bg-gray-100 text-gray-800';
   };
 
   // Generate calendar days for the current month view
