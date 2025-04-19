@@ -1,47 +1,44 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { CalendarEvent } from '@/types/calendar';
 import { useLocalEvents } from './calendar/useLocalEvents';
 import { fetchDatabaseEvents, createDatabaseEvent } from '@/services/calendarEventService';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { localEvents, setLocalEvents } = useLocalEvents();
+  const { localEvents, setLocalEvents, clearLocalEvents } = useLocalEvents();
   const { toast } = useToast();
+  const { state: authState } = useAuth();
+
+  const clearEvents = () => {
+    setEvents([]);
+  };
+
+  const getCurrentUserId = () => {
+    if (authState.user?.id) {
+      return authState.user.id;
+    }
+    
+    return null;
+  };
 
   const fetchEvents = async () => {
     try {
       setIsLoading(true);
       
-      // Get current user
-      let userId = null;
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (user) {
-          userId = user.id;
-        }
-      } catch (authError) {
-        console.error('Error checking Supabase auth status:', authError);
-      }
+      const userId = getCurrentUserId();
       
-      // Support for mock users in development environment
-      if (!userId && localStorage.getItem('athro_user')) {
-        try {
-          const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
-          if (mockUser.id) {
-            userId = mockUser.id;
-          }
-        } catch (err) {
-          console.warn('Error parsing mock user:', err);
-        }
+      if (!userId) {
+        console.log('No authenticated user, not fetching calendar events');
+        setEvents([]);
+        return [];
       }
 
       const dbEvents = await fetchDatabaseEvents(userId);
       
-      // Combine database events and local events, preferring database versions
       const dbEventIds = new Set(dbEvents.map(event => event.id));
       const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
       
@@ -63,29 +60,7 @@ export const useCalendarEvents = () => {
     allowLocalFallback: boolean = false
   ): Promise<CalendarEvent> => {
     try {
-      let userId = null;
-      
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (user) {
-          userId = user.id;
-        }
-      } catch (authError) {
-        console.error('Error checking Supabase auth status:', authError);
-      }
-      
-      // Support for mock users in development environment
-      if (!userId && localStorage.getItem('athro_user')) {
-        try {
-          const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
-          if (mockUser.id) {
-            userId = mockUser.id;
-          }
-        } catch (err) {
-          console.warn('Error parsing mock user:', err);
-          throw new Error('No user found for database operation');
-        }
-      }
+      const userId = getCurrentUserId();
       
       if (!userId) {
         if (!allowLocalFallback) {
@@ -110,7 +85,6 @@ export const useCalendarEvents = () => {
     } catch (error) {
       console.error('Error creating calendar event:', error);
       
-      // Create a local event instead
       const localId = `local-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const localEvent: CalendarEvent = {
         id: localId,
@@ -275,6 +249,7 @@ export const useCalendarEvents = () => {
     events,
     isLoading,
     fetchEvents,
+    clearEvents,
     createEvent,
     updateEvent,
     deleteEvent

@@ -4,14 +4,22 @@ import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import BigCalendarView from '@/components/calendar/BigCalendarView';
 import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CalendarPage: React.FC = () => {
   const { toast } = useToast();
-  const { fetchEvents } = useCalendarEvents();
+  const { fetchEvents, clearEvents } = useCalendarEvents();
+  const { state: authState } = useAuth();
   
   useEffect(() => {
-    // Initial fetch of events when the page loads
-    fetchEvents();
+    // Clear previous events when component mounts or user changes
+    clearEvents();
+    
+    // Only fetch events if a user is logged in
+    if (authState.user?.id) {
+      // Initial fetch of events when the page loads
+      fetchEvents();
+    }
     
     // Check if we're coming from a completed study schedule setup
     const urlParams = new URLSearchParams(window.location.search);
@@ -26,7 +34,7 @@ const CalendarPage: React.FC = () => {
       // Clean up the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [toast, fetchEvents]);
+  }, [toast, fetchEvents, clearEvents, authState.user]);
 
   return (
     <div className="min-h-screen bg-gray-50">
