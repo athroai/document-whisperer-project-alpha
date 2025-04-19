@@ -25,10 +25,13 @@ const CalendarPage: React.FC = () => {
         description: "Your personalized study schedule has been created and is ready to use.",
       });
       
+      // Refresh events to ensure we have the latest data
+      fetchEvents();
+      
       // Clean up the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [toast]);
+  }, [toast, fetchEvents]);
   
   const handleCreateSuccess = () => {
     fetchEvents();

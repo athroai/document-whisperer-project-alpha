@@ -44,17 +44,23 @@ export const useCalendarEvents = () => {
     }
   }, [localEvents]);
 
-  // Fetch events from the database
+  // Fetch events from the database and combine with local events
   const fetchEvents = async () => {
     try {
       setIsLoading(true);
       
       // Get current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      let userId = null;
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (user) {
+          userId = user.id;
+        }
+      } catch (authError) {
+        console.error('Error checking Supabase auth status:', authError);
+      }
       
       // Support for mock users in development environment
-      let userId = user?.id;
-      
       if (!userId && localStorage.getItem('athro_user')) {
         try {
           const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
@@ -132,11 +138,12 @@ export const useCalendarEvents = () => {
     }
   };
 
+  // Fetch events on component mount
   useEffect(() => {
     fetchEvents();
-  }, [toast]);
+  }, []);
 
-  // Create a new calendar event
+  // Create a new calendar event - with local fallback option
   const createEvent = async (
     eventData: {
       title?: string;
@@ -147,14 +154,20 @@ export const useCalendarEvents = () => {
       event_type?: string;
     }, 
     allowLocalFallback: boolean = false
-  ): Promise<CalendarEvent | null> => {
+  ): Promise<CalendarEvent> => {
     try {
       // Get current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      let userId = null;
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (user) {
+          userId = user.id;
+        }
+      } catch (authError) {
+        console.error('Error checking Supabase auth status:', authError);
+      }
       
       // Support for mock users in development environment
-      let userId = user?.id;
-      
       if (!userId && localStorage.getItem('athro_user')) {
         try {
           const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
@@ -164,25 +177,17 @@ export const useCalendarEvents = () => {
           }
         } catch (err) {
           console.warn('Error parsing mock user:', err);
-          if (allowLocalFallback) {
-            throw new Error('No user found for database operation, using local fallback');
-          } else {
-            throw new Error('No authenticated user found');
-          }
+          throw new Error('No user found for database operation, using local fallback');
         }
       }
       
+      // If no user, create local event
       if (!userId) {
-        if (allowLocalFallback) {
-          throw new Error('No user found for database operation, using local fallback');
-        } else {
-          toast({
-            title: "Authentication Required",
-            description: "You need to be logged in to create events",
-            variant: "destructive",
-          });
+        if (!allowLocalFallback) {
           throw new Error('No authenticated user found');
         }
+        
+        throw new Error('No user found for database operation, using local fallback');
       }
       
       // Create event description
@@ -194,99 +199,96 @@ export const useCalendarEvents = () => {
         pomodoroBreakMinutes: 5
       });
       
-      // Prepare event data
-      const eventInsert = {
-        title: eventData.title || `${eventData.subject || 'Study'} Session`,
-        description: eventDescription,
-        user_id: userId,
-        student_id: userId,
-        event_type: eventData.event_type || 'study_session',
-        start_time: eventData.start_time,
-        end_time: eventData.end_time
-      };
-
-      console.log('Creating calendar event:', eventInsert);
-      
-      // Insert the event
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .insert(eventInsert)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating calendar event in database:', error);
-        if (allowLocalFallback) {
-          throw new Error('Database error: ' + error.message);
-        } else {
-          throw error; 
-        }
-      }
-      
-      if (!data) {
-        if (allowLocalFallback) {
-          throw new Error('No data returned from database insert');
-        } else {
-          throw new Error('Failed to create calendar event - no data returned');
-        }
-      }
-      
-      const newEvent: CalendarEvent = {
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        subject: eventData.subject || '',
-        topic: eventData.topic || '',
-        start_time: data.start_time,
-        end_time: data.end_time,
-        event_type: data.event_type || 'study_session',
-        user_id: data.user_id,
-        student_id: data.student_id
-      };
-      
-      setEvents(prevEvents => [...prevEvents, newEvent]);
-      
-      toast({
-        title: "Success",
-        description: "Study session created successfully.",
-      });
-      
-      return newEvent;
-      
-    } catch (error: any) {
-      console.error('Error creating calendar event:', error);
-      
-      // If local fallback is allowed and there was a database error, create a local event
-      if (allowLocalFallback) {
-        const localId = `local-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        const localEvent: CalendarEvent = {
-          id: localId,
+      // Try to insert the event into the database
+      try {
+        // Prepare event data
+        const eventInsert = {
           title: eventData.title || `${eventData.subject || 'Study'} Session`,
+          description: eventDescription,
+          user_id: userId,
+          student_id: userId,
+          event_type: eventData.event_type || 'study_session',
+          start_time: eventData.start_time,
+          end_time: eventData.end_time
+        };
+
+        console.log('Creating calendar event:', eventInsert);
+        
+        // Insert the event
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .insert(eventInsert)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating calendar event in database:', error);
+          throw error;
+        }
+        
+        if (!data) {
+          throw new Error('No data returned from database insert');
+        }
+        
+        const newEvent: CalendarEvent = {
+          id: data.id,
+          title: data.title,
+          description: data.description,
           subject: eventData.subject || '',
           topic: eventData.topic || '',
-          start_time: eventData.start_time,
-          end_time: eventData.end_time,
-          event_type: eventData.event_type || 'study_session',
-          local_only: true
+          start_time: data.start_time,
+          end_time: data.end_time,
+          event_type: data.event_type || 'study_session',
+          user_id: data.user_id,
+          student_id: data.student_id
         };
         
-        setLocalEvents(prev => [...prev, localEvent]);
-        setEvents(prev => [...prev, localEvent]);
+        // Update local state
+        setEvents(prevEvents => [...prevEvents, newEvent]);
         
         toast({
-          title: "Local Session Created",
-          description: "Study session saved to your browser (not synced to server).",
+          title: "Success",
+          description: "Study session created successfully.",
         });
         
-        return localEvent;
-      } else {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to create session. Please try again.",
-          variant: "destructive",
-        });
-        return null;
+        return newEvent;
+      } catch (dbError) {
+        // If database operation fails, fall back to local storage
+        console.error('Database error creating event:', dbError);
+        
+        if (!allowLocalFallback) {
+          throw new Error('Database error and local fallback not allowed');
+        }
+        
+        throw new Error('Database error: ' + (dbError instanceof Error ? dbError.message : 'Unknown error'));
       }
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+      
+      // Create a local event instead
+      const localId = `local-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const localEvent: CalendarEvent = {
+        id: localId,
+        title: eventData.title || `${eventData.subject || 'Study'} Session`,
+        subject: eventData.subject || '',
+        topic: eventData.topic || '',
+        start_time: eventData.start_time,
+        end_time: eventData.end_time,
+        event_type: eventData.event_type || 'study_session',
+        local_only: true
+      };
+      
+      // Update local storage
+      const updatedLocalEvents = [...localEvents, localEvent];
+      setLocalEvents(updatedLocalEvents);
+      
+      // Update combined events list
+      setEvents(prev => [...prev, localEvent]);
+      
+      // Save to localStorage
+      localStorage.setItem('athro_calendar_events', JSON.stringify(updatedLocalEvents));
+      
+      return localEvent;
     }
   };
 

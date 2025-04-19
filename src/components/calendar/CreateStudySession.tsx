@@ -1,14 +1,16 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, addMinutes } from 'date-fns';
+import { format, addMinutes, parse } from 'date-fns';
 import { useSubjects } from '@/hooks/useSubjects';
 import { CalendarEvent, useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useToast } from '@/hooks/use-toast';
+import { Slider } from '@/components/ui/slider';
+import { Clock } from 'lucide-react';
 
 interface CreateStudySessionProps {
   isOpen: boolean;
@@ -29,13 +31,46 @@ const CreateStudySession = ({
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
   const [date, setDate] = useState(format(initialDate, 'yyyy-MM-dd'));
-  const [time, setTime] = useState(initialTime);
+  const [hour, setHour] = useState(15);
+  const [minute, setMinute] = useState(0);
   const [duration, setDuration] = useState('60');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Format time as HH:MM for display
+  const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   
   const { subjects } = useSubjects();
   const { createEvent } = useCalendarEvents();
   const { toast } = useToast();
+  
+  // Update date and time when initialDate or initialTime changes
+  useEffect(() => {
+    if (initialDate) {
+      setDate(format(initialDate, 'yyyy-MM-dd'));
+    }
+    
+    if (initialTime) {
+      try {
+        const parsedTime = parse(initialTime, 'HH:mm', new Date());
+        setHour(parsedTime.getHours());
+        setMinute(parsedTime.getMinutes());
+      } catch (error) {
+        console.error('Error parsing initial time:', error);
+        setHour(15);
+        setMinute(0);
+      }
+    }
+  }, [initialDate, initialTime]);
+  
+  // Handle hour slider change
+  const handleHourChange = (value: number[]) => {
+    setHour(value[0]);
+  };
+  
+  // Handle minute slider change
+  const handleMinuteChange = (value: number[]) => {
+    setMinute(value[0]);
+  };
   
   const handleSubmit = async () => {
     try {
@@ -51,7 +86,7 @@ const CreateStudySession = ({
       }
       
       // Create start time
-      const startTime = new Date(`${date}T${time}`);
+      const startTime = new Date(`${date}T${timeString}`);
       
       // Calculate end time
       const durationMinutes = parseInt(duration, 10);
@@ -82,41 +117,37 @@ const CreateStudySession = ({
     } catch (error) {
       console.error('Error creating study session:', error);
       
-      // Show more descriptive error for permission issues
-      if (error instanceof Error && error.message.includes('policy')) {
-        toast({
-          title: "Permission Error",
-          description: "Unable to save to database. Your session will be saved locally only.",
-          variant: "destructive"
-        });
+      toast({
+        title: "Error",
+        description: "Failed to create study session. Session will be saved locally.",
+        variant: "destructive"
+      });
+      
+      // Try to create a local-only event
+      try {
+        const startTime = new Date(`${date}T${timeString}`);
+        const durationMinutes = parseInt(duration, 10);
+        const endTime = addMinutes(startTime, durationMinutes);
         
-        // Try to create a local-only event
-        try {
-          const startTime = new Date(`${date}T${time}`);
-          const durationMinutes = parseInt(duration, 10);
-          const endTime = addMinutes(startTime, durationMinutes);
-          
-          const localEvent: CalendarEvent = {
-            id: `local-${Date.now()}`,
-            title: title || `${subject} Study Session`,
-            subject: subject,
-            topic: topic,
-            start_time: startTime.toISOString(),
-            end_time: endTime.toISOString(),
-            event_type: 'study_session',
-            local_only: true
-          };
-          
-          if (onSuccess) {
-            onSuccess(localEvent);
-          }
-          
-          // Close dialog
-          onClose();
-        } catch (localError) {
-          console.error('Error creating local event:', localError);
+        const localEvent: CalendarEvent = {
+          id: `local-${Date.now()}`,
+          title: title || `${subject} Study Session`,
+          subject: subject,
+          topic: topic,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          event_type: 'study_session',
+          local_only: true
+        };
+        
+        if (onSuccess) {
+          onSuccess(localEvent);
         }
-      } else {
+        
+        // Close dialog
+        onClose();
+      } catch (localError) {
+        console.error('Error creating local event:', localError);
         toast({
           title: "Error",
           description: "Failed to create study session. Please try again.",
@@ -182,15 +213,39 @@ const CreateStudySession = ({
             />
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="time" className="text-right">Time</Label>
-            <Input 
-              id="time" 
-              type="time" 
-              value={time} 
-              onChange={(e) => setTime(e.target.value)} 
-              className="col-span-3" 
-            />
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label className="text-right pt-2">Time</Label>
+            <div className="col-span-3 space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label className="text-sm text-gray-500">Hour: {hour}</Label>
+                  <div className="flex items-center bg-gray-100 px-2 py-1 rounded text-sm">
+                    <Clock className="h-3 w-3 mr-1 text-gray-500" />
+                    <span>{timeString}</span>
+                  </div>
+                </div>
+                <Slider
+                  id="hour-slider"
+                  value={[hour]}
+                  min={0}
+                  max={23}
+                  step={1}
+                  onValueChange={handleHourChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm text-gray-500">Minute: {minute}</Label>
+                <Slider
+                  id="minute-slider"
+                  value={[minute]}
+                  min={0}
+                  max={55}
+                  step={5}
+                  onValueChange={handleMinuteChange}
+                />
+              </div>
+            </div>
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">

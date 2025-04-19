@@ -28,7 +28,8 @@ const subjectColorMap: Record<string, string> = {
   'Geography': 'bg-teal-100 border-teal-300 text-teal-800',
   'Welsh': 'bg-red-100 border-red-300 text-red-800',
   'Languages': 'bg-indigo-100 border-indigo-300 text-indigo-800',
-  'Religious Education': 'bg-pink-100 border-pink-300 text-pink-800'
+  'Religious Education': 'bg-pink-100 border-pink-300 text-pink-800',
+  'General': 'bg-gray-100 border-gray-300 text-gray-800'
 };
 
 const defaultColor = 'bg-gray-100 border-gray-300 text-gray-800';
@@ -42,16 +43,19 @@ const SimpleStudyScheduler = () => {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [weekEvents, setWeekEvents] = useState<{ [key: string]: DayEvent[] }>({});
   
+  // Fetch events on mount and whenever events state changes
   useEffect(() => {
     fetchEvents();
   }, []);
   
+  // Organize events by day whenever events or current week changes
   useEffect(() => {
-    if (!isLoading && events) {
+    if (!isLoading) {
       organizeEventsByDay();
     }
   }, [events, currentWeekStart, isLoading]);
   
+  // Function to organize events by day of the week
   const organizeEventsByDay = () => {
     const organizedEvents: { [key: string]: DayEvent[] } = {};
     
@@ -63,34 +67,39 @@ const SimpleStudyScheduler = () => {
     }
     
     // Add events to their respective days
-    events.forEach(event => {
-      const startDate = new Date(event.start_time);
-      const dateKey = format(startDate, 'yyyy-MM-dd');
-      
-      // Check if this event belongs to the current week
-      if (organizedEvents[dateKey] !== undefined) {
-        const startHour = startDate.getHours();
-        const startMinutes = startDate.getMinutes();
-        const formattedTime = `${startHour.toString().padStart(2, '0')}:${startMinutes.toString().padStart(2, '0')}`;
-        
-        const endDate = new Date(event.end_time);
-        const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
-        
-        const color = event.subject && subjectColorMap[event.subject] 
-          ? subjectColorMap[event.subject] 
-          : defaultColor;
-        
-        organizedEvents[dateKey].push({
-          id: event.id,
-          title: event.title,
-          subject: event.subject,
-          time: formattedTime,
-          duration: durationMinutes,
-          color,
-          local_only: event.local_only
-        });
-      }
-    });
+    if (events && events.length > 0) {
+      events.forEach(event => {
+        try {
+          const startDate = new Date(event.start_time);
+          const dateKey = format(startDate, 'yyyy-MM-dd');
+          
+          // Check if this event belongs to the current week
+          if (organizedEvents[dateKey] !== undefined) {
+            const startHour = startDate.getHours();
+            const startMinutes = startDate.getMinutes();
+            const formattedTime = `${startHour.toString().padStart(2, '0')}:${startMinutes.toString().padStart(2, '0')}`;
+            
+            const endDate = new Date(event.end_time);
+            const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
+            
+            const subject = event.subject || 'General';
+            const color = subjectColorMap[subject] || defaultColor;
+            
+            organizedEvents[dateKey].push({
+              id: event.id,
+              title: event.title || `${subject} Study Session`,
+              subject: event.subject,
+              time: formattedTime,
+              duration: durationMinutes,
+              color,
+              local_only: event.local_only
+            });
+          }
+        } catch (error) {
+          console.error("Error processing event:", error, event);
+        }
+      });
+    }
     
     // Sort events by time
     Object.keys(organizedEvents).forEach(date => {
