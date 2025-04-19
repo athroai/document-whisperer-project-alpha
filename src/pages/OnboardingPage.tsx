@@ -1,21 +1,24 @@
 
 import React, { useEffect, useState } from 'react';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
-import { SubjectsSelector } from '@/components/onboarding/SubjectsSelector';
-import { SlotSelection } from '@/components/onboarding/SlotSelection';
-import { StudyPlanGenerator } from '@/components/onboarding/StudyPlanGenerator';
-import { DiagnosticQuizSelector } from '@/components/onboarding/DiagnosticQuizSelector';
 import { Progress } from '@/components/ui/progress';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { verifyAuth, supabase } from '@/lib/supabase';
+import { verifyAuth } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
+// Import our new onboarding steps
+import { WelcomeStep } from '@/components/onboarding/steps/WelcomeStep';
+import { SubjectSelectionStep } from '@/components/onboarding/steps/SubjectSelectionStep';
+import { StudyScheduleStep } from '@/components/onboarding/steps/StudyScheduleStep';
+import { LearningStyleStep } from '@/components/onboarding/steps/LearningStyleStep';
+import { StudyPlanStep } from '@/components/onboarding/steps/StudyPlanStep';
+
 const OnboardingContent: React.FC = () => {
-  const { currentStep } = useOnboarding();
+  const { currentStep, updateOnboardingStep } = useOnboarding();
   const { state } = useAuth();
   const [authVerified, setAuthVerified] = useState<boolean | null>(null);
   const [isVerifying, setIsVerifying] = useState(true);
@@ -50,17 +53,21 @@ const OnboardingContent: React.FC = () => {
     
     checkAuth();
   }, [state.user]);
-  
-  // Full sequence of steps including the diagnostic quiz
+
+  // New steps structure
   const steps = [
-    { id: 'subjects', component: SubjectsSelector, title: 'Select Subjects' },
-    { id: 'availability', component: SlotSelection, title: 'Set Study Times' },
-    { id: 'diagnosticQuiz', component: DiagnosticQuizSelector, title: 'Diagnostic Quizzes' },
-    { id: 'generatePlan', component: StudyPlanGenerator, title: 'Generate Study Plan' }
+    { id: 'welcome', component: WelcomeStep, title: 'Welcome to AthroAI' },
+    { id: 'subjects', component: SubjectSelectionStep, title: 'Your Subjects' },
+    { id: 'schedule', component: StudyScheduleStep, title: 'Study Schedule' },
+    { id: 'style', component: LearningStyleStep, title: 'Learning Style' },
+    { id: 'plan', component: StudyPlanStep, title: 'Your Study Plan' }
   ];
 
-  const currentStepIndex = steps.findIndex(s => s.id === currentStep);
-  const CurrentComponent = steps[currentStepIndex]?.component || steps[0].component;
+  const currentStepIndex = steps.findIndex(s => s.id === currentStep) !== -1 
+    ? steps.findIndex(s => s.id === currentStep) 
+    : 0;
+    
+  const CurrentComponent = steps[currentStepIndex]?.component;
   
   // Handle retry authentication
   const handleRetryAuth = async () => {
@@ -142,20 +149,29 @@ const OnboardingContent: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <Progress 
-        value={((currentStepIndex + 1) / steps.length) * 100} 
-        className="mb-6" 
-      />
-      
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">{steps[currentStepIndex]?.title || 'Onboarding'}</h1>
-        <div className="text-sm text-gray-500">
-          Step {currentStepIndex + 1} of {steps.length}
+    <div className="max-w-4xl mx-auto">
+      {/* Progress Indicator */}
+      <div className="mb-8">
+        <div className="flex justify-between mb-2">
+          {steps.map((step, index) => (
+            <div 
+              key={step.id} 
+              className={`text-xs font-medium ${index <= currentStepIndex ? 'text-primary' : 'text-muted-foreground'}`}
+            >
+              {step.title}
+            </div>
+          ))}
         </div>
+        <Progress 
+          value={((currentStepIndex + 1) / steps.length) * 100} 
+          className="h-2" 
+        />
       </div>
       
-      <CurrentComponent />
+      {/* Current Step */}
+      <div className="bg-card border rounded-lg shadow-sm p-6">
+        <CurrentComponent />
+      </div>
     </div>
   );
 };

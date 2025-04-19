@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
@@ -21,6 +22,7 @@ interface OnboardingContextType {
   selectedSubjects: SubjectPreference[];
   availability: Availability[];
   studySlots: PreferredStudySlot[];
+  learningPreferences: Record<string, any>;
   selectSubject: (subject: string, confidence: ConfidenceLabel) => void;
   removeSubject: (subject: string) => void;
   updateAvailability: (availability: Availability[]) => void;
@@ -28,16 +30,18 @@ interface OnboardingContextType {
   updateOnboardingStep: (step: string) => void;
   setStudySlots: (slots: PreferredStudySlot[]) => void;
   updateStudySlots: (slot: { dayOfWeek: number, slotCount: number, slotDurationMinutes: number, preferredStartHour: number }) => void;
+  updateLearningPreferences: (preferences: Record<string, any>) => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
 export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { state } = useAuth();
-  const [currentStep, setCurrentStep] = useState('subjects');
+  const [currentStep, setCurrentStep] = useState('welcome'); // Start with welcome step
   const [selectedSubjects, setSelectedSubjects] = useState<SubjectPreference[]>([]);
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [studySlots, setStudySlots] = useState<PreferredStudySlot[]>([]);
+  const [learningPreferences, setLearningPreferences] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const fetchOnboardingStep = async () => {
@@ -161,6 +165,13 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setAvailability(newAvailability);
   }, []);
 
+  const updateLearningPreferences = useCallback((preferences: Record<string, any>) => {
+    setLearningPreferences(prev => ({
+      ...prev,
+      ...preferences
+    }));
+  }, []);
+
   const completeOnboarding = async () => {
     if (!state.user) throw new Error('No user logged in');
 
@@ -249,13 +260,15 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       selectedSubjects,
       availability,
       studySlots,
+      learningPreferences,
       selectSubject,
       removeSubject,
       updateAvailability,
       completeOnboarding,
       updateOnboardingStep,
       setStudySlots,
-      updateStudySlots
+      updateStudySlots,
+      updateLearningPreferences
     }}>
       {children}
     </OnboardingContext.Provider>
