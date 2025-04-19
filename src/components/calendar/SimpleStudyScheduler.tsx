@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { addDays, format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
+import { addDays, format, startOfWeek, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { ArrowLeft, ArrowRight, Plus, Clock } from 'lucide-react';
 import { useCalendarEvents, CalendarEvent } from '@/hooks/useCalendarEvents';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ interface DayEvent {
   time: string;
   duration: number;
   color: string;
+  local_only?: boolean;
 }
 
 const subjectColorMap: Record<string, string> = {
@@ -85,7 +86,8 @@ const SimpleStudyScheduler = () => {
           subject: event.subject,
           time: formattedTime,
           duration: durationMinutes,
-          color
+          color,
+          local_only: event.local_only
         });
       }
     });
@@ -116,8 +118,10 @@ const SimpleStudyScheduler = () => {
   const handleEventSuccess = (event: CalendarEvent) => {
     fetchEvents();
     toast({
-      title: "Session Scheduled",
-      description: "Your study session has been added to the calendar",
+      title: event.local_only ? "Local Session Added" : "Session Scheduled",
+      description: event.local_only 
+        ? "Your study session has been added to your local calendar." 
+        : "Your study session has been added to the calendar",
     });
   };
   
@@ -188,7 +192,7 @@ const SimpleStudyScheduler = () => {
                   {weekEvents[day.dateKey].map((event) => (
                     <div 
                       key={event.id}
-                      className={`p-2 rounded border ${event.color} cursor-pointer hover:shadow-sm transition-shadow`}
+                      className={`p-2 rounded border ${event.color} cursor-pointer hover:shadow-sm transition-shadow ${event.local_only ? 'border-dashed' : ''}`}
                       onClick={() => handleEventClick(event)}
                     >
                       <div className="font-medium text-xs">{event.title}</div>
@@ -196,6 +200,9 @@ const SimpleStudyScheduler = () => {
                         <span>{event.time}</span>
                         <span>{Math.round(event.duration / 60 * 10) / 10}h</span>
                       </div>
+                      {event.local_only && (
+                        <div className="text-xs italic text-gray-500 mt-1">Local only</div>
+                      )}
                     </div>
                   ))}
                 </div>

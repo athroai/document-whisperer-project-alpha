@@ -1,18 +1,34 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button'; 
-import { Move, Clock, Edit, Plus, Calendar } from 'lucide-react';
-import SlotBasedCalendar from '@/components/calendar/SlotBasedCalendar';
+import { Move, Clock, Edit, Plus, Calendar, Info } from 'lucide-react';
 import SimpleStudyScheduler from '@/components/calendar/SimpleStudyScheduler';
 import CreateStudySession from '@/components/calendar/CreateStudySession';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
+import { useToast } from '@/hooks/use-toast';
 
 const CalendarPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>("simple");
   const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
   const { fetchEvents } = useCalendarEvents();
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    // Check if we're coming from a completed study schedule setup
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromSetup = urlParams.get('fromSetup');
+    
+    if (fromSetup === 'true') {
+      toast({
+        title: "Study Schedule Created",
+        description: "Your personalized study schedule has been created and is ready to use.",
+      });
+      
+      // Clean up the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [toast]);
   
   const handleCreateSuccess = () => {
     fetchEvents();
@@ -40,56 +56,24 @@ const CalendarPage: React.FC = () => {
             <CardContent className="p-4">
               <div className="flex items-start space-x-3">
                 <div className="bg-blue-100 p-2 rounded-full">
-                  <Clock className="h-5 w-5 text-blue-600" />
+                  <Info className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-blue-800">Calendar Tips</h3>
-                  <div className="mt-1 text-xs text-blue-700 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Move className="h-3 w-3" />
-                      <span>Drag sessions to reschedule</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Edit className="h-3 w-3" />
-                      <span>Click on a session to edit details</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Plus className="h-3 w-3" />
-                      <span>Click an empty slot to add a new session</span>
-                    </div>
-                  </div>
+                  <h3 className="text-sm font-medium text-blue-800">Calendar Info</h3>
+                  <p className="mt-1 text-xs text-blue-700">
+                    Your calendar events will be stored locally in your browser if database access is unavailable.
+                    This ensures your study schedule is always accessible.
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Tabs 
-            defaultValue="simple"
-            value={activeTab} 
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="simple">Weekly View</TabsTrigger>
-              <TabsTrigger value="detailed">Detailed View</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="simple">
-              <Card>
-                <CardContent className="p-6">
-                  <SimpleStudyScheduler />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="detailed">
-              <Card>
-                <CardContent className="p-6">
-                  <SlotBasedCalendar />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          <Card>
+            <CardContent className="p-6">
+              <SimpleStudyScheduler />
+            </CardContent>
+          </Card>
         </div>
       </div>
       

@@ -144,7 +144,7 @@ export const useStudySchedule = () => {
     })));
   };
 
-  const createCalendarEvents = async (slots: PreferredStudySlot[]) => {
+  const createCalendarEvents = async (slots: PreferredStudySlot[], useLocalFallback: boolean = true) => {
     if (!slots.length) return [];
     
     try {
@@ -173,13 +173,14 @@ export const useStudySchedule = () => {
             end_time: endTime.toISOString(),
             subject: "General",
             event_type: 'study_session'
-          });
+          }, useLocalFallback); // Allow local fallback if database fails
           
           if (event) {
             events.push(event);
           }
         } catch (err) {
           console.error('Error creating calendar event:', err);
+          // Continue with other slots even if one fails
         }
       }
       
@@ -195,10 +196,15 @@ export const useStudySchedule = () => {
       console.log('Saving slots to database for user:', userId);
       
       // First delete any existing slots
-      await supabase
-        .from('preferred_study_slots')
-        .delete()
-        .eq('user_id', userId);
+      try {
+        await supabase
+          .from('preferred_study_slots')
+          .delete()
+          .eq('user_id', userId);
+      } catch (deleteError) {
+        console.warn('Error deleting existing slots:', deleteError);
+        // Continue even if delete fails
+      }
         
       if (slots.length === 0) {
         return true;
@@ -295,13 +301,20 @@ export const useStudySchedule = () => {
       }
       
       if (userId) {
-        // Save to database
-        await saveStudySlotsToDatabase(userId, newSlots);
+        // Try to save to database but don't block on failure
+        try {
+          await saveStudySlotsToDatabase(userId, newSlots);
+        } catch (dbError) {
+          console.error('Database error when saving slots - continuing with local storage:', dbError);
+          
+          // Save to local storage instead
+          localStorage.setItem('athro_study_slots', JSON.stringify(newSlots));
+        }
         
-        // Create calendar events for these slots
-        await createCalendarEvents(newSlots);
+        // Create calendar events for these slots with local fallback
+        await createCalendarEvents(newSlots, true);
         
-        // Update onboarding progress if needed
+        // Try to update onboarding progress if needed, but don't block on failure
         try {
           const { data, error } = await supabase
             .from('onboarding_progress')
@@ -309,31 +322,42 @@ export const useStudySchedule = () => {
             .eq('student_id', userId)
             .maybeSingle();
             
-          if (error) throw error;
-          
-          if (data) {
+          if (error) {
+            console.warn('Error checking onboarding progress:', error);
+          } else if (data) {
             // Update existing progress
-            await supabase
-              .from('onboarding_progress')
-              .update({
-                has_completed_availability: true,
-                current_step: 'calendar',
-                updated_at: new Date().toISOString()
-              })
-              .eq('student_id', userId);
+            try {
+              await supabase
+                .from('onboarding_progress')
+                .update({
+                  has_completed_availability: true,
+                  current_step: 'calendar',
+                  updated_at: new Date().toISOString()
+                })
+                .eq('student_id', userId);
+            } catch (updateError) {
+              console.warn('Error updating onboarding progress:', updateError);
+            }
           } else {
             // Create new progress record
-            await supabase
-              .from('onboarding_progress')
-              .insert({
-                student_id: userId,
-                current_step: 'calendar',
-                has_completed_availability: true
-              });
+            try {
+              await supabase
+                .from('onboarding_progress')
+                .insert({
+                  student_id: userId,
+                  current_step: 'calendar',
+                  has_completed_availability: true
+                });
+            } catch (insertError) {
+              console.warn('Error creating onboarding progress:', insertError);
+            }
           }
-        } catch (err) {
-          console.error('Error updating onboarding progress:', err);
+        } catch (progressError) {
+          console.error('Error handling onboarding progress:', progressError);
         }
+      } else {
+        // Save to local storage if no user ID
+        localStorage.setItem('athro_study_slots', JSON.stringify(newSlots));
       }
       
       // Update context
@@ -355,19 +379,19 @@ export const useStudySchedule = () => {
         }
       });
       
-      // Navigate to calendar page
-      navigate('/calendar');
+      // Navigate to calendar page with a success flag
+      navigate('/calendar?fromSetup=true');
       
       toast({
         title: "Success",
-        description: "Your study schedule has been saved.",
+        description: "Your study schedule has been created successfully.",
       });
     } catch (error: any) {
       console.error('Error saving study slots:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to save your study schedule. Please try again.",
-        variant: "destructive"
+        title: "Warning",
+        description: "Study schedule saved locally only. You can still use the calendar.",
+        variant: "default"
       });
       
       // Still navigate to calendar in case of error

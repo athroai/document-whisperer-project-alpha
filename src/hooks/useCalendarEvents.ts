@@ -15,12 +15,34 @@ export interface CalendarEvent {
   event_type: string;
   user_id?: string;
   student_id?: string;
+  local_only?: boolean; // Indicates if this is stored only locally
 }
 
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Load local events from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedEvents = localStorage.getItem('athro_calendar_events');
+      if (savedEvents) {
+        const parsedEvents = JSON.parse(savedEvents) as CalendarEvent[];
+        setLocalEvents(parsedEvents);
+      }
+    } catch (error) {
+      console.error('Error loading local events:', error);
+    }
+  }, []);
+
+  // Save local events to localStorage whenever they change
+  useEffect(() => {
+    if (localEvents.length > 0) {
+      localStorage.setItem('athro_calendar_events', JSON.stringify(localEvents));
+    }
+  }, [localEvents]);
 
   // Fetch events from the database
   const fetchEvents = async () => {
@@ -29,11 +51,6 @@ export const useCalendarEvents = () => {
       
       // Get current user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw authError;
-      }
       
       // Support for mock users in development environment
       let userId = user?.id;
@@ -50,61 +67,66 @@ export const useCalendarEvents = () => {
         }
       }
       
-      if (!userId) {
-        console.log('No authenticated user found');
-        setEvents([]);
-        return [];
-      }
-
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .or(`student_id.eq.${userId},user_id.eq.${userId}`);
-
-      if (error) {
-        console.error('Error fetching calendar events:', error);
-        throw error;
-      }
+      let dbEvents: CalendarEvent[] = [];
       
-      const formattedEvents = data?.map(event => {
-        let subject = '';
-        let topic = '';
-        
-        if (event.description) {
-          try {
-            const parsed = JSON.parse(event.description);
-            subject = parsed.subject || '';
-            topic = parsed.topic || '';
-          } catch (e) {
-            console.warn('Failed to parse event description:', e);
+      if (userId) {
+        try {
+          const { data, error } = await supabase
+            .from('calendar_events')
+            .select('*')
+            .or(`student_id.eq.${userId},user_id.eq.${userId}`);
+
+          if (error) {
+            console.error('Error fetching calendar events:', error);
+            // Don't throw, we'll just use local events
+          } else if (data) {
+            dbEvents = data.map(event => {
+              let subject = '';
+              let topic = '';
+              
+              if (event.description) {
+                try {
+                  const parsed = JSON.parse(event.description);
+                  subject = parsed.subject || '';
+                  topic = parsed.topic || '';
+                } catch (e) {
+                  console.warn('Failed to parse event description:', e);
+                }
+              }
+              
+              return {
+                id: event.id,
+                title: event.title,
+                description: event.description,
+                subject: subject,
+                topic: topic,
+                start_time: event.start_time,
+                end_time: event.end_time,
+                event_type: event.event_type || 'study_session',
+                user_id: event.user_id,
+                student_id: event.student_id
+              };
+            });
           }
+        } catch (dbError) {
+          console.error('Database error fetching events:', dbError);
         }
-        
-        return {
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          subject: subject,
-          topic: topic,
-          start_time: event.start_time,
-          end_time: event.end_time,
-          event_type: event.event_type || 'study_session',
-          user_id: event.user_id,
-          student_id: event.student_id
-        };
-      }) || [];
+      }
       
-      setEvents(formattedEvents);
-      return formattedEvents;
+      // Combine database events and local events, preferring database versions
+      const dbEventIds = new Set(dbEvents.map(event => event.id));
+      const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
       
+      const combinedEvents = [...dbEvents, ...filteredLocalEvents];
+      setEvents(combinedEvents);
+      
+      return combinedEvents;
     } catch (error) {
-      console.error('Error fetching calendar events:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load calendar events. Please try again.",
-        variant: "destructive",
-      });
-      return [];
+      console.error('Error in fetchEvents:', error);
+      
+      // If all else fails, return at least the local events
+      setEvents(localEvents);
+      return localEvents;
     } finally {
       setIsLoading(false);
     }
@@ -115,22 +137,20 @@ export const useCalendarEvents = () => {
   }, [toast]);
 
   // Create a new calendar event
-  const createEvent = async (eventData: {
-    title?: string;
-    subject?: string;
-    topic?: string;
-    start_time: string;
-    end_time: string;
-    event_type?: string;
-  }): Promise<CalendarEvent | null> => {
+  const createEvent = async (
+    eventData: {
+      title?: string;
+      subject?: string;
+      topic?: string;
+      start_time: string;
+      end_time: string;
+      event_type?: string;
+    }, 
+    allowLocalFallback: boolean = false
+  ): Promise<CalendarEvent | null> => {
     try {
       // Get current user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw authError;
-      }
       
       // Support for mock users in development environment
       let userId = user?.id;
@@ -144,17 +164,25 @@ export const useCalendarEvents = () => {
           }
         } catch (err) {
           console.warn('Error parsing mock user:', err);
-          throw new Error('No authenticated user found');
+          if (allowLocalFallback) {
+            throw new Error('No user found for database operation, using local fallback');
+          } else {
+            throw new Error('No authenticated user found');
+          }
         }
       }
       
       if (!userId) {
-        toast({
-          title: "Authentication Required",
-          description: "You need to be logged in to create events",
-          variant: "destructive",
-        });
-        throw new Error('No authenticated user found');
+        if (allowLocalFallback) {
+          throw new Error('No user found for database operation, using local fallback');
+        } else {
+          toast({
+            title: "Authentication Required",
+            description: "You need to be logged in to create events",
+            variant: "destructive",
+          });
+          throw new Error('No authenticated user found');
+        }
       }
       
       // Create event description
@@ -187,12 +215,20 @@ export const useCalendarEvents = () => {
         .single();
 
       if (error) {
-        console.error('Error creating calendar event:', error);
-        throw error;
+        console.error('Error creating calendar event in database:', error);
+        if (allowLocalFallback) {
+          throw new Error('Database error: ' + error.message);
+        } else {
+          throw error; 
+        }
       }
       
       if (!data) {
-        throw new Error('Failed to create calendar event - no data returned');
+        if (allowLocalFallback) {
+          throw new Error('No data returned from database insert');
+        } else {
+          throw new Error('Failed to create calendar event - no data returned');
+        }
       }
       
       const newEvent: CalendarEvent = {
@@ -219,19 +255,80 @@ export const useCalendarEvents = () => {
       
     } catch (error: any) {
       console.error('Error creating calendar event:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create session. Please try again.",
-        variant: "destructive",
-      });
-      return null;
+      
+      // If local fallback is allowed and there was a database error, create a local event
+      if (allowLocalFallback) {
+        const localId = `local-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const localEvent: CalendarEvent = {
+          id: localId,
+          title: eventData.title || `${eventData.subject || 'Study'} Session`,
+          subject: eventData.subject || '',
+          topic: eventData.topic || '',
+          start_time: eventData.start_time,
+          end_time: eventData.end_time,
+          event_type: eventData.event_type || 'study_session',
+          local_only: true
+        };
+        
+        setLocalEvents(prev => [...prev, localEvent]);
+        setEvents(prev => [...prev, localEvent]);
+        
+        toast({
+          title: "Local Session Created",
+          description: "Study session saved to your browser (not synced to server).",
+        });
+        
+        return localEvent;
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create session. Please try again.",
+          variant: "destructive",
+        });
+        return null;
+      }
     }
   };
 
   // Update an existing calendar event
   const updateEvent = async (id: string, updates: Partial<CalendarEvent>): Promise<boolean> => {
+    // Check if this is a local event
+    const isLocalEvent = id.startsWith('local-') || localEvents.some(e => e.id === id);
+    
+    if (isLocalEvent) {
+      try {
+        const updatedLocalEvents = localEvents.map(event => 
+          event.id === id ? { ...event, ...updates } : event
+        );
+        
+        setLocalEvents(updatedLocalEvents);
+        
+        // Update the combined events list too
+        setEvents(prevEvents => 
+          prevEvents.map(event => event.id === id ? { ...event, ...updates } : event)
+        );
+        
+        localStorage.setItem('athro_calendar_events', JSON.stringify(updatedLocalEvents));
+        
+        toast({
+          title: "Success",
+          description: "Local calendar event updated.",
+        });
+        
+        return true;
+      } catch (error) {
+        console.error('Error updating local event:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update local event.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+    
     try {
-      // Prepare update data
+      // Handle database event update
       const updateData: any = {};
       
       if (updates.title) updateData.title = updates.title;
@@ -293,6 +390,36 @@ export const useCalendarEvents = () => {
 
   // Delete a calendar event
   const deleteEvent = async (id: string): Promise<boolean> => {
+    // Check if this is a local event
+    const isLocalEvent = id.startsWith('local-') || localEvents.some(e => e.id === id);
+    
+    if (isLocalEvent) {
+      try {
+        const filteredEvents = localEvents.filter(event => event.id !== id);
+        setLocalEvents(filteredEvents);
+        
+        // Update the combined events list too
+        setEvents(prevEvents => prevEvents.filter(event => event.id !== id));
+        
+        localStorage.setItem('athro_calendar_events', JSON.stringify(filteredEvents));
+        
+        toast({
+          title: "Success",
+          description: "Local calendar event deleted.",
+        });
+        
+        return true;
+      } catch (error) {
+        console.error('Error deleting local event:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete local event.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+    
     try {
       const { error } = await supabase
         .from('calendar_events')

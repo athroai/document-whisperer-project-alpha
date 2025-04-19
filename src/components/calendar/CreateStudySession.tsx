@@ -57,7 +57,7 @@ const CreateStudySession = ({
       const durationMinutes = parseInt(duration, 10);
       const endTime = addMinutes(startTime, durationMinutes);
       
-      // Create event
+      // Create event - with fallback for database errors
       const event = await createEvent({
         title: title || `${subject} Study Session`,
         subject,
@@ -65,7 +65,7 @@ const CreateStudySession = ({
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         event_type: 'study_session'
-      });
+      }, true); // Added a parameter to indicate this is user-initiated and should use fallbacks
       
       if (event && onSuccess) {
         onSuccess(event);
@@ -81,11 +81,48 @@ const CreateStudySession = ({
       
     } catch (error) {
       console.error('Error creating study session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create study session. Please try again.",
-        variant: "destructive"
-      });
+      
+      // Show more descriptive error for permission issues
+      if (error instanceof Error && error.message.includes('policy')) {
+        toast({
+          title: "Permission Error",
+          description: "Unable to save to database. Your session will be saved locally only.",
+          variant: "destructive"
+        });
+        
+        // Try to create a local-only event
+        try {
+          const startTime = new Date(`${date}T${time}`);
+          const durationMinutes = parseInt(duration, 10);
+          const endTime = addMinutes(startTime, durationMinutes);
+          
+          const localEvent: CalendarEvent = {
+            id: `local-${Date.now()}`,
+            title: title || `${subject} Study Session`,
+            subject: subject,
+            topic: topic,
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            event_type: 'study_session',
+            local_only: true
+          };
+          
+          if (onSuccess) {
+            onSuccess(localEvent);
+          }
+          
+          // Close dialog
+          onClose();
+        } catch (localError) {
+          console.error('Error creating local event:', localError);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create study session. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
