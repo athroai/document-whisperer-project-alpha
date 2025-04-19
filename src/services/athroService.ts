@@ -1,6 +1,29 @@
-import { AthroCharacterConfig } from '@/types/athroCharacter';
 
-// Mock Athro character data
+import { AthroCharacterConfig } from '@/types/athroCharacter';
+import { AthroSubject, AthroLanguage } from '@/types/athro';
+
+// Update the subject values to be compatible with AthroSubject type
+const subjects: Record<string, string> = {
+  Mathematics: 'Mathematics',
+  Science: 'Science',
+  English: 'English',
+  History: 'History',
+  Geography: 'Geography',
+  Welsh: 'Welsh',
+  Languages: 'Languages',
+  RE: 'RE'
+};
+
+export const getTopicsForSubject = (subject: string): string[] => {
+  // And also update any indexing with AthroSubject
+  const subjectKey = subject as string;
+  const topicsForSubject = subjects[subjectKey];
+
+  // Replace this with actual logic to fetch topics based on the subject
+  return ['Topic 1', 'Topic 2', 'Topic 3'];
+};
+
+// Fix the mock Athro character data to use proper types
 export const athroCharacterConfigs: AthroCharacterConfig[] = [
   {
     id: 'maths-mentor-1',
@@ -115,25 +138,3 @@ export const athroCharacterConfigs: AthroCharacterConfig[] = [
     },
   },
 ];
-
-// Update the subject values to be compatible with AthroSubject type
-// You might need to update your AthroSubject type to accommodate these strings
-// For now, let's use type assertion to work around it
-const subjects = {
-  Mathematics: 'Mathematics',
-  Science: 'Science',
-  English: 'English',
-  History: 'History',
-  Geography: 'Geography',
-  Welsh: 'Welsh',
-  Languages: 'Languages',
-  RE: 'RE'
-};
-
-export const getTopicsForSubject = (subject: string): string[] => {
-  // And also update any indexing with AthroSubject
-  const topicsForSubject = subjects[subject as unknown as string];
-
-  // Replace this with actual logic to fetch topics based on the subject
-  return ['Topic 1', 'Topic 2', 'Topic 3'];
-};

@@ -144,9 +144,9 @@ const SignupPage: React.FC = () => {
               <Button
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
-                disabled={state.loading}
+                disabled={state.isLoading}
               >
-                {state.loading ? "Creating account..." : "Sign up"}
+                {state.isLoading ? "Creating account..." : "Sign up"}
               </Button>
             </div>
           </form>

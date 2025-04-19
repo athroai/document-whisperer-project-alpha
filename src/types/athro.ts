@@ -32,6 +32,8 @@ export interface AthroSubject {
   examBoards: ExamBoard[];
 }
 
-export type AthroLanguage = 'en' | 'fr' | 'es' | 'de';
+// Update AthroLanguage to include 'cy' for Welsh
+export type AthroLanguage = 'en' | 'fr' | 'es' | 'de' | 'cy';
 
+// Update ExamBoard to include 'none' option
 export type ExamBoard = 'AQA' | 'Edexcel' | 'OCR' | 'WJEC' | 'CCEA' | 'none';

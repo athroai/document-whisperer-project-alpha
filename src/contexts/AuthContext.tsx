@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Profile, AuthState, UserUpdateData } from '@/types/auth';
@@ -37,7 +36,6 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-// Add this new constant
 export const DEFAULT_EXAM_BOARD: ExamBoard = 'AQA';
 
 interface AuthProviderProps {
@@ -184,10 +182,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
-        options: {
-          shouldCreateUser: false
-        }
+        password
       });
       
       if (error) throw error;
@@ -229,7 +224,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user: data.user
       });
       
-      // Create initial profile
       if (data.user) {
         const initialProfile: Profile = {
           full_name: '',
@@ -256,7 +250,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateUser = async (data: UserUpdateData) => {
     updateState({ isLoading: true });
     try {
-      // Handle profile update
       if (data.displayName && state.profile) {
         await setAuthProfile({
           ...state.profile,
@@ -264,7 +257,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       }
       
-      // Handle exam board update
       if (data.examBoard && state.profile) {
         await setAuthProfile({
           ...state.profile,
@@ -272,7 +264,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       }
       
-      // Handle email/password update if needed
       if (data.email || data.password) {
         const updates: { email?: string, password?: string } = {};
         if (data.email) updates.email = data.email;
@@ -323,7 +314,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
   
-  // Alias for signOut for consistency with naming conventions
   const logout = signOut;
 
   const value = {

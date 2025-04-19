@@ -17,10 +17,10 @@ const LoginPage: React.FC = () => {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (state.user && !state.loading) {
+    if (state.user && !state.isLoading) {
       navigate('/home');
     }
-  }, [state.user, state.loading, navigate]);
+  }, [state.user, state.isLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +51,7 @@ const LoginPage: React.FC = () => {
   };
 
   // Show loading while checking auth state
-  if (state.loading) {
+  if (state.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-100 to-white">
         <div className="text-center">
@@ -136,9 +136,9 @@ const LoginPage: React.FC = () => {
               <Button
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
-                disabled={state.loading}
+                disabled={state.isLoading}
               >
-                {state.loading ? "Logging in..." : "Log in"}
+                {state.isLoading ? "Logging in..." : "Log in"}
               </Button>
             </div>
           </form>

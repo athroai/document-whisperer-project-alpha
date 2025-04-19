@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,6 @@ export const StudyPlanGenerator: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [localStudySlots, setLocalStudySlots] = useState<PreferredStudySlot[]>([]);
 
-  // Load diagnostic results for the selected subjects
   useEffect(() => {
     const fetchDiagnosticResults = async () => {
       if (!state.user) return;
@@ -53,9 +51,7 @@ export const StudyPlanGenerator: React.FC = () => {
     fetchDiagnosticResults();
   }, [state.user]);
 
-  // Fetch preferred study slots when component loads
   useEffect(() => {
-    // First use the slots directly from OnboardingContext if available
     if (studySlots && studySlots.length > 0) {
       console.log('Using study slots from context:', studySlots);
       setLocalStudySlots(studySlots);
@@ -108,24 +104,19 @@ export const StudyPlanGenerator: React.FC = () => {
     }
   }, [state.user]);
 
-  // Calculate study sessions based on diagnostic results
   const calculateSessionsPerWeek = (score: number | undefined) => {
-    // Default to 3 sessions per week if no score
     if (score === undefined) return 3;
 
-    // Apply the distribution algorithm
     if (score < 50) return 4;
-    if (score <= 80) return Math.round(3.5 - (score - 50) * 0.03); // Linear scale from ~3.5 to ~2.5
+    if (score <= 80) return Math.round(3.5 - (score - 50) * 0.03);
     return 1;
   };
 
-  // Create default study slots if none are available
   const generateDefaultStudySlots = (): PreferredStudySlot[] => {
     if (!state.user) return [];
     
     const defaultSlots: PreferredStudySlot[] = [];
     
-    // Generate default slots for weekdays (Monday to Friday)
     for (let day = 1; day <= 5; day++) {
       defaultSlots.push({
         id: `default-${day}`,
@@ -176,7 +167,6 @@ export const StudyPlanGenerator: React.FC = () => {
         return;
       }
 
-      // Check if we have study slots available - if not, use default slots
       let slotsToUse = localStudySlots;
       
       if (!slotsToUse || slotsToUse.length === 0) {
@@ -193,7 +183,6 @@ export const StudyPlanGenerator: React.FC = () => {
 
       setGenerationProgress(30);
 
-      // Create a study plan record
       const { data: planData, error: planError } = await supabase
         .from('study_plans')
         .insert({
@@ -217,7 +206,6 @@ export const StudyPlanGenerator: React.FC = () => {
       const planId = planData[0].id;
       setGenerationProgress(50);
 
-      // Calculate how many sessions per subject based on diagnostic results
       const sessionDistribution = selectedSubjects.map(subject => {
         const score = diagnosticResults[subject.subject];
         const sessionsPerWeek = calculateSessionsPerWeek(score);
@@ -232,37 +220,30 @@ export const StudyPlanGenerator: React.FC = () => {
       const today = new Date();
       const savedEvents = [];
       
-      // Sort slots by day of week
       const sortedSlots = [...slotsToUse].sort((a, b) => a.day_of_week - b.day_of_week);
       
-      // Track how many sessions we've created and total needed
       let createdSessions = 0;
       const totalSessions = sessionDistribution.reduce((sum, item) => sum + item.sessionsPerWeek, 0);
       
-      // Distribute subject sessions across available slots
       let slotIndex = 0;
       for (const subjectData of sessionDistribution) {
         for (let i = 0; i < subjectData.sessionsPerWeek; i++) {
           if (slotIndex >= sortedSlots.length) {
-            slotIndex = 0; // Loop back to the start if we run out of slots
+            slotIndex = 0;
           }
           
           const slot = sortedSlots[slotIndex];
           
-          // Calculate the start date for this slot (e.g., next Monday, Tuesday, etc.)
-          const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, ...
-          const targetDay = slot.day_of_week; // 1 = Monday, 2 = Tuesday, ...
+          const currentDay = today.getDay();
+          const targetDay = slot.day_of_week;
           
-          // Calculate days to add to get to the target day
           let daysToAdd = targetDay - currentDay;
-          if (daysToAdd <= 0) daysToAdd += 7; // Move to next week if the day has already passed
+          if (daysToAdd <= 0) daysToAdd += 7;
           
-          // Adjust for each subsequent session
           daysToAdd += Math.floor(createdSessions / sortedSlots.length) * 7;
           
-          // Create the session date and time
           const sessionDate = addDays(today, daysToAdd);
-          const startHour = slot.preferred_start_hour || 9; // Default to 9 AM if not specified
+          const startHour = slot.preferred_start_hour || 9;
           
           const startTime = new Date(sessionDate);
           startTime.setHours(startHour, 0, 0, 0);
@@ -270,16 +251,14 @@ export const StudyPlanGenerator: React.FC = () => {
           const endTime = new Date(startTime);
           endTime.setMinutes(endTime.getMinutes() + slot.slot_duration_minutes);
           
-          // Create event description with subject info
           const eventDescription = JSON.stringify({
             subject: subjectData.subject,
             topic: null,
             isPomodoro: true,
-            pomodoroWorkMinutes: Math.min(slot.slot_duration_minutes, 25), // Default to 25 min or less if slot is smaller
+            pomodoroWorkMinutes: Math.min(slot.slot_duration_minutes, 25),
             pomodoroBreakMinutes: 5
           });
 
-          // Session title based on score
           let sessionTitle = `${subjectData.subject} Study Session`;
           if (subjectData.score !== undefined) {
             if (subjectData.score < 50) {
@@ -292,7 +271,6 @@ export const StudyPlanGenerator: React.FC = () => {
           }
           
           try {
-            // Create calendar event
             const { data: eventData, error: eventError } = await supabase
               .from('calendar_events')
               .insert({
@@ -312,7 +290,6 @@ export const StudyPlanGenerator: React.FC = () => {
             }
             
             if (eventData && eventData.length > 0) {
-              // Also create study plan session
               await supabase
                 .from('study_plan_sessions')
                 .insert({
@@ -328,7 +305,6 @@ export const StudyPlanGenerator: React.FC = () => {
                   if (error) console.error('Error creating study plan session:', error);
                 });
                 
-              // Add to saved events
               savedEvents.push({
                 ...eventData[0],
                 subject: subjectData.subject,
@@ -343,7 +319,6 @@ export const StudyPlanGenerator: React.FC = () => {
           slotIndex++;
           createdSessions++;
           
-          // Update progress
           setGenerationProgress(50 + Math.floor((createdSessions / totalSessions) * 50));
         }
       }
@@ -399,7 +374,7 @@ export const StudyPlanGenerator: React.FC = () => {
         </div>
       )}
 
-      {!state.user && !state.loading && (
+      {!state.user && !state.isLoading && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
           <p className="text-amber-800">
             You need to be signed in to generate a study plan. Please refresh the page or sign in again.
@@ -453,7 +428,7 @@ export const StudyPlanGenerator: React.FC = () => {
             
             <Button 
               onClick={generateStudyPlan} 
-              disabled={isGenerating || !state.user || state.loading || selectedSubjects.length === 0 || !authVerified}
+              disabled={isGenerating || !state.user || state.isLoading || selectedSubjects.length === 0 || !authVerified}
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
               {isGenerating ? 'Generating Plan...' : 'Generate My Study Plan'}
@@ -554,7 +529,6 @@ export const StudyPlanGenerator: React.FC = () => {
   );
 };
 
-// Color map for subjects
 const subjectColorMap: Record<string, string> = {
   'Mathematics': 'bg-purple-100 border-purple-300',
   'Science': 'bg-blue-100 border-blue-300',
@@ -566,6 +540,4 @@ const subjectColorMap: Record<string, string> = {
   'Religious Education': 'bg-pink-100 border-pink-300'
 };
 
-// Default color for subjects not in the map
 const defaultColor = 'bg-gray-100 border-gray-300';
-
