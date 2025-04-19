@@ -142,6 +142,7 @@ export type Database = {
           student_id: string | null
           suggested: boolean | null
           task_id: string | null
+          timezone: string | null
           title: string
           user_id: string | null
         }
@@ -157,6 +158,7 @@ export type Database = {
           student_id?: string | null
           suggested?: boolean | null
           task_id?: string | null
+          timezone?: string | null
           title: string
           user_id?: string | null
         }
@@ -172,6 +174,7 @@ export type Database = {
           student_id?: string | null
           suggested?: boolean | null
           task_id?: string | null
+          timezone?: string | null
           title?: string
           user_id?: string | null
         }
@@ -1151,6 +1154,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      convert_to_gmt: {
+        Args: { timestamp_col: string }
+        Returns: string
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string

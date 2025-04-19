@@ -1,5 +1,5 @@
-
 import { format } from 'date-fns';
+import { toGMTString, formatGMTDateTime, formatGMTTime } from './timeUtils';
 
 // Function to get event background color based on subject
 export const getEventColor = (subject?: string) => {
@@ -25,5 +25,7 @@ export const getEventColor = (subject?: string) => {
 
 // Format date range (for event display)
 export const formatDateRange = (start: Date, end: Date) => {
-  return `${format(start, 'EEEE, h:mm a')} - ${format(end, 'h:mm a')}`;
+  const gmtStart = toGMTString(start);
+  const gmtEnd = toGMTString(end);
+  return `${formatGMTDateTime(gmtStart)} - ${formatGMTTime(gmtEnd)}`;
 };

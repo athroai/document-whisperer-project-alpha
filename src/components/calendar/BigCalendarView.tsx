@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { format, parse, startOfToday, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, isSameMonth, isToday } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import CreateStudySession from './CreateStudySession';
 import { Badge } from '@/components/ui/badge';
 import { CalendarEvent } from '@/types/calendar';
 import { getEventColor } from '@/utils/calendarUtils';
+import { toGMTString, fromGMTString, formatGMTTime } from '@/utils/timeUtils';
 
 const BigCalendarView: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -16,7 +16,6 @@ const BigCalendarView: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const { events, suggestedEvents, fetchEvents } = useCalendarEvents();
   
-  // Load events when component mounts or when refreshEvents is called
   const refreshEvents = useCallback(async () => {
     await fetchEvents();
   }, [fetchEvents]);
@@ -25,7 +24,6 @@ const BigCalendarView: React.FC = () => {
     refreshEvents();
   }, [refreshEvents]);
   
-  // Function to handle date selection
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
@@ -34,36 +32,30 @@ const BigCalendarView: React.FC = () => {
   };
 
   const handleCreateSuccess = (newEvent: CalendarEvent) => {
-    // Refresh events immediately after successful creation
     refreshEvents();
     setShowCreateDialog(false);
   };
 
-  // Go to previous month
   const previousMonth = () => {
     setCurrentMonth(prevMonth => addMonths(prevMonth, -1));
   };
 
-  // Go to next month
   const nextMonth = () => {
     setCurrentMonth(prevMonth => addMonths(prevMonth, 1));
   };
 
-  // Go to current month
   const goToToday = () => {
     setCurrentMonth(startOfMonth(new Date()));
   };
 
-  // Get events for a specific day
   const getEventsForDay = (day: Date) => {
     const allEvents = [...events, ...suggestedEvents];
     return allEvents.filter(event => {
-      const eventStart = new Date(event.start_time);
+      const eventStart = fromGMTString(event.start_time);
       return isSameDay(eventStart, day);
     });
   };
 
-  // Function to determine day class based on events
   const getDayClass = (day: Date) => {
     const dayEvents = getEventsForDay(day);
     if (dayEvents.some(e => e.suggested)) {
@@ -75,7 +67,6 @@ const BigCalendarView: React.FC = () => {
     return "";
   };
 
-  // Custom day rendering function
   const renderDay = (day: Date) => {
     const dayEvents = getEventsForDay(day);
     
@@ -90,15 +81,18 @@ const BigCalendarView: React.FC = () => {
           <div className="space-y-1">
             {dayEvents.slice(0, 3).map((event, index) => {
               const colorStyle = getEventColor(event.subject);
+              const startTime = fromGMTString(event.start_time);
+              const endTime = fromGMTString(event.end_time);
+              
               return (
                 <div 
                   key={event.id + index} 
                   className={`text-xs p-1 rounded truncate ${
                     event.suggested ? 'border border-dashed border-purple-400' : ''
                   } ${colorStyle.bg} ${colorStyle.text}`}
-                  title={`${event.title} (${format(new Date(event.start_time), 'HH:mm')} - ${format(new Date(event.end_time), 'HH:mm')})`}
+                  title={`${event.title} (${formatGMTTime(event.start_time)} - ${formatGMTTime(event.end_time)})`}
                 >
-                  {format(new Date(event.start_time), 'HH:mm')} - {event.title}
+                  {formatGMTTime(event.start_time)} - {event.title}
                 </div>
               );
             })}
@@ -113,12 +107,10 @@ const BigCalendarView: React.FC = () => {
     );
   };
 
-  // Generate calendar days for the current month view
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  // Group days by week
   const weeks: Date[][] = [];
   let currentWeek: Date[] = [];
   
@@ -131,7 +123,6 @@ const BigCalendarView: React.FC = () => {
     }
   });
   
-  // Add the last week if it's not complete
   if (currentWeek.length > 0) {
     weeks.push(currentWeek);
   }
@@ -152,7 +143,6 @@ const BigCalendarView: React.FC = () => {
       <Card className="shadow-md border-gray-200">
         <CardContent className="p-4">
           <div className="flex flex-col space-y-4">
-            {/* Calendar header with navigation */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex space-x-2">
                 <Button
@@ -184,14 +174,12 @@ const BigCalendarView: React.FC = () => {
                 {format(currentMonth, 'MMMM yyyy')}
               </h3>
               <div className="flex space-x-2 invisible">
-                {/* Placeholder for layout balance */}
                 <Button variant="outline" size="sm">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </div>
             </div>
             
-            {/* Days of week header */}
             <div className="grid grid-cols-7 gap-0 border-b border-gray-200">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                 <div 
@@ -203,7 +191,6 @@ const BigCalendarView: React.FC = () => {
               ))}
             </div>
             
-            {/* Calendar days */}
             <div className="grid grid-cols-7 gap-0 border-b border-gray-200">
               {weeks.map((week, weekIndex) => (
                 <React.Fragment key={`week-${weekIndex}`}>
@@ -227,7 +214,6 @@ const BigCalendarView: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Legend for the calendar */}
       <div className="flex flex-wrap gap-2 mt-4">
         <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Mathematics</Badge>
         <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Science</Badge>

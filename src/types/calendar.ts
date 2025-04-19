@@ -12,4 +12,5 @@ export interface CalendarEvent {
   student_id?: string;
   local_only?: boolean;
   suggested?: boolean;
+  timezone?: string;
 }

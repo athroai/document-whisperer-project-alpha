@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
 import { Clock } from 'lucide-react';
+import { toGMTString } from '@/utils/timeUtils';
 
 interface CreateStudySessionProps {
   isOpen: boolean;
@@ -37,14 +37,12 @@ const CreateStudySession = ({
   const [duration, setDuration] = useState('60');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Format time as HH:MM for display
   const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   
   const { subjects } = useSubjects();
   const { createEvent } = useCalendarEvents();
   const { toast } = useToast();
   
-  // Update date and time when initialDate or initialTime changes
   useEffect(() => {
     if (initialDate) {
       setDate(format(initialDate, 'yyyy-MM-dd'));
@@ -63,17 +61,14 @@ const CreateStudySession = ({
     }
   }, [initialDate, initialTime]);
   
-  // Handle hour slider change
   const handleHourChange = (value: number[]) => {
     setHour(value[0]);
   };
   
-  // Handle minute slider change
   const handleMinuteChange = (value: number[]) => {
     setMinute(value[0]);
   };
   
-  // Reset form
   const resetForm = () => {
     setTitle('Study Session');
     setSubject('');
@@ -94,34 +89,29 @@ const CreateStudySession = ({
         return;
       }
       
-      // Create start time
       const startTime = new Date(`${date}T${timeString}`);
+      const gmtStartTime = toGMTString(startTime);
       
-      // Calculate end time
       const durationMinutes = parseInt(duration, 10);
-      const endTime = addMinutes(startTime, durationMinutes);
+      const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+      const gmtEndTime = toGMTString(endTime);
       
-      // Create event - with fallback for database errors
       const event = await createEvent({
         title: title || `${subject} Study Session`,
         subject,
         topic,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        event_type: 'study_session'
-      }, true); // Added a parameter to indicate this is user-initiated and should use fallbacks
+        start_time: gmtStartTime,
+        end_time: gmtEndTime,
+        event_type: 'study_session',
+        timezone: 'GMT'
+      }, true);
       
-      // Reset form
       resetForm();
-      
-      // Close dialog
       onClose();
       
-      // Call success callback with the new event
       if (event && onSuccess) {
         onSuccess(event);
       }
-      
     } catch (error) {
       console.error('Error creating study session:', error);
       
@@ -131,7 +121,6 @@ const CreateStudySession = ({
         variant: "destructive"
       });
       
-      // Try to create a local-only event
       try {
         const startTime = new Date(`${date}T${timeString}`);
         const durationMinutes = parseInt(duration, 10);
@@ -148,13 +137,9 @@ const CreateStudySession = ({
           local_only: true
         };
         
-        // Reset form
         resetForm();
-        
-        // Close dialog
         onClose();
         
-        // Call success callback with the local event
         if (onSuccess) {
           onSuccess(localEvent);
         }
