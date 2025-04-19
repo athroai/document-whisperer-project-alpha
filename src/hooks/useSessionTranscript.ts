@@ -22,7 +22,7 @@ export function useSessionTranscript({
     const saveTranscript = async () => {
       try {
         const transcript = messages.map(msg => ({
-          role: msg.senderId === 'user' ? 'user' : 'assistant',
+          role: msg.role || (msg.senderId === 'user' ? 'user' : 'assistant'),
           content: msg.content,
           timestamp: msg.timestamp
         }));

@@ -1,3 +1,4 @@
+
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { AthroMessage } from '@/types/athro';
@@ -106,7 +107,7 @@ export function useSessionSubmission({
               needs_review: needsReview,
               status: 'completed',
               transcript: JSON.stringify(messages.map(msg => ({
-                role: msg.senderId === 'user' ? 'user' : 'assistant',
+                role: msg.role,
                 content: msg.content,
                 timestamp: msg.timestamp
               })))

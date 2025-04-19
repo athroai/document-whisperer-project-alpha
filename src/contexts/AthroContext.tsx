@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { AthroCharacter, AthroMessage, AthroSubject } from '@/types/athro';
+import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { athroCharacters, getAthroById } from '@/config/athrosConfig';
 import { useAthroMessages } from '@/hooks/useAthroMessages';
 import { useStudentProgress } from '@/hooks/useStudentProgress';
@@ -17,7 +18,7 @@ interface AthroContextType {
     confidenceScores: Record<string, number>;
     quizScores: Array<{ topic: string; score: number; date: string }>;
   }>;
-  getSuggestedTopics: (subject: AthroSubject) => string[];
+  getSuggestedTopics: (subject: string) => string[];
 }
 
 const AthroContext = createContext<AthroContextType>({
@@ -66,11 +67,17 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     
     try {
       console.log('📋 Loaded characters:', athroCharacters.map(c => c.name).join(', '));
-      setCharacters(athroCharacters);
+      const updatedCharacters = athroCharacters.map(character => ({
+        ...character,
+        supportsSpecialCharacters: character.supportsSpecialCharacters || false,
+        supportedLanguages: character.supportedLanguages || ['en']
+      }));
+      
+      setCharacters(updatedCharacters);
 
-      if (athroCharacters.length > 0) {
-        console.log('🎯 Setting initial active character:', athroCharacters[0].name);
-        setActiveCharacter(athroCharacters[0]);
+      if (updatedCharacters.length > 0) {
+        console.log('🎯 Setting initial active character:', updatedCharacters[0].name);
+        setActiveCharacter(updatedCharacters[0]);
         characterInitialized.current = true;
       }
       
@@ -97,7 +104,7 @@ export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
     }
   }, [activeCharacter, memoizedClearMessages]);
 
-  const getSuggestedTopics = useCallback((subject: AthroSubject): string[] => {
+  const getSuggestedTopics = useCallback((subject: string): string[] => {
     const character = characters.find(c => c.subject === subject);
     if (!character) return [];
     

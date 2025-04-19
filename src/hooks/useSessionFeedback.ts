@@ -65,7 +65,7 @@ export function useSessionFeedback({
     try {
       // Create a transcript from the messages for the AI to summarize
       const chatLogText = messages
-        .map(msg => `${msg.senderId === 'user' ? 'Student' : 'Athro'}: ${msg.content}`)
+        .map(msg => `${msg.role === 'user' || msg.senderId === 'user' ? 'Student' : 'Athro'}: ${msg.content}`)
         .join('\n\n');
       
       // Create a prompt for the AI to generate a summary

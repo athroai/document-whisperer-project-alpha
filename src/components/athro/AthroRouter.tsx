@@ -46,6 +46,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         // Send response back
         onResponse({
           id: Date.now().toString(),
+          role: 'assistant',
           senderId: character.id,
           content: response,
           timestamp: new Date().toISOString()
@@ -66,6 +67,7 @@ const AthroRouter: React.FC<AthroRouterProps> = ({
         
         onResponse({
           id: Date.now().toString(),
+          role: 'assistant',
           senderId: character.id,
           content: "I'm having trouble connecting to my knowledge base right now. Could you try again in a moment?",
           timestamp: new Date().toISOString()

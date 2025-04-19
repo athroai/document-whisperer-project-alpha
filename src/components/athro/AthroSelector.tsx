@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useAthro } from '@/contexts/AthroContext';
-import { AthroCharacter, AthroSubject } from '@/types/athro';
+import { AthroCharacter } from '@/types/athro';
 import AthroCharacterCard from './AthroCharacterCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSubjects } from '@/hooks/useSubjects';
@@ -16,7 +16,7 @@ const AthroSelector: React.FC = () => {
   );
 
   // Group characters by subject
-  const charactersBySubject = filteredCharacters.reduce<Record<AthroSubject, AthroCharacter[]>>(
+  const charactersBySubject = filteredCharacters.reduce<Record<string, AthroCharacter[]>>(
     (acc, character) => {
       if (!acc[character.subject]) {
         acc[character.subject] = [];
@@ -24,10 +24,10 @@ const AthroSelector: React.FC = () => {
       acc[character.subject].push(character);
       return acc;
     },
-    {} as Record<AthroSubject, AthroCharacter[]>
+    {} as Record<string, AthroCharacter[]>
   );
 
-  const availableSubjects = Object.keys(charactersBySubject) as AthroSubject[];
+  const availableSubjects = Object.keys(charactersBySubject);
 
   if (filteredCharacters.length === 0) {
     return (

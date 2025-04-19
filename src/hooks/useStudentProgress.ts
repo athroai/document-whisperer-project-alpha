@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { AthroSubject } from '@/types/athro';
 
 type SubjectProgress = {
   confidenceScores: Record<string, number>;
@@ -61,7 +60,7 @@ export function useStudentProgress() {
     }
   });
 
-  const getSuggestedTopics = (subject: AthroSubject, topics: string[]): string[] => {
+  const getSuggestedTopics = (subject: string, topics: string[]): string[] => {
     const subjectProgress = studentProgress[subject];
     if (!subjectProgress) return topics.slice(0, 5);
     
@@ -74,7 +73,7 @@ export function useStudentProgress() {
       .slice(0, 5);
   };
 
-  const updateConfidenceScore = (subject: AthroSubject, topic: string, score: number) => {
+  const updateConfidenceScore = (subject: string, topic: string, score: number) => {
     setStudentProgress(prev => ({
       ...prev,
       [subject]: {
@@ -87,7 +86,7 @@ export function useStudentProgress() {
     }));
   };
 
-  const addQuizScore = (subject: AthroSubject, topic: string, score: number) => {
+  const addQuizScore = (subject: string, topic: string, score: number) => {
     setStudentProgress(prev => ({
       ...prev,
       [subject]: {

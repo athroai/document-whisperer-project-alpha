@@ -156,16 +156,16 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
                 {messages.map((msg: AthroMessage) => (
                   <div 
                     key={msg.id} 
-                    className={`flex ${msg.senderId === 'user' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${msg.senderId === 'user' || msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div 
                       className={`max-w-[80%] rounded-lg p-4 ${
-                        msg.senderId === 'user' 
+                        msg.senderId === 'user' || msg.role === 'user' 
                           ? 'bg-primary text-primary-foreground' 
                           : 'bg-muted'
                       }`}
                     >
-                      {msg.senderId !== 'user' && (
+                      {msg.senderId !== 'user' && msg.role !== 'user' && (
                         <div className="flex items-center mb-2">
                           <Avatar className="h-6 w-6 mr-2">
                             <AvatarImage src={activeCharacter.avatarUrl} alt={activeCharacter.name} />
@@ -177,7 +177,7 @@ const AthroBase: React.FC<AthroBaseProps> = ({ showTopicSelector = true }) => {
                       <div className="whitespace-pre-wrap">{msg.content}</div>
                       
                       {/* Mark scheme toggle will be implemented in the future */}
-                      {msg.senderId !== 'user' && msg.referencedResources && msg.referencedResources.length > 0 && (
+                      {(msg.senderId !== 'user' && msg.role !== 'user') && msg.referencedResources && msg.referencedResources.length > 0 && (
                         <div className="mt-2 pt-2 border-t border-gray-200">
                           <Button 
                             variant="outline" 

@@ -65,6 +65,7 @@ export function useAthroMessages() {
     // Create user message object
     const userMessage: AthroMessage = {
       id: requestId,
+      role: 'user',
       senderId: 'user',
       content,
       timestamp: new Date().toISOString(),
@@ -101,6 +102,7 @@ export function useAthroMessages() {
       // Create Athro response message
       const athroResponse: AthroMessage = {
         id: (Date.now() + 1).toString(),
+        role: 'assistant',
         senderId: activeCharacter.id,
         content: response || "I'm having trouble connecting right now. Could you try again in a moment?",
         timestamp: new Date().toISOString(),
@@ -117,6 +119,7 @@ export function useAthroMessages() {
       if (activeRequests.current.has(requestId)) {
         const errorMessage: AthroMessage = {
           id: (Date.now() + 1).toString(),
+          role: 'assistant',
           senderId: activeCharacter.id,
           content: "I'm having some trouble connecting to my knowledge base. Could you try again in a moment?",
           timestamp: new Date().toISOString(),

@@ -10,7 +10,9 @@ export const athroCharacters = [
     fullDescription: "AthroMaths helps you master mathematical concepts through step-by-step problem solving and visual explanations.",
     shortDescription: "Your GCSE Mathematics mentor specializing in clear explanations and worked examples",
     examBoards: ["wjec", "aqa", "ocr"],
-    supportsMathNotation: true
+    supportsMathNotation: true,
+    supportsSpecialCharacters: false,
+    supportedLanguages: ["en"]
   },
   {
     id: "science",
@@ -22,7 +24,9 @@ export const athroCharacters = [
     fullDescription: "AthroScience connects theoretical concepts to real-world applications, making complex scientific ideas accessible.",
     shortDescription: "Your GCSE Science mentor specializing in connecting theory to practical applications",
     examBoards: ["wjec", "aqa", "ocr"],
-    supportsMathNotation: true
+    supportsMathNotation: true,
+    supportsSpecialCharacters: true,
+    supportedLanguages: ["en"]
   },
   {
     id: "english",
@@ -34,7 +38,9 @@ export const athroCharacters = [
     fullDescription: "AthroEnglish guides you through literary analysis, creative writing, and developing strong communication skills.",
     shortDescription: "Your GCSE English mentor specializing in literary analysis and writing techniques",
     examBoards: ["wjec", "aqa", "ocr"],
-    supportsMathNotation: false
+    supportsMathNotation: false,
+    supportsSpecialCharacters: false,
+    supportedLanguages: ["en"]
   },
   {
     id: "history",
@@ -46,7 +52,9 @@ export const athroCharacters = [
     fullDescription: "AthroHistory brings the past to life by connecting historical events to their causes and consequences.",
     shortDescription: "Your GCSE History mentor specializing in contextual understanding and source analysis",
     examBoards: ["wjec", "aqa", "ocr"],
-    supportsMathNotation: false
+    supportsMathNotation: false,
+    supportsSpecialCharacters: false,
+    supportedLanguages: ["en"]
   },
   {
     id: "geography",
@@ -58,7 +66,9 @@ export const athroCharacters = [
     fullDescription: "AthroGeography helps you understand the relationships between people, places, and the environment through spatial analysis.",
     shortDescription: "Your GCSE Geography mentor specializing in physical and human geography concepts",
     examBoards: ["wjec", "aqa", "ocr"],
-    supportsMathNotation: false
+    supportsMathNotation: false,
+    supportsSpecialCharacters: false,
+    supportedLanguages: ["en"]
   },
   {
     id: "welsh",
@@ -70,7 +80,9 @@ export const athroCharacters = [
     fullDescription: "AthroWelsh guides you through Welsh language learning with a focus on practical communication skills and cultural context.",
     shortDescription: "Your GCSE Welsh mentor specializing in language skills and cultural understanding",
     examBoards: ["wjec"],
-    supportsMathNotation: false
+    supportsMathNotation: false,
+    supportsSpecialCharacters: false,
+    supportedLanguages: ["en", "cy"]
   },
   {
     id: "languages",
@@ -82,7 +94,9 @@ export const athroCharacters = [
     fullDescription: "AthroLanguages helps you develop proficiency in foreign languages through practice and cultural context.",
     shortDescription: "Your GCSE Modern Languages mentor specializing in language acquisition and practical communication",
     examBoards: ["wjec", "aqa", "ocr"],
-    supportsMathNotation: false
+    supportsMathNotation: false,
+    supportsSpecialCharacters: true,
+    supportedLanguages: ["en", "fr", "es", "de"]
   },
   {
     id: "religious-education",
@@ -94,7 +108,9 @@ export const athroCharacters = [
     fullDescription: "AthroReligiousStudies explores world religions, ethics, and philosophical questions with respect and critical thinking.",
     shortDescription: "Your GCSE Religious Studies mentor specializing in world religions and ethical frameworks",
     examBoards: ["wjec", "aqa", "ocr"],
-    supportsMathNotation: false
+    supportsMathNotation: false,
+    supportsSpecialCharacters: false,
+    supportedLanguages: ["en"]
   }
 ];
 

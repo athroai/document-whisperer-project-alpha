@@ -19,6 +19,8 @@ export interface AthroMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date | string;
+  senderId?: string;
+  referencedResources?: string[];
   attachments?: string[];
   metadata?: Record<string, any>;
 }
@@ -32,4 +34,4 @@ export interface AthroSubject {
 
 export type AthroLanguage = 'en' | 'fr' | 'es' | 'de';
 
-export type ExamBoard = 'AQA' | 'Edexcel' | 'OCR' | 'WJEC' | 'CCEA';
+export type ExamBoard = 'AQA' | 'Edexcel' | 'OCR' | 'WJEC' | 'CCEA' | 'none';
