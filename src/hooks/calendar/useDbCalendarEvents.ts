@@ -14,7 +14,8 @@ export const useDbCalendarEvents = () => {
       
       console.log('Creating DB event for user:', userId, eventData);
       
-      const eventDescription = eventData.description || JSON.stringify({
+      // Ensure subject and topic are included in the description JSON
+      const eventDescription = JSON.stringify({
         subject: eventData.subject || '',
         topic: eventData.topic || '',
         isPomodoro: true,
@@ -52,6 +53,7 @@ export const useDbCalendarEvents = () => {
 
       console.log('Successfully created event in database:', data);
 
+      // Return the event with subject and topic from original eventData 
       return {
         id: data.id,
         title: data.title,

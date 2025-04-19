@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isToday } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +18,7 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
-  const { events, suggestedEvents, fetchEvents, isLoading } = useCalendarEvents();
+  const { events, suggestedEvents, isLoading } = useCalendarEvents();
   const [localLoading, setLocalLoading] = useState(true);
 
   useEffect(() => {
@@ -30,21 +29,13 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
       setLocalLoading(false);
     }, 3000);
     
-    // Initial fetch of events when component mounts
-    fetchEvents()
-      .then(() => {
-        console.log('BigCalendarView: Successfully fetched events');
-        setLocalLoading(false);
-        clearTimeout(timer);
-      })
-      .catch(err => {
-        console.error('Error fetching initial events in calendar view:', err);
-        setLocalLoading(false);
-        clearTimeout(timer);
-      });
-      
+    // We're not calling fetchEvents() here anymore to prevent loops
+    // Just update the local loading state based on existing events
+    setLocalLoading(false);
+    clearTimeout(timer);
+    
     return () => clearTimeout(timer);
-  }, [fetchEvents]);
+  }, [events]);
   
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -52,9 +43,6 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
   };
 
   const handleCreateSuccess = () => {
-    fetchEvents().catch(err => {
-      console.error('Error fetching events after creation:', err);
-    });
     setShowCreateDialog(false);
   };
   
@@ -62,15 +50,10 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
     setLocalLoading(true);
     if (onRetryLoad) onRetryLoad();
     
-    fetchEvents()
-      .then(() => {
-        console.log('Calendar events refreshed successfully');
-        setLocalLoading(false);
-      })
-      .catch(err => {
-        console.error('Error refreshing calendar events:', err);
-        setLocalLoading(false);
-      });
+    // The parent component will handle the actual fetching
+    setTimeout(() => {
+      setLocalLoading(false);
+    }, 3000);
   };
 
   const previousMonth = () => {
@@ -235,6 +218,50 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
       />
     </div>
   );
+};
+
+// Add the renderCalendar function from the original file
+BigCalendarView.prototype.renderCalendar = function() {
+  const monthStart = startOfMonth(this.state.currentMonth);
+  const monthEnd = endOfMonth(this.state.currentMonth);
+  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  return monthDays.map((day, index) => {
+    const dayEvents = this.getEventsForDay(day);
+    const isCurrentMonth = isSameMonth(day, this.state.currentMonth);
+
+    return (
+      <div 
+        key={index} 
+        className={`border p-2 ${!isCurrentMonth ? 'bg-gray-100 text-gray-400' : 'bg-white'} cursor-pointer hover:bg-gray-50`}
+        onClick={() => isCurrentMonth && this.handleDateSelect(day)}
+      >
+        <div className="flex justify-between items-center mb-2">
+          <span className={`text-sm font-medium ${isToday(day) ? 'bg-purple-600 text-white rounded-full px-2 py-1' : ''}`}>
+            {format(day, 'd')}
+          </span>
+        </div>
+        {dayEvents.slice(0, 2).map((event, eventIndex) => {
+          const colorStyle = getEventColor(event.subject);
+          
+          return (
+            <div 
+              key={`${event.id}-${eventIndex}`}
+              className={`text-xs p-1 mb-1 rounded truncate ${colorStyle.bg} ${colorStyle.text}`}
+              title={`${event.title} (${formatGMTTime(event.start_time)})`}
+            >
+              {formatGMTTime(event.start_time)} - {event.title}
+            </div>
+          );
+        })}
+        {dayEvents.length > 2 && (
+          <div className="text-xs text-gray-500 text-center">
+            +{dayEvents.length - 2} more
+          </div>
+        )}
+      </div>
+    );
+  });
 };
 
 export default BigCalendarView;

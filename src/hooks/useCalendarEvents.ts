@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
@@ -23,8 +24,7 @@ export const useCalendarEvents = () => {
   
   const {
     suggestedEvents,
-    generateSuggestedSessions,
-    acceptSuggestedEvent
+    generateSuggestedSessions
   } = useSuggestedEvents(events);
 
   const {
@@ -158,7 +158,9 @@ export const useCalendarEvents = () => {
     
     const success = await updateDbEvent(id, updates);
     if (success) {
-      await fetchEvents();
+      setEvents(prevEvents => 
+        prevEvents.map(event => event.id === id ? { ...event, ...updates } : event)
+      );
     }
     return success;
   };
@@ -190,6 +192,6 @@ export const useCalendarEvents = () => {
     createEvent,
     updateEvent,
     deleteEvent,
-    acceptSuggestedEvent
+    acceptSuggestedEvent: useSuggestedEvents(events).acceptSuggestedEvent
   };
 };

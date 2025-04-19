@@ -31,27 +31,12 @@ const CalendarPage: React.FC = () => {
         description: "Your personalized study schedule has been created and is ready to use.",
       });
       
-      // Force refresh events when coming from onboarding
-      if (authState.user?.id) {
-        setIsRefreshing(true);
-        fetchEvents()
-          .then(() => {
-            console.log("Successfully refreshed calendar events after onboarding");
-            setIsRefreshing(false);
-            setLoadAttempts(prev => prev + 1);
-          })
-          .catch(err => {
-            console.error("Error refreshing events after onboarding:", err);
-            setIsRefreshing(false);
-            setLoadAttempts(prev => prev + 1);
-          });
-      }
-      
       // Clean up the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [location.search, toast, fetchEvents, authState.user]);
+  }, [location.search, toast]);
   
+  // Separate effect for authentication and loading events
   useEffect(() => {
     let isMounted = true;
     
@@ -61,6 +46,8 @@ const CalendarPage: React.FC = () => {
         if (isMounted) setIsInitialLoad(false);
         return;
       }
+      
+      if (isRefreshing) return;
       
       try {
         setIsRefreshing(true);
@@ -75,7 +62,6 @@ const CalendarPage: React.FC = () => {
         console.error('Error fetching calendar events:', err);
         if (isMounted) {
           setIsInitialLoad(false);
-          // Notify user of error
           toast({
             title: "Calendar Error",
             description: "Could not load your calendar events. Please try again.",
@@ -87,14 +73,22 @@ const CalendarPage: React.FC = () => {
       }
     };
     
-    loadCalendarEvents();
+    if (authState.user?.id) {
+      loadCalendarEvents();
+    }
     
-    // Clear events when component unmounts
+    // Clean up function
     return () => {
       isMounted = false;
+    };
+  }, [authState.user, fetchEvents, toast, loadAttempts, isRefreshing]);
+  
+  // Separate effect for cleanup on unmount
+  useEffect(() => {
+    return () => {
       clearEvents();
     };
-  }, [authState.user, fetchEvents, clearEvents, toast, loadAttempts]);
+  }, [clearEvents]);
   
   const handleRetryLoad = () => {
     setLoadAttempts(prev => prev + 1);
