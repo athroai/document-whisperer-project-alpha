@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import CreateStudySession from './CreateStudySession';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
+import enUS from 'date-fns/locale/en-US';
 
 const locales = {
-  'en-US': require('date-fns/locale/en-US'),
+  'en-US': enUS
 };
 
 const localizer = dateFnsLocalizer({
