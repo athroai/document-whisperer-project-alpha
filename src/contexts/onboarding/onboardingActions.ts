@@ -1,0 +1,144 @@
+
+import { supabase } from '@/lib/supabase';
+import { SubjectPreference, Availability } from './types';
+import { PreferredStudySlot } from '@/types/study';
+import { ConfidenceLabel } from '@/types/confidence';
+
+export const createOnboardingActions = (
+  userId: string | undefined,
+  setSelectedSubjects: React.Dispatch<React.SetStateAction<SubjectPreference[]>>,
+  setAvailability: React.Dispatch<React.SetStateAction<Availability[]>>,
+  setStudySlots: React.Dispatch<React.SetStateAction<PreferredStudySlot[]>>,
+  setLearningPreferences: React.Dispatch<React.SetStateAction<Record<string, any>>>,
+  setCurrentStep: React.Dispatch<React.SetStateAction<string>>,
+) => ({
+  selectSubject: (subject: string, confidence: ConfidenceLabel) => {
+    setSelectedSubjects(prev => {
+      const existingIndex = prev.findIndex(s => s.subject === subject);
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated[existingIndex] = { subject, confidence };
+        return updated;
+      }
+      return [...prev, { subject, confidence }];
+    });
+  },
+
+  removeSubject: (subject: string) => {
+    setSelectedSubjects(prev => prev.filter(s => s.subject !== subject));
+  },
+
+  updateAvailability: (newAvailability: Availability[]) => {
+    setAvailability(newAvailability);
+  },
+
+  updateLearningPreferences: (preferences: Record<string, any>) => {
+    setLearningPreferences(prev => ({
+      ...prev,
+      ...preferences
+    }));
+  },
+
+  updateStudySlots: async ({ dayOfWeek, slotCount, slotDurationMinutes, preferredStartHour }: {
+    dayOfWeek: number,
+    slotCount: number,
+    slotDurationMinutes: number,
+    preferredStartHour: number
+  }) => {
+    if (!userId) return;
+    
+    const newSlot = {
+      id: `temp-${Date.now()}`,
+      user_id: userId,
+      day_of_week: dayOfWeek,
+      slot_count: slotCount,
+      slot_duration_minutes: slotDurationMinutes,
+      preferred_start_hour: preferredStartHour,
+      created_at: new Date().toISOString()
+    };
+    
+    setStudySlots(prev => [...prev, newSlot]);
+    
+    try {
+      await supabase
+        .from('preferred_study_slots')
+        .insert({
+          user_id: userId,
+          day_of_week: dayOfWeek,
+          slot_count: slotCount,
+          slot_duration_minutes: slotDurationMinutes,
+          preferred_start_hour: preferredStartHour
+        });
+    } catch (error) {
+      console.error('Error in updateStudySlots:', error);
+    }
+  },
+
+  completeOnboarding: async () => {
+    if (!userId) throw new Error('No user logged in');
+
+    try {
+      console.log("Completing onboarding for user:", userId);
+      
+      const subjectPreferencesPromises = setSelectedSubjects((prev) => {
+        const promises = prev.map(subject => 
+          supabase.from('student_subject_preferences').upsert({
+            student_id: userId,
+            subject: subject.subject,
+            confidence_level: subject.confidence,
+            priority: subject.priority
+          }, { onConflict: 'student_id, subject' })
+        );
+        return prev;
+      });
+
+      const { error } = await supabase
+        .from('onboarding_progress')
+        .upsert({
+          student_id: userId,
+          current_step: 'completed',
+          has_completed_subjects: true,
+          has_completed_availability: true,
+          has_generated_plan: true,
+          has_completed_diagnostic: true,
+          completed_at: new Date().toISOString()
+        }, {
+          onConflict: 'student_id'
+        });
+
+      if (error) throw error;
+
+      await Promise.all(subjectPreferencesPromises);
+      setCurrentStep('completed');
+
+      return;
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      throw error;
+    }
+  },
+
+  updateOnboardingStep: async (step: string) => {
+    console.log('Updating onboarding step to:', step);
+    setCurrentStep(step);
+    
+    if (userId) {
+      try {
+        const { error } = await supabase
+          .from('onboarding_progress')
+          .upsert({ 
+            student_id: userId, 
+            current_step: step 
+          }, { 
+            onConflict: 'student_id' 
+          });
+            
+        if (error) {
+          console.error('Error updating onboarding step:', error);
+        }
+      } catch (error) {
+        console.error('Error in updateOnboardingStep:', error);
+      }
+    }
+  },
+});
