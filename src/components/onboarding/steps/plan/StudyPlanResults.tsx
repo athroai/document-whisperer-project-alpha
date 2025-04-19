@@ -1,11 +1,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Calendar as CalendarIcon } from 'lucide-react';
-import { CheckCircle, Clock, BookOpen } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { StudyPlanCard } from './StudyPlanCard';
 import { UpcomingSessionsList } from './UpcomingSessionsList';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 
 interface StudyPlanResultsProps {
   studyPlan: any[];
@@ -18,7 +16,6 @@ interface StudyPlanResultsProps {
 export const StudyPlanResults: React.FC<StudyPlanResultsProps> = ({
   studyPlan,
   upcomingSessions,
-  onBack,
   onComplete,
   isSubmitting
 }) => {
@@ -62,15 +59,11 @@ export const StudyPlanResults: React.FC<StudyPlanResultsProps> = ({
         />
       </div>
       
-      <div className="flex flex-col sm:flex-row gap-3 sm:justify-between pt-4">
-        <Button variant="outline" onClick={onBack} className="order-2 sm:order-1">
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+      <div className="pt-6">
         <Button 
           onClick={onComplete}
           disabled={isSubmitting}
-          className="bg-green-600 hover:bg-green-700 gap-2 order-1 sm:order-2"
+          className="w-full bg-green-600 hover:bg-green-700 gap-2"
         >
           {isSubmitting ? (
             <>

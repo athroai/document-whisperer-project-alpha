@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -7,14 +8,16 @@ import { DayTimePreferences } from '../DayTimePreferences';
 import { useStudySchedule } from '@/hooks/useStudySchedule';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 export const StudyScheduleStep: React.FC = () => {
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { updateOnboardingStep } = useOnboarding();
   const {
     selectedDays,
     sessionsPerDay,
     dayPreferences,
-    isSubmitting,
     sessionOptions,
     handleDayToggle,
     handleSessionTimeChange,
@@ -24,8 +27,15 @@ export const StudyScheduleStep: React.FC = () => {
   } = useStudySchedule();
 
   const onContinue = async () => {
-    await handleContinue();
-    navigate('/calendar');  // Navigate to calendar after completion
+    try {
+      setIsSubmitting(true);
+      await handleContinue();
+      updateOnboardingStep('plan');
+    } catch (error) {
+      console.error('Error saving schedule:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -87,7 +97,7 @@ export const StudyScheduleStep: React.FC = () => {
       
       <div className="pt-6">
         <Button
-          onClick={handleContinue}
+          onClick={onContinue}
           disabled={selectedDays.length === 0 || isSubmitting}
           className="w-full bg-purple-600 hover:bg-purple-700"
         >
