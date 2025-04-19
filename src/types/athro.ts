@@ -25,12 +25,8 @@ export interface AthroMessage {
   metadata?: Record<string, any>;
 }
 
-export interface AthroSubject {
-  id: string;
-  name: string;
-  topics: string[];
-  examBoards: ExamBoard[];
-}
+// Update AthroSubject from interface to string type
+export type AthroSubject = string;
 
 // Update AthroLanguage to include 'cy' for Welsh
 export type AthroLanguage = 'en' | 'fr' | 'es' | 'de' | 'cy';
