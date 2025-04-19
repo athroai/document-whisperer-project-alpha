@@ -2,7 +2,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { DaySelector } from '../DaySelector';
 import { DayTimePreferences } from '../DayTimePreferences';
 import { useStudySchedule } from '@/hooks/useStudySchedule';
@@ -33,14 +32,15 @@ export const StudyScheduleStep: React.FC = () => {
       <Card className="p-4 border-purple-200">
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label className="text-base font-semibold">Study Sessions Per Day</Label>
+            <Label className="text-base font-semibold">Study Session Format</Label>
             <span className="text-sm font-medium text-purple-700">
-              {sessionsPerDay} {sessionsPerDay === 1 ? 'session' : 'sessions'}
+              {sessionsPerDay} {sessionsPerDay === 1 ? 'session' : 'sessions'} per day
             </span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm text-gray-600">Choose your preferred study format:</Label>
               <Select 
                 value={sessionsPerDay.toString()}
                 onValueChange={(value) => handleSessionsPerDayChange([parseInt(value)])}
@@ -57,21 +57,10 @@ export const StudyScheduleStep: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            
-            <div>
-              <Slider
-                value={[sessionsPerDay]}
-                min={1}
-                max={6}
-                step={1}
-                onValueChange={handleSessionsPerDayChange}
-                className="mt-2"
-              />
-            </div>
           </div>
           
           <p className="text-sm text-gray-500 mt-2">
-            You can customize the time and duration for each session below.
+            You can customize the time and duration for each session below
           </p>
         </div>
       </Card>

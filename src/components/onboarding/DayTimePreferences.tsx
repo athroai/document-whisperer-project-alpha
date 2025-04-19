@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { SliderValue } from '@radix-ui/react-slider';
+import type { Value } from '@radix-ui/react-slider';
 import { Slider } from '@/components/ui/slider';
 
 interface SessionTime {
@@ -81,7 +81,7 @@ export const DayTimePreferences: React.FC<DayTimePreferencesProps> = ({
                       max={120}
                       step={15}
                       className="flex-1"
-                      onValueChange={(value: SliderValue) => 
+                      onValueChange={(value: Value) => 
                         onSessionDurationChange(dayIndex, sessionIndex, value[0])
                       }
                     />
