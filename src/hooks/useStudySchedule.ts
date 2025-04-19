@@ -1,9 +1,12 @@
+
 import { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { useCalendarEvents } from './useCalendarEvents';
 
 interface SessionTime {
   startHour: number;
@@ -16,6 +19,7 @@ interface DayPreference {
 }
 
 export const useStudySchedule = () => {
+  const navigate = useNavigate();
   const { updateOnboardingStep, updateStudySlots, setStudySlots } = useOnboarding();
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [sessionsPerDay, setSessionsPerDay] = useState<number>(2);
@@ -23,6 +27,7 @@ export const useStudySchedule = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { state: authState } = useAuth();
   const { toast } = useToast();
+  const { createEvent } = useCalendarEvents();
   
   // Session type options
   const sessionOptions = [
@@ -144,6 +149,44 @@ export const useStudySchedule = () => {
     })));
   };
 
+  const createCalendarEvents = async (slots: PreferredStudySlot[]) => {
+    if (!slots.length) return;
+    
+    try {
+      // Create initial calendar events for the next 4 weeks
+      for (let weekOffset = 0; weekOffset < 4; weekOffset++) {
+        for (const slot of slots) {
+          // Calculate the date for this slot
+          const today = new Date();
+          const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
+          
+          // Calculate days to add to get to the target day of this week
+          let daysToAdd = slot.day_of_week - dayOfWeek;
+          if (daysToAdd <= 0) daysToAdd += 7; // Move to next week if day has passed
+          
+          // Add weeks for future events
+          daysToAdd += weekOffset * 7;
+          
+          const eventDate = new Date(today);
+          eventDate.setDate(today.getDate() + daysToAdd);
+          eventDate.setHours(slot.preferred_start_hour, 0, 0, 0);
+          
+          const endTime = new Date(eventDate);
+          endTime.setMinutes(endTime.getMinutes() + slot.slot_duration_minutes);
+          
+          await createEvent({
+            subject: "Study Session",
+            start_time: eventDate.toISOString(),
+            end_time: endTime.toISOString(),
+            event_type: 'study_session'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error creating calendar events:', error);
+    }
+  };
+
   const handleContinue = async () => {
     if (selectedDays.length === 0) return;
     
@@ -170,7 +213,7 @@ export const useStudySchedule = () => {
           dayPreference.sessionTimes.forEach((session, sessionIndex) => {
             newSlots.push({
               id: `temp-${Date.now()}-${dayOfWeek}-${sessionIndex}`,
-              user_id: 'temp-user-id',
+              user_id: authState.user?.id || 'temp-user-id',
               day_of_week: dayOfWeek,
               slot_count: 1, // Each slot represents one session now
               slot_duration_minutes: session.durationMinutes,
@@ -182,7 +225,7 @@ export const useStudySchedule = () => {
           for (let i = 0; i < sessionsPerDay; i++) {
             newSlots.push({
               id: `temp-${Date.now()}-${dayOfWeek}-${i}`,
-              user_id: 'temp-user-id',
+              user_id: authState.user?.id || 'temp-user-id',
               day_of_week: dayOfWeek,
               slot_count: 1,
               slot_duration_minutes: getSessionDurationForCount(sessionsPerDay),
@@ -211,12 +254,16 @@ export const useStudySchedule = () => {
         return [];
       });
 
+      // Only insert if user is authenticated
       if (slots.length > 0 && authState.user?.id) {
         const { error } = await supabase
           .from('preferred_study_slots')
-          .insert(slots);
+          .insert(slots.filter(slot => !!slot.user_id));
 
         if (error) throw error;
+        
+        // Create calendar events from these slots
+        await createCalendarEvents(slots as PreferredStudySlot[]);
       }
       
       // Update study slots through the context
@@ -236,6 +283,7 @@ export const useStudySchedule = () => {
       });
       
       updateOnboardingStep('calendar');
+      navigate('/calendar');
     } catch (error) {
       console.error('Error saving study slots:', error);
       toast({
@@ -244,6 +292,7 @@ export const useStudySchedule = () => {
         variant: "destructive"
       });
       updateOnboardingStep('calendar');
+      navigate('/calendar');
     } finally {
       setIsSubmitting(false);
     }

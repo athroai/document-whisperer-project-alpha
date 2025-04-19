@@ -11,12 +11,14 @@ export const useCalendarEvents = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
+        setIsLoading(true);
         // Get current user
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError) throw authError;
         if (!user) {
           console.log('No authenticated user found');
+          setEvents([]);
           return;
         }
 
@@ -48,6 +50,7 @@ export const useCalendarEvents = () => {
     start_time: string;
     end_time: string;
     event_type?: string;
+    title?: string;
   }) => {
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -59,9 +62,16 @@ export const useCalendarEvents = () => {
         .from('calendar_events')
         .insert({
           user_id: user.id,
+          student_id: user.id,
           event_type: eventData.event_type || 'study_session',
-          subject: eventData.subject,
-          topic: eventData.topic,
+          title: eventData.title || `${eventData.subject} Study Session`,
+          description: JSON.stringify({
+            subject: eventData.subject,
+            topic: eventData.topic,
+            isPomodoro: true,
+            pomodoroWorkMinutes: 25,
+            pomodoroBreakMinutes: 5
+          }),
           start_time: eventData.start_time,
           end_time: eventData.end_time
         })

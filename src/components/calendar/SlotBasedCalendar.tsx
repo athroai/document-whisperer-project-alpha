@@ -341,6 +341,45 @@ const SlotBasedCalendar: React.FC = () => {
   const [selectedSlot, setSelectedSlot] = useState<{dayIndex: number, time: string} | null>(null);
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
 
+  const mapEventsToSlots = (eventList: CalendarEvent[], weekStart: Date): TimeSlot[][] => {
+    const slots = generateTimeSlots();
+    
+    eventList.forEach(event => {
+      const eventDay = event.startTime.getDay();
+      const dayIndex = eventDay === 0 ? 6 : eventDay - 1; // Adjust for week starting on Monday
+      
+      const eventHour = event.startTime.getHours();
+      const eventMinute = event.startTime.getMinutes();
+      
+      // Find the closest time slot
+      const slotRowIndex = slots.findIndex(row => {
+        const [slotHour, slotMinute] = row[0].time.split(':').map(Number);
+        
+        if (slotHour === eventHour) {
+          // Find the closest 20-minute slot
+          if (eventMinute < 20) return slotMinute === 0;
+          if (eventMinute < 40) return slotMinute === 20;
+          return slotMinute === 40;
+        }
+        
+        return false;
+      });
+      
+      if (slotRowIndex !== -1 && dayIndex >= 0 && dayIndex < 7) {
+        const eventStartDay = event.startTime.getDate();
+        const weekStartDay = weekStart.getDate();
+        const dayDiff = Math.floor((eventStartDay - weekStartDay) / 7) * 7;
+        
+        // Only add events from the current week
+        if (dayDiff === 0) {
+          slots[slotRowIndex][dayIndex].events.push(event);
+        }
+      }
+    });
+    
+    return slots;
+  };
+
   const loadEvents = async () => {
     setIsLoading(true);
     
@@ -396,8 +435,7 @@ const SlotBasedCalendar: React.FC = () => {
 
       if (slotsResponse.data) {
         const studySlots = slotsResponse.data;
-        const currentWeekStart = startOfWeek(currentWeekStart, { weekStartsOn: 1 });
-
+        
         studySlots.forEach(slot => {
           const slotDay = addDays(currentWeekStart, slot.day_of_week - 1);
           const startTime = new Date(slotDay);
@@ -412,8 +450,7 @@ const SlotBasedCalendar: React.FC = () => {
             subject: '',
             startTime,
             endTime,
-            type: 'study_session',
-            isRecurring: true
+            type: 'study_session'
           });
         });
       }
