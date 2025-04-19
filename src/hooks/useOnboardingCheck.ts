@@ -12,7 +12,7 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
   
   useEffect(() => {
     const checkOnboardingStatus = async () => {
-      if (!state.user || state.loading) {
+      if (!state.user || state.isLoading) {
         setIsLoading(true);
         return;
       }
@@ -45,7 +45,7 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
     };
     
     checkOnboardingStatus();
-  }, [state.user, state.loading, navigate, redirectOnNeeded]);
+  }, [state.user, state.isLoading, navigate, redirectOnNeeded]);
   
   return { needsOnboarding, isLoading };
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -24,7 +23,7 @@ const OnboardingContent: React.FC = () => {
   const { state } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   
-  if (state.loading) {
+  if (state.isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
   

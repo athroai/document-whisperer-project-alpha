@@ -1,4 +1,3 @@
-
 import { AthroCharacter } from '@/types/athro';
 
 export const buildSystemPrompt = (character: AthroCharacter): string => {
@@ -23,7 +22,7 @@ export const buildSystemPrompt = (character: AthroCharacter): string => {
   // Additional instructions based on subject specifics
   let additionalInstructions = '';
   
-  if (character.supports_math_notation) {
+  if (character.supportsMathNotation) {
     additionalInstructions += `
       You can use mathematical notation when explaining concepts. Present equations clearly and explain the meaning of symbols when they're first introduced.
     `;

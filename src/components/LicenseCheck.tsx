@@ -11,10 +11,10 @@ interface LicenseCheckProps {
 
 const LicenseCheck: React.FC<LicenseCheckProps> = ({ children }) => {
   const { state } = useAuth();
-  const { user, loading } = state;
+  const { user, isLoading } = state;
   
   // Loading state
-  if (loading) {
+  if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
   

@@ -1,82 +1,139 @@
+import { AthroCharacterConfig } from '@/types/athroCharacter';
 
-// Improved version of the athroService with proper typing
-import { AthroSubject } from '@/types/athro';
+// Mock Athro character data
+export const athroCharacterConfigs: AthroCharacterConfig[] = [
+  {
+    id: 'maths-mentor-1',
+    name: 'Alan Turing',
+    subject: 'Mathematics',
+    avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
+    shortDescription: 'Your friendly maths mentor',
+    fullDescription: 'Alan Turing is here to help you with all your maths needs.',
+    tone: 'friendly',
+    promptTemplate: 'You are Alan Turing, a friendly maths mentor. {context} {message}',
+    responseStyle: 'maths',
+    usesMathFont: true,
+    supportsImageOCR: false,
+    specialFeatures: ['latexSupport', 'stepByStepSolutions'],
+    supportsMathNotation: true,
+    supportsSpecialCharacters: false,
+    supportedLanguages: ['en'],
+    topics: ['Algebra', 'Geometry', 'Calculus', 'Statistics'],
+    examBoards: ['AQA', 'Edexcel', 'OCR', 'WJEC'],
+    features: {
+      latexSupport: true,
+      pastPaperIntegration: true,
+      aiMarking: false,
+    },
+    examBoardLogic: {
+      default: 'AQA',
+      fallback: ['Edexcel', 'OCR', 'WJEC'],
+    },
+  },
+  {
+    id: 'science-mentor-1',
+    name: 'Marie Curie',
+    subject: 'Science',
+    avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
+    shortDescription: 'Your inspiring science mentor',
+    fullDescription: 'Marie Curie is here to guide you through the wonders of science.',
+    tone: 'inspiring',
+    promptTemplate: 'You are Marie Curie, an inspiring science mentor. {context} {message}',
+    responseStyle: 'essay',
+    usesMathFont: false,
+    supportsImageOCR: true,
+    specialFeatures: ['diagramAnalysis', 'experimentSuggestions'],
+    supportsMathNotation: false,
+    supportsSpecialCharacters: false,
+    supportedLanguages: ['en', 'fr'],
+    topics: ['Biology', 'Chemistry', 'Physics'],
+    examBoards: ['AQA', 'Edexcel', 'OCR', 'WJEC'],
+    features: {
+      latexSupport: false,
+      pastPaperIntegration: true,
+      aiMarking: true,
+    },
+    examBoardLogic: {
+      default: 'AQA',
+      fallback: ['Edexcel', 'OCR', 'WJEC'],
+    },
+  },
+  {
+    id: 'english-mentor-1',
+    name: 'William Shakespeare',
+    subject: 'English',
+    avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
+    shortDescription: 'Your eloquent English mentor',
+    fullDescription: 'William Shakespeare is here to help you master the English language.',
+    tone: 'eloquent',
+    promptTemplate: 'You are William Shakespeare, an eloquent English mentor. {context} {message}',
+    responseStyle: 'essay',
+    usesMathFont: false,
+    supportsImageOCR: false,
+    specialFeatures: ['poetryAnalysis', 'creativeWritingPrompts'],
+    supportsMathNotation: false,
+    supportsSpecialCharacters: true,
+    supportedLanguages: ['en'],
+    topics: ['Literature', 'Grammar', 'Writing'],
+    examBoards: ['AQA', 'Edexcel', 'OCR', 'WJEC'],
+     features: {
+      latexSupport: false,
+      pastPaperIntegration: true,
+      aiMarking: true,
+    },
+    examBoardLogic: {
+      default: 'AQA',
+      fallback: ['Edexcel', 'OCR', 'WJEC'],
+    },
+  },
+  {
+    id: 'welsh-mentor-1',
+    name: 'Gwyneth Lewis',
+    subject: 'Welsh',
+    avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
+    shortDescription: 'Your friendly Welsh mentor',
+    fullDescription: 'Gwyneth Lewis is here to help you master the Welsh language.',
+    tone: 'friendly',
+    promptTemplate: 'You are Gwyneth Lewis, a friendly Welsh mentor. {context} {message}',
+    responseStyle: 'language',
+    usesMathFont: false,
+    supportsImageOCR: false,
+    specialFeatures: ['poetryAnalysis', 'creativeWritingPrompts'],
+    supportsMathNotation: false,
+    supportsSpecialCharacters: true,
+    supportedLanguages: ['en', 'cy'],
+    topics: ['Literature', 'Grammar', 'Writing'],
+    examBoards: ['WJEC'],
+     features: {
+      latexSupport: false,
+      pastPaperIntegration: true,
+      aiMarking: true,
+    },
+    examBoardLogic: {
+      default: 'WJEC',
+      fallback: ['WJEC'],
+    },
+  },
+];
 
-export interface Resource {
-  id: string;
-  name: string;
-  type: string;
-  url?: string;
-  subject?: string;
-}
-
-export const getResourcesForSubject = (subject: string): string[] => {
-  // This function now returns string IDs of resources as expected
-  const resources: Resource[] = [
-    { id: '1', name: 'Sample Resource 1', type: 'pdf', subject },
-    { id: '2', name: 'Sample Resource 2', type: 'pdf', subject },
-    { id: '3', name: 'Sample Resource 3', type: 'pdf', subject }
-  ];
-  
-  // Return just the IDs as strings to match expected string[] return type
-  return resources.map(resource => resource.id);
+// Update the subject values to be compatible with AthroSubject type
+// You might need to update your AthroSubject type to accommodate these strings
+// For now, let's use type assertion to work around it
+const subjects = {
+  Mathematics: 'Mathematics',
+  Science: 'Science',
+  English: 'English',
+  History: 'History',
+  Geography: 'Geography',
+  Welsh: 'Welsh',
+  Languages: 'Languages',
+  RE: 'RE'
 };
 
-export const getResourceById = (id: string): Resource | undefined => {
-  const resources: Resource[] = [
-    { id: '1', name: 'Sample Resource 1', type: 'pdf', url: '/resources/sample1.pdf' },
-    { id: '2', name: 'Sample Resource 2', type: 'pdf', url: '/resources/sample2.pdf' },
-    { id: '3', name: 'Sample Resource 3', type: 'pdf', url: '/resources/sample3.pdf' }
-  ];
-  
-  return resources.find(resource => resource.id === id);
-};
+export const getTopicsForSubject = (subject: string): string[] => {
+  // And also update any indexing with AthroSubject
+  const topicsForSubject = subjects[subject as unknown as string];
 
-export const getSubjects = (): AthroSubject[] => {
-  return [
-    'Mathematics',
-    'Science',
-    'English',
-    'History',
-    'Geography'
-  ];
-};
-
-export const getTopicsForSubject = (subject: AthroSubject): string[] => {
-  const topicMap: Record<string, string[]> = {
-    'Mathematics': ['Algebra', 'Geometry', 'Calculus', 'Statistics', 'Trigonometry'],
-    'Science': ['Biology', 'Chemistry', 'Physics', 'Environmental Science'],
-    'English': ['Literature', 'Grammar', 'Writing', 'Reading Comprehension'],
-    'History': ['Ancient History', 'World War II', 'Medieval Times', 'Modern History'],
-    'Geography': ['Physical Geography', 'Human Geography', 'Cartography']
-  };
-  
-  return topicMap[subject] || [];
-};
-
-// Function to get study plans for a user
-export const getStudyPlansForUser = async (userId: string) => {
-  try {
-    // In a real implementation, this would fetch from an API or database
-    return [
-      {
-        id: '1',
-        name: 'GCSE Mathematics Revision',
-        subjects: ['Mathematics'],
-        createdAt: new Date(),
-        sessions: [
-          {
-            id: '101',
-            subject: 'Mathematics',
-            topic: 'Algebra',
-            scheduledFor: new Date(),
-            duration: 60
-          }
-        ]
-      }
-    ];
-  } catch (error) {
-    console.error('Error fetching study plans:', error);
-    return [];
-  }
+  // Replace this with actual logic to fetch topics based on the subject
+  return ['Topic 1', 'Topic 2', 'Topic 3'];
 };

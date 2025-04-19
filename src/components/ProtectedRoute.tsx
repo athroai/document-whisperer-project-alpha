@@ -19,9 +19,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRole
 }) => {
   const { state, updateUser } = useAuth();
-  const { user, loading } = state;
+  const { user, isLoading } = state;
   
-  if (loading) {
+  if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
   
