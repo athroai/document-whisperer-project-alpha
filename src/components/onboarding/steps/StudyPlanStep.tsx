@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { format, addDays } from 'date-fns';
 import { StudyPlanCard } from './plan/StudyPlanCard';
 import { UpcomingSessionsList } from './plan/UpcomingSessionsList';
 import { PlanGenerationStep } from './plan/PlanGenerationStep';
-import { generateDefaultStudySlots, saveStudyPlan } from '@/utils/studyPlanUtils';
+import { generateDefaultStudySlots } from '@/utils/studyPlanUtils';
 
 export const StudyPlanStep: React.FC = () => {
   const { selectedSubjects, completeOnboarding, updateOnboardingStep, studySlots } = useOnboarding();
@@ -153,13 +154,18 @@ export const StudyPlanStep: React.FC = () => {
   const handleComplete = async () => {
     try {
       setIsGenerating(true);
+      
+      // First, mark onboarding as complete
       await completeOnboarding();
+      
       toast.success("Onboarding completed successfully!");
-      navigate('/calendar');
+      
+      // Then navigate to the calendar page
+      // Using window.location.href for a full page reload to ensure proper state reset
+      window.location.href = '/calendar';
     } catch (error) {
       console.error("Error completing onboarding:", error);
       toast.error("There was an error completing onboarding. Please try again.");
-    } finally {
       setIsGenerating(false);
     }
   };

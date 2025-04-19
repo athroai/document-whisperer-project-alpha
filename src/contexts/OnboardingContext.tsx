@@ -178,6 +178,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       console.log("Completing onboarding for user:", state.user.id);
       
+      // Save subject preferences
       const subjectPreferencesPromises = selectedSubjects.map(subject => 
         supabase.from('student_subject_preferences').upsert({
           student_id: state.user!.id,
@@ -187,6 +188,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }, { onConflict: 'student_id, subject' })
       );
 
+      // Mark onboarding as complete
       const { error } = await supabase
         .from('onboarding_progress')
         .upsert({
@@ -203,7 +205,11 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       if (error) throw error;
 
+      // Wait for all subject preferences to be saved
       await Promise.all(subjectPreferencesPromises);
+
+      // Update local step state to completed
+      setCurrentStep('completed');
 
       return;
     } catch (error) {

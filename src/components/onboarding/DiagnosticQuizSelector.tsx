@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -79,7 +80,9 @@ export const DiagnosticQuizSelector: React.FC = () => {
           id: currentQuestion.id,
           text: currentQuestion.question || currentQuestion.text,
           options: currentQuestion.options || [],
-          correctAnswer: currentQuestion.correctAnswer
+          correctAnswer: currentQuestion.correctAnswer,
+          difficulty: currentQuestion.difficulty,
+          subject: currentQuestion.subject
         }}
         currentIndex={currentQuestionIndex}
         totalQuestions={questions.length}
