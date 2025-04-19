@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import BigCalendarView from '@/components/calendar/BigCalendarView';
 import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
+import BlockTimeButton from '@/components/calendar/BlockTimeButton';
 import { useAuth } from '@/contexts/AuthContext';
 import SuggestedStudySessions from '@/components/calendar/SuggestedStudySessions';
 
@@ -40,6 +41,12 @@ const CalendarPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Study Calendar</h1>
+          <div className="flex space-x-2">
+            <BlockTimeButton />
+          </div>
+        </div>
         <SuggestedStudySessions />
         <BigCalendarView />
         <StudySessionLauncher />
