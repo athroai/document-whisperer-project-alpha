@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { useBlockedTimes } from '@/hooks/useBlockedTimes';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trash, Clock, Edit } from 'lucide-react';
+import { parse } from 'date-fns';
 
 interface BlockedTimeManagerProps {
   open: boolean;

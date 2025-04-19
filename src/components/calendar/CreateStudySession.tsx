@@ -30,8 +30,7 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
     setSubject,
     setTopic,
     setDate,
-    handleHourChange,
-    handleMinuteChange,
+    setStartTime,
     setDuration,
     handleSubmit
   } = useStudySessionForm(initialDate, onClose, onSuccess);
@@ -55,6 +54,7 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
               value={formState.title}
               onChange={(e) => setTitle(e.target.value)}
               className="col-span-3"
+              placeholder="My Study Session"
             />
           </div>
 
@@ -83,43 +83,15 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="date" className="text-right">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={formState.date}
-              onChange={(e) => setDate(e.target.value)}
-              className="col-span-3"
-            />
-          </div>
-
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label className="text-right pt-2">Time</Label>
+          <div className="col-span-4">
             <TimeSelector
-              hour={formState.hour}
-              minute={formState.minute}
-              timeString={formState.timeString}
-              onHourChange={handleHourChange}
-              onMinuteChange={handleMinuteChange}
+              date={formState.date}
+              startTime={formState.startTime}
+              duration={formState.duration}
+              onDateChange={setDate}
+              onStartTimeChange={setStartTime}
+              onDurationChange={setDuration}
             />
-          </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="duration" className="text-right">Duration</Label>
-            <Select value={formState.duration} onValueChange={setDuration}>
-              <SelectTrigger id="duration" className="col-span-3">
-                <SelectValue placeholder="Select duration" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="15">15 minutes</SelectItem>
-                <SelectItem value="30">30 minutes</SelectItem>
-                <SelectItem value="45">45 minutes</SelectItem>
-                <SelectItem value="60">1 hour</SelectItem>
-                <SelectItem value="90">1.5 hours</SelectItem>
-                <SelectItem value="120">2 hours</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
 

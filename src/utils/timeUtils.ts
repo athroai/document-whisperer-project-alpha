@@ -62,13 +62,15 @@ export const generateRecurringEventInstances = (
         const instanceStart = new Date(currentDate);
         const instanceEnd = new Date(instanceStart.getTime() + eventDuration);
         
-        instances.push({
+        // Create a new instance with a unique ID
+        const instanceEvent: CalendarEvent = {
           ...event,
           id: `${event.id}-${format(currentDate, 'yyyyMMdd')}`,
           start_time: toGMTString(instanceStart),
-          end_time: toGMTString(instanceEnd),
-          original_event_id: event.id,
-        });
+          end_time: toGMTString(instanceEnd)
+        };
+        
+        instances.push(instanceEvent);
       }
     }
     
