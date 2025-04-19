@@ -60,3 +60,25 @@ export const valueToConfidenceLabel = (value: number): ConfidenceLabel => {
   if (value <= 4) return 'High';
   return 'Very High';
 };
+
+export const parseConfidence = (value: string): ConfidenceLabel => {
+  const normalized = value.trim().toLowerCase();
+  
+  if (normalized.includes('very') && normalized.includes('low')) {
+    return 'Very Low';
+  }
+  if (normalized.includes('low')) {
+    return 'Low';
+  }
+  if (normalized.includes('neutral') || normalized.includes('medium') || normalized.includes('ok')) {
+    return 'Neutral';
+  }
+  if (normalized.includes('very') && normalized.includes('high')) {
+    return 'Very High';
+  }
+  if (normalized.includes('high') || normalized.includes('good')) {
+    return 'High';
+  }
+  
+  return 'Neutral'; // Default
+};

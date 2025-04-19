@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +18,7 @@ import { Label } from "@/components/ui/label"
 const Nav: React.FC = () => {
   const navigate = useNavigate();
   const { state, dispatch, login, signup } = useAuth();
-  const { error } = useToast();
+  const { toast } = useToast();
   
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
@@ -38,22 +39,24 @@ const Nav: React.FC = () => {
       setIsLoginOpen(false);
       navigate('/chat');
     } catch (e: any) {
-      error({
+      toast({
         title: "Authentication Failed",
         description: e.message || "Invalid credentials. Please try again.",
+        variant: "destructive"
       });
     }
   };
 
   const handleSignup = async () => {
     try {
-      await signup(signupEmail, signupPassword, signupName);
+      await signup(signupEmail, signupPassword, signupName as 'student' | 'teacher' | 'parent');
       setIsSignupOpen(false);
       navigate('/chat');
     } catch (e: any) {
-      error({
+      toast({
         title: "Signup Failed",
         description: e.message || "Could not create account. Please try again.",
+        variant: "destructive"
       });
     }
   };

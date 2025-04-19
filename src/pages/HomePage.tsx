@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,6 +18,61 @@ import { useSubjects } from '@/hooks/useSubjects';
 const HomePage: React.FC = () => {
   const { state } = useAuth();
   const navigate = useNavigate();
+  const { subjects, isLoading, error } = useSubjects();
+  
+  // State for confidence modal
+  const [isConfidenceModalOpen, setIsConfidenceModalOpen] = useState(false);
+  const [confidenceScore, setConfidenceScore] = useState(7);
+  
+  // Sample data for Athro characters
+  const [currentAthro, setCurrentAthro] = useState({
+    name: 'AthroMaths',
+    subject: 'Mathematics',
+    image: '/athro-maths.png'
+  });
+  
+  const systemCharacters = [
+    { id: 'scheduler', name: 'Study Scheduler', shortDescription: 'Plan your revision', subject: 'System', avatarUrl: '/athro-scheduler.png' },
+    { id: 'progress', name: 'Progress Tracker', shortDescription: 'Monitor your growth', subject: 'System', avatarUrl: '/athro-progress.png' },
+    { id: 'planner', name: 'Exam Planner', shortDescription: 'Prepare for exams', subject: 'System', avatarUrl: '/athro-planner.png' }
+  ];
+  
+  const subjectCharacters = [
+    { id: 'maths', name: 'AthroMaths', shortDescription: 'Mathematics specialist', subject: 'Mathematics', avatarUrl: '/athro-maths.png' },
+    { id: 'science', name: 'AthroScience', shortDescription: 'Science specialist', subject: 'Science', avatarUrl: '/athro-science.png' },
+    { id: 'english', name: 'AthroEnglish', shortDescription: 'English specialist', subject: 'English', avatarUrl: '/athro-english.png' },
+    { id: 'history', name: 'AthroHistory', shortDescription: 'History specialist', subject: 'History', avatarUrl: '/athro-history.png' },
+    { id: 'geography', name: 'AthroGeography', shortDescription: 'Geography specialist', subject: 'Geography', avatarUrl: '/athro-geography.png' },
+    { id: 'languages', name: 'AthroLanguages', shortDescription: 'Languages specialist', subject: 'Languages', avatarUrl: '/athro-languages.png' }
+  ];
+  
+  const upcomingEvents = [
+    { id: '1', title: 'Math revision', date: 'Today, 4:00 PM', mentor: 'AthroMaths' },
+    { id: '2', title: 'Science quiz', date: 'Tomorrow, 10:00 AM', mentor: 'AthroScience' },
+    { id: '3', title: 'English essay review', date: 'Friday, 2:00 PM', mentor: 'AthroEnglish' }
+  ];
+  
+  // Mock data for subject progress
+  const confidenceScores = {
+    'mathematics': 4,
+    'science': 3,
+    'english': 5,
+    'history': 2,
+    'geography': 3
+  };
+  
+  const subjectProgress = {
+    'Mathematics': 85,
+    'Science': 70,
+    'English': 90,
+    'History': 65,
+    'Geography': 75
+  };
+  
+  const handleConfidenceSubmit = () => {
+    toast.success(`Confidence level for ${currentAthro.subject} updated to ${confidenceScore}/10`);
+    setIsConfidenceModalOpen(false);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
