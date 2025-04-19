@@ -1,4 +1,3 @@
-
 export interface QuizQuestion {
   question: string;
   options: string[];
@@ -23,6 +22,7 @@ export interface Question {
   answer?: string; // For backwards compatibility
   type?: 'multiple-choice' | 'short-answer';
   options?: string[]; // For backwards compatibility
+  correctAnswer?: number; // Added this line to fix the type error
 }
 
 // Answer interface for user responses

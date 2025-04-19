@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ConfidenceLabel, confidenceOptions } from '@/types/confidence';
 import { cn } from '@/lib/utils';
 import { QuizResult } from '@/hooks/quiz/types';
+import { Question } from '@/types/quiz';
 
 export const DiagnosticQuizSelector: React.FC = () => {
   const { toast: uiToast } = useToast();
@@ -77,9 +77,9 @@ export const DiagnosticQuizSelector: React.FC = () => {
       <QuizQuestion
         question={{
           id: currentQuestion.id,
-          text: currentQuestion.question,
-          options: currentQuestion.options,
-          correctAnswer: currentQuestion.correctAnswer // This is the correct property name according to Question type
+          text: currentQuestion.question || currentQuestion.text,
+          options: currentQuestion.options || [],
+          correctAnswer: currentQuestion.correctAnswer
         }}
         currentIndex={currentQuestionIndex}
         totalQuestions={questions.length}

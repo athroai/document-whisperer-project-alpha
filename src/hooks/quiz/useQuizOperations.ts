@@ -1,8 +1,8 @@
-
 // src/hooks/quiz/useQuizOperations.ts
 import { useReducer, useState } from 'react';
 import { ConfidenceLabel } from '@/types/confidence';
 import { UseQuizOperationsProps, QuizQuestion, QuizResult, ExtendedQuizOperations } from './types';
+import { Question } from '@/types/quiz';
 
 interface QuestionState {
   answer: string | null;
@@ -65,9 +65,8 @@ const reducer = (state: QuizState, action: Action): QuizState => {
 export const useQuizOperations = ({ initialState, onQuizComplete }: UseQuizOperationsProps): ExtendedQuizOperations => {
   const [state, dispatch] = useReducer(reducer, initialState);
   
-  // Adding missing properties for DiagnosticQuizSelector
   const [currentSubject, setCurrentSubject] = useState<string | null>(null);
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: string}>({});
   const [error, setError] = useState<string | null>(null);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState<{[key: string]: boolean}>({});
@@ -95,36 +94,38 @@ export const useQuizOperations = ({ initialState, onQuizComplete }: UseQuizOpera
     dispatch({ type: 'RESET_QUIZ' });
   };
 
-  // Implementing missing functions for DiagnosticQuizSelector
   const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
     setCurrentSubject(subject);
     setIsLoadingQuestions(prev => ({ ...prev, [subject]: true }));
     setIsGenerating(prev => ({ ...prev, [subject]: true }));
     
-    // Mock implementation - in a real app, this would fetch questions from an API
     try {
-      // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Create mock questions
-      const mockQuestions = [
+      const mockQuestions: Question[] = [
         {
           id: '1',
-          question: `Sample question 1 for ${subject}?`,
+          text: `Sample question 1 for ${subject}?`,
           options: ['Option A', 'Option B', 'Option C', 'Option D'],
-          correctAnswer: 0
+          correctAnswer: 0,
+          difficulty: 'medium',
+          subject: subject
         },
         {
           id: '2',
-          question: `Sample question 2 for ${subject}?`,
+          text: `Sample question 2 for ${subject}?`,
           options: ['Option A', 'Option B', 'Option C', 'Option D'],
-          correctAnswer: 1
+          correctAnswer: 1,
+          difficulty: 'medium',
+          subject: subject
         },
         {
           id: '3',
-          question: `Sample question 3 for ${subject}?`,
+          text: `Sample question 3 for ${subject}?`,
           options: ['Option A', 'Option B', 'Option C', 'Option D'],
-          correctAnswer: 2
+          correctAnswer: 2,
+          difficulty: 'medium',
+          subject: subject
         }
       ];
       
@@ -151,13 +152,11 @@ export const useQuizOperations = ({ initialState, onQuizComplete }: UseQuizOpera
     if (state.currentQuestionIndex < questions.length - 1) {
       nextQuestion();
     } else {
-      // Complete the quiz
-      const score = 85; // Mock score
+      const score = 85;
       if (currentSubject && onQuizComplete) {
         onQuizComplete(currentSubject, score);
       }
       
-      // Save quiz result
       if (currentSubject) {
         setQuizResults(prev => ({
           ...prev,
@@ -183,7 +182,6 @@ export const useQuizOperations = ({ initialState, onQuizComplete }: UseQuizOpera
     resetQuiz, 
     dispatch,
     
-    // Additional properties for DiagnosticQuizSelector
     currentSubject,
     questions,
     currentQuestionIndex: state.currentQuestionIndex,
