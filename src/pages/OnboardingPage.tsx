@@ -4,7 +4,7 @@ import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { Progress } from '@/components/ui/progress';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { verifyAuth } from '@/lib/supabase';
+import { verifyAuth, supabase } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
