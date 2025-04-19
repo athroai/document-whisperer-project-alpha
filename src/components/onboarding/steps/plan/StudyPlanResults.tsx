@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Calendar as CalendarIcon } from 'lucide-react';
@@ -23,12 +22,6 @@ export const StudyPlanResults: React.FC<StudyPlanResultsProps> = ({
   onComplete,
   isSubmitting
 }) => {
-  const navigate = useNavigate();
-  
-  const handleViewCalendar = () => {
-    navigate('/calendar?fromSetup=true');
-  };
-  
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -74,33 +67,23 @@ export const StudyPlanResults: React.FC<StudyPlanResultsProps> = ({
           <ChevronLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <div className="order-1 sm:order-2 flex flex-col sm:flex-row gap-3">
-          <Button 
-            variant="outline" 
-            onClick={handleViewCalendar}
-            className="bg-white border-gray-200 hover:bg-gray-50 gap-2"
-          >
-            <CalendarIcon className="h-4 w-4" />
-            View Calendar
-          </Button>
-          <Button 
-            onClick={onComplete}
-            disabled={isSubmitting}
-            className="bg-green-600 hover:bg-green-700 gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                Processing...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4" />
-                Complete Setup
-              </>
-            )}
-          </Button>
-        </div>
+        <Button 
+          onClick={onComplete}
+          disabled={isSubmitting}
+          className="bg-green-600 hover:bg-green-700 gap-2 order-1 sm:order-2"
+        >
+          {isSubmitting ? (
+            <>
+              <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+              Processing...
+            </>
+          ) : (
+            <>
+              <CheckCircle className="h-4 w-4" />
+              Complete Setup
+            </>
+          )}
+        </Button>
       </div>
     </motion.div>
   );

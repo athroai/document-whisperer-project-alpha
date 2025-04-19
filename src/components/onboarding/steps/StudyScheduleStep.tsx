@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -86,20 +85,13 @@ export const StudyScheduleStep: React.FC = () => {
         />
       ))}
       
-      <div className="pt-6 flex justify-between">
+      <div className="pt-6">
         <Button
-          variant="outline"
-          onClick={() => navigate('/subjects')}
-          disabled={isSubmitting}
-        >
-          Back
-        </Button>
-        <Button
-          onClick={onContinue}
+          onClick={handleContinue}
           disabled={selectedDays.length === 0 || isSubmitting}
-          className="bg-purple-600 hover:bg-purple-700"
+          className="w-full bg-purple-600 hover:bg-purple-700"
         >
-          {isSubmitting ? "Saving..." : "Continue to Calendar"}
+          {isSubmitting ? "Saving..." : "Continue"}
         </Button>
       </div>
     </div>

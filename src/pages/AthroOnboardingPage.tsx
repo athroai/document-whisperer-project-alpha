@@ -5,7 +5,6 @@ import { SubjectSelectionStep } from '@/components/onboarding/steps/SubjectSelec
 import { LearningStyleStep } from '@/components/onboarding/steps/LearningStyleStep';
 import { StudyScheduleStep } from '@/components/onboarding/steps/StudyScheduleStep';
 import { StudyPlanStep } from '@/components/onboarding/steps/StudyPlanStep';
-import { AthroAi } from '@/components/onboarding/AthroAi';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -15,8 +14,7 @@ const steps = [
   { id: 'subjects', title: 'Select Your Subjects', component: SubjectSelectionStep },
   { id: 'learning-style', title: 'Your Learning Style', component: LearningStyleStep },
   { id: 'schedule', title: 'Study Schedule', component: StudyScheduleStep },
-  { id: 'plan', title: 'Your Study Plan', component: StudyPlanStep },
-  { id: 'chat', title: 'Meet Your Study Assistant', component: AthroAi }
+  { id: 'plan', title: 'Your Study Plan', component: StudyPlanStep }
 ];
 
 const OnboardingContent: React.FC = () => {
