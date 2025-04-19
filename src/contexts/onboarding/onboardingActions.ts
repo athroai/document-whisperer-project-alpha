@@ -80,15 +80,21 @@ export const createOnboardingActions = (
     try {
       console.log("Completing onboarding for user:", userId);
       
-      const subjectPreferencesPromises = setSelectedSubjects((prev) => {
-        const promises = prev.map(subject => 
-          supabase.from('student_subject_preferences').upsert({
-            student_id: userId,
-            subject: subject.subject,
-            confidence_level: subject.confidence,
-            priority: subject.priority
-          }, { onConflict: 'student_id, subject' })
-        );
+      // Create an array to store the promises
+      const subjectPreferencesPromises: Promise<any>[] = [];
+      
+      setSelectedSubjects((prev) => {
+        // Create promises but don't execute Promise.all here
+        prev.forEach(subject => {
+          subjectPreferencesPromises.push(
+            supabase.from('student_subject_preferences').upsert({
+              student_id: userId,
+              subject: subject.subject,
+              confidence_level: subject.confidence,
+              priority: subject.priority
+            }, { onConflict: 'student_id, subject' })
+          );
+        });
         return prev;
       });
 
@@ -108,7 +114,11 @@ export const createOnboardingActions = (
 
       if (error) throw error;
 
-      await Promise.all(subjectPreferencesPromises);
+      // Now execute Promise.all outside of the setState callback
+      if (subjectPreferencesPromises.length > 0) {
+        await Promise.all(subjectPreferencesPromises);
+      }
+      
       setCurrentStep('completed');
 
       return;

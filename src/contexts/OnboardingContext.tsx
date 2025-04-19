@@ -38,6 +38,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       availability,
       studySlots,
       learningPreferences,
+      setStudySlots,
       ...actions
     }}>
       {children}
