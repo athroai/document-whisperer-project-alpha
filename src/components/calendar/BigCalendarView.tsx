@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { format, parse, startOfToday, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, isSameMonth, isToday } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isToday } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -15,7 +15,7 @@ const BigCalendarView: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
-  const { events, suggestedEvents, fetchEvents, isLoading } = useCalendarEvents();
+  const { events, suggestedEvents, fetchEvents } = useCalendarEvents();
   
   const refreshEvents = useCallback(async () => {
     await fetchEvents();
@@ -25,11 +25,9 @@ const BigCalendarView: React.FC = () => {
     refreshEvents();
   }, [refreshEvents]);
   
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setSelectedDate(date);
-      setShowCreateDialog(true);
-    }
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    setShowCreateDialog(true);
   };
 
   const handleCreateSuccess = (newEvent: CalendarEvent) => {
@@ -45,88 +43,59 @@ const BigCalendarView: React.FC = () => {
     setCurrentMonth(prevMonth => addMonths(prevMonth, 1));
   };
 
-  const goToToday = () => {
-    setCurrentMonth(startOfMonth(new Date()));
-  };
-
   const getEventsForDay = (day: Date) => {
     const allEvents = [...events, ...suggestedEvents];
     return allEvents.filter(event => {
       const eventStart = fromGMTString(event.start_time);
-      return isSameDay(eventStart, day);
+      return eventStart.getFullYear() === day.getFullYear() &&
+             eventStart.getMonth() === day.getMonth() &&
+             eventStart.getDate() === day.getDate();
     });
   };
 
-  const getDayClass = (day: Date) => {
-    const dayEvents = getEventsForDay(day);
-    if (dayEvents.some(e => e.suggested)) {
-      return "bg-purple-50 border border-purple-300 border-dashed rounded-md relative";
-    }
-    if (dayEvents.length > 0) {
-      return "bg-purple-50 rounded-md relative";
-    }
-    return "";
-  };
+  const renderCalendar = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  const renderDay = (day: Date) => {
-    const dayEvents = getEventsForDay(day);
-    
-    return (
-      <div className={`w-full h-full min-h-[100px] p-1 ${getDayClass(day)}`}>
-        <div className="text-right mb-1">
-          <span className={`text-sm font-medium ${isToday(day) ? 'bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center' : ''}`}>
-            {format(day, 'd')}
-          </span>
-        </div>
-        {dayEvents.length > 0 && (
-          <div className="space-y-1">
-            {dayEvents.slice(0, 3).map((event, index) => {
-              const colorStyle = getEventColor(event.subject);
-              const startTime = fromGMTString(event.start_time);
-              const endTime = fromGMTString(event.end_time);
-              
-              return (
-                <div 
-                  key={event.id + index} 
-                  className={`text-xs p-1 rounded truncate ${
-                    event.suggested ? 'border border-dashed border-purple-400' : ''
-                  } ${colorStyle.bg} ${colorStyle.text}`}
-                  title={`${event.title} (${formatGMTTime(event.start_time)} - ${formatGMTTime(event.end_time)})`}
-                >
-                  {formatGMTTime(event.start_time)} - {event.title}
-                </div>
-              );
-            })}
-            {dayEvents.length > 3 && (
-              <div className="text-xs text-gray-500 font-medium text-center">
-                +{dayEvents.length - 3} more
-              </div>
-            )}
+    return monthDays.map((day, index) => {
+      const dayEvents = getEventsForDay(day);
+      const isCurrentMonth = isSameMonth(day, currentMonth);
+
+      return (
+        <div 
+          key={index} 
+          className={`border p-2 ${!isCurrentMonth ? 'bg-gray-100 text-gray-400' : 'bg-white'} cursor-pointer hover:bg-gray-50`}
+          onClick={() => isCurrentMonth && handleDateSelect(day)}
+        >
+          <div className="flex justify-between items-center mb-2">
+            <span className={`text-sm font-medium ${isToday(day) ? 'bg-purple-600 text-white rounded-full px-2 py-1' : ''}`}>
+              {format(day, 'd')}
+            </span>
           </div>
-        )}
-      </div>
-    );
+          {dayEvents.slice(0, 2).map((event, eventIndex) => {
+            const colorStyle = getEventColor(event.subject);
+            const startTime = fromGMTString(event.start_time);
+            
+            return (
+              <div 
+                key={eventIndex} 
+                className={`text-xs p-1 mb-1 rounded truncate ${colorStyle.bg} ${colorStyle.text}`}
+                title={`${event.title} (${formatGMTTime(event.start_time)})`}
+              >
+                {formatGMTTime(event.start_time)} - {event.title}
+              </div>
+            );
+          })}
+          {dayEvents.length > 2 && (
+            <div className="text-xs text-gray-500 text-center">
+              +{dayEvents.length - 2} more
+            </div>
+          )}
+        </div>
+      );
+    });
   };
-
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
-
-  const weeks: Date[][] = [];
-  let currentWeek: Date[] = [];
-  
-  monthDays.forEach(day => {
-    currentWeek.push(day);
-    
-    if (currentWeek.length === 7) {
-      weeks.push(currentWeek);
-      currentWeek = [];
-    }
-  });
-  
-  if (currentWeek.length > 0) {
-    weeks.push(currentWeek);
-  }
 
   return (
     <div className="space-y-5">
@@ -143,74 +112,26 @@ const BigCalendarView: React.FC = () => {
 
       <Card className="shadow-md border-gray-200">
         <CardContent className="p-4">
-          <div className="flex flex-col space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex space-x-2">
-                <Button
-                  onClick={previousMonth}
-                  variant="outline"
-                  size="sm"
-                  className="border-purple-200 hover:bg-purple-50"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  onClick={goToToday}
-                  variant="outline"
-                  size="sm"
-                  className="border-purple-200 hover:bg-purple-50"
-                >
-                  Today
-                </Button>
-                <Button
-                  onClick={nextMonth}
-                  variant="outline"
-                  size="sm"
-                  className="border-purple-200 hover:bg-purple-50"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <h3 className="text-lg font-medium">
-                {format(currentMonth, 'MMMM yyyy')}
-              </h3>
-              <div className="flex space-x-2 invisible">
-                <Button variant="outline" size="sm">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-7 gap-0 border-b border-gray-200">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                <div 
-                  key={day} 
-                  className="text-center py-2 font-semibold text-sm text-gray-600 bg-gray-50"
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-7 gap-0 border-b border-gray-200">
-              {weeks.map((week, weekIndex) => (
-                <React.Fragment key={`week-${weekIndex}`}>
-                  {week.map((day, dayIndex) => (
-                    <div 
-                      key={`day-${dayIndex}`} 
-                      className={`border-r border-b last:border-r-0 min-h-[120px] ${
-                        isSameMonth(day, currentMonth) 
-                          ? 'bg-white' 
-                          : 'bg-gray-50 text-gray-400'
-                      } cursor-pointer hover:bg-purple-50 transition-colors`}
-                      onClick={() => handleDateSelect(day)}
-                    >
-                      {renderDay(day)}
-                    </div>
-                  ))}
-                </React.Fragment>
-              ))}
-            </div>
+          <div className="flex justify-between items-center mb-4">
+            <Button onClick={previousMonth} variant="outline">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h3 className="text-lg font-medium">
+              {format(currentMonth, 'MMMM yyyy')}
+            </h3>
+            <Button onClick={nextMonth} variant="outline">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-7 gap-2 text-center">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="font-semibold text-gray-600">{day}</div>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-7 gap-2 mt-2">
+            {renderCalendar()}
           </div>
         </CardContent>
       </Card>
