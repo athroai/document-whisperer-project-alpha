@@ -80,23 +80,22 @@ export const createOnboardingActions = (
     try {
       console.log("Completing onboarding for user:", userId);
       
-      // Create an array to store the promises
-      const subjectPreferencesPromises: Promise<any>[] = [];
-      
-      setSelectedSubjects((prev) => {
-        // Create promises but don't execute Promise.all here
-        prev.forEach(subject => {
-          subjectPreferencesPromises.push(
-            supabase.from('student_subject_preferences').upsert({
-              student_id: userId,
-              subject: subject.subject,
-              confidence_level: subject.confidence,
-              priority: subject.priority
-            }, { onConflict: 'student_id, subject' })
-          );
-        });
+      // Get the current selected subjects
+      let subjectPrefs: SubjectPreference[] = [];
+      setSelectedSubjects(prev => {
+        subjectPrefs = [...prev];
         return prev;
       });
+      
+      // Create an array of promises for subject preferences
+      const subjectPromises = subjectPrefs.map(subject => 
+        supabase.from('student_subject_preferences').upsert({
+          student_id: userId,
+          subject: subject.subject,
+          confidence_level: subject.confidence,
+          priority: subject.priority
+        }, { onConflict: 'student_id, subject' })
+      );
 
       const { error } = await supabase
         .from('onboarding_progress')
@@ -114,9 +113,9 @@ export const createOnboardingActions = (
 
       if (error) throw error;
 
-      // Now execute Promise.all outside of the setState callback
-      if (subjectPreferencesPromises.length > 0) {
-        await Promise.all(subjectPreferencesPromises);
+      // Execute all subject preference updates in parallel
+      if (subjectPromises.length > 0) {
+        await Promise.all(subjectPromises);
       }
       
       setCurrentStep('completed');
