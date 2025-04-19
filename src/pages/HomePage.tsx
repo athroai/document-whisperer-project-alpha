@@ -16,77 +16,50 @@ import { useSubjects } from '@/hooks/useSubjects';
 
 const HomePage: React.FC = () => {
   const { state } = useAuth();
-  const { user } = state;
   const navigate = useNavigate();
-  const { characters } = useAthro();
-  const { subjects, isLoading, error } = useSubjects();
-  const [isConfidenceModalOpen, setIsConfidenceModalOpen] = useState(false);
-  const [confidenceScore, setConfidenceScore] = useState(5);
-  const [currentAthro, setCurrentAthro] = useState({
-    name: 'AthroMaths',
-    subject: 'Mathematics',
-    image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
-  });
-
-  const subjectCharacters = characters.filter(char => 
-    !['AthroAI', 'Timekeeper', 'System'].includes(char.subject)
-  );
-  
-  const systemCharacters = characters.filter(char => 
-    ['AthroAI', 'Timekeeper', 'System'].includes(char.subject)
-  );
-  
-  const subjectProgress = {
-    'Mathematics': 65,
-    'Science': 42,
-    'History': 78,
-    'English': 54,
-    'Welsh': 30,
-    'Geography': 45,
-    'Languages': 60,
-    'Religious Education': 51
-  };
-
-  const confidenceScores = user?.confidenceScores || {};
-  
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-  };
-
-  const handleConfidenceSubmit = () => {
-    console.log(`User confidence score: ${confidenceScore} for ${currentAthro.subject}`);
-    toast.success(`Your confidence score of ${confidenceScore}/10 has been recorded!`);
-    setIsConfidenceModalOpen(false);
-  };
-
-  const upcomingEvents = [
-    { id: 1, title: 'Math Quiz Review', date: 'Today, 4:00 PM', mentor: 'AthroMaths' },
-    { id: 2, title: 'Science Past Paper', date: 'Tomorrow, 11:00 AM', mentor: 'AthroScience' },
-    { id: 3, title: 'History Essay Planning', date: 'Wed, 2:00 PM', mentor: 'AthroHistory' },
-  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12 md:pb-0">
-      <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-xl p-6 mb-8 text-white">
-          <div className="flex flex-col md:flex-row items-center md:items-start">
-            <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
-              <img
-                src="/lovable-uploads/e4274c9e-f66c-4933-9c0b-79f6c222c31b.png"
-                alt="Athro Mentor"
-                className="w-24 h-24 object-cover"
-              />
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <section className="text-center py-12">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">
+            Welcome to <span className="text-primary">Athro</span>AI
+          </h1>
+          <p className="text-xl text-muted-foreground mb-8">
+            Your personal AI study assistant for GCSE success
+          </p>
+          
+          {state.isAuthenticated ? (
+            <div className="space-y-4">
+              <Button 
+                onClick={() => navigate('/chat')}
+                size="lg" 
+                className="mx-2"
+              >
+                Chat with Athros
+              </Button>
+              <Button 
+                onClick={() => navigate('/chat-onboarding')}
+                size="lg" 
+                variant="outline" 
+                className="mx-2"
+              >
+                Interactive Onboarding
+              </Button>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">{getGreeting()}, {user?.displayName || 'Student'}!</h1>
-              <p className="mt-1 text-purple-100">Ready to continue your GCSE journey?</p>
+          ) : (
+            <div className="space-y-4">
+              <Button 
+                onClick={() => navigate('/login')}
+                size="lg" 
+                className="mx-2"
+              >
+                Get Started
+              </Button>
             </div>
-          </div>
-        </div>
-
+          )}
+        </section>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Button 
             onClick={() => navigate('/study')}
