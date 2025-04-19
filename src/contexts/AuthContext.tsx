@@ -1,71 +1,76 @@
 
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AuthState, User } from '../types/auth';
-import { generateUUID } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import { supabase, verifyAuth } from '../lib/supabase';
 
-type AuthAction = 
-  | { type: 'AUTH_START' }
-  | { type: 'AUTH_SUCCESS'; payload: User }
-  | { type: 'AUTH_FAIL'; payload: string }
-  | { type: 'AUTH_LOGOUT' }
-  | { type: 'UPDATE_USER'; payload: Partial<User> };
+export interface User {
+  id: string;
+  email: string;
+  role: 'student' | 'teacher' | 'parent';
+  displayName?: string;
+  schoolId?: string;
+  customerId?: string;
+}
 
-const initialState: AuthState = {
-  user: null,
-  loading: true,
-  error: null
-};
+export interface AuthState {
+  user: User | null;
+  loading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
+}
 
-const AuthContext = createContext<{
+interface AuthContextType {
   state: AuthState;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   signup: (email: string, password: string, role: 'student' | 'teacher' | 'parent') => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
-}>({
-  state: initialState,
-  login: async () => {},
-  signup: async () => {},
-  logout: async () => {},
-  updateUser: () => {}
-});
+  dispatch: React.Dispatch<AuthAction>;
+}
+
+type AuthAction = 
+  | { type: 'LOGIN'; payload: User }
+  | { type: 'LOGOUT' }
+  | { type: 'LOGIN_ERROR'; payload: string }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'UPDATE_USER'; payload: Partial<User> };
+
+const initialState: AuthState = {
+  user: null,
+  loading: true,
+  error: null,
+  isAuthenticated: false
+};
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   switch (action.type) {
-    case 'AUTH_START':
-      return {
-        ...state,
-        loading: true,
-        error: null
-      };
-    case 'AUTH_SUCCESS':
+    case 'LOGIN':
       return {
         ...state,
         user: action.payload,
+        isAuthenticated: true,
         loading: false,
         error: null
       };
-    case 'AUTH_FAIL':
-      return {
-        ...state,
-        loading: false,
-        error: action.payload
-      };
-    case 'AUTH_LOGOUT':
-      // Clear any user-specific data from localStorage when logging out
-      localStorage.removeItem('athro_user');
-      localStorage.removeItem('athro_token');
-      
-      // Also clear any session-specific data
-      sessionStorage.removeItem('athro_user');
-      sessionStorage.removeItem('athro_token');
-      
+    case 'LOGOUT':
       return {
         ...state,
         user: null,
+        isAuthenticated: false,
         loading: false,
         error: null
+      };
+    case 'LOGIN_ERROR':
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        loading: false,
+        error: action.payload
+      };
+    case 'SET_LOADING':
+      return {
+        ...state,
+        loading: action.payload
       };
     case 'UPDATE_USER':
       return {
@@ -77,186 +82,180 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   }
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        dispatch({ type: 'AUTH_START' });
-        const savedUser = localStorage.getItem('athro_user');
-        const savedToken = localStorage.getItem('athro_token');
+        dispatch({ type: 'SET_LOADING', payload: true });
         
-        if (savedUser && savedToken) {
-          const user = JSON.parse(savedUser);
-          
-          if (user.email.endsWith('@nexastream.co.uk') && !user.licenseExempt) {
-            user.licenseExempt = true;
-          }
-          
-          if (!user.examBoard) {
-            user.examBoard = 'none';
-          }
-          
-          localStorage.setItem('athro_user', JSON.stringify(user));
-          
-          // Create a Supabase session for the mock user
-          try {
-            // We don't actually authenticate with Supabase here, but we create a reference 
-            // that can be used for RLS policies
-            const { data, error } = await supabase.auth.getSession();
-            if (error || !data.session) {
-              console.log("Setting up mock authentication for Supabase access");
+        const user = await verifyAuth();
+        
+        if (user) {
+          dispatch({
+            type: 'LOGIN',
+            payload: {
+              id: user.id,
+              email: user.email || '',
+              role: (user.user_metadata?.role || 'student') as 'student' | 'teacher' | 'parent',
+              displayName: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+              schoolId: user.user_metadata?.schoolId,
+              customerId: user.user_metadata?.customerId
             }
-          } catch (error) {
-            console.error('Error syncing user with Supabase:', error);
-          }
-          
-          dispatch({ type: 'AUTH_SUCCESS', payload: user });
+          });
         } else {
-          dispatch({ type: 'AUTH_LOGOUT' });
+          dispatch({ type: 'LOGOUT' });
         }
       } catch (error) {
-        dispatch({ type: 'AUTH_FAIL', payload: 'Authentication check failed' });
+        console.error('Auth check error:', error);
+        dispatch({ type: 'LOGOUT' });
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false });
       }
     };
-    
+
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string, rememberMe: boolean = false) => {
-    dispatch({ type: 'AUTH_START' });
+  const login = async (email: string, password: string, rememberMe = true): Promise<void> => {
     try {
-      const mockUser: User = {
-        id: generateUUID(),
-        email,
-        role: 'student',
-        displayName: email.split('@')[0],
-        createdAt: new Date(),
-        rememberMe,
-        examBoard: 'none',
-        licenseExempt: email.endsWith('@nexastream.co.uk'),
-        confidenceScores: {
-          maths: 5,
-          science: 5,
-          english: 5
-        }
-      };
+      dispatch({ type: 'SET_LOADING', payload: true });
       
-      // Store user data appropriately based on remember me preference
-      if (rememberMe) {
+      // For development/testing - allow login without actual auth
+      if (process.env.NODE_ENV === 'development' && email === 'demo@example.com') {
+        const mockUser = {
+          id: 'mock-user-id',
+          email,
+          role: 'student' as const,
+          displayName: 'Demo User'
+        };
+        
+        // Store the mock user in localStorage for persistence across refreshes
         localStorage.setItem('athro_user', JSON.stringify(mockUser));
-        localStorage.setItem('athro_token', 'mock-token-' + Date.now());
-      } else {
-        sessionStorage.setItem('athro_user', JSON.stringify(mockUser));
-        sessionStorage.setItem('athro_token', 'mock-token-' + Date.now());
+        
+        dispatch({ type: 'LOGIN', payload: mockUser });
+        return;
       }
       
-      // Create a reference in Supabase
-      try {
-        const userData = {
-          id: mockUser.id,
-          email: mockUser.email,
-          role: mockUser.role
-        };
-        await supabase.from('profiles').upsert(userData, { onConflict: 'id' });
-      } catch (error) {
-        console.error('Error creating mock user in Supabase:', error);
-        // Continue anyway since this is just for development
-      }
-      
-      dispatch({ type: 'AUTH_SUCCESS', payload: mockUser });
-    } catch (error) {
-      dispatch({ type: 'AUTH_FAIL', payload: 'Login failed. Please check your credentials.' });
-    }
-  };
-
-  const signup = async (email: string, password: string, role: 'student' | 'teacher' | 'parent') => {
-    dispatch({ type: 'AUTH_START' });
-    try {
-      const mockUser: User = {
-        id: generateUUID(),
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        role,
-        displayName: email.split('@')[0],
-        createdAt: new Date(),
-        examBoard: 'none',
-        licenseExempt: email.endsWith('@nexastream.co.uk'),
-        rememberMe: true,
-        confidenceScores: {
-          maths: 5,
-          science: 5,
-          english: 5
-        }
-      };
+        password
+      });
       
-      localStorage.setItem('athro_user', JSON.stringify(mockUser));
-      localStorage.setItem('athro_token', 'mock-token-' + Date.now());
-      
-      // Create a reference in Supabase
-      try {
-        const userData = {
-          id: mockUser.id,
-          email: mockUser.email,
-          role: mockUser.role
-        };
-        await supabase.from('profiles').upsert(userData, { onConflict: 'id' });
-      } catch (error) {
-        console.error('Error creating mock user in Supabase:', error);
-        // Continue anyway since this is just for development
+      if (error) {
+        throw new Error(error.message);
       }
       
-      dispatch({ type: 'AUTH_SUCCESS', payload: mockUser });
-      return Promise.resolve();
-    } catch (error) {
-      dispatch({ type: 'AUTH_FAIL', payload: 'Signup failed. Please try again.' });
-      return Promise.reject(error);
+      if (data.user) {
+        dispatch({
+          type: 'LOGIN',
+          payload: {
+            id: data.user.id,
+            email: data.user.email || '',
+            role: (data.user.user_metadata?.role || 'student') as 'student' | 'teacher' | 'parent',
+            displayName: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
+            schoolId: data.user.user_metadata?.schoolId,
+            customerId: data.user.user_metadata?.customerId
+          }
+        });
+      }
+    } catch (error: any) {
+      dispatch({ type: 'LOGIN_ERROR', payload: error.message });
+      throw error;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
-  const logout = async () => {
+  const signup = async (email: string, password: string, role: 'student' | 'teacher' | 'parent'): Promise<void> => {
     try {
-      // Clear auth data
-      localStorage.removeItem('athro_user');
-      localStorage.removeItem('athro_token');
-      sessionStorage.removeItem('athro_user');
-      sessionStorage.removeItem('athro_token');
+      dispatch({ type: 'SET_LOADING', payload: true });
       
-      // Also sign out from Supabase to clear any session
-      await supabase.auth.signOut();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role,
+            name: email.split('@')[0]
+          }
+        }
+      });
       
-      // Clear any user-specific data from localStorage
-      // Find and remove any calendar event notifications
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('notified_session_') || key?.startsWith('athro_calendar_events_')) {
-          localStorage.removeItem(key);
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data.user) {
+        // Check if email confirmation is required
+        if (data.session) {
+          dispatch({
+            type: 'LOGIN',
+            payload: {
+              id: data.user.id,
+              email: data.user.email || '',
+              role: role,
+              displayName: data.user.email?.split('@')[0] || 'User'
+            }
+          });
+        } else {
+          // Email confirmation required
+          throw new Error('Please check your email for confirmation link');
         }
       }
-      
-      dispatch({ type: 'AUTH_LOGOUT' });
-    } catch (error) {
-      dispatch({ type: 'AUTH_FAIL', payload: 'Logout failed' });
+    } catch (error: any) {
+      dispatch({ type: 'LOGIN_ERROR', payload: error.message });
+      throw error;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
-  
-  const updateUser = (userData: Partial<User>) => {
-    if (state.user) {
-      const updatedUser = { ...state.user, ...userData };
+
+  const logout = async (): Promise<void> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
       
-      if (state.user.rememberMe) {
-        localStorage.setItem('athro_user', JSON.stringify(updatedUser));
+      // For mock user
+      if (localStorage.getItem('athro_user')) {
+        localStorage.removeItem('athro_user');
+        dispatch({ type: 'LOGOUT' });
+        return;
       }
       
-      dispatch({ type: 'UPDATE_USER', payload: userData });
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      dispatch({ type: 'LOGOUT' });
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      // Still log the user out on the client side even if there's an error
+      dispatch({ type: 'LOGOUT' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    dispatch({ type: 'UPDATE_USER', payload: userData });
   };
 
   return (
-    <AuthContext.Provider value={{ state, login, signup, logout, updateUser }}>
+    <AuthContext.Provider value={{ state, login, signup, logout, updateUser, dispatch }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

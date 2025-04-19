@@ -14,6 +14,7 @@ import { SubjectsSelector } from './SubjectsSelector';
 import { DiagnosticQuizSelector } from './DiagnosticQuizSelector';
 import { SlotSelection } from './SlotSelection';
 import { confidenceOptions, ConfidenceLabel } from '@/types/confidence';
+import LearningStyleQuiz from './LearningStyleQuiz';
 
 type OnboardingStep = 
   | 'welcome' 
@@ -161,6 +162,27 @@ const ChatOnboarding: React.FC = () => {
         >
           Continue
         </Button>
+      );
+    }
+  };
+
+  const handleLearningStyleResponse = (input: string) => {
+    // Simple natural language processing for learning style responses
+    const lowercaseInput = input.toLowerCase();
+    
+    if (lowercaseInput.includes('visual') || lowercaseInput.includes('see') || lowercaseInput.includes('diagram') || lowercaseInput.includes('chart') || lowercaseInput.includes('image')) {
+      handleCompleteLearningStyle({ visual: 5, auditory: 2, reading: 3, kinesthetic: 2 });
+    } else if (lowercaseInput.includes('auditory') || lowercaseInput.includes('listen') || lowercaseInput.includes('hear') || lowercaseInput.includes('audio') || lowercaseInput.includes('speak')) {
+      handleCompleteLearningStyle({ visual: 2, auditory: 5, reading: 2, kinesthetic: 2 });
+    } else if (lowercaseInput.includes('read') || lowercaseInput.includes('write') || lowercaseInput.includes('book') || lowercaseInput.includes('text')) {
+      handleCompleteLearningStyle({ visual: 2, auditory: 2, reading: 5, kinesthetic: 2 });
+    } else if (lowercaseInput.includes('hands') || lowercaseInput.includes('do') || lowercaseInput.includes('practice') || lowercaseInput.includes('physical') || lowercaseInput.includes('touch')) {
+      handleCompleteLearningStyle({ visual: 2, auditory: 2, reading: 2, kinesthetic: 5 });
+    } else {
+      // If no clear preference, offer the quiz
+      sendSystemMessage(
+        "I understand that learning styles can be complex. Let me help you identify yours with a quick quiz.",
+        <LearningStyleQuiz onComplete={(styles) => handleCompleteLearningStyle(styles)} />
       );
     }
   };

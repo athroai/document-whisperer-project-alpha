@@ -1,67 +1,62 @@
 
 import { ConfidenceLabel } from '@/types/confidence';
 
-export const parseConfidence = (input: string): ConfidenceLabel => {
-  const normalized = input.trim().toLowerCase();
-  
-  if (normalized.includes('very') && normalized.includes('low')) {
-    return 'Very Low';
-  }
-  if (normalized.includes('low')) {
-    return 'Low';
-  }
-  if (normalized.includes('neutral') || normalized.includes('medium') || normalized.includes('ok')) {
-    return 'Neutral';
-  }
-  if (normalized.includes('very') && normalized.includes('high')) {
-    return 'Very High';
-  }
-  if (normalized.includes('high') || normalized.includes('good')) {
-    return 'High';
-  }
-  
-  return 'Neutral'; // Default
-};
-
-export const getConfidenceDescription = (confidence: ConfidenceLabel): string => {
-  switch(confidence) {
-    case 'Very Low':
-      return "You're finding this subject quite challenging and need extra support.";
-    case 'Low':
-      return "You have some understanding but could use more guidance in this subject.";
-    case 'Neutral':
-      return "You have a moderate understanding of this subject.";
-    case 'High':
-      return "You have a good grasp of this subject but there's still room to improve.";
-    case 'Very High':
-      return "You're confident and doing well in this subject.";
+export const getConfidenceColor = (confidence: string): string => {
+  switch (confidence.toLowerCase()) {
+    case 'very low':
+      return 'bg-red-100 text-red-800';
+    case 'low':
+      return 'bg-orange-100 text-orange-800';
+    case 'neutral':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'high':
+      return 'bg-green-100 text-green-800';
+    case 'very high':
+      return 'bg-emerald-100 text-emerald-800';
     default:
-      return "You have a moderate understanding of this subject.";
+      return 'bg-gray-100 text-gray-800';
   }
 };
 
-export const recommendedResourceTypes = (confidence: ConfidenceLabel, visualLearner: boolean = false): string[] => {
-  const resources: string[] = [];
+export const getConfidenceChange = (oldValue: string, newValue: string): string => {
+  const scores = {
+    'very low': 1,
+    'low': 2,
+    'neutral': 3,
+    'high': 4,
+    'very high': 5
+  };
+
+  // Default values if not found
+  const oldScore = scores[oldValue.toLowerCase() as keyof typeof scores] || 3;
+  const newScore = scores[newValue.toLowerCase() as keyof typeof scores] || 3;
   
-  switch(confidence) {
-    case 'Very Low':
-    case 'Low':
-      resources.push(visualLearner ? 'Beginner tutorial videos' : 'Simplified study guides');
-      resources.push('Step-by-step examples');
-      resources.push('Foundation level practice questions');
-      break;
-    case 'Neutral':
-      resources.push('Mixed practice questions');
-      resources.push(visualLearner ? 'Visual summaries' : 'Comprehensive notes');
-      resources.push('Interactive quizzes');
-      break;
-    case 'High':
-    case 'Very High':
-      resources.push('Advanced practice papers');
-      resources.push('Complex problem-solving exercises');
-      resources.push(visualLearner ? 'Detailed concept maps' : 'Academic articles');
-      break;
+  const difference = newScore - oldScore;
+
+  if (difference === 0) {
+    return 'No change';
+  } else if (difference > 0) {
+    return `+${difference} improvement`;
+  } else {
+    return `${difference} decrease`;
   }
-  
-  return resources;
+};
+
+export const confidenceLabelToValue = (label: ConfidenceLabel): number => {
+  switch (label) {
+    case 'Very Low': return 1;
+    case 'Low': return 2;
+    case 'Neutral': return 3;
+    case 'High': return 4;
+    case 'Very High': return 5;
+    default: return 3;
+  }
+};
+
+export const valueToConfidenceLabel = (value: number): ConfidenceLabel => {
+  if (value <= 1) return 'Very Low';
+  if (value <= 2) return 'Low';
+  if (value <= 3) return 'Neutral';
+  if (value <= 4) return 'High';
+  return 'Very High';
 };

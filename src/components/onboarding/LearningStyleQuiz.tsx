@@ -1,10 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
+
+interface LearningStyleQuestion {
+  id: string;
+  text: string;
+  visualScore: number;
+  auditoryScore: number;
+  readingScore: number;
+  kinestheticScore: number;
+}
 
 interface LearningStyle {
   visual: number;
@@ -13,154 +22,199 @@ interface LearningStyle {
   kinesthetic: number;
 }
 
-interface Question {
-  id: number;
-  text: string;
-  options: {
-    text: string;
-    type: keyof LearningStyle;
-  }[];
-}
-
-interface LearningStyleQuizProps {
-  onComplete: (styles: LearningStyle) => void;
-}
-
-const QUESTIONS: Question[] = [
+const questions: LearningStyleQuestion[] = [
   {
-    id: 1,
-    text: "When learning a new topic, I prefer to:",
-    options: [
-      { text: "Watch videos or demonstrations", type: "visual" },
-      { text: "Listen to someone explain it", type: "auditory" },
-      { text: "Read about it in a book or article", type: "reading" },
-      { text: "Try it out myself through practice", type: "kinesthetic" }
-    ]
+    id: 'q1',
+    text: 'When learning something new, I prefer to:',
+    visualScore: 3,
+    auditoryScore: 0,
+    readingScore: 1,
+    kinestheticScore: 2
   },
   {
-    id: 2,
-    text: "I remember information best when:",
-    options: [
-      { text: "I see diagrams, charts or pictures", type: "visual" },
-      { text: "I hear someone explain it", type: "auditory" },
-      { text: "I write it down or read it", type: "reading" },
-      { text: "I do a hands-on activity", type: "kinesthetic" }
-    ]
+    id: 'q2',
+    text: 'When studying, I find it easiest to remember:',
+    visualScore: 3,
+    auditoryScore: 2,
+    readingScore: 1,
+    kinestheticScore: 0
   },
   {
-    id: 3,
-    text: "When studying for an exam, I typically:",
-    options: [
-      { text: "Create mind maps or visual summaries", type: "visual" },
-      { text: "Record myself reading notes and listen back", type: "auditory" },
-      { text: "Write out notes and reread them", type: "reading" },
-      { text: "Use flashcards or practice problems", type: "kinesthetic" }
-    ]
+    id: 'q3',
+    text: 'I understand concepts best when:',
+    visualScore: 1,
+    auditoryScore: 3,
+    readingScore: 0,
+    kinestheticScore: 2
   },
   {
-    id: 4,
-    text: "When I need to concentrate, I prefer:",
-    options: [
-      { text: "A clean, organized space with visual aids", type: "visual" },
-      { text: "A quiet environment or background music", type: "auditory" },
-      { text: "Having all my notes and books organized", type: "reading" },
-      { text: "Moving around or having something to fidget with", type: "kinesthetic" }
-    ]
+    id: 'q4',
+    text: 'When taking notes, I prefer to:',
+    visualScore: 2,
+    auditoryScore: 0,
+    readingScore: 3,
+    kinestheticScore: 1
   },
   {
-    id: 5,
-    text: "I find it easiest to follow:",
-    options: [
-      { text: "Visual instructions with diagrams", type: "visual" },
-      { text: "Verbal instructions and explanations", type: "auditory" },
-      { text: "Written step-by-step instructions", type: "reading" },
-      { text: "Demonstrations I can try myself", type: "kinesthetic" }
-    ]
+    id: 'q5',
+    text: 'I learn best when:',
+    visualScore: 1,
+    auditoryScore: 2,
+    readingScore: 0,
+    kinestheticScore: 3
   }
 ];
 
+interface LearningStyleQuizProps {
+  onComplete: (results: LearningStyle) => void;
+}
+
 const LearningStyleQuiz: React.FC<LearningStyleQuizProps> = ({ onComplete }) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, keyof LearningStyle>>({});
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [scores, setScores] = useState<LearningStyle>({
-    visual: 0,
-    auditory: 0,
-    reading: 0,
-    kinesthetic: 0
-  });
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [results, setResults] = useState<LearningStyle | null>(null);
 
-  const currentQuestion = QUESTIONS[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / QUESTIONS.length) * 100;
-
-  const handleOptionSelect = (type: keyof LearningStyle) => {
-    setSelectedOption(type);
-    setAnswers({
-      ...answers,
-      [currentQuestion.id]: type
-    });
+  const handleAnswer = (questionId: string, answer: string) => {
+    setAnswers(prev => ({ ...prev, [questionId]: answer }));
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < QUESTIONS.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedOption(null);
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(prev => prev + 1);
     } else {
-      // Calculating final scores
-      const finalScores = { ...scores };
-      Object.values(answers).forEach(type => {
-        finalScores[type]++;
-      });
-      
-      // Normalize scores to percentages
-      const total = Object.values(finalScores).reduce((sum, score) => sum + score, 0);
-      
-      const normalizedScores: LearningStyle = {
-        visual: Math.round((finalScores.visual / total) * 100),
-        auditory: Math.round((finalScores.auditory / total) * 100),
-        reading: Math.round((finalScores.reading / total) * 100),
-        kinesthetic: Math.round((finalScores.kinesthetic / total) * 100)
-      };
-      
-      setScores(normalizedScores);
-      onComplete(normalizedScores);
+      calculateResults();
     }
   };
 
+  const calculateResults = () => {
+    let visual = 0;
+    let auditory = 0;
+    let reading = 0;
+    let kinesthetic = 0;
+
+    Object.entries(answers).forEach(([questionId, answer]) => {
+      const question = questions.find(q => q.id === questionId);
+      if (!question) return;
+
+      switch (answer) {
+        case 'visual':
+          visual += question.visualScore;
+          break;
+        case 'auditory':
+          auditory += question.auditoryScore;
+          break;
+        case 'reading':
+          reading += question.readingScore;
+          break;
+        case 'kinesthetic':
+          kinesthetic += question.kinestheticScore;
+          break;
+      }
+    });
+
+    const learningStyle = {
+      visual,
+      auditory,
+      reading,
+      kinesthetic
+    };
+
+    setResults(learningStyle);
+    onComplete(learningStyle);
+  };
+
+  const getCurrentQuestion = () => questions[currentQuestion];
+
   return (
-    <Card className="w-full">
+    <Card className="w-full mt-4">
       <CardContent className="pt-4">
-        <div className="mb-4">
-          <Progress value={progress} className="h-2" />
-          <p className="text-xs text-muted-foreground mt-1">
-            Question {currentQuestionIndex + 1} of {QUESTIONS.length}
-          </p>
-        </div>
+        {!results ? (
+          <>
+            <h3 className="font-bold text-lg mb-4">Learning Style Quiz ({currentQuestion + 1}/{questions.length})</h3>
+            <p className="mb-4">{getCurrentQuestion().text}</p>
 
-        <h3 className="text-lg font-medium mb-4">{currentQuestion.text}</h3>
-        
-        <RadioGroup value={selectedOption || ""} className="space-y-3">
-          {currentQuestion.options.map((option, index) => (
-            <div key={index} className="flex items-center space-x-2">
-              <RadioGroupItem 
-                value={option.type} 
-                id={`option-${index}`} 
-                onClick={() => handleOptionSelect(option.type)}
-              />
-              <Label htmlFor={`option-${index}`} className="cursor-pointer">
-                {option.text}
-              </Label>
+            <RadioGroup 
+              value={answers[getCurrentQuestion().id]} 
+              onValueChange={(value) => handleAnswer(getCurrentQuestion().id, value)}
+              className="mb-4"
+            >
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="visual" id={`visual-${getCurrentQuestion().id}`} />
+                <Label htmlFor={`visual-${getCurrentQuestion().id}`}>Using diagrams, charts, or videos</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="auditory" id={`auditory-${getCurrentQuestion().id}`} />
+                <Label htmlFor={`auditory-${getCurrentQuestion().id}`}>Listening to explanations or discussions</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="reading" id={`reading-${getCurrentQuestion().id}`} />
+                <Label htmlFor={`reading-${getCurrentQuestion().id}`}>Reading textbooks or written materials</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="kinesthetic" id={`kinesthetic-${getCurrentQuestion().id}`} />
+                <Label htmlFor={`kinesthetic-${getCurrentQuestion().id}`}>Hands-on activities or practical examples</Label>
+              </div>
+            </RadioGroup>
+
+            <Button 
+              onClick={handleNext} 
+              disabled={!answers[getCurrentQuestion().id]}
+              className="w-full bg-purple-600 hover:bg-purple-700"
+            >
+              {currentQuestion < questions.length - 1 ? 'Next Question' : 'Complete Quiz'}
+            </Button>
+          </>
+        ) : (
+          <div className="text-center">
+            <h3 className="font-bold text-lg mb-2">Your Learning Style Results</h3>
+            <p className="mb-4">Based on your answers, here's your learning style profile:</p>
+            
+            <div className="space-y-2 mb-4">
+              <div>
+                <span className="font-medium">Visual Learning:</span> {results.visual} points
+                <div className="h-2 bg-gray-200 rounded-full mt-1">
+                  <div 
+                    className="h-2 bg-blue-500 rounded-full" 
+                    style={{ width: `${(results.visual / 15) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              <div>
+                <span className="font-medium">Auditory Learning:</span> {results.auditory} points
+                <div className="h-2 bg-gray-200 rounded-full mt-1">
+                  <div 
+                    className="h-2 bg-green-500 rounded-full" 
+                    style={{ width: `${(results.auditory / 15) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              <div>
+                <span className="font-medium">Reading/Writing:</span> {results.reading} points
+                <div className="h-2 bg-gray-200 rounded-full mt-1">
+                  <div 
+                    className="h-2 bg-yellow-500 rounded-full" 
+                    style={{ width: `${(results.reading / 15) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              <div>
+                <span className="font-medium">Kinesthetic Learning:</span> {results.kinesthetic} points
+                <div className="h-2 bg-gray-200 rounded-full mt-1">
+                  <div 
+                    className="h-2 bg-purple-500 rounded-full" 
+                    style={{ width: `${(results.kinesthetic / 15) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
             </div>
-          ))}
-        </RadioGroup>
-
-        <Button 
-          onClick={handleNext} 
-          disabled={!selectedOption}
-          className="w-full mt-6"
-        >
-          {currentQuestionIndex < QUESTIONS.length - 1 ? 'Next Question' : 'Complete Quiz'}
-        </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
