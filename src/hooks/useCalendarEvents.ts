@@ -27,12 +27,6 @@ export const useCalendarEvents = () => {
     generateSuggestedSessions,
     acceptSuggestedEvent
   } = useSuggestedEvents(events);
-  
-  const {
-    createDbEvent,
-    updateDbEvent,
-    deleteDbEvent
-  } = useDbCalendarEvents();
 
   const clearEvents = useCallback(() => {
     setEvents([]);
@@ -45,8 +39,8 @@ export const useCalendarEvents = () => {
 
   const fetchEvents = useCallback(async () => {
     const now = Date.now();
-    if (now - lastFetchTime < 1000) {
-      console.log('Debouncing fetchEvents call, too recent');
+    if (now - lastFetchTime < 5000) {
+      console.log('Debouncing fetchEvents call - too recent');
       return events;
     }
     
@@ -54,7 +48,6 @@ export const useCalendarEvents = () => {
     
     try {
       setIsLoading(true);
-      
       const userId = getCurrentUserId();
       
       if (!userId) {
@@ -68,31 +61,16 @@ export const useCalendarEvents = () => {
       const dbEvents = await fetchDatabaseEvents(userId);
       console.log(`Retrieved ${dbEvents.length} database events`);
       
-      if (dbEvents.length === 0) {
-        console.log('No events found, trying one more time...');
-        setTimeout(async () => {
-          try {
-            const retryEvents = await fetchDatabaseEvents(userId);
-            console.log(`Retry retrieved ${retryEvents.length} database events`);
-            
-            if (retryEvents.length > 0) {
-              const dbEventIds = new Set(retryEvents.map(event => event.id));
-              const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
-              const combinedEvents = [...retryEvents, ...filteredLocalEvents];
-              setEvents(combinedEvents);
-              generateSuggestedSessions();
-            }
-          } catch (err) {
-            console.error('Error in retry fetchEvents:', err);
-          } finally {
-            setIsLoading(false);
-          }
-        }, 1500);
+      if (dbEvents.length > 0) {
+        localStorage.setItem('cached_calendar_events', JSON.stringify({
+          userId,
+          events: dbEvents,
+          timestamp: now
+        }));
       }
       
       const dbEventIds = new Set(dbEvents.map(event => event.id));
       const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
-      console.log(`Found ${filteredLocalEvents.length} local events`);
       
       const combinedEvents = [...dbEvents, ...filteredLocalEvents];
       setEvents(combinedEvents);
@@ -105,8 +83,15 @@ export const useCalendarEvents = () => {
       return combinedEvents;
     } catch (error) {
       console.error('Error in fetchEvents:', error);
+      const cached = localStorage.getItem('cached_calendar_events');
+      if (cached) {
+        const { events: cachedEvents, timestamp, userId } = JSON.parse(cached);
+        if (userId === getCurrentUserId() && now - timestamp < 300000) {
+          setEvents(cachedEvents);
+          return cachedEvents;
+        }
+      }
       setEvents(localEvents);
-      setIsLoading(false);
       return localEvents;
     } finally {
       setIsLoading(false);
