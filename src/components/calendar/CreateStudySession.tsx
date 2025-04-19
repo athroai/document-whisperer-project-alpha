@@ -131,10 +131,11 @@ const CreateStudySession = ({
           title: title || `${subject} Study Session`,
           subject: subject,
           topic: topic,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
+          start_time: toGMTString(startTime),
+          end_time: toGMTString(endTime),
           event_type: 'study_session',
-          local_only: true
+          local_only: true,
+          timezone: 'GMT'
         };
         
         resetForm();
