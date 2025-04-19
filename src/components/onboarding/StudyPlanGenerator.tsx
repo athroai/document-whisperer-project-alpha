@@ -13,10 +13,12 @@ import { GenerationProgress } from './study-plan/GenerationProgress';
 import { StudyPlanInfo } from './study-plan/StudyPlanInfo';
 import { StudyPlanResults } from './study-plan/StudyPlanResults';
 import { useStudyPlanGeneration } from '@/hooks/useStudyPlanGeneration';
+import { useNavigate } from 'react-router-dom';
 
 export const StudyPlanGenerator: React.FC = () => {
   const { state } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { selectedSubjects, completeOnboarding, studySlots } = useOnboarding();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localStudySlots, setLocalStudySlots] = useState<PreferredStudySlot[]>([]);
@@ -76,6 +78,7 @@ export const StudyPlanGenerator: React.FC = () => {
   }, [state.user, studySlots]);
 
   const handleGenerateStudyPlan = async () => {
+    console.log("Generating study plan with slots:", localStudySlots);
     await generateStudyPlan(localStudySlots);
   };
 
@@ -94,7 +97,7 @@ export const StudyPlanGenerator: React.FC = () => {
       });
       
       // Navigate to calendar with the fromSetup parameter to trigger the success message
-      window.location.href = '/calendar?fromSetup=true';
+      navigate('/calendar?fromSetup=true');
     } catch (error) {
       console.error("Error completing onboarding:", error);
       toast({

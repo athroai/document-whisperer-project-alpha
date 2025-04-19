@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import BigCalendarView from '@/components/calendar/BigCalendarView';
@@ -14,19 +14,31 @@ const CalendarPage: React.FC = () => {
   const { fetchEvents, clearEvents, events } = useCalendarEvents();
   const { state: authState } = useAuth();
   const location = useLocation();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   useEffect(() => {
     let isMounted = true;
     
-    // Only fetch events if a user is logged in
-    if (authState.user?.id) {
-      // Initial fetch of events when the page loads
-      fetchEvents().catch(err => {
+    const loadCalendarEvents = async () => {
+      try {
+        // Only fetch events if a user is logged in
+        if (authState.user?.id) {
+          console.log("Fetching calendar events for user:", authState.user.id);
+          await fetchEvents();
+          
+          if (isMounted && isInitialLoad) {
+            console.log("Calendar events loaded:", events.length);
+            setIsInitialLoad(false);
+          }
+        }
+      } catch (err) {
         if (isMounted) {
           console.error('Error fetching calendar events:', err);
         }
-      });
-    }
+      }
+    };
+    
+    loadCalendarEvents();
     
     // Check if we're coming from a completed study schedule setup
     const urlParams = new URLSearchParams(location.search);
@@ -47,7 +59,14 @@ const CalendarPage: React.FC = () => {
       isMounted = false;
       clearEvents();
     };
-  }, [toast, fetchEvents, clearEvents, authState.user, location.search]); // Add proper dependencies
+  }, [toast, fetchEvents, clearEvents, authState.user]); // Remove events from dependency array
+  
+  // Re-fetch events when user changes
+  useEffect(() => {
+    if (authState.user?.id) {
+      fetchEvents();
+    }
+  }, [authState.user, fetchEvents]);
 
   return (
     <div className="min-h-screen bg-gray-50">

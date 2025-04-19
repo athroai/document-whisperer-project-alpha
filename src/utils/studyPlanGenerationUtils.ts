@@ -2,13 +2,20 @@
 import { format, addDays } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { PreferredStudySlot } from '@/types/study';
+import { ConfidenceLabel } from '@/types/confidence';
 
-export const calculateSessionsPerWeek = (score: number | undefined) => {
-  if (score === undefined) return 3;
+export const calculateSessionsPerWeek = (confidence: ConfidenceLabel | undefined) => {
+  if (confidence === undefined) return 3;
 
-  if (score < 50) return 4;
-  if (score <= 80) return Math.round(3.5 - (score - 50) * 0.03);
-  return 1;
+  // Inverse relationship: lower confidence = more sessions
+  switch(confidence) {
+    case "Very Low": return 5;
+    case "Low": return 4;
+    case "Neutral": return 3;
+    case "High": return 2;
+    case "Very High": return 1;
+    default: return 3;
+  }
 };
 
 export const generateDefaultStudySlots = (userId: string): PreferredStudySlot[] => {
@@ -42,7 +49,6 @@ export const createCalendarEvents = async (
   const sortedSlots = [...studySlots].sort((a, b) => a.day_of_week - b.day_of_week);
   
   let createdSessions = 0;
-  const totalSessions = sessionDistribution.reduce((sum, item) => sum + item.sessionsPerWeek, 0);
   
   let slotIndex = 0;
   for (const subjectData of sessionDistribution) {
@@ -53,7 +59,7 @@ export const createCalendarEvents = async (
       
       const slot = sortedSlots[slotIndex];
       
-      const currentDay = today.getDay();
+      const currentDay = today.getDay() || 7; // Convert 0 (Sunday) to 7 for consistent math
       const targetDay = slot.day_of_week;
       
       let daysToAdd = targetDay - currentDay;
@@ -62,7 +68,7 @@ export const createCalendarEvents = async (
       daysToAdd += Math.floor(createdSessions / sortedSlots.length) * 7;
       
       const sessionDate = addDays(today, daysToAdd);
-      const startHour = slot.preferred_start_hour || 9;
+      const startHour = slot.preferred_start_hour || 16;
       
       const startTime = new Date(sessionDate);
       startTime.setHours(startHour, 0, 0, 0);
@@ -70,6 +76,28 @@ export const createCalendarEvents = async (
       const endTime = new Date(startTime);
       endTime.setMinutes(endTime.getMinutes() + slot.slot_duration_minutes);
       
+      // Generate an appropriate title based on confidence level
+      let sessionTitle = `${subjectData.subject} Study Session`;
+      if (subjectData.confidence) {
+        switch(subjectData.confidence) {
+          case "Very Low":
+            sessionTitle = `${subjectData.subject} Intensive Review`;
+            break;
+          case "Low":
+            sessionTitle = `${subjectData.subject} Focus Session`;
+            break;
+          case "Neutral":
+            sessionTitle = `${subjectData.subject} Study Session`;
+            break;
+          case "High":
+            sessionTitle = `${subjectData.subject} Practice`;
+            break;
+          case "Very High":
+            sessionTitle = `${subjectData.subject} Quick Review`;
+            break;
+        }
+      }
+
       const eventDescription = JSON.stringify({
         subject: subjectData.subject,
         topic: null,
@@ -77,19 +105,10 @@ export const createCalendarEvents = async (
         pomodoroWorkMinutes: Math.min(slot.slot_duration_minutes, 25),
         pomodoroBreakMinutes: 5
       });
-
-      let sessionTitle = `${subjectData.subject} Study Session`;
-      if (subjectData.score !== undefined) {
-        if (subjectData.score < 50) {
-          sessionTitle = `${subjectData.subject} Intensive Review`;
-        } else if (subjectData.score < 80) {
-          sessionTitle = `${subjectData.subject} Practice`;
-        } else {
-          sessionTitle = `${subjectData.subject} Mastery`;
-        }
-      }
       
       try {
+        console.log(`Creating calendar event for ${subjectData.subject} on ${startTime.toISOString()}`);
+        
         const { data: eventData, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
@@ -130,6 +149,8 @@ export const createCalendarEvents = async (
             formattedStart: format(startTime, 'EEEE, h:mm a'),
             formattedEnd: format(endTime, 'h:mm a')
           });
+          
+          console.log(`Successfully created event: ${sessionTitle}`);
         }
       } catch (err) {
         console.error('Error creating events:', err);
@@ -160,4 +181,3 @@ export const createStudyPlan = async (userId: string) => {
   
   return data[0];
 };
-

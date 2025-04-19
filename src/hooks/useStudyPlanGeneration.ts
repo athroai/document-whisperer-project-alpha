@@ -23,12 +23,20 @@ export const useStudyPlanGeneration = (userId: string | undefined, selectedSubje
 
   useEffect(() => {
     const checkAuth = async () => {
-      const supabaseUser = await verifyAuth();
-      if (supabaseUser) {
-        setAuthVerified(true);
-      } else {
+      try {
+        const supabaseUser = await verifyAuth();
+        if (supabaseUser) {
+          console.log("Auth verified for user:", supabaseUser.id);
+          setAuthVerified(true);
+        } else {
+          console.error("Auth verification failed");
+          setAuthVerified(false);
+          setError("Authentication error: You need to be signed in to generate a study plan.");
+        }
+      } catch (err) {
+        console.error("Auth verification error:", err);
         setAuthVerified(false);
-        setError("Authentication error: You need to be signed in to generate a study plan.");
+        setError("Authentication error occurred. Please refresh and try again.");
       }
     };
 
@@ -54,6 +62,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, selectedSubje
           resultsMap[item.subject_name] = item.percentage_accuracy;
         });
 
+        console.log("Fetched diagnostic results:", resultsMap);
         setDiagnosticResults(resultsMap);
       } catch (error) {
         console.error('Error fetching diagnostic results:', error);
@@ -111,6 +120,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, selectedSubje
         return;
       }
 
+      console.log("Using study slots:", slotsToUse);
       setGenerationProgress(30);
 
       // Create study plan record
@@ -119,16 +129,19 @@ export const useStudyPlanGeneration = (userId: string | undefined, selectedSubje
       
       setGenerationProgress(50);
 
+      // Create session distribution based on subject confidence
       const sessionDistribution = selectedSubjects.map(subject => {
-        const score = diagnosticResults[subject.subject];
-        const sessionsPerWeek = calculateSessionsPerWeek(score);
+        // Calculate sessions per week based on confidence
+        const sessionsPerWeek = calculateSessionsPerWeek(subject.confidence);
         
         return {
           subject: subject.subject,
-          sessionsPerWeek,
-          score: score
+          confidence: subject.confidence,
+          sessionsPerWeek
         };
       });
+
+      console.log("Session distribution:", sessionDistribution);
 
       // Create calendar events for the study plan
       const savedEvents = await createCalendarEvents(
@@ -138,6 +151,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, selectedSubje
         slotsToUse
       );
 
+      console.log("Created events:", savedEvents);
       setCalendarEvents(savedEvents);
       setStudyPlan(sessionDistribution);
       setIsGenerationComplete(true);

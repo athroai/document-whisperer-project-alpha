@@ -1,84 +1,117 @@
 
-import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
 import { CalendarEvent } from '@/types/calendar';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
 export const useDbCalendarEvents = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const createDbEvent = async (
-    userId: string,
-    eventData: Partial<CalendarEvent>
-  ): Promise<CalendarEvent | null> => {
+  const createDbEvent = async (userId: string, eventData: Partial<CalendarEvent>) => {
     try {
-      const eventDescription = JSON.stringify({
+      setIsLoading(true);
+      
+      console.log('Creating DB event for user:', userId, eventData);
+      
+      const eventDescription = eventData.description || JSON.stringify({
         subject: eventData.subject || '',
         topic: eventData.topic || '',
+        isPomodoro: true,
+        pomodoroWorkMinutes: 25,
+        pomodoroBreakMinutes: 5
       });
+
+      const eventInsert = {
+        title: eventData.title || `${eventData.subject || 'Study'} Session`,
+        description: eventDescription,
+        user_id: userId,
+        student_id: userId,
+        event_type: eventData.event_type || 'study_session',
+        start_time: eventData.start_time,
+        end_time: eventData.end_time
+      };
+
+      console.log('Inserting event into database:', eventInsert);
 
       const { data, error } = await supabase
         .from('calendar_events')
-        .insert({
-          title: eventData.title || `${eventData.subject || 'Study'} Session`,
-          description: eventDescription,
-          start_time: eventData.start_time,
-          end_time: eventData.end_time,
-          event_type: eventData.event_type || 'study_session',
-          user_id: userId,
-          student_id: userId
-        })
-        .select()
-        .single();
+        .insert(eventInsert)
+        .select();
 
-      if (error) throw error;
-      
-      if (!data) return null;
+      if (error) {
+        console.error('Error creating calendar event in database:', error);
+        return null;
+      }
 
-      return {
-        id: data.id,
-        title: data.title,
-        description: data.description,
+      if (!data || data.length === 0) {
+        console.error('No data returned from calendar event creation');
+        return null;
+      }
+
+      console.log('Successfully created event in database:', data[0]);
+
+      const eventWithSubject = {
+        id: data[0].id,
+        title: data[0].title,
+        description: data[0].description,
         subject: eventData.subject || '',
         topic: eventData.topic || '',
-        start_time: data.start_time,
-        end_time: data.end_time,
-        event_type: data.event_type || 'study_session'
+        start_time: data[0].start_time,
+        end_time: data[0].end_time,
+        event_type: data[0].event_type || 'study_session',
+        user_id: data[0].user_id,
+        student_id: data[0].student_id
       };
+
+      return eventWithSubject;
     } catch (error) {
-      console.error('Error creating calendar event:', error);
+      console.error('Exception creating calendar event:', error);
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateDbEvent = async (id: string, updates: Partial<CalendarEvent>): Promise<boolean> => {
+  const updateDbEvent = async (id: string, updates: Partial<CalendarEvent>) => {
     try {
-      const updateData: any = {};
+      setIsLoading(true);
       
-      if (updates.title) updateData.title = updates.title;
-      if (updates.start_time) updateData.start_time = updates.start_time;
-      if (updates.end_time) updateData.end_time = updates.end_time;
+      console.log('Updating DB event:', id, updates);
+
+      let updateData: any = { ...updates };
       
+      // Remove properties that aren't in the database schema
+      delete updateData.subject;
+      delete updateData.topic;
+      
+      // If we have subject/topic, update the description JSON
       if (updates.subject || updates.topic) {
-        const { data: currentEvent } = await supabase
-          .from('calendar_events')
-          .select('description')
-          .eq('id', id)
-          .single();
-          
-        let descriptionObj = {};
         try {
-          if (currentEvent?.description) {
-            descriptionObj = JSON.parse(currentEvent.description);
+          const { data } = await supabase
+            .from('calendar_events')
+            .select('description')
+            .eq('id', id)
+            .single();
+            
+          if (data) {
+            let descObj = {};
+            try {
+              descObj = JSON.parse(data.description || '{}');
+            } catch (e) {
+              console.warn('Failed to parse existing description, creating new one');
+              descObj = {};
+            }
+            
+            updateData.description = JSON.stringify({
+              ...descObj,
+              subject: updates.subject || (descObj as any).subject || '',
+              topic: updates.topic || (descObj as any).topic || ''
+            });
           }
         } catch (e) {
-          console.warn('Failed to parse existing description');
+          console.warn('Error fetching existing event description:', e);
         }
-        
-        updateData.description = JSON.stringify({
-          ...descriptionObj,
-          subject: updates.subject || (descriptionObj as any).subject || '',
-          topic: updates.topic || (descriptionObj as any).topic || '',
-        });
       }
       
       const { error } = await supabase
@@ -86,52 +119,57 @@ export const useDbCalendarEvents = () => {
         .update(updateData)
         .eq('id', id);
 
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Calendar event updated successfully.",
-      });
-      
+      if (error) {
+        console.error('Error updating calendar event:', error);
+        toast({
+          title: "Update Failed",
+          description: "Failed to update calendar event. Please try again.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
       return true;
     } catch (error) {
-      console.error('Error updating calendar event:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update event. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Exception updating calendar event:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const deleteDbEvent = async (id: string): Promise<boolean> => {
+  const deleteDbEvent = async (id: string) => {
     try {
+      setIsLoading(true);
+      
+      console.log('Deleting DB event:', id);
+      
       const { error } = await supabase
         .from('calendar_events')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Calendar event deleted successfully.",
-      });
-      
+      if (error) {
+        console.error('Error deleting calendar event:', error);
+        toast({
+          title: "Deletion Failed",
+          description: "Failed to delete calendar event. Please try again.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
       return true;
     } catch (error) {
-      console.error('Error deleting calendar event:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete event. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Exception deleting calendar event:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return {
+    isLoading,
     createDbEvent,
     updateDbEvent,
     deleteDbEvent

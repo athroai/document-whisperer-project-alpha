@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle } from 'lucide-react';
 
 interface StudyPlanInfoProps {
   onGenerate: () => void;
@@ -15,18 +15,18 @@ export const StudyPlanInfo: React.FC<StudyPlanInfoProps> = ({ onGenerate, isGene
       <div className="bg-white p-6 rounded-lg border">
         <h3 className="text-lg font-medium mb-4">Generate Your Personalized Study Plan</h3>
         <p className="text-gray-600 mb-6">
-          Based on your subject selections and diagnostic quiz results, we'll create a 
+          Based on your subject selections and confidence levels, we'll create a 
           personalized study schedule in your calendar. The plan will:
         </p>
         
         <ul className="space-y-3 mb-6">
           <li className="flex items-start">
             <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-            <span>Schedule more sessions for subjects where you need more practice</span>
+            <span><strong>Adapt to your confidence levels</strong> - allocating more sessions for subjects you're less confident in</span>
           </li>
           <li className="flex items-start">
             <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-            <span>Fit study sessions into your selected time slots</span>
+            <span>Schedule study sessions in your selected time slots</span>
           </li>
           <li className="flex items-start">
             <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
@@ -34,9 +34,18 @@ export const StudyPlanInfo: React.FC<StudyPlanInfoProps> = ({ onGenerate, isGene
           </li>
           <li className="flex items-start">
             <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-            <span>Adjust session content based on your confidence levels</span>
+            <span>Add sessions directly to your calendar for easy access</span>
           </li>
         </ul>
+
+        {disabled && !isGenerating && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start">
+            <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-amber-700">
+              You need to select at least one subject before generating a study plan
+            </p>
+          </div>
+        )}
         
         <Button 
           onClick={onGenerate} 
@@ -45,12 +54,6 @@ export const StudyPlanInfo: React.FC<StudyPlanInfoProps> = ({ onGenerate, isGene
         >
           {isGenerating ? 'Generating Plan...' : 'Generate My Study Plan'}
         </Button>
-        
-        {disabled && !isGenerating && (
-          <p className="text-center text-xs text-gray-500 mt-2">
-            You need to select at least one subject before generating a study plan
-          </p>
-        )}
       </div>
     </div>
   );
