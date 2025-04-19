@@ -28,7 +28,7 @@ export const athroCharacterConfigs: AthroCharacterConfig[] = [
   {
     id: 'maths-mentor-1',
     name: 'Alan Turing',
-    subject: 'Mathematics',
+    subject: 'Mathematics' as AthroSubject,
     avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
     shortDescription: 'Your friendly maths mentor',
     fullDescription: 'Alan Turing is here to help you with all your maths needs.',
@@ -56,7 +56,7 @@ export const athroCharacterConfigs: AthroCharacterConfig[] = [
   {
     id: 'science-mentor-1',
     name: 'Marie Curie',
-    subject: 'Science',
+    subject: 'Science' as AthroSubject,
     avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
     shortDescription: 'Your inspiring science mentor',
     fullDescription: 'Marie Curie is here to guide you through the wonders of science.',
@@ -84,7 +84,7 @@ export const athroCharacterConfigs: AthroCharacterConfig[] = [
   {
     id: 'english-mentor-1',
     name: 'William Shakespeare',
-    subject: 'English',
+    subject: 'English' as AthroSubject,
     avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
     shortDescription: 'Your eloquent English mentor',
     fullDescription: 'William Shakespeare is here to help you master the English language.',
@@ -99,7 +99,7 @@ export const athroCharacterConfigs: AthroCharacterConfig[] = [
     supportedLanguages: ['en'],
     topics: ['Literature', 'Grammar', 'Writing'],
     examBoards: ['AQA', 'Edexcel', 'OCR', 'WJEC'],
-     features: {
+    features: {
       latexSupport: false,
       pastPaperIntegration: true,
       aiMarking: true,
@@ -112,7 +112,7 @@ export const athroCharacterConfigs: AthroCharacterConfig[] = [
   {
     id: 'welsh-mentor-1',
     name: 'Gwyneth Lewis',
-    subject: 'Welsh',
+    subject: 'Welsh' as AthroSubject,
     avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
     shortDescription: 'Your friendly Welsh mentor',
     fullDescription: 'Gwyneth Lewis is here to help you master the Welsh language.',
@@ -127,7 +127,7 @@ export const athroCharacterConfigs: AthroCharacterConfig[] = [
     supportedLanguages: ['en', 'cy'],
     topics: ['Literature', 'Grammar', 'Writing'],
     examBoards: ['WJEC'],
-     features: {
+    features: {
       latexSupport: false,
       pastPaperIntegration: true,
       aiMarking: true,
