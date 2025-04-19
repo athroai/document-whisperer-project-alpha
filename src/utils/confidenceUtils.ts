@@ -18,7 +18,7 @@ export const getConfidenceColor = (confidence: string): string => {
   }
 };
 
-export const getConfidenceChange = (oldValue: string, newValue: string): string => {
+export const getConfidenceChange = (oldValue: string | number, newValue: string | number): string => {
   const scores = {
     'very low': 1,
     'low': 2,
@@ -27,9 +27,13 @@ export const getConfidenceChange = (oldValue: string, newValue: string): string 
     'very high': 5
   };
 
+  // Convert numeric values to strings if needed
+  const oldValueStr = typeof oldValue === 'number' ? valueToConfidenceLabel(oldValue) : oldValue;
+  const newValueStr = typeof newValue === 'number' ? valueToConfidenceLabel(newValue) : newValue;
+  
   // Default values if not found
-  const oldScore = scores[oldValue.toLowerCase() as keyof typeof scores] || 3;
-  const newScore = scores[newValue.toLowerCase() as keyof typeof scores] || 3;
+  const oldScore = scores[oldValueStr.toLowerCase() as keyof typeof scores] || 3;
+  const newScore = scores[newValueStr.toLowerCase() as keyof typeof scores] || 3;
   
   const difference = newScore - oldScore;
 
@@ -61,7 +65,13 @@ export const valueToConfidenceLabel = (value: number): ConfidenceLabel => {
   return 'Very High';
 };
 
-export const parseConfidence = (value: string): ConfidenceLabel => {
+export const parseConfidence = (value: string | number): ConfidenceLabel => {
+  // Handle numeric values
+  if (typeof value === 'number') {
+    return valueToConfidenceLabel(value);
+  }
+  
+  // Handle string values
   const normalized = value.trim().toLowerCase();
   
   if (normalized.includes('very') && normalized.includes('low')) {

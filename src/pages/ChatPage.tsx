@@ -8,7 +8,7 @@ const ChatPage: React.FC = () => {
   
   return (
     <div className="container mx-auto p-4 h-[calc(100vh-5rem)]">
-      <AthroChat character={characterId} />
+      <AthroChat character={characterId || 'AthroMaths'} />
     </div>
   );
 };
