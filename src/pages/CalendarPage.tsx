@@ -8,14 +8,16 @@ import BlockTimeButton from '@/components/calendar/BlockTimeButton';
 import { useAuth } from '@/contexts/AuthContext';
 import SuggestedStudySessions from '@/components/calendar/SuggestedStudySessions';
 import { useLocation } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const CalendarPage: React.FC = () => {
   const { toast } = useToast();
-  const { fetchEvents, clearEvents, events } = useCalendarEvents();
+  const { fetchEvents, clearEvents, events, isLoading } = useCalendarEvents();
   const { state: authState } = useAuth();
   const location = useLocation();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadAttempts, setLoadAttempts] = useState(0);
   
   // Check if we're coming from onboarding
   useEffect(() => {
@@ -36,10 +38,12 @@ const CalendarPage: React.FC = () => {
           .then(() => {
             console.log("Successfully refreshed calendar events after onboarding");
             setIsRefreshing(false);
+            setLoadAttempts(prev => prev + 1);
           })
           .catch(err => {
             console.error("Error refreshing events after onboarding:", err);
             setIsRefreshing(false);
+            setLoadAttempts(prev => prev + 1);
           });
       }
       
@@ -52,21 +56,34 @@ const CalendarPage: React.FC = () => {
     let isMounted = true;
     
     const loadCalendarEvents = async () => {
+      if (!authState.user?.id) {
+        console.log("No authenticated user, skipping calendar load");
+        if (isMounted) setIsInitialLoad(false);
+        return;
+      }
+      
       try {
-        // Only fetch events if a user is logged in
-        if (authState.user?.id) {
-          console.log("Fetching calendar events for user:", authState.user.id);
-          await fetchEvents();
-          
-          if (isMounted && isInitialLoad) {
-            console.log("Calendar events loaded:", events.length);
-            setIsInitialLoad(false);
-          }
+        setIsRefreshing(true);
+        console.log("Loading calendar events for user:", authState.user.id);
+        const fetchedEvents = await fetchEvents();
+        
+        if (isMounted) {
+          console.log("Calendar events loaded:", fetchedEvents?.length || 0);
+          setIsInitialLoad(false);
         }
       } catch (err) {
+        console.error('Error fetching calendar events:', err);
         if (isMounted) {
-          console.error('Error fetching calendar events:', err);
+          setIsInitialLoad(false);
+          // Notify user of error
+          toast({
+            title: "Calendar Error",
+            description: "Could not load your calendar events. Please try again.",
+            variant: "destructive"
+          });
         }
+      } finally {
+        if (isMounted) setIsRefreshing(false);
       }
     };
     
@@ -77,7 +94,15 @@ const CalendarPage: React.FC = () => {
       isMounted = false;
       clearEvents();
     };
-  }, [authState.user, fetchEvents, clearEvents, isInitialLoad, events.length]); 
+  }, [authState.user, fetchEvents, clearEvents, toast, loadAttempts]);
+  
+  const handleRetryLoad = () => {
+    setLoadAttempts(prev => prev + 1);
+    toast({
+      title: "Refreshing calendar",
+      description: "Attempting to reload your calendar events..."
+    });
+  };
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -96,7 +121,18 @@ const CalendarPage: React.FC = () => {
         )}
         
         <SuggestedStudySessions />
-        <BigCalendarView key={`calendar-${events.length}`} />
+        
+        {isLoading && isInitialLoad ? (
+          <div className="space-y-4">
+            <Skeleton className="h-[600px] w-full rounded-md" />
+          </div>
+        ) : (
+          <BigCalendarView 
+            key={`calendar-${events.length}-${loadAttempts}`} 
+            onRetryLoad={handleRetryLoad}
+          />
+        )}
+        
         <StudySessionLauncher />
       </div>
     </div>

@@ -10,6 +10,7 @@ import { fetchDatabaseEvents } from '@/services/calendarEventService';
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const { toast } = useToast();
   const { state: authState } = useAuth();
   
@@ -43,6 +44,14 @@ export const useCalendarEvents = () => {
   }, [authState.user]);
 
   const fetchEvents = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastFetchTime < 1000) {
+      console.log('Debouncing fetchEvents call, too recent');
+      return events;
+    }
+    
+    setLastFetchTime(now);
+    
     try {
       setIsLoading(true);
       
@@ -51,12 +60,35 @@ export const useCalendarEvents = () => {
       if (!userId) {
         console.log('No authenticated user, not fetching calendar events');
         setEvents([]);
+        setIsLoading(false);
         return [];
       }
 
       console.log(`Fetching calendar events for user ${userId}`);
       const dbEvents = await fetchDatabaseEvents(userId);
       console.log(`Retrieved ${dbEvents.length} database events`);
+      
+      if (dbEvents.length === 0) {
+        console.log('No events found, trying one more time...');
+        setTimeout(async () => {
+          try {
+            const retryEvents = await fetchDatabaseEvents(userId);
+            console.log(`Retry retrieved ${retryEvents.length} database events`);
+            
+            if (retryEvents.length > 0) {
+              const dbEventIds = new Set(retryEvents.map(event => event.id));
+              const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
+              const combinedEvents = [...retryEvents, ...filteredLocalEvents];
+              setEvents(combinedEvents);
+              generateSuggestedSessions();
+            }
+          } catch (err) {
+            console.error('Error in retry fetchEvents:', err);
+          } finally {
+            setIsLoading(false);
+          }
+        }, 1500);
+      }
       
       const dbEventIds = new Set(dbEvents.map(event => event.id));
       const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
@@ -65,17 +97,21 @@ export const useCalendarEvents = () => {
       const combinedEvents = [...dbEvents, ...filteredLocalEvents];
       setEvents(combinedEvents);
       
-      generateSuggestedSessions();
+      if (combinedEvents.length > 0) {
+        console.log(`Combined ${combinedEvents.length} events successfully`);
+        generateSuggestedSessions();
+      }
       
       return combinedEvents;
     } catch (error) {
       console.error('Error in fetchEvents:', error);
       setEvents(localEvents);
+      setIsLoading(false);
       return localEvents;
     } finally {
       setIsLoading(false);
     }
-  }, [getCurrentUserId, localEvents, generateSuggestedSessions]);
+  }, [getCurrentUserId, localEvents, generateSuggestedSessions, events, lastFetchTime]);
 
   const createEvent = async (
     eventData: Partial<CalendarEvent>,

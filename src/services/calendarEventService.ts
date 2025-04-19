@@ -10,31 +10,64 @@ export const fetchDatabaseEvents = async (userId: string | null): Promise<Calend
 
   try {
     console.log(`Fetching events from database for user: ${userId}`);
-    const { data, error } = await supabase
+    
+    // First attempt to get events where the user is explicitly the user_id
+    const { data: userEvents, error: userError } = await supabase
       .from('calendar_events')
       .select('*')
-      .or(`student_id.eq.${userId},user_id.eq.${userId}`);
-
-    if (error) {
-      console.error('Error fetching calendar events:', error);
+      .eq('user_id', userId);
+      
+    if (userError) {
+      console.error('Error fetching user calendar events:', userError);
       return [];
     }
+    
+    console.log(`Found ${userEvents?.length || 0} events with user_id match`);
+    
+    // Then get events where the user is the student_id (might be different in some cases)
+    const { data: studentEvents, error: studentError } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .eq('student_id', userId)
+      .neq('user_id', userId); // Don't duplicate events we already got
+      
+    if (studentError) {
+      console.error('Error fetching student calendar events:', studentError);
+      // Continue with just the user events
+    } else {
+      console.log(`Found ${studentEvents?.length || 0} additional events with student_id match`);
+    }
 
-    console.log(`Fetched ${data?.length || 0} calendar events from database`);
+    // Combine both sets of events
+    const allEvents = [...(userEvents || []), ...(studentEvents || [])];
+    console.log(`Fetched ${allEvents.length} total calendar events from database`);
     
     // Add detailed logging about the events
-    if (data && data.length > 0) {
-      console.log(`First event: ${JSON.stringify(data[0])}`);
+    if (allEvents.length > 0) {
+      console.log(`First event: ${JSON.stringify(allEvents[0])}`);
       
       // Log distribution of event types
-      const eventTypes = data.reduce((acc: Record<string, number>, event) => {
+      const eventTypes = allEvents.reduce((acc: Record<string, number>, event) => {
         acc[event.event_type || 'unknown'] = (acc[event.event_type || 'unknown'] || 0) + 1;
         return acc;
       }, {});
       console.log('Event type distribution:', eventTypes);
+    } else {
+      console.warn('No events found in database for user:', userId);
+      
+      // Check if there are any events at all in the table (for debugging)
+      const { count, error } = await supabase
+        .from('calendar_events')
+        .select('*', { count: 'exact', head: true });
+        
+      if (error) {
+        console.error('Error checking total event count:', error);
+      } else {
+        console.log(`Total events in database: ${count}`);
+      }
     }
 
-    return data.map(event => {
+    return allEvents.map(event => {
       let subject = '';
       let topic = '';
       

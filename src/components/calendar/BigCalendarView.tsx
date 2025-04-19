@@ -3,26 +3,47 @@ import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isToday } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import CreateStudySession from './CreateStudySession';
 import { Badge } from '@/components/ui/badge';
 import { getEventColor } from '@/utils/calendarUtils';
 import { fromGMTString, formatGMTTime } from '@/utils/timeUtils';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const BigCalendarView: React.FC = () => {
+interface BigCalendarViewProps {
+  onRetryLoad?: () => void;
+}
+
+const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const { events, suggestedEvents, fetchEvents, isLoading } = useCalendarEvents();
+  const [localLoading, setLocalLoading] = useState(true);
 
   useEffect(() => {
     console.log(`BigCalendarView: Rendering with ${events.length} events`);
     
+    // Set a timeout to prevent infinite loading state
+    const timer = setTimeout(() => {
+      setLocalLoading(false);
+    }, 3000);
+    
     // Initial fetch of events when component mounts
-    fetchEvents().catch(err => {
-      console.error('Error fetching initial events in calendar view:', err);
-    });
+    fetchEvents()
+      .then(() => {
+        console.log('BigCalendarView: Successfully fetched events');
+        setLocalLoading(false);
+        clearTimeout(timer);
+      })
+      .catch(err => {
+        console.error('Error fetching initial events in calendar view:', err);
+        setLocalLoading(false);
+        clearTimeout(timer);
+      });
+      
+    return () => clearTimeout(timer);
   }, [fetchEvents]);
   
   const handleDateSelect = (date: Date) => {
@@ -35,6 +56,21 @@ const BigCalendarView: React.FC = () => {
       console.error('Error fetching events after creation:', err);
     });
     setShowCreateDialog(false);
+  };
+  
+  const handleRetry = () => {
+    setLocalLoading(true);
+    if (onRetryLoad) onRetryLoad();
+    
+    fetchEvents()
+      .then(() => {
+        console.log('Calendar events refreshed successfully');
+        setLocalLoading(false);
+      })
+      .catch(err => {
+        console.error('Error refreshing calendar events:', err);
+        setLocalLoading(false);
+      });
   };
 
   const previousMonth = () => {
@@ -110,28 +146,48 @@ const BigCalendarView: React.FC = () => {
     <div className="space-y-5">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Study Calendar</h2>
-        <Button 
-          onClick={() => setShowCreateDialog(true)} 
-          className="bg-purple-600 hover:bg-purple-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Session
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleRetry}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          <Button 
+            onClick={() => setShowCreateDialog(true)} 
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Session
+          </Button>
+        </div>
       </div>
 
-      {isLoading ? (
-        <div className="py-20 text-center text-gray-500">
-          Loading your calendar events...
-        </div>
+      {isLoading || localLoading ? (
+        <Card className="shadow-md border-gray-200">
+          <CardContent className="p-4">
+            <Skeleton className="h-12 w-full mb-4" />
+            <Skeleton className="h-[500px] w-full" />
+          </CardContent>
+        </Card>
       ) : events.length === 0 ? (
         <Card className="shadow-md border-gray-200">
           <CardContent className="p-8 text-center">
             <p className="text-gray-500 mb-4">
               No study sessions found in your calendar.
             </p>
-            <Button onClick={() => setShowCreateDialog(true)} variant="outline">
-              Create your first study session
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button onClick={() => setShowCreateDialog(true)} variant="outline">
+                Create your first study session
+              </Button>
+              <Button onClick={handleRetry} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh calendar
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
