@@ -7,26 +7,32 @@ import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
 import BlockTimeButton from '@/components/calendar/BlockTimeButton';
 import { useAuth } from '@/contexts/AuthContext';
 import SuggestedStudySessions from '@/components/calendar/SuggestedStudySessions';
+import { useLocation } from 'react-router-dom';
 
 const CalendarPage: React.FC = () => {
   const { toast } = useToast();
-  const { fetchEvents, clearEvents } = useCalendarEvents();
+  const { fetchEvents, clearEvents, events } = useCalendarEvents();
   const { state: authState } = useAuth();
+  const location = useLocation();
   
   useEffect(() => {
+    let isMounted = true;
+    
     // Only fetch events if a user is logged in
     if (authState.user?.id) {
       // Initial fetch of events when the page loads
       fetchEvents().catch(err => {
-        console.error('Error fetching calendar events:', err);
+        if (isMounted) {
+          console.error('Error fetching calendar events:', err);
+        }
       });
     }
     
     // Check if we're coming from a completed study schedule setup
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(location.search);
     const fromSetup = urlParams.get('fromSetup');
     
-    if (fromSetup === 'true') {
+    if (fromSetup === 'true' && isMounted) {
       toast({
         title: "Study Schedule Created",
         description: "Your personalized study schedule has been created and is ready to use.",
@@ -38,9 +44,10 @@ const CalendarPage: React.FC = () => {
     
     // Clear events when component unmounts
     return () => {
+      isMounted = false;
       clearEvents();
     };
-  }, [toast, fetchEvents, clearEvents, authState.user]); // Add proper dependencies
+  }, [toast, fetchEvents, clearEvents, authState.user, location.search]); // Add proper dependencies
 
   return (
     <div className="min-h-screen bg-gray-50">

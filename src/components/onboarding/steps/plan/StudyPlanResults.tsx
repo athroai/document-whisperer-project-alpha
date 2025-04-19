@@ -6,6 +6,7 @@ import { CheckCircle, Clock, BookOpen } from 'lucide-react';
 import { StudyPlanCard } from './StudyPlanCard';
 import { UpcomingSessionsList } from './UpcomingSessionsList';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 interface StudyPlanResultsProps {
   studyPlan: any[];
@@ -22,6 +23,12 @@ export const StudyPlanResults: React.FC<StudyPlanResultsProps> = ({
   onComplete,
   isSubmitting
 }) => {
+  const navigate = useNavigate();
+  
+  const handleViewCalendar = () => {
+    navigate('/calendar?fromSetup=true');
+  };
+  
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -70,7 +77,7 @@ export const StudyPlanResults: React.FC<StudyPlanResultsProps> = ({
         <div className="order-1 sm:order-2 flex flex-col sm:flex-row gap-3">
           <Button 
             variant="outline" 
-            onClick={() => window.location.href = "/calendar"}
+            onClick={handleViewCalendar}
             className="bg-white border-gray-200 hover:bg-gray-50 gap-2"
           >
             <CalendarIcon className="h-4 w-4" />

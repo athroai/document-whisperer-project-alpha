@@ -4,6 +4,7 @@ import { format, addMinutes, parse } from 'date-fns';
 import { CalendarEvent } from '@/types/calendar';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { toGMTString } from '@/utils/timeUtils';
+import { useToast } from '@/hooks/use-toast';
 
 export const useStudySessionForm = (
   initialDate: Date = new Date(),
@@ -19,6 +20,7 @@ export const useStudySessionForm = (
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { createEvent } = useCalendarEvents();
+  const { toast } = useToast();
 
   const handleSubmit = async () => {
     try {
@@ -43,16 +45,30 @@ export const useStudySessionForm = (
       
       const createdEvent = await createEvent(eventData, true);
       
-      if (onSuccess && createdEvent) {
-        onSuccess(createdEvent);
-      }
-      
-      if (onClose) {
-        onClose();
+      if (createdEvent) {
+        toast({
+          title: "Success",
+          description: "Study session created successfully.",
+        });
+        
+        if (onSuccess) {
+          onSuccess(createdEvent);
+        }
+        
+        if (onClose) {
+          onClose();
+        }
+      } else {
+        throw new Error("Failed to create event");
       }
       
     } catch (error) {
       console.error('Error creating study session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create study session. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }

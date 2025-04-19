@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { motion } from 'framer-motion';
@@ -198,11 +197,18 @@ export const StudyPlanContainer: React.FC = () => {
           })
           .select('id');
           
-        if (eventError) throw eventError;
-        if (!eventData || eventData.length === 0) throw new Error("Failed to create calendar event");
+        if (eventError) {
+          console.error("Error creating calendar event:", eventError);
+          throw eventError;
+        }
+        
+        if (!eventData || eventData.length === 0) {
+          console.error("No event data returned");
+          throw new Error("Failed to create calendar event");
+        }
         
         // Link session to study plan
-        await supabase
+        const { error: linkError } = await supabase
           .from('study_plan_sessions')
           .insert({
             plan_id: planId,
@@ -215,10 +221,17 @@ export const StudyPlanContainer: React.FC = () => {
             calendar_event_id: eventData[0].id
           });
           
+        if (linkError) {
+          console.error("Error linking session to study plan:", linkError);
+          throw linkError;
+        }
+          
         return eventData[0].id;
       });
       
       await Promise.all(eventPromises);
+      console.log(`Successfully created ${eventPromises.length} calendar events`);
+      
     } catch (error) {
       console.error("Error saving sessions to database:", error);
       throw error;
@@ -234,10 +247,11 @@ export const StudyPlanContainer: React.FC = () => {
       setIsGenerating(true);
       await completeOnboarding();
       toast.success("Onboarding completed successfully!");
-      navigate('/calendar');
+      navigate('/calendar?fromSetup=true');
     } catch (error) {
       console.error("Error completing onboarding:", error);
       toast.error("There was an error completing onboarding. Please try again.");
+    } finally {
       setIsGenerating(false);
     }
   };

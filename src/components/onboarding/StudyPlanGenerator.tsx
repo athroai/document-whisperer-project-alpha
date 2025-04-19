@@ -348,12 +348,20 @@ export const StudyPlanGenerator: React.FC = () => {
 
   const handleComplete = async () => {
     try {
-      await completeOnboarding();
+      setIsSubmitting(true);
+      
+      // Save to database if user exists
+      if (state.user) {
+        await completeOnboarding();
+      }
+      
       toast({
-        title: "Onboarding Complete",
-        description: "You're all set! Your personalized study plan is ready.",
+        title: "Success",
+        description: "Your study plan has been created successfully!",
       });
-      window.location.href = '/calendar';
+      
+      // Navigate to calendar with the fromSetup parameter to trigger the success message
+      window.location.href = '/calendar?fromSetup=true';
     } catch (error) {
       console.error("Error completing onboarding:", error);
       toast({
@@ -361,6 +369,8 @@ export const StudyPlanGenerator: React.FC = () => {
         description: "Failed to complete onboarding. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
