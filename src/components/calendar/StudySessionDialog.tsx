@@ -25,7 +25,17 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   selectedDate,
   onSuccess
 }) => {
-  const { formData, setters } = useStudySessionForm(selectedDate);
+  const {
+    formState,
+    setTitle,
+    setSubject,
+    setTopic,
+    setDate,
+    setStartTime,
+    setDuration,
+    handleSubmit: submitForm
+  } = useStudySessionForm(selectedDate);
+  
   const { subjects, isLoading } = useSubjects();
   const { toast } = useToast();
   
@@ -34,60 +44,30 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     return character ? character.topics : [];
   };
   
-  const currentTopics = getTopicsForSubject(formData.subject);
+  const currentTopics = getTopicsForSubject(formState.subject);
   const availableSubjects = subjects.length > 0 ? subjects : athroCharacters.map(char => char.subject);
 
   const handleSubmit = async () => {
     try {
-      setters.setIsSubmitting(true);
-      
-      const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
-      const durationMinutes = parseInt(formData.duration, 10);
-      const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60000);
-      
-      const hour = startDateTime.getHours();
+      const hour = new Date(`${formState.date}T${formState.startTime}`).getHours();
       if (hour < 15 || hour > 23) {
         toast({
           title: "Invalid Time",
           description: "Please select a time between 3 PM and 11 PM",
           variant: "destructive",
         });
-        setters.setIsSubmitting(false);
         return;
       }
       
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      await submitForm();
       
-      if (userError || !user) {
-        throw new Error('User not authenticated');
-      }
-      
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .insert({
-          user_id: user.id,
-          title: formData.title || `Study: ${formData.subject}${formData.topic ? ` - ${formData.topic}` : ''}`,
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString(),
-          event_type: 'study_session',
-          subject: formData.subject,
-          topic: formData.topic || null,
-          student_id: user.id
-        })
-        .select();
-      
-      if (error) throw error;
+      if (onSuccess) onSuccess();
+      onOpenChange(false);
       
       toast({
         title: 'Study Session Scheduled',
         description: 'Your study session has been added to your calendar.',
       });
-      
-      if (onSuccess) onSuccess();
-      onOpenChange(false);
-      
-      setters.setTitle('');
-      setters.setTopic('');
       
     } catch (error) {
       console.error('Error creating study session:', error);
@@ -96,8 +76,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         description: 'There was a problem scheduling your study session.',
         variant: 'destructive',
       });
-    } finally {
-      setters.setIsSubmitting(false);
     }
   };
 
@@ -115,16 +93,16 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
             <Label htmlFor="title">Session Title (Optional)</Label>
             <Input 
               id="title" 
-              placeholder={`Study: ${formData.subject}${formData.topic ? ` - ${formData.topic}` : ''}`}
-              value={formData.title}
-              onChange={(e) => setters.setTitle(e.target.value)}
+              placeholder={`Study: ${formState.subject}${formState.topic ? ` - ${formState.topic}` : ''}`}
+              value={formState.title}
+              onChange={(e) => setTitle(e.target.value)}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
             <Select 
-              value={formData.subject} 
-              onValueChange={setters.setSubject}
+              value={formState.subject} 
+              onValueChange={setSubject}
             >
               <SelectTrigger id="subject">
                 <SelectValue placeholder="Select Subject" />
@@ -147,8 +125,8 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
           <div className="space-y-2">
             <Label htmlFor="topic">Topic (Optional)</Label>
             <Select 
-              value={formData.topic} 
-              onValueChange={setters.setTopic}
+              value={formState.topic} 
+              onValueChange={setTopic}
             >
               <SelectTrigger id="topic">
                 <SelectValue placeholder="Select Topic" />
@@ -162,12 +140,12 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
             </Select>
           </div>
           <TimeSelector 
-            date={formData.date}
-            startTime={formData.startTime}
-            duration={formData.duration}
-            onDateChange={setters.setDate}
-            onStartTimeChange={setters.setStartTime}
-            onDurationChange={setters.setDuration}
+            date={formState.date}
+            startTime={formState.startTime}
+            duration={formState.duration}
+            onDateChange={setDate}
+            onStartTimeChange={setStartTime}
+            onDurationChange={setDuration}
           />
         </div>
         <DialogFooter>
@@ -176,9 +154,9 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={formData.isSubmitting}
+            disabled={formState.isSubmitting}
           >
-            {formData.isSubmitting ? 'Scheduling...' : 'Schedule Session'}
+            {formState.isSubmitting ? 'Scheduling...' : 'Schedule Session'}
           </Button>
         </DialogFooter>
       </DialogContent>
