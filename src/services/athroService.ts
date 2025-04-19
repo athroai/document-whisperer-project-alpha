@@ -2,7 +2,7 @@
 import { AthroCharacterConfig } from '@/types/athroCharacter';
 import { AthroSubject, AthroLanguage } from '@/types/athro';
 
-// Update the subject values to be compatible with AthroSubject type
+// Update the subject values to be compatible with string type
 const subjects: Record<string, string> = {
   Mathematics: 'Mathematics',
   Science: 'Science',
@@ -15,7 +15,7 @@ const subjects: Record<string, string> = {
 };
 
 export const getTopicsForSubject = (subject: string): string[] => {
-  // And also update any indexing with AthroSubject
+  // And also update any indexing with string
   const subjectKey = subject as string;
   const topicsForSubject = subjects[subjectKey];
 

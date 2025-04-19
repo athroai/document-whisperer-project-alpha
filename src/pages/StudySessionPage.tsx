@@ -5,7 +5,6 @@ import { AthroMessage } from '@/types/athro';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-// Update the message object to include the required 'role' property
 const StudySessionPage = () => {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
