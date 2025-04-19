@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -96,7 +95,8 @@ export const StudyPlanGenerator: React.FC = () => {
         description: "Your study plan has been created successfully!",
       });
       
-      // Navigate to calendar with the fromSetup parameter to trigger the success message
+      // Ensure we navigate to calendar with clear parameters
+      console.log("Navigating to calendar after study plan generation");
       navigate('/calendar?fromSetup=true');
     } catch (error) {
       console.error("Error completing onboarding:", error);

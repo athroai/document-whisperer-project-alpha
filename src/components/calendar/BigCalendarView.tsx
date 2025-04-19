@@ -7,7 +7,6 @@ import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import CreateStudySession from './CreateStudySession';
 import { Badge } from '@/components/ui/badge';
-import { CalendarEvent } from '@/types/calendar';
 import { getEventColor } from '@/utils/calendarUtils';
 import { fromGMTString, formatGMTTime } from '@/utils/timeUtils';
 
@@ -15,11 +14,14 @@ const BigCalendarView: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
-  const { events, suggestedEvents, fetchEvents } = useCalendarEvents();
-  
+  const { events, suggestedEvents, fetchEvents, isLoading } = useCalendarEvents();
+
   useEffect(() => {
+    console.log(`BigCalendarView: Rendering with ${events.length} events`);
+    
+    // Initial fetch of events when component mounts
     fetchEvents().catch(err => {
-      console.error('Error fetching initial events:', err);
+      console.error('Error fetching initial events in calendar view:', err);
     });
   }, [fetchEvents]);
   
@@ -117,31 +119,48 @@ const BigCalendarView: React.FC = () => {
         </Button>
       </div>
 
-      <Card className="shadow-md border-gray-200">
-        <CardContent className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <Button onClick={previousMonth} variant="outline">
-              <ChevronLeft className="h-4 w-4" />
+      {isLoading ? (
+        <div className="py-20 text-center text-gray-500">
+          Loading your calendar events...
+        </div>
+      ) : events.length === 0 ? (
+        <Card className="shadow-md border-gray-200">
+          <CardContent className="p-8 text-center">
+            <p className="text-gray-500 mb-4">
+              No study sessions found in your calendar.
+            </p>
+            <Button onClick={() => setShowCreateDialog(true)} variant="outline">
+              Create your first study session
             </Button>
-            <h3 className="text-lg font-medium">
-              {format(currentMonth, 'MMMM yyyy')}
-            </h3>
-            <Button onClick={nextMonth} variant="outline">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-7 gap-2 text-center">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="font-semibold text-gray-600">{day}</div>
-            ))}
-          </div>
-          
-          <div className="grid grid-cols-7 gap-2 mt-2">
-            {renderCalendar()}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="shadow-md border-gray-200">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <Button onClick={previousMonth} variant="outline">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h3 className="text-lg font-medium">
+                {format(currentMonth, 'MMMM yyyy')}
+              </h3>
+              <Button onClick={nextMonth} variant="outline">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-7 gap-2 text-center">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="font-semibold text-gray-600">{day}</div>
+              ))}
+            </div>
+            
+            <div className="grid grid-cols-7 gap-2 mt-2">
+              {renderCalendar()}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-wrap gap-2 mt-4">
         <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Mathematics</Badge>

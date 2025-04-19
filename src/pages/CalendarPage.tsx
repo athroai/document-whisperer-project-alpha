@@ -15,6 +15,38 @@ const CalendarPage: React.FC = () => {
   const { state: authState } = useAuth();
   const location = useLocation();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Check if we're coming from onboarding
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const fromSetup = urlParams.get('fromSetup');
+    
+    if (fromSetup === 'true') {
+      console.log("Detected calendar view after onboarding completion");
+      toast({
+        title: "Study Schedule Created",
+        description: "Your personalized study schedule has been created and is ready to use.",
+      });
+      
+      // Force refresh events when coming from onboarding
+      if (authState.user?.id) {
+        setIsRefreshing(true);
+        fetchEvents()
+          .then(() => {
+            console.log("Successfully refreshed calendar events after onboarding");
+            setIsRefreshing(false);
+          })
+          .catch(err => {
+            console.error("Error refreshing events after onboarding:", err);
+            setIsRefreshing(false);
+          });
+      }
+      
+      // Clean up the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location.search, toast, fetchEvents, authState.user]);
   
   useEffect(() => {
     let isMounted = true;
@@ -40,34 +72,13 @@ const CalendarPage: React.FC = () => {
     
     loadCalendarEvents();
     
-    // Check if we're coming from a completed study schedule setup
-    const urlParams = new URLSearchParams(location.search);
-    const fromSetup = urlParams.get('fromSetup');
-    
-    if (fromSetup === 'true' && isMounted) {
-      toast({
-        title: "Study Schedule Created",
-        description: "Your personalized study schedule has been created and is ready to use.",
-      });
-      
-      // Clean up the URL parameter
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
     // Clear events when component unmounts
     return () => {
       isMounted = false;
       clearEvents();
     };
-  }, [toast, fetchEvents, clearEvents, authState.user]); // Remove events from dependency array
+  }, [authState.user, fetchEvents, clearEvents, isInitialLoad, events.length]); 
   
-  // Re-fetch events when user changes
-  useEffect(() => {
-    if (authState.user?.id) {
-      fetchEvents();
-    }
-  }, [authState.user, fetchEvents]);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -77,8 +88,15 @@ const CalendarPage: React.FC = () => {
             <BlockTimeButton />
           </div>
         </div>
+        
+        {isRefreshing && (
+          <div className="mb-4 text-center text-gray-500">
+            Loading your study schedule...
+          </div>
+        )}
+        
         <SuggestedStudySessions />
-        <BigCalendarView />
+        <BigCalendarView key={`calendar-${events.length}`} />
         <StudySessionLauncher />
       </div>
     </div>

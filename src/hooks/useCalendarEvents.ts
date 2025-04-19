@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,16 +33,16 @@ export const useCalendarEvents = () => {
     deleteDbEvent
   } = useDbCalendarEvents();
 
-  const clearEvents = () => {
+  const clearEvents = useCallback(() => {
     setEvents([]);
     clearLocalEvents();
-  };
+  }, [clearLocalEvents]);
 
-  const getCurrentUserId = () => {
+  const getCurrentUserId = useCallback(() => {
     return authState.user?.id || null;
-  };
+  }, [authState.user]);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -55,10 +54,13 @@ export const useCalendarEvents = () => {
         return [];
       }
 
+      console.log(`Fetching calendar events for user ${userId}`);
       const dbEvents = await fetchDatabaseEvents(userId);
+      console.log(`Retrieved ${dbEvents.length} database events`);
       
       const dbEventIds = new Set(dbEvents.map(event => event.id));
       const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
+      console.log(`Found ${filteredLocalEvents.length} local events`);
       
       const combinedEvents = [...dbEvents, ...filteredLocalEvents];
       setEvents(combinedEvents);
@@ -73,7 +75,7 @@ export const useCalendarEvents = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getCurrentUserId, localEvents, generateSuggestedSessions]);
 
   const createEvent = async (
     eventData: Partial<CalendarEvent>,
