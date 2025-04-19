@@ -10,9 +10,9 @@ export interface User {
   displayName: string;
   createdAt?: Date;
   rememberMe?: boolean;
-  licenseExempt?: boolean;  // Added this property
+  licenseExempt?: boolean;  
   schoolId?: string;
-  examBoard?: string;  // Added this property
+  examBoard?: string;  
   confidenceScores?: {
     [subject: string]: number;
   };
