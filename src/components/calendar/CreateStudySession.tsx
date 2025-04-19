@@ -73,6 +73,13 @@ const CreateStudySession = ({
     setMinute(value[0]);
   };
   
+  // Reset form
+  const resetForm = () => {
+    setTitle('Study Session');
+    setSubject('');
+    setTopic('');
+  };
+  
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
@@ -83,6 +90,7 @@ const CreateStudySession = ({
           description: "Please select a subject for this study session",
           variant: "destructive"
         });
+        setIsSubmitting(false);
         return;
       }
       
@@ -103,17 +111,16 @@ const CreateStudySession = ({
         event_type: 'study_session'
       }, true); // Added a parameter to indicate this is user-initiated and should use fallbacks
       
-      if (event && onSuccess) {
-        onSuccess(event);
-      }
+      // Reset form
+      resetForm();
       
       // Close dialog
       onClose();
       
-      // Reset form
-      setTitle('Study Session');
-      setSubject('');
-      setTopic('');
+      // Call success callback with the new event
+      if (event && onSuccess) {
+        onSuccess(event);
+      }
       
     } catch (error) {
       console.error('Error creating study session:', error);
@@ -141,12 +148,16 @@ const CreateStudySession = ({
           local_only: true
         };
         
-        if (onSuccess) {
-          onSuccess(localEvent);
-        }
+        // Reset form
+        resetForm();
         
         // Close dialog
         onClose();
+        
+        // Call success callback with the local event
+        if (onSuccess) {
+          onSuccess(localEvent);
+        }
       } catch (localError) {
         console.error('Error creating local event:', localError);
         toast({
@@ -161,7 +172,11 @@ const CreateStudySession = ({
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        onClose();
+      }
+    }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Schedule a Study Session</DialogTitle>

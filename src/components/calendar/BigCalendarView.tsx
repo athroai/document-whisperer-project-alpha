@@ -1,14 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { format, parse, startOfToday, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, isSameMonth, isToday } from 'date-fns';
-import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import CreateStudySession from './CreateStudySession';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { CalendarEvent } from '@/types/calendar';
 
 const BigCalendarView: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -16,10 +15,14 @@ const BigCalendarView: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const { events, fetchEvents } = useCalendarEvents();
   
-  // Load events when component mounts
-  useEffect(() => {
-    fetchEvents();
+  // Load events when component mounts or when refreshEvents is called
+  const refreshEvents = useCallback(async () => {
+    await fetchEvents();
   }, [fetchEvents]);
+  
+  useEffect(() => {
+    refreshEvents();
+  }, [refreshEvents]);
   
   // Function to handle date selection
   const handleDateSelect = (date: Date | undefined) => {
@@ -29,8 +32,9 @@ const BigCalendarView: React.FC = () => {
     }
   };
 
-  const handleCreateSuccess = () => {
-    fetchEvents();
+  const handleCreateSuccess = (newEvent: CalendarEvent) => {
+    // Refresh events immediately after successful creation
+    refreshEvents();
     setShowCreateDialog(false);
   };
 

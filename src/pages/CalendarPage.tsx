@@ -10,6 +10,9 @@ const CalendarPage: React.FC = () => {
   const { fetchEvents } = useCalendarEvents();
   
   useEffect(() => {
+    // Initial fetch of events when the page loads
+    fetchEvents();
+    
     // Check if we're coming from a completed study schedule setup
     const urlParams = new URLSearchParams(window.location.search);
     const fromSetup = urlParams.get('fromSetup');
@@ -19,9 +22,6 @@ const CalendarPage: React.FC = () => {
         title: "Study Schedule Created",
         description: "Your personalized study schedule has been created and is ready to use.",
       });
-      
-      // Refresh events to ensure we have the latest data
-      fetchEvents();
       
       // Clean up the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname);
