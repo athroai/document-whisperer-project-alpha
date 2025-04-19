@@ -10,6 +10,7 @@ import { QuizQuestion } from './quiz/QuizQuestion';
 import { useToast } from '@/hooks/use-toast';
 import { ConfidenceLabel, confidenceOptions } from '@/types/confidence';
 import { cn } from '@/lib/utils';
+import { QuizResult } from '@/hooks/quiz/types';
 
 export const DiagnosticQuizSelector: React.FC = () => {
   const { toast: uiToast } = useToast();
@@ -45,7 +46,10 @@ export const DiagnosticQuizSelector: React.FC = () => {
 
   const allQuizzesCompleted = () => {
     return selectedSubjects.length > 0 && 
-      selectedSubjects.every(subject => quizResults[subject.subject]);
+      selectedSubjects.every(subject => {
+        const result = quizResults[subject.subject];
+        return result !== undefined;
+      });
   };
 
   const handleContinue = () => {
@@ -71,7 +75,12 @@ export const DiagnosticQuizSelector: React.FC = () => {
     
     return (
       <QuizQuestion
-        question={currentQuestion}
+        question={{
+          id: currentQuestion.id,
+          text: currentQuestion.question,
+          options: currentQuestion.options,
+          correctAnswerIndex: currentQuestion.correctAnswer
+        }}
         currentIndex={currentQuestionIndex}
         totalQuestions={questions.length}
         selectedAnswerId={selectedAnswers[currentQuestionIndex]}
@@ -119,7 +128,9 @@ export const DiagnosticQuizSelector: React.FC = () => {
           <SubjectQuizCard
             key={subject}
             subject={String(subject)}
-            score={quizResults[subject]}
+            score={typeof quizResults[subject] === 'number' 
+              ? quizResults[subject] as number
+              : (quizResults[subject] as QuizResult)?.score}
             isLoading={isLoadingQuestions[subject] || false}
             isGenerating={isGenerating[subject] || false}
             onStartQuiz={() => handleStartQuiz(String(subject))}

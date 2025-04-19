@@ -1,5 +1,6 @@
 
 import { ConfidenceLabel } from '@/types/confidence';
+import { Question } from '@/types/quiz';
 
 export interface QuizQuestion {
   id: string;
@@ -15,6 +16,34 @@ export interface QuizResult {
 }
 
 export interface UseQuizStateProps {
+  onQuizComplete?: (subject: string, score: number) => void;
+}
+
+export interface UseQuizState {
+  currentSubject: string | null;
+  setCurrentSubject: (subject: string | null) => void;
+  questions: Question[];
+  setQuestions: (questions: Question[]) => void;
+  currentQuestionIndex: number;
+  setCurrentQuestionIndex: (indexOrFn: number | ((prev: number) => number)) => void;
+  selectedAnswers: Record<number, string>;
+  setSelectedAnswers: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+  quizCompleted: boolean;
+  setQuizCompleted: React.Dispatch<React.SetStateAction<boolean>>;
+  score: number;
+  setScore: React.Dispatch<React.SetStateAction<number>>;
+  error: string | null;
+  setError: React.Dispatch<React.SetStateAction<string | null>>;
+  isLoadingQuestions: Record<string, boolean>;
+  setIsLoadingQuestions: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  isGenerating: Record<string, boolean>;
+  setIsGenerating: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  retryCount: Record<string, number>;
+  setRetryCount: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+  loadingToastId: string | null;
+  setLoadingToastId: React.Dispatch<React.SetStateAction<string | null>>;
+  quizResults: Record<string, number>;
+  setQuizResults: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   onQuizComplete?: (subject: string, score: number) => void;
 }
 
@@ -48,7 +77,7 @@ export interface ExtendedQuizOperations {
   error: string | null;
   isLoadingQuestions: { [key: string]: boolean };
   isGenerating: { [key: string]: boolean };
-  quizResults: { [key: string]: QuizResult };
+  quizResults: { [key: string]: QuizResult | number };
   startQuiz: (subject: string, confidence: ConfidenceLabel) => void;
   handleAnswerSelect: (answerId: string) => void;
   handleNextQuestion: () => void;
