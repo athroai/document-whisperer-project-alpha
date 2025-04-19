@@ -17,6 +17,7 @@ export const StudyPlanGenerator: React.FC = () => {
   const { selectedSubjects, completeOnboarding, updateOnboardingStep, studySlots } = useOnboarding();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [studyPlan, setStudyPlan] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -529,8 +530,9 @@ export const StudyPlanGenerator: React.FC = () => {
             <Button 
               onClick={handleComplete}
               className="bg-green-600 hover:bg-green-700"
+              disabled={isSubmitting}
             >
-              Complete Setup
+              {isSubmitting ? 'Completing...' : 'Complete Setup'}
             </Button>
           </div>
         </div>
