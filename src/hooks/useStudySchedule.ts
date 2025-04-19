@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -6,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useCalendarEvents } from './useCalendarEvents';
+import { format, addDays } from 'date-fns';
 
 interface SessionTime {
   startHour: number;
@@ -143,49 +145,107 @@ export const useStudySchedule = () => {
   };
 
   const createCalendarEvents = async (slots: PreferredStudySlot[]) => {
-    if (!slots.length) return;
+    if (!slots.length) return [];
     
     try {
-      for (let weekOffset = 0; weekOffset < 4; weekOffset++) {
-        for (const slot of slots) {
-          const today = new Date();
-          const dayOfWeek = today.getDay();
+      const events = [];
+      const today = new Date();
+      const weekStartDate = today.getDate() - today.getDay() + 1; // Monday
+      
+      for (const slot of slots) {
+        // Calculate the next occurrence of this day
+        let dayDiff = slot.day_of_week - today.getDay();
+        if (dayDiff <= 0) dayDiff += 7;
+        
+        const nextDate = new Date(today);
+        nextDate.setDate(weekStartDate + slot.day_of_week - 1);
+        
+        const startTime = new Date(nextDate);
+        startTime.setHours(slot.preferred_start_hour, 0, 0, 0);
+        
+        const endTime = new Date(startTime);
+        endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
+        
+        try {
+          const event = await createEvent({
+            title: "Study Session",
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            subject: "General",
+            event_type: 'study_session'
+          });
           
-          let daysToAdd = slot.day_of_week - dayOfWeek;
-          if (daysToAdd <= 0) daysToAdd += 7;
-          
-          daysToAdd += weekOffset * 7;
-          
-          const eventDate = new Date(today);
-          eventDate.setDate(today.getDate() + daysToAdd);
-          eventDate.setHours(slot.preferred_start_hour, 0, 0, 0);
-          
-          const endTime = new Date(eventDate);
-          endTime.setMinutes(endTime.getMinutes() + slot.slot_duration_minutes);
-          
-          try {
-            await createEvent({
-              subject: "Study Session",
-              start_time: eventDate.toISOString(),
-              end_time: endTime.toISOString(),
-              event_type: 'study_session'
-            });
-          } catch (innerError) {
-            console.error('Error creating individual calendar event:', innerError);
+          if (event) {
+            events.push(event);
           }
+        } catch (err) {
+          console.error('Error creating calendar event:', err);
         }
       }
+      
+      return events;
     } catch (error) {
       console.error('Error creating calendar events:', error);
+      return [];
+    }
+  };
+
+  const saveStudySlotsToDatabase = async (userId: string, slots: PreferredStudySlot[]) => {
+    try {
+      console.log('Saving slots to database for user:', userId);
+      
+      // First delete any existing slots
+      await supabase
+        .from('preferred_study_slots')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (slots.length === 0) {
+        return true;
+      }
+      
+      // Prepare slots for insertion (remove temporary IDs)
+      const slotsToInsert = slots.map(({ id, ...slot }) => ({
+        user_id: userId,
+        day_of_week: slot.day_of_week,
+        slot_count: slot.slot_count,
+        slot_duration_minutes: slot.slot_duration_minutes,
+        preferred_start_hour: slot.preferred_start_hour
+      }));
+      
+      console.log('Inserting slots:', slotsToInsert);
+      
+      // Insert new slots
+      const { error } = await supabase
+        .from('preferred_study_slots')
+        .insert(slotsToInsert);
+      
+      if (error) {
+        console.error('Error inserting slots:', error);
+        throw error;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving study slots to database:', error);
+      throw error;
     }
   };
 
   const handleContinue = async () => {
-    if (selectedDays.length === 0) return;
+    if (selectedDays.length === 0) {
+      toast({
+        title: "No Days Selected",
+        description: "Please select at least one day for your study schedule.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     
     try {
+      // Prepare study slots from selected days and preferences
       const newSlots: PreferredStudySlot[] = [];
       
       selectedDays.forEach(dayOfWeek => {
@@ -216,47 +276,70 @@ export const useStudySchedule = () => {
         }
       });
       
+      // Save slots to context
       setStudySlots(newSlots);
       
-      if (authState.user?.id) {
-        await supabase
-          .from('preferred_study_slots')
-          .delete()
-          .eq('user_id', authState.user.id);
-
-        const slots = selectedDays.flatMap(dayOfWeek => {
-          const dayPref = dayPreferences.find(p => p.dayIndex === dayOfWeek);
-          
-          if (dayPref) {
-            return dayPref.sessionTimes.map((session) => ({
-              user_id: authState.user?.id,
-              day_of_week: dayOfWeek,
-              slot_count: 1,
-              slot_duration_minutes: session.durationMinutes,
-              preferred_start_hour: session.startHour
-            }));
+      // Get user ID (either from auth or mock user)
+      let userId = authState.user?.id;
+      
+      if (!userId && localStorage.getItem('athro_user')) {
+        try {
+          const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
+          if (mockUser.id) {
+            userId = mockUser.id;
+            console.log('Using mock user ID for study slots:', userId);
           }
-          
-          return Array(sessionsPerDay).fill(null).map((_, i) => ({
-            user_id: authState.user?.id,
-            day_of_week: dayOfWeek,
-            slot_count: 1,
-            slot_duration_minutes: getSessionDurationForCount(sessionsPerDay),
-            preferred_start_hour: 15 + i
-          }));
-        });
-
-        if (slots.length > 0) {
-          const { error } = await supabase
-            .from('preferred_study_slots')
-            .insert(slots);
-
-          if (error) throw error;
-          
-          await createCalendarEvents(newSlots);
+        } catch (err) {
+          console.warn('Error parsing mock user:', err);
         }
       }
       
+      if (userId) {
+        // Save to database
+        await saveStudySlotsToDatabase(userId, newSlots);
+        
+        // Create calendar events for these slots
+        await createCalendarEvents(newSlots);
+        
+        // Update onboarding progress if needed
+        try {
+          const { data, error } = await supabase
+            .from('onboarding_progress')
+            .select('*')
+            .eq('student_id', userId)
+            .maybeSingle();
+            
+          if (error) throw error;
+          
+          if (data) {
+            // Update existing progress
+            await supabase
+              .from('onboarding_progress')
+              .update({
+                has_completed_availability: true,
+                current_step: 'calendar',
+                updated_at: new Date().toISOString()
+              })
+              .eq('student_id', userId);
+          } else {
+            // Create new progress record
+            await supabase
+              .from('onboarding_progress')
+              .insert({
+                student_id: userId,
+                current_step: 'calendar',
+                has_completed_availability: true
+              });
+          }
+        } catch (err) {
+          console.error('Error updating onboarding progress:', err);
+        }
+      }
+      
+      // Update context
+      updateOnboardingStep('calendar');
+      
+      // Create study slots in context
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
         
@@ -272,15 +355,22 @@ export const useStudySchedule = () => {
         }
       });
       
-      updateOnboardingStep('calendar');
+      // Navigate to calendar page
       navigate('/calendar');
-    } catch (error) {
+      
+      toast({
+        title: "Success",
+        description: "Your study schedule has been saved.",
+      });
+    } catch (error: any) {
       console.error('Error saving study slots:', error);
       toast({
         title: "Error",
-        description: "Failed to save your study schedule. Please try again.",
+        description: error.message || "Failed to save your study schedule. Please try again.",
         variant: "destructive"
       });
+      
+      // Still navigate to calendar in case of error
       updateOnboardingStep('calendar');
       navigate('/calendar');
     } finally {

@@ -1,19 +1,39 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button'; 
+import { Move, Clock, Edit, Plus, Calendar } from 'lucide-react';
 import SlotBasedCalendar from '@/components/calendar/SlotBasedCalendar';
-import { Move, Clock, Edit, Plus } from 'lucide-react';
+import SimpleStudyScheduler from '@/components/calendar/SimpleStudyScheduler';
+import CreateStudySession from '@/components/calendar/CreateStudySession';
+import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 
 const CalendarPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<string>("simple");
+  const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
+  const { fetchEvents } = useCalendarEvents();
+  
+  const handleCreateSuccess = () => {
+    fetchEvents();
+    setShowCreateDialog(false);
+  };
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Your Study Calendar</h1>
-            <p className="text-gray-500 mt-1">
-              View and manage your personalized study schedule
-            </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Your Study Calendar</h1>
+              <p className="text-gray-500 mt-1">
+                View and manage your personalized study schedule
+              </p>
+            </div>
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Session
+            </Button>
           </div>
           
           <Card className="bg-blue-50 border-blue-200">
@@ -43,13 +63,41 @@ const CalendarPage: React.FC = () => {
             </CardContent>
           </Card>
           
-          <Card>
-            <CardContent className="p-6">
-              <SlotBasedCalendar />
-            </CardContent>
-          </Card>
+          <Tabs 
+            defaultValue="simple"
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="simple">Weekly View</TabsTrigger>
+              <TabsTrigger value="detailed">Detailed View</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="simple">
+              <Card>
+                <CardContent className="p-6">
+                  <SimpleStudyScheduler />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="detailed">
+              <Card>
+                <CardContent className="p-6">
+                  <SlotBasedCalendar />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
+      
+      <CreateStudySession
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        onSuccess={handleCreateSuccess}
+      />
     </div>
   );
 };
