@@ -53,6 +53,14 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         error: action.payload
       };
     case 'AUTH_LOGOUT':
+      // Clear any user-specific data from localStorage when logging out
+      localStorage.removeItem('athro_user');
+      localStorage.removeItem('athro_token');
+      
+      // Also clear any session-specific data
+      sessionStorage.removeItem('athro_user');
+      sessionStorage.removeItem('athro_token');
+      
       return {
         ...state,
         user: null,
@@ -208,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      // Clear auth data
       localStorage.removeItem('athro_user');
       localStorage.removeItem('athro_token');
       sessionStorage.removeItem('athro_user');
@@ -215,6 +224,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Also sign out from Supabase to clear any session
       await supabase.auth.signOut();
+      
+      // Clear any user-specific data from localStorage
+      // Find and remove any calendar event notifications
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('notified_session_') || key?.startsWith('athro_calendar_events_')) {
+          localStorage.removeItem(key);
+        }
+      }
       
       dispatch({ type: 'AUTH_LOGOUT' });
     } catch (error) {

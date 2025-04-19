@@ -21,6 +21,7 @@ export const useLocalEvents = () => {
   // Load local events from localStorage on mount or when user changes
   useEffect(() => {
     try {
+      // Clear existing events first
       clearLocalEvents();
       
       if (authState.user?.id) {
