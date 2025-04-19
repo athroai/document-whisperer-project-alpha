@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +10,6 @@ import { fetchDatabaseEvents } from '@/services/calendarEventService';
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const { toast } = useToast();
   const { state: authState } = useAuth();
   
@@ -38,6 +36,7 @@ export const useCalendarEvents = () => {
   const clearEvents = useCallback(() => {
     setEvents([]);
     clearLocalEvents();
+    localStorage.removeItem('cached_calendar_events');
   }, [clearLocalEvents]);
 
   const getCurrentUserId = useCallback(() => {
@@ -45,14 +44,6 @@ export const useCalendarEvents = () => {
   }, [authState.user]);
 
   const fetchEvents = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastFetchTime < 5000) {
-      console.log('Debouncing fetchEvents call - too recent');
-      return events;
-    }
-    
-    setLastFetchTime(now);
-    
     try {
       setIsLoading(true);
       const userId = getCurrentUserId();
@@ -68,6 +59,7 @@ export const useCalendarEvents = () => {
       const dbEvents = await fetchDatabaseEvents(userId);
       console.log(`Retrieved ${dbEvents.length} database events`);
       
+      const now = Date.now();
       if (dbEvents.length > 0) {
         localStorage.setItem('cached_calendar_events', JSON.stringify({
           userId,
@@ -90,20 +82,17 @@ export const useCalendarEvents = () => {
       return combinedEvents;
     } catch (error) {
       console.error('Error in fetchEvents:', error);
-      const cached = localStorage.getItem('cached_calendar_events');
-      if (cached) {
-        const { events: cachedEvents, timestamp, userId } = JSON.parse(cached);
-        if (userId === getCurrentUserId() && now - timestamp < 300000) {
-          setEvents(cachedEvents);
-          return cachedEvents;
-        }
-      }
+      toast({
+        title: "Error",
+        description: "Failed to load calendar events. Please try again.",
+        variant: "destructive"
+      });
       setEvents(localEvents);
       return localEvents;
     } finally {
       setIsLoading(false);
     }
-  }, [getCurrentUserId, localEvents, generateSuggestedSessions, events, lastFetchTime]);
+  }, [getCurrentUserId, localEvents, generateSuggestedSessions, toast]);
 
   const createEvent = async (
     eventData: Partial<CalendarEvent>,

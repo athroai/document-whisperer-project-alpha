@@ -37,34 +37,33 @@ export const useDbCalendarEvents = () => {
       const { data, error } = await supabase
         .from('calendar_events')
         .insert(eventInsert)
-        .select();
+        .select()
+        .single();
 
       if (error) {
         console.error('Error creating calendar event in database:', error);
         return null;
       }
 
-      if (!data || data.length === 0) {
+      if (!data) {
         console.error('No data returned from calendar event creation');
         return null;
       }
 
-      console.log('Successfully created event in database:', data[0]);
+      console.log('Successfully created event in database:', data);
 
-      const eventWithSubject = {
-        id: data[0].id,
-        title: data[0].title,
-        description: data[0].description,
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
         subject: eventData.subject || '',
         topic: eventData.topic || '',
-        start_time: data[0].start_time,
-        end_time: data[0].end_time,
-        event_type: data[0].event_type || 'study_session',
-        user_id: data[0].user_id,
-        student_id: data[0].student_id
+        start_time: data.start_time,
+        end_time: data.end_time,
+        event_type: data.event_type || 'study_session',
+        user_id: data.user_id,
+        student_id: data.student_id
       };
-
-      return eventWithSubject;
     } catch (error) {
       console.error('Exception creating calendar event:', error);
       return null;
