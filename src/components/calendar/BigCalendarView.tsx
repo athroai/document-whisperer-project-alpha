@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isToday } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,13 +16,11 @@ const BigCalendarView: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const { events, suggestedEvents, fetchEvents } = useCalendarEvents();
   
-  const refreshEvents = useCallback(async () => {
-    await fetchEvents();
-  }, [fetchEvents]);
-  
   useEffect(() => {
-    refreshEvents();
-  }, [refreshEvents]);
+    fetchEvents().catch(err => {
+      console.error('Error fetching initial events:', err);
+    });
+  }, []);
   
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -31,7 +28,9 @@ const BigCalendarView: React.FC = () => {
   };
 
   const handleCreateSuccess = (newEvent: CalendarEvent) => {
-    refreshEvents();
+    fetchEvents().catch(err => {
+      console.error('Error fetching events after creation:', err);
+    });
     setShowCreateDialog(false);
   };
 
@@ -46,10 +45,15 @@ const BigCalendarView: React.FC = () => {
   const getEventsForDay = (day: Date) => {
     const allEvents = [...events, ...suggestedEvents];
     return allEvents.filter(event => {
-      const eventStart = fromGMTString(event.start_time);
-      return eventStart.getFullYear() === day.getFullYear() &&
-             eventStart.getMonth() === day.getMonth() &&
-             eventStart.getDate() === day.getDate();
+      try {
+        const eventStart = fromGMTString(event.start_time);
+        return eventStart.getFullYear() === day.getFullYear() &&
+               eventStart.getMonth() === day.getMonth() &&
+               eventStart.getDate() === day.getDate();
+      } catch (err) {
+        console.error('Error parsing event date:', err);
+        return false;
+      }
     });
   };
 

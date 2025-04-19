@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -34,6 +34,28 @@ export const DayTimePreferences: React.FC<DayTimePreferencesProps> = ({
   onSessionTimeChange,
   onSessionDurationChange,
 }) => {
+  // Initialize session times with proper sequence if they aren't already
+  useEffect(() => {
+    if (isSelected && sessionTimes.length > 1) {
+      // Check if sessions need reordering (ensure session 1 starts earliest)
+      const needsReordering = sessionTimes.some((session, index) => {
+        if (index === 0) return false;
+        // Check if any later session starts before an earlier one
+        return session.startHour < sessionTimes[index - 1].startHour;
+      });
+      
+      if (needsReordering) {
+        // Sort sessions by start time and apply sequential times
+        const baseStartHour = 15; // Start with 3 PM for first session
+        sessionTimes.forEach((_, index) => {
+          // Add 1.5 hours between sessions
+          const newStartHour = Math.min(21, baseStartHour + (index * 1.5));
+          onSessionTimeChange(dayIndex, index, Math.floor(newStartHour));
+        });
+      }
+    }
+  }, [isSelected, sessionTimes, sessionsCount, dayIndex, onSessionTimeChange]);
+
   if (!isSelected) return null;
 
   return (
@@ -46,13 +68,27 @@ export const DayTimePreferences: React.FC<DayTimePreferencesProps> = ({
         
         <div className="space-y-4">
           {Array.from({ length: sessionsCount }).map((_, sessionIndex) => {
-            const currentSession = sessionTimes[sessionIndex] || { startHour: 15, durationMinutes: 45 };
-            const otherSessions = sessionTimes
-              .filter((_, idx) => idx !== sessionIndex)
+            const currentSession = sessionTimes[sessionIndex] || { 
+              startHour: 15 + sessionIndex, // Stagger start times by default
+              durationMinutes: 45 
+            };
+            
+            // Filter sessions that come before and after this one for constraints
+            const previousSessions = sessionTimes
+              .filter((_, idx) => idx < sessionIndex)
               .map(session => ({
                 startTime: { hour: session.startHour, minute: 0 },
                 duration: session.durationMinutes
               }));
+              
+            const nextSessions = sessionTimes
+              .filter((_, idx) => idx > sessionIndex)
+              .map(session => ({
+                startTime: { hour: session.startHour, minute: 0 },
+                duration: session.durationMinutes
+              }));
+              
+            const otherSessions = [...previousSessions, ...nextSessions];
 
             return (
               <TimelineSelector

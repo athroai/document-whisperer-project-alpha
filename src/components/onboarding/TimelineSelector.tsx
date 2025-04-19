@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -48,19 +49,65 @@ export const TimelineSelector: React.FC<TimelineSelectorProps> = ({
   const isTimeRespectingOrder = (time: TimeSlot) => {
     const proposedMinutes = timeToMinutes(time);
     
-    const previousSession = otherSessions.find(s => 
-      timeToMinutes(s.startTime) < timeToMinutes(startTime)
-    );
-    const nextSession = otherSessions.find(s => 
-      timeToMinutes(s.startTime) > timeToMinutes(startTime)
-    );
+    // Check if time respects session order
+    // Earlier sessions can't start after later ones
+    const earlierSessions = otherSessions.filter(s => {
+      const sessionInfo = sessionLabels[sessionIndex];
+      const thisSessionNumber = sessionInfo ? parseInt(sessionInfo.replace('Session ', '')) : sessionIndex + 1;
+      
+      // Find the corresponding session number for the other session
+      const otherSessionIndex = otherSessions.indexOf(s);
+      const otherSessionInfo = sessionLabels[otherSessionIndex];
+      const otherSessionNumber = otherSessionInfo ? 
+        parseInt(otherSessionInfo.replace('Session ', '')) : 
+        otherSessionIndex + 1;
+        
+      return otherSessionNumber < thisSessionNumber;
+    });
+    
+    // Later sessions can't start before earlier ones
+    const laterSessions = otherSessions.filter(s => {
+      const sessionInfo = sessionLabels[sessionIndex];
+      const thisSessionNumber = sessionInfo ? parseInt(sessionInfo.replace('Session ', '')) : sessionIndex + 1;
+      
+      // Find the corresponding session number for the other session
+      const otherSessionIndex = otherSessions.indexOf(s);
+      const otherSessionInfo = sessionLabels[otherSessionIndex];
+      const otherSessionNumber = otherSessionInfo ? 
+        parseInt(otherSessionInfo.replace('Session ', '')) : 
+        otherSessionIndex + 1;
+        
+      return otherSessionNumber > thisSessionNumber;
+    });
+    
+    // Can't overlap with any other sessions
+    for (const session of otherSessions) {
+      const sessionStart = timeToMinutes(session.startTime);
+      const sessionEnd = sessionStart + session.duration;
+      
+      const proposedEnd = proposedMinutes + duration;
+      
+      if (
+        (proposedMinutes >= sessionStart && proposedMinutes < sessionEnd) || 
+        (proposedEnd > sessionStart && proposedEnd <= sessionEnd) ||
+        (proposedMinutes <= sessionStart && proposedEnd >= sessionEnd)
+      ) {
+        return false;
+      }
+    }
 
-    if (previousSession && proposedMinutes <= timeToMinutes(previousSession.startTime) + previousSession.duration) {
-      return false;
+    // For earlier sessions, make sure we're before any later sessions
+    for (const laterSession of laterSessions) {
+      if (proposedMinutes > timeToMinutes(laterSession.startTime)) {
+        return false;
+      }
     }
     
-    if (nextSession && proposedMinutes + duration >= timeToMinutes(nextSession.startTime)) {
-      return false;
+    // For later sessions, make sure we're after any earlier sessions
+    for (const earlierSession of earlierSessions) {
+      if (proposedMinutes < timeToMinutes(earlierSession.startTime) + earlierSession.duration) {
+        return false;
+      }
     }
 
     return true;
@@ -76,11 +123,14 @@ export const TimelineSelector: React.FC<TimelineSelectorProps> = ({
     return `${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}`;
   };
 
+  // Create labels for sessions
+  const sessionLabels = ["Session 1", "Session 2", "Session 3", "Session 4", "Session 5", "Session 6"];
+
   return (
     <Card className="p-4 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <Label className="text-sm font-medium text-purple-700">Session {sessionIndex + 1}</Label>
+          <Label className="text-sm font-medium text-purple-700">{sessionLabels[sessionIndex]}</Label>
           <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full font-medium">
             {formatTime(startTime)} - {formatTime(minutesToTime(timeToMinutes(startTime) + duration))}
           </span>

@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +6,6 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useCalendarEvents } from './useCalendarEvents';
-import { format, addDays } from 'date-fns';
 
 interface SessionTime {
   startHour: number;
@@ -37,25 +35,64 @@ export const useStudySchedule = () => {
     { value: 6, label: 'Many short sessions', durationMinutes: 20 },
   ];
 
+  useEffect(() => {
+    const updateSessionsForSelectedDays = () => {
+      setDayPreferences(prevPrefs => {
+        const updatedPrefs = [...prevPrefs];
+        
+        selectedDays.forEach(dayIndex => {
+          const existingPrefIndex = updatedPrefs.findIndex(p => p.dayIndex === dayIndex);
+          
+          if (existingPrefIndex === -1) {
+            const defaultDuration = getSessionDurationForCount(sessionsPerDay);
+            const sessionTimes: SessionTime[] = Array(sessionsPerDay).fill(null).map((_, i) => ({
+              startHour: 15 + i,
+              durationMinutes: defaultDuration
+            }));
+            
+            updatedPrefs.push({
+              dayIndex,
+              sessionTimes
+            });
+          } else {
+            const currentSessionCount = updatedPrefs[existingPrefIndex].sessionTimes.length;
+            const defaultDuration = getSessionDurationForCount(sessionsPerDay);
+            
+            if (currentSessionCount < sessionsPerDay) {
+              const lastSessionTime = updatedPrefs[existingPrefIndex].sessionTimes[currentSessionCount - 1];
+              const lastEndTime = lastSessionTime ? lastSessionTime.startHour + 1 : 16;
+              
+              const newSessions = Array(sessionsPerDay - currentSessionCount)
+                .fill(null)
+                .map((_, i) => ({
+                  startHour: Math.min(21, lastEndTime + i),
+                  durationMinutes: defaultDuration
+                }));
+              
+              updatedPrefs[existingPrefIndex].sessionTimes = [
+                ...updatedPrefs[existingPrefIndex].sessionTimes,
+                ...newSessions
+              ];
+            } else if (currentSessionCount > sessionsPerDay) {
+              updatedPrefs[existingPrefIndex].sessionTimes = 
+                updatedPrefs[existingPrefIndex].sessionTimes.slice(0, sessionsPerDay);
+            }
+          }
+        });
+        
+        return updatedPrefs.filter(pref => selectedDays.includes(pref.dayIndex));
+      });
+    };
+    
+    updateSessionsForSelectedDays();
+  }, [selectedDays, sessionsPerDay]);
+
   const handleDayToggle = (dayIndex: number) => {
     const newSelectedDays = selectedDays.includes(dayIndex)
       ? selectedDays.filter(d => d !== dayIndex)
       : [...selectedDays, dayIndex].sort();
     
     setSelectedDays(newSelectedDays);
-    
-    if (!selectedDays.includes(dayIndex) && newSelectedDays.includes(dayIndex)) {
-      setDayPreferences(prev => [
-        ...prev,
-        {
-          dayIndex,
-          sessionTimes: Array(sessionsPerDay).fill({
-            startHour: 15,
-            durationMinutes: getSessionDurationForCount(sessionsPerDay)
-          })
-        }
-      ]);
-    }
   };
 
   const getSessionDurationForCount = (count: number): number => {
@@ -69,10 +106,10 @@ export const useStudySchedule = () => {
       let newPrefs = [...prev];
       
       if (dayPrefIndex === -1) {
-        const defaultTimes = Array(sessionsPerDay).fill({
-          startHour: 15,
+        const defaultTimes = Array(sessionsPerDay).fill(null).map((_, i) => ({
+          startHour: 15 + i,
           durationMinutes: getSessionDurationForCount(sessionsPerDay)
-        });
+        }));
         defaultTimes[sessionIndex] = { ...defaultTimes[sessionIndex], startHour: hour };
         
         newPrefs = [
@@ -88,8 +125,6 @@ export const useStudySchedule = () => {
           ...updatedTimes[sessionIndex], 
           startHour: hour 
         };
-        
-        updatedTimes.sort((a, b) => a.startHour - b.startHour);
         
         newPrefs[dayPrefIndex] = {
           ...newPrefs[dayPrefIndex],
@@ -109,12 +144,10 @@ export const useStudySchedule = () => {
           ...prev,
           {
             dayIndex,
-            sessionTimes: Array(sessionsPerDay).fill({
-              startHour: 15,
-              durationMinutes: getSessionDurationForCount(sessionsPerDay)
-            }).map((time, i) =>
-              i === sessionIndex ? { ...time, durationMinutes: minutes } : time
-            )
+            sessionTimes: Array(sessionsPerDay).fill(null).map((_, i) => ({
+              startHour: 15 + i,
+              durationMinutes: i === sessionIndex ? minutes : getSessionDurationForCount(sessionsPerDay)
+            }))
           }
         ];
       }
@@ -136,12 +169,30 @@ export const useStudySchedule = () => {
     
     const defaultDuration = getSessionDurationForCount(newCount);
     
-    setDayPreferences(prev => prev.map(pref => ({
-      ...pref,
-      sessionTimes: Array(newCount).fill(null).map((_, i) => 
-        pref.sessionTimes[i] || { startHour: 15, durationMinutes: defaultDuration }
-      )
-    })));
+    setDayPreferences(prev => prev.map(pref => {
+      const sessionTimes = Array(newCount).fill(null).map((_, i) => {
+        if (i < pref.sessionTimes.length) {
+          return pref.sessionTimes[i];
+        }
+        
+        const lastSessionIndex = i - 1;
+        const lastSession = lastSessionIndex >= 0 && lastSessionIndex < pref.sessionTimes.length 
+          ? pref.sessionTimes[lastSessionIndex]
+          : { startHour: 14, durationMinutes: defaultDuration };
+        
+        const nextStartHour = Math.min(21, lastSession.startHour + 1);
+        
+        return { 
+          startHour: nextStartHour, 
+          durationMinutes: defaultDuration 
+        };
+      });
+      
+      return {
+        ...pref,
+        sessionTimes
+      };
+    }));
   };
 
   const createCalendarEvents = async (slots: PreferredStudySlot[], useLocalFallback: boolean = true) => {
@@ -153,7 +204,6 @@ export const useStudySchedule = () => {
       const weekStartDate = today.getDate() - today.getDay() + 1; // Monday
       
       for (const slot of slots) {
-        // Calculate the next occurrence of this day
         let dayDiff = slot.day_of_week - today.getDay();
         if (dayDiff <= 0) dayDiff += 7;
         
@@ -173,7 +223,7 @@ export const useStudySchedule = () => {
             end_time: endTime.toISOString(),
             subject: "General",
             event_type: 'study_session'
-          }, useLocalFallback); // Allow local fallback if database fails
+          }, useLocalFallback);
           
           if (event) {
             events.push(event);
@@ -195,7 +245,6 @@ export const useStudySchedule = () => {
     try {
       console.log('Saving slots to database for user:', userId);
       
-      // First delete any existing slots
       try {
         await supabase
           .from('preferred_study_slots')
@@ -210,7 +259,6 @@ export const useStudySchedule = () => {
         return true;
       }
       
-      // Prepare slots for insertion (remove temporary IDs)
       const slotsToInsert = slots.map(({ id, ...slot }) => ({
         user_id: userId,
         day_of_week: slot.day_of_week,
@@ -221,7 +269,6 @@ export const useStudySchedule = () => {
       
       console.log('Inserting slots:', slotsToInsert);
       
-      // Insert new slots
       const { error } = await supabase
         .from('preferred_study_slots')
         .insert(slotsToInsert);
@@ -251,7 +298,6 @@ export const useStudySchedule = () => {
     setIsSubmitting(true);
     
     try {
-      // Prepare study slots from selected days and preferences
       const newSlots: PreferredStudySlot[] = [];
       
       selectedDays.forEach(dayOfWeek => {
@@ -282,10 +328,8 @@ export const useStudySchedule = () => {
         }
       });
       
-      // Save slots to context
       setStudySlots(newSlots);
       
-      // Get user ID (either from auth or mock user)
       let userId = authState.user?.id;
       
       if (!userId && localStorage.getItem('athro_user')) {
@@ -301,20 +345,16 @@ export const useStudySchedule = () => {
       }
       
       if (userId) {
-        // Try to save to database but don't block on failure
         try {
           await saveStudySlotsToDatabase(userId, newSlots);
         } catch (dbError) {
           console.error('Database error when saving slots - continuing with local storage:', dbError);
           
-          // Save to local storage instead
           localStorage.setItem('athro_study_slots', JSON.stringify(newSlots));
         }
         
-        // Create calendar events for these slots with local fallback
         await createCalendarEvents(newSlots, true);
         
-        // Try to update onboarding progress if needed, but don't block on failure
         try {
           const { data, error } = await supabase
             .from('onboarding_progress')
@@ -325,7 +365,6 @@ export const useStudySchedule = () => {
           if (error) {
             console.warn('Error checking onboarding progress:', error);
           } else if (data) {
-            // Update existing progress
             try {
               await supabase
                 .from('onboarding_progress')
@@ -339,7 +378,6 @@ export const useStudySchedule = () => {
               console.warn('Error updating onboarding progress:', updateError);
             }
           } else {
-            // Create new progress record
             try {
               await supabase
                 .from('onboarding_progress')
@@ -356,14 +394,11 @@ export const useStudySchedule = () => {
           console.error('Error handling onboarding progress:', progressError);
         }
       } else {
-        // Save to local storage if no user ID
         localStorage.setItem('athro_study_slots', JSON.stringify(newSlots));
       }
       
-      // Update context
       updateOnboardingStep('calendar');
       
-      // Create study slots in context
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
         
@@ -379,7 +414,6 @@ export const useStudySchedule = () => {
         }
       });
       
-      // Navigate to calendar page with a success flag
       navigate('/calendar?fromSetup=true');
       
       toast({
@@ -394,7 +428,6 @@ export const useStudySchedule = () => {
         variant: "default"
       });
       
-      // Still navigate to calendar in case of error
       updateOnboardingStep('calendar');
       navigate('/calendar');
     } finally {
