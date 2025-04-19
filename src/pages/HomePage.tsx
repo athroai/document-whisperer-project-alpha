@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,105 +16,77 @@ import { useSubjects } from '@/hooks/useSubjects';
 
 const HomePage: React.FC = () => {
   const { state } = useAuth();
+  const { user } = state;
   const navigate = useNavigate();
+  const { characters } = useAthro();
   const { subjects, isLoading, error } = useSubjects();
-  
-  // State for confidence modal
   const [isConfidenceModalOpen, setIsConfidenceModalOpen] = useState(false);
-  const [confidenceScore, setConfidenceScore] = useState(7);
-  
-  // Sample data for Athro characters
+  const [confidenceScore, setConfidenceScore] = useState(5);
   const [currentAthro, setCurrentAthro] = useState({
     name: 'AthroMaths',
     subject: 'Mathematics',
-    image: '/athro-maths.png'
+    image: '/lovable-uploads/9bf71cf0-e802-43c5-97f7-6d22d1049f95.png'
   });
+
+  const subjectCharacters = characters.filter(char => 
+    !['AthroAI', 'Timekeeper', 'System'].includes(char.subject)
+  );
   
-  const systemCharacters = [
-    { id: 'scheduler', name: 'Study Scheduler', shortDescription: 'Plan your revision', subject: 'System', avatarUrl: '/athro-scheduler.png' },
-    { id: 'progress', name: 'Progress Tracker', shortDescription: 'Monitor your growth', subject: 'System', avatarUrl: '/athro-progress.png' },
-    { id: 'planner', name: 'Exam Planner', shortDescription: 'Prepare for exams', subject: 'System', avatarUrl: '/athro-planner.png' }
-  ];
-  
-  const subjectCharacters = [
-    { id: 'maths', name: 'AthroMaths', shortDescription: 'Mathematics specialist', subject: 'Mathematics', avatarUrl: '/athro-maths.png' },
-    { id: 'science', name: 'AthroScience', shortDescription: 'Science specialist', subject: 'Science', avatarUrl: '/athro-science.png' },
-    { id: 'english', name: 'AthroEnglish', shortDescription: 'English specialist', subject: 'English', avatarUrl: '/athro-english.png' },
-    { id: 'history', name: 'AthroHistory', shortDescription: 'History specialist', subject: 'History', avatarUrl: '/athro-history.png' },
-    { id: 'geography', name: 'AthroGeography', shortDescription: 'Geography specialist', subject: 'Geography', avatarUrl: '/athro-geography.png' },
-    { id: 'languages', name: 'AthroLanguages', shortDescription: 'Languages specialist', subject: 'Languages', avatarUrl: '/athro-languages.png' }
-  ];
-  
-  const upcomingEvents = [
-    { id: '1', title: 'Math revision', date: 'Today, 4:00 PM', mentor: 'AthroMaths' },
-    { id: '2', title: 'Science quiz', date: 'Tomorrow, 10:00 AM', mentor: 'AthroScience' },
-    { id: '3', title: 'English essay review', date: 'Friday, 2:00 PM', mentor: 'AthroEnglish' }
-  ];
-  
-  // Mock data for subject progress
-  const confidenceScores = {
-    'mathematics': 4,
-    'science': 3,
-    'english': 5,
-    'history': 2,
-    'geography': 3
-  };
+  const systemCharacters = characters.filter(char => 
+    ['AthroAI', 'Timekeeper', 'System'].includes(char.subject)
+  );
   
   const subjectProgress = {
-    'Mathematics': 85,
-    'Science': 70,
-    'English': 90,
-    'History': 65,
-    'Geography': 75
+    'Mathematics': 65,
+    'Science': 42,
+    'History': 78,
+    'English': 54,
+    'Welsh': 30,
+    'Geography': 45,
+    'Languages': 60,
+    'Religious Education': 51
   };
+
+  const confidenceScores = user?.confidenceScores || {};
   
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
   const handleConfidenceSubmit = () => {
-    toast.success(`Confidence level for ${currentAthro.subject} updated to ${confidenceScore}/10`);
+    console.log(`User confidence score: ${confidenceScore} for ${currentAthro.subject}`);
+    toast.success(`Your confidence score of ${confidenceScore}/10 has been recorded!`);
     setIsConfidenceModalOpen(false);
   };
 
+  const upcomingEvents = [
+    { id: 1, title: 'Math Quiz Review', date: 'Today, 4:00 PM', mentor: 'AthroMaths' },
+    { id: 2, title: 'Science Past Paper', date: 'Tomorrow, 11:00 AM', mentor: 'AthroScience' },
+    { id: 3, title: 'History Essay Planning', date: 'Wed, 2:00 PM', mentor: 'AthroHistory' },
+  ];
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <section className="text-center py-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Welcome to <span className="text-primary">Athro</span>AI
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8">
-            Your personal AI study assistant for GCSE success
-          </p>
-          
-          {state.isAuthenticated ? (
-            <div className="space-y-4">
-              <Button 
-                onClick={() => navigate('/chat')}
-                size="lg" 
-                className="mx-2"
-              >
-                Chat with Athros
-              </Button>
-              <Button 
-                onClick={() => navigate('/chat-onboarding')}
-                size="lg" 
-                variant="outline" 
-                className="mx-2"
-              >
-                Interactive Onboarding
-              </Button>
+    <div className="min-h-screen bg-gray-50 pb-12 md:pb-0">
+      <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-xl p-6 mb-8 text-white">
+          <div className="flex flex-col md:flex-row items-center md:items-start">
+            <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
+              <img
+                src="/lovable-uploads/e4274c9e-f66c-4933-9c0b-79f6c222c31b.png"
+                alt="Athro Mentor"
+                className="w-24 h-24 object-cover"
+              />
             </div>
-          ) : (
-            <div className="space-y-4">
-              <Button 
-                onClick={() => navigate('/login')}
-                size="lg" 
-                className="mx-2"
-              >
-                Get Started
-              </Button>
+            <div>
+              <h1 className="text-2xl font-bold">{getGreeting()}, {user?.displayName || 'Student'}!</h1>
+              <p className="mt-1 text-purple-100">Ready to continue your GCSE journey?</p>
             </div>
-          )}
-        </section>
-        
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Button 
             onClick={() => navigate('/study')}

@@ -3,7 +3,7 @@ import React, { createContext, useContext } from 'react';
 import { useAuth } from './AuthContext';
 import { useOnboardingState } from './onboarding/useOnboardingState';
 import { createOnboardingActions } from './onboarding/onboardingActions';
-import { OnboardingContextType, LearningStylePreference } from './onboarding/types';
+import { OnboardingContextType } from './onboarding/types';
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
@@ -20,8 +20,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setStudySlots,
     learningPreferences,
     setLearningPreferences,
-    learningStyle,
-    setLearningStyle,
   } = useOnboardingState(state.user?.id);
 
   const actions = createOnboardingActions(
@@ -30,7 +28,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setAvailability,
     setStudySlots,
     setLearningPreferences,
-    setLearningStyle,
     setCurrentStep,
   );
 
@@ -41,9 +38,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       availability,
       studySlots,
       learningPreferences,
-      learningStyle,
       setStudySlots,
-      updateLearningStyle: setLearningStyle,
       ...actions
     }}>
       {children}

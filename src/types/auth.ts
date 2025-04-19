@@ -8,11 +8,11 @@ export interface User {
   email: string;
   role: 'student' | 'teacher' | 'parent';
   displayName: string;
-  createdAt?: Date;
-  rememberMe?: boolean;
-  licenseExempt?: boolean;  
-  schoolId?: string;
-  examBoard?: string;  
+  createdAt: Date;
+  rememberMe: boolean;
+  licenseExempt?: boolean;
+  schoolId?: string;  // Added this property for LicenseCheck and ProtectedRoute
+  examBoard?: import('@/types/athro').ExamBoard;  // Updated to use the ExamBoard type from athro.ts
   confidenceScores?: {
     [subject: string]: number;
   };

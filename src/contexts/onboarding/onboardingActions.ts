@@ -1,6 +1,6 @@
 
 import { supabase } from '@/lib/supabase';
-import { SubjectPreference, Availability, LearningStylePreference } from './types';
+import { SubjectPreference, Availability } from './types';
 import { PreferredStudySlot } from '@/types/study';
 import { ConfidenceLabel } from '@/types/confidence';
 
@@ -10,7 +10,6 @@ export const createOnboardingActions = (
   setAvailability: React.Dispatch<React.SetStateAction<Availability[]>>,
   setStudySlots: React.Dispatch<React.SetStateAction<PreferredStudySlot[]>>,
   setLearningPreferences: React.Dispatch<React.SetStateAction<Record<string, any>>>,
-  setLearningStyle: React.Dispatch<React.SetStateAction<LearningStylePreference | undefined>>,
   setCurrentStep: React.Dispatch<React.SetStateAction<string>>,
 ) => ({
   selectSubject: (subject: string, confidence: ConfidenceLabel) => {
@@ -18,7 +17,7 @@ export const createOnboardingActions = (
       const existingIndex = prev.findIndex(s => s.subject === subject);
       if (existingIndex !== -1) {
         const updated = [...prev];
-        updated[existingIndex] = { ...updated[existingIndex], subject, confidence };
+        updated[existingIndex] = { subject, confidence };
         return updated;
       }
       return [...prev, { subject, confidence }];
@@ -38,26 +37,6 @@ export const createOnboardingActions = (
       ...prev,
       ...preferences
     }));
-  },
-  
-  updateLearningStyle: (style: LearningStylePreference) => {
-    setLearningStyle(style);
-    
-    // Save to database if user ID exists
-    if (userId) {
-      supabase.from('learning_preferences').upsert({
-        user_id: userId,
-        visual_score: style.visual,
-        auditory_score: style.auditory,
-        reading_score: style.reading,
-        kinesthetic_score: style.kinesthetic,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' }).then(({ error }) => {
-        if (error) {
-          console.error('Error saving learning style:', error);
-        }
-      });
-    }
   },
 
   updateStudySlots: async ({ dayOfWeek, slotCount, slotDurationMinutes, preferredStartHour }: {
@@ -117,25 +96,6 @@ export const createOnboardingActions = (
           priority: subject.priority
         }, { onConflict: 'student_id, subject' })
       );
-
-      // Get current learning style
-      let currentLearningStyle: LearningStylePreference | undefined;
-      setLearningStyle(prev => {
-        currentLearningStyle = prev;
-        return prev;
-      });
-
-      // Save learning style if available
-      if (currentLearningStyle) {
-        await supabase.from('learning_preferences').upsert({
-          user_id: userId,
-          visual_score: currentLearningStyle.visual,
-          auditory_score: currentLearningStyle.auditory,
-          reading_score: currentLearningStyle.reading,
-          kinesthetic_score: currentLearningStyle.kinesthetic,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
-      }
 
       const { error } = await supabase
         .from('onboarding_progress')
