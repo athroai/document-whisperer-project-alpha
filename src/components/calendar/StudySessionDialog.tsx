@@ -25,7 +25,7 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
-  const [startTime, setStartTime] = useState('16:00');
+  const [startTime, setStartTime] = useState('15:00');
   const [duration, setDuration] = useState('30');
   const [subject, setSubject] = useState('Mathematics');
   const [topic, setTopic] = useState('');
@@ -52,6 +52,17 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
       const startDateTime = new Date(`${date}T${startTime}`);
       const durationMinutes = parseInt(duration, 10);
       const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60000);
+      
+      const hour = startDateTime.getHours();
+      if (hour < 15 || hour > 23) {
+        toast({
+          title: "Invalid Time",
+          description: "Please select a time between 3 PM and 11 PM",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
@@ -97,6 +108,8 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  const validHours = Array.from({ length: 9 }, (_, i) => i + 15);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -171,13 +184,30 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="time">Start Time</Label>
-              <Input 
-                id="time" 
-                type="time"
+              <Label htmlFor="time">Start Time (3 PM - 11 PM)</Label>
+              <Select
                 value={startTime}
-                onChange={(e) => setStartTime(e.target.value)} 
-              />
+                onValueChange={setStartTime}
+              >
+                <SelectTrigger id="time">
+                  <SelectValue placeholder="Select Time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {validHours.map(hour => {
+                    const hourFormatted = hour.toString().padStart(2, '0');
+                    return (
+                      <>
+                        <SelectItem key={`${hour}-00`} value={`${hourFormatted}:00`}>
+                          {hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`}
+                        </SelectItem>
+                        <SelectItem key={`${hour}-30`} value={`${hourFormatted}:30`}>
+                          {hour > 12 ? `${hour - 12}:30 PM` : `${hour}:30 AM`}
+                        </SelectItem>
+                      </>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="space-y-2">

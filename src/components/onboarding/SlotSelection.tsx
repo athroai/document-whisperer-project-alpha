@@ -39,7 +39,7 @@ export const SlotSelection: React.FC = () => {
   const { updateOnboardingStep, updateStudySlots, studySlots, setStudySlots } = useOnboarding();
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [selectedOption, setSelectedOption] = useState<number | null>(0);
-  const [preferredStartHour, setPreferredStartHour] = useState<number>(16);
+  const [preferredStartHour, setPreferredStartHour] = useState<number>(15); // Default to 3pm now
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const toggleDaySelection = (dayIndex: number) => {
@@ -139,16 +139,16 @@ export const SlotSelection: React.FC = () => {
         <div className="space-y-6">
           <Slider
             value={[preferredStartHour]}
-            min={8}
-            max={20}
+            min={15} // 3 PM
+            max={23} // 11 PM
             step={1}
             onValueChange={(values) => setPreferredStartHour(values[0])}
           />
           
           <div className="flex justify-between text-sm text-gray-500">
-            <span>8 AM</span>
-            <span>2 PM</span>
-            <span>8 PM</span>
+            <span>3 PM</span>
+            <span>7 PM</span>
+            <span>11 PM</span>
           </div>
           
           <Label className="block text-center font-medium">
@@ -183,4 +183,3 @@ export const SlotSelection: React.FC = () => {
     </div>
   );
 };
-
