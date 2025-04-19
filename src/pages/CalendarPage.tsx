@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import BigCalendarView from '@/components/calendar/BigCalendarView';
+import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
 
 const CalendarPage: React.FC = () => {
   const { toast } = useToast();
@@ -31,6 +32,7 @@ const CalendarPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <BigCalendarView />
+        <StudySessionLauncher />
       </div>
     </div>
   );
