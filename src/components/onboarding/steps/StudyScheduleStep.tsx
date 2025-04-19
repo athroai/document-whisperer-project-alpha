@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { DaySelector } from '../DaySelector';
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 
 export const StudyScheduleStep: React.FC = () => {
+  const navigate = useNavigate();
   const {
     selectedDays,
     sessionsPerDay,
@@ -21,8 +23,6 @@ export const StudyScheduleStep: React.FC = () => {
     handleSessionsPerDayChange,
     handleContinue
   } = useStudySchedule();
-  
-  const navigate = useNavigate();
 
   const onContinue = async () => {
     await handleContinue();
