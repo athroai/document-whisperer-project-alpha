@@ -384,9 +384,27 @@ const SlotBasedCalendar: React.FC = () => {
     setIsLoading(true);
     
     try {
-      if (!authState.user?.id) {
+      let userId = null;
+      
+      if (authState.user?.id) {
+        userId = authState.user.id;
+      } 
+      else if (localStorage.getItem('athro_user')) {
+        try {
+          const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
+          if (mockUser.id) {
+            userId = mockUser.id;
+            console.log('Using mock user ID for calendar:', userId);
+          }
+        } catch (err) {
+          console.warn('Error parsing mock user:', err);
+        }
+      }
+
+      if (!userId) {
         setEvents([]);
         setTimeSlots(generateTimeSlots());
+        setIsLoading(false);
         return;
       }
 
@@ -394,11 +412,11 @@ const SlotBasedCalendar: React.FC = () => {
         supabase
           .from('calendar_events')
           .select('*')
-          .or(`student_id.eq.${authState.user.id},user_id.eq.${authState.user.id}`),
+          .or(`student_id.eq.${userId},user_id.eq.${userId}`),
         supabase
           .from('preferred_study_slots')
           .select('*')
-          .eq('user_id', authState.user.id)
+          .eq('user_id', userId)
       ]);
 
       if (calendarResponse.error) throw calendarResponse.error;
@@ -433,7 +451,9 @@ const SlotBasedCalendar: React.FC = () => {
         }));
       }
 
-      if (slotsResponse.data) {
+      if (slotsResponse.data && slotsResponse.data.length > 0) {
+        console.log('Study slots loaded:', slotsResponse.data.length);
+        
         const studySlots = slotsResponse.data;
         
         studySlots.forEach(slot => {
@@ -444,15 +464,26 @@ const SlotBasedCalendar: React.FC = () => {
           const endTime = new Date(startTime);
           endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
 
-          parsedEvents.push({
-            id: `slot-${slot.id}`,
-            title: 'Study Session',
-            subject: '',
-            startTime,
-            endTime,
-            type: 'study_session'
+          const existingEvent = parsedEvents.find(event => {
+            const sameDay = event.startTime.getDay() === startTime.getDay();
+            const sameHour = event.startTime.getHours() === startTime.getHours();
+            const sameMinute = event.startTime.getMinutes() === startTime.getMinutes();
+            return sameDay && sameHour && sameMinute;
           });
+
+          if (!existingEvent) {
+            parsedEvents.push({
+              id: `slot-${slot.id}`,
+              title: 'Study Session',
+              subject: '',
+              startTime,
+              endTime,
+              type: 'study_session'
+            });
+          }
         });
+      } else {
+        console.log('No study slots found in database');
       }
       
       setEvents(parsedEvents);

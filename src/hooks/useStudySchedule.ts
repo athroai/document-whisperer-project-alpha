@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -29,7 +28,6 @@ export const useStudySchedule = () => {
   const { toast } = useToast();
   const { createEvent } = useCalendarEvents();
   
-  // Session type options
   const sessionOptions = [
     { value: 1, label: '1 session (long)', durationMinutes: 120 },
     { value: 2, label: '2 sessions', durationMinutes: 60 },
@@ -59,9 +57,8 @@ export const useStudySchedule = () => {
   };
 
   const getSessionDurationForCount = (count: number): number => {
-    // Find appropriate duration based on count
     const option = sessionOptions.find(opt => opt.value === count);
-    return option ? option.durationMinutes : 45; // Default to 45 minutes
+    return option ? option.durationMinutes : 45;
   };
 
   const handleSessionTimeChange = (dayIndex: number, sessionIndex: number, hour: number) => {
@@ -70,7 +67,6 @@ export const useStudySchedule = () => {
       let newPrefs = [...prev];
       
       if (dayPrefIndex === -1) {
-        // Initialize new day preferences
         const defaultTimes = Array(sessionsPerDay).fill({
           startHour: 15,
           durationMinutes: getSessionDurationForCount(sessionsPerDay)
@@ -85,14 +81,12 @@ export const useStudySchedule = () => {
           }
         ];
       } else {
-        // Update existing day preferences
         const updatedTimes = [...newPrefs[dayPrefIndex].sessionTimes];
         updatedTimes[sessionIndex] = { 
           ...updatedTimes[sessionIndex], 
           startHour: hour 
         };
         
-        // Sort sessions by start time
         updatedTimes.sort((a, b) => a.startHour - b.startHour);
         
         newPrefs[dayPrefIndex] = {
@@ -138,7 +132,6 @@ export const useStudySchedule = () => {
     const newCount = value[0];
     setSessionsPerDay(newCount);
     
-    // Calculate appropriate duration for the new session count
     const defaultDuration = getSessionDurationForCount(newCount);
     
     setDayPreferences(prev => prev.map(pref => ({
@@ -153,18 +146,14 @@ export const useStudySchedule = () => {
     if (!slots.length) return;
     
     try {
-      // Create initial calendar events for the next 4 weeks
       for (let weekOffset = 0; weekOffset < 4; weekOffset++) {
         for (const slot of slots) {
-          // Calculate the date for this slot
           const today = new Date();
-          const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
+          const dayOfWeek = today.getDay();
           
-          // Calculate days to add to get to the target day of this week
           let daysToAdd = slot.day_of_week - dayOfWeek;
-          if (daysToAdd <= 0) daysToAdd += 7; // Move to next week if day has passed
+          if (daysToAdd <= 0) daysToAdd += 7;
           
-          // Add weeks for future events
           daysToAdd += weekOffset * 7;
           
           const eventDate = new Date(today);
@@ -174,12 +163,16 @@ export const useStudySchedule = () => {
           const endTime = new Date(eventDate);
           endTime.setMinutes(endTime.getMinutes() + slot.slot_duration_minutes);
           
-          await createEvent({
-            subject: "Study Session",
-            start_time: eventDate.toISOString(),
-            end_time: endTime.toISOString(),
-            event_type: 'study_session'
-          });
+          try {
+            await createEvent({
+              subject: "Study Session",
+              start_time: eventDate.toISOString(),
+              end_time: endTime.toISOString(),
+              event_type: 'study_session'
+            });
+          } catch (innerError) {
+            console.error('Error creating individual calendar event:', innerError);
+          }
         }
       }
     } catch (error) {
@@ -193,35 +186,23 @@ export const useStudySchedule = () => {
     setIsSubmitting(true);
     
     try {
-      // Remove any existing study slots first
-      if (authState.user?.id) {
-        await supabase
-          .from('preferred_study_slots')
-          .delete()
-          .eq('user_id', authState.user.id);
-      }
-      
-      setStudySlots([]);
-      
       const newSlots: PreferredStudySlot[] = [];
       
-      // Create a slot for each session in each selected day
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
         
         if (dayPreference) {
-          dayPreference.sessionTimes.forEach((session, sessionIndex) => {
+          dayPreference.sessionTimes.forEach((session) => {
             newSlots.push({
-              id: `temp-${Date.now()}-${dayOfWeek}-${sessionIndex}`,
+              id: `temp-${Date.now()}-${dayOfWeek}-${Math.random()}`,
               user_id: authState.user?.id || 'temp-user-id',
               day_of_week: dayOfWeek,
-              slot_count: 1, // Each slot represents one session now
+              slot_count: 1,
               slot_duration_minutes: session.durationMinutes,
               preferred_start_hour: session.startHour
             });
           });
         } else {
-          // Fallback if no preferences were set
           for (let i = 0; i < sessionsPerDay; i++) {
             newSlots.push({
               id: `temp-${Date.now()}-${dayOfWeek}-${i}`,
@@ -229,7 +210,7 @@ export const useStudySchedule = () => {
               day_of_week: dayOfWeek,
               slot_count: 1,
               slot_duration_minutes: getSessionDurationForCount(sessionsPerDay),
-              preferred_start_hour: 15 + i // Space them out a bit
+              preferred_start_hour: 15 + i
             });
           }
         }
@@ -237,36 +218,45 @@ export const useStudySchedule = () => {
       
       setStudySlots(newSlots);
       
-      // Create slots for each session in each selected day
-      const slots = selectedDays.flatMap(dayOfWeek => {
-        const dayPref = dayPreferences.find(p => p.dayIndex === dayOfWeek);
-        
-        if (dayPref) {
-          return dayPref.sessionTimes.map((session) => ({
+      if (authState.user?.id) {
+        await supabase
+          .from('preferred_study_slots')
+          .delete()
+          .eq('user_id', authState.user.id);
+
+        const slots = selectedDays.flatMap(dayOfWeek => {
+          const dayPref = dayPreferences.find(p => p.dayIndex === dayOfWeek);
+          
+          if (dayPref) {
+            return dayPref.sessionTimes.map((session) => ({
+              user_id: authState.user?.id,
+              day_of_week: dayOfWeek,
+              slot_count: 1,
+              slot_duration_minutes: session.durationMinutes,
+              preferred_start_hour: session.startHour
+            }));
+          }
+          
+          return Array(sessionsPerDay).fill(null).map((_, i) => ({
             user_id: authState.user?.id,
             day_of_week: dayOfWeek,
             slot_count: 1,
-            slot_duration_minutes: session.durationMinutes,
-            preferred_start_hour: session.startHour
+            slot_duration_minutes: getSessionDurationForCount(sessionsPerDay),
+            preferred_start_hour: 15 + i
           }));
+        });
+
+        if (slots.length > 0) {
+          const { error } = await supabase
+            .from('preferred_study_slots')
+            .insert(slots);
+
+          if (error) throw error;
+          
+          await createCalendarEvents(newSlots);
         }
-        
-        return [];
-      });
-
-      // Only insert if user is authenticated
-      if (slots.length > 0 && authState.user?.id) {
-        const { error } = await supabase
-          .from('preferred_study_slots')
-          .insert(slots.filter(slot => !!slot.user_id));
-
-        if (error) throw error;
-        
-        // Create calendar events from these slots
-        await createCalendarEvents(slots as PreferredStudySlot[]);
       }
       
-      // Update study slots through the context
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
         

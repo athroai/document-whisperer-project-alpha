@@ -25,7 +25,7 @@ export const useCalendarEvents = () => {
         const { data, error } = await supabase
           .from('calendar_events')
           .select('*')
-          .eq('user_id', user.id);
+          .or(`student_id.eq.${user.id},user_id.eq.${user.id}`);
 
         if (error) throw error;
         setEvents(data || []);
@@ -58,11 +58,25 @@ export const useCalendarEvents = () => {
       if (authError) throw authError;
       if (!user) throw new Error('No authenticated user found');
 
+      // Mock user support for development environment
+      let userId = user.id;
+      if (localStorage.getItem('athro_user')) {
+        try {
+          const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
+          if (mockUser.id) {
+            userId = mockUser.id;
+            console.log('Using mock user ID for calendar event:', userId);
+          }
+        } catch (err) {
+          console.warn('Error parsing mock user:', err);
+        }
+      }
+
       const { data, error } = await supabase
         .from('calendar_events')
         .insert({
-          user_id: user.id,
-          student_id: user.id,
+          user_id: userId,
+          student_id: userId,
           event_type: eventData.event_type || 'study_session',
           title: eventData.title || `${eventData.subject} Study Session`,
           description: JSON.stringify({
