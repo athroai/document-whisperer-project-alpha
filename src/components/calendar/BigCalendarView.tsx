@@ -1,50 +1,32 @@
 
-import React, { useMemo, useState } from 'react';
-import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
-import { enUS } from 'date-fns/locale';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useCalendarEvents } from '@/hooks/useCalendarEvents';
-import { CalendarEvent } from '@/types/calendar';
+import React, { useState, useEffect } from 'react';
+import { format, parse, startOfToday, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, isSameMonth, isToday } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import CreateStudySession from './CreateStudySession';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-
-const locales = {
-  'en-US': enUS
-};
-
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
+import { useCalendarEvents } from '@/hooks/useCalendarEvents';
+import CreateStudySession from './CreateStudySession';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const BigCalendarView: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const { events, fetchEvents } = useCalendarEvents();
   
-  const calendarEvents = useMemo(() => {
-    return events.map(event => ({
-      id: event.id,
-      title: event.title,
-      start: new Date(event.start_time),
-      end: new Date(event.end_time),
-      resource: {
-        subject: event.subject,
-        topic: event.topic,
-        local_only: event.local_only
-      }
-    }));
-  }, [events]);
+  // Load events when component mounts
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
   
-  const handleSelect = ({ start }: { start: Date }) => {
-    setSelectedDate(start);
-    setShowCreateDialog(true);
+  // Function to handle date selection
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      setShowCreateDialog(true);
+    }
   };
 
   const handleCreateSuccess = () => {
@@ -52,194 +34,109 @@ const BigCalendarView: React.FC = () => {
     setShowCreateDialog(false);
   };
 
-  const eventStyleGetter = (event: any) => {
-    const subjectColorMap: Record<string, string> = {
-      'Mathematics': 'bg-purple-500 border-purple-600 text-white',
-      'Science': 'bg-blue-500 border-blue-600 text-white',
-      'English': 'bg-green-500 border-green-600 text-white',
-      'History': 'bg-amber-500 border-amber-600 text-white',
-      'Geography': 'bg-teal-500 border-teal-600 text-white',
-      'Welsh': 'bg-red-500 border-red-600 text-white',
-      'Languages': 'bg-indigo-500 border-indigo-600 text-white',
-      'Religious Education': 'bg-pink-500 border-pink-600 text-white'
-    };
-
-    const subject = event.resource?.subject || 'General';
-    const classNameParts = subjectColorMap[subject]?.split(' ') || ['bg-gray-500', 'border-gray-600', 'text-white'];
-    const backgroundColor = classNameParts[0];
-    const borderColor = classNameParts[1];
-    const textColor = classNameParts[2];
-
-    return {
-      className: `${backgroundColor} ${borderColor} ${textColor} font-medium`,
-      style: {
-        border: event.resource?.local_only ? '2px dashed' : '1px solid',
-        borderRadius: '6px',
-        opacity: 0.9,
-        padding: '2px 4px'
-      }
-    };
+  // Go to previous month
+  const previousMonth = () => {
+    setCurrentMonth(prevMonth => addMonths(prevMonth, -1));
   };
 
-  // Custom toolbar component for the calendar
-  const CustomToolbar = (toolbar: any) => {
-    const goToBack = () => {
-      toolbar.onNavigate('PREV');
-    };
+  // Go to next month
+  const nextMonth = () => {
+    setCurrentMonth(prevMonth => addMonths(prevMonth, 1));
+  };
 
-    const goToNext = () => {
-      toolbar.onNavigate('NEXT');
-    };
+  // Go to current month
+  const goToToday = () => {
+    setCurrentMonth(startOfMonth(new Date()));
+  };
 
-    const goToCurrent = () => {
-      toolbar.onNavigate('TODAY');
-    };
+  // Get events for a specific day
+  const getEventsForDay = (day: Date) => {
+    return events.filter(event => {
+      const eventStart = new Date(event.start_time);
+      return isSameDay(eventStart, day);
+    });
+  };
 
+  // Function to determine day class based on events
+  const getDayClass = (day: Date) => {
+    const dayEvents = getEventsForDay(day);
+    if (dayEvents.length > 0) {
+      return "bg-purple-50 rounded-md relative";
+    }
+    return "";
+  };
+
+  // Custom day rendering function
+  const renderDay = (day: Date) => {
+    const dayEvents = getEventsForDay(day);
+    
     return (
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex space-x-2">
-          <Button
-            onClick={goToBack}
-            variant="outline"
-            size="sm"
-            className="border-purple-200 hover:bg-purple-50"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={goToCurrent}
-            variant="outline"
-            size="sm"
-            className="border-purple-200 hover:bg-purple-50"
-          >
-            Today
-          </Button>
-          <Button
-            onClick={goToNext}
-            variant="outline"
-            size="sm"
-            className="border-purple-200 hover:bg-purple-50"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+      <div className={`w-full h-full min-h-[100px] p-1 ${getDayClass(day)}`}>
+        <div className="text-right mb-1">
+          <span className={`text-sm font-medium ${isToday(day) ? 'bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center' : ''}`}>
+            {format(day, 'd')}
+          </span>
         </div>
-        <h3 className="text-lg font-medium text-center">
-          {format(toolbar.date, 'MMMM yyyy')}
-        </h3>
-        <div className="flex space-x-2">
-          {['month', 'week', 'day'].map(view => (
-            <Button
-              key={view}
-              onClick={() => toolbar.onView(view)}
-              variant={toolbar.view === view ? "default" : "outline"}
-              size="sm"
-              className={toolbar.view === view ? "bg-purple-600 hover:bg-purple-700" : "border-purple-200 hover:bg-purple-50"}
-            >
-              {view.charAt(0).toUpperCase() + view.slice(1)}
-            </Button>
-          ))}
-        </div>
+        {dayEvents.length > 0 && (
+          <div className="space-y-1">
+            {dayEvents.slice(0, 3).map((event, index) => (
+              <div 
+                key={event.id + index} 
+                className={`text-xs p-1 rounded truncate ${getEventColor(event.subject)}`}
+                title={`${event.title} (${format(new Date(event.start_time), 'HH:mm')} - ${format(new Date(event.end_time), 'HH:mm')})`}
+              >
+                {format(new Date(event.start_time), 'HH:mm')} - {event.title}
+              </div>
+            ))}
+            {dayEvents.length > 3 && (
+              <div className="text-xs text-gray-500 font-medium text-center">
+                +{dayEvents.length - 3} more
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
 
-  // Add the CSS to the document head
-  React.useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      .athro-calendar .rbc-header {
-        background-color: #f9f7ff;
-        padding: 12px;
-        font-weight: 600;
-        border: none;
-        border-bottom: 1px solid #e5e7eb;
-      }
-      .athro-calendar .rbc-event {
-        padding: 4px 8px !important;
-        border-radius: 6px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
-      .athro-calendar .rbc-event-content {
-        font-size: 0.95em;
-        white-space: normal;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .athro-calendar .rbc-today {
-        background-color: rgba(155, 135, 245, 0.1);
-      }
-      .athro-calendar .rbc-date-cell {
-        padding: 4px 8px;
-      }
-      .athro-calendar .rbc-off-range-bg {
-        background-color: #f8fafc;
-      }
-      .athro-calendar .rbc-off-range {
-        color: #9ca3af;
-      }
-      .athro-calendar .rbc-day-bg + .rbc-day-bg {
-        border-left: 1px solid #f1f1f4;
-      }
-      .athro-calendar .rbc-month-row + .rbc-month-row {
-        border-top: 1px solid #f1f1f4;
-      }
-      .athro-calendar .rbc-row-segment {
-        padding: 2px 4px;
-      }
-      .athro-calendar .rbc-selected {
-        background-color: rgba(155, 135, 245, 0.2) !important;
-      }
-      .athro-calendar .rbc-day-slot .rbc-time-slot {
-        border-top: 1px dotted #e5e7eb;
-      }
-      .athro-calendar .rbc-timeslot-group {
-        border-bottom: 1px solid #e5e7eb;
-      }
-      .athro-calendar .rbc-time-content > * + * > * {
-        border-left: 1px solid #e5e7eb;
-      }
-      .athro-calendar .rbc-time-view-resources .rbc-time-gutter,
-      .athro-calendar .rbc-time-view-resources .rbc-time-header-gutter {
-        background-color: #f9f7ff;
-      }
-      .athro-calendar .rbc-month-view {
-        border-radius: 8px;
-        border: 1px solid #e5e7eb;
-        overflow: hidden;
-      }
-      .athro-calendar .rbc-time-view {
-        border-radius: 8px;
-        border: 1px solid #e5e7eb;
-        overflow: hidden;
-      }
-      .athro-calendar .rbc-agenda-view {
-        border-radius: 8px;
-        border: 1px solid #e5e7eb;
-        overflow: hidden;
-      }
-      .athro-calendar .rbc-day-slot .rbc-event {
-        border-left: 4px solid rgba(0,0,0,0.15);
-      }
-      .athro-calendar .rbc-agenda-view table.rbc-agenda-table {
-        border: none;
-      }
-      .athro-calendar .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
-        background-color: #f9f7ff;
-        padding: 12px;
-        font-weight: 600;
-        border-bottom: 1px solid #e5e7eb;
-      }
-      .athro-calendar .rbc-time-header.rbc-overflowing {
-        border-right: 1px solid #e5e7eb;
-      }
-    `;
-    document.head.appendChild(style);
-    
-    // Clean up function to remove style when component unmounts
-    return () => {
-      document.head.removeChild(style);
+  // Function to get event background color based on subject
+  const getEventColor = (subject?: string) => {
+    const subjectColorMap: Record<string, string> = {
+      'Mathematics': 'bg-purple-100 text-purple-800',
+      'Science': 'bg-blue-100 text-blue-800',
+      'English': 'bg-green-100 text-green-800',
+      'History': 'bg-amber-100 text-amber-800',
+      'Geography': 'bg-teal-100 text-teal-800',
+      'Welsh': 'bg-red-100 text-red-800',
+      'Languages': 'bg-indigo-100 text-indigo-800',
+      'Religious Education': 'bg-pink-100 text-pink-800'
     };
-  }, []);
+    
+    return subject && subjectColorMap[subject] ? subjectColorMap[subject] : 'bg-gray-100 text-gray-800';
+  };
+
+  // Generate calendar days for the current month view
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  // Group days by week
+  const weeks: Date[][] = [];
+  let currentWeek: Date[] = [];
+  
+  monthDays.forEach(day => {
+    currentWeek.push(day);
+    
+    if (currentWeek.length === 7) {
+      weeks.push(currentWeek);
+      currentWeek = [];
+    }
+  });
+  
+  // Add the last week if it's not complete
+  if (currentWeek.length > 0) {
+    weeks.push(currentWeek);
+  }
 
   return (
     <div className="space-y-5">
@@ -256,27 +153,91 @@ const BigCalendarView: React.FC = () => {
 
       <Card className="shadow-md border-gray-200">
         <CardContent className="p-4">
-          <div className="h-[700px]">
-            <Calendar
-              localizer={localizer}
-              events={calendarEvents}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: '100%' }}
-              defaultView={Views.WEEK}
-              eventPropGetter={eventStyleGetter}
-              selectable
-              onSelectSlot={handleSelect}
-              tooltipAccessor={(event: any) => `${event.title} ${event.resource?.topic ? `- ${event.resource.topic}` : ''}`}
-              className="athro-calendar"
-              components={{
-                toolbar: CustomToolbar
-              }}
-              popup
-            />
+          <div className="flex flex-col space-y-4">
+            {/* Calendar header with navigation */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex space-x-2">
+                <Button
+                  onClick={previousMonth}
+                  variant="outline"
+                  size="sm"
+                  className="border-purple-200 hover:bg-purple-50"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={goToToday}
+                  variant="outline"
+                  size="sm"
+                  className="border-purple-200 hover:bg-purple-50"
+                >
+                  Today
+                </Button>
+                <Button
+                  onClick={nextMonth}
+                  variant="outline"
+                  size="sm"
+                  className="border-purple-200 hover:bg-purple-50"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <h3 className="text-lg font-medium">
+                {format(currentMonth, 'MMMM yyyy')}
+              </h3>
+              <div className="flex space-x-2 invisible">
+                {/* Placeholder for layout balance */}
+                <Button variant="outline" size="sm">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            {/* Days of week header */}
+            <div className="grid grid-cols-7 gap-0 border-b border-gray-200">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                <div 
+                  key={day} 
+                  className="text-center py-2 font-semibold text-sm text-gray-600 bg-gray-50"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+            
+            {/* Calendar days */}
+            <div className="grid grid-cols-7 gap-0 border-b border-gray-200">
+              {weeks.map((week, weekIndex) => (
+                <React.Fragment key={`week-${weekIndex}`}>
+                  {week.map((day, dayIndex) => (
+                    <div 
+                      key={`day-${dayIndex}`} 
+                      className={`border-r border-b last:border-r-0 min-h-[120px] ${
+                        isSameMonth(day, currentMonth) 
+                          ? 'bg-white' 
+                          : 'bg-gray-50 text-gray-400'
+                      } cursor-pointer hover:bg-purple-50 transition-colors`}
+                      onClick={() => handleDateSelect(day)}
+                    >
+                      {renderDay(day)}
+                    </div>
+                  ))}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Legend for the calendar */}
+      <div className="flex flex-wrap gap-2 mt-4">
+        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Mathematics</Badge>
+        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Science</Badge>
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">English</Badge>
+        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">History</Badge>
+        <Badge className="bg-teal-100 text-teal-800 hover:bg-teal-200">Geography</Badge>
+        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">Other</Badge>
+      </div>
 
       <CreateStudySession
         isOpen={showCreateDialog}
