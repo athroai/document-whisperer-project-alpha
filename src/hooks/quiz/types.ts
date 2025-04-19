@@ -1,34 +1,56 @@
 
-import { Question } from '@/types/quiz';
+import { ConfidenceLabel } from '@/types/confidence';
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer?: number;
+}
+
+export interface QuizResult {
+  score: number;
+  totalQuestions: number;
+  completedAt: string;
+}
 
 export interface UseQuizStateProps {
   onQuizComplete?: (subject: string, score: number) => void;
 }
 
-export interface UseQuizState {
+export interface UseQuizOperationsProps extends UseQuizStateProps {
+  initialState: {
+    questions: { [questionId: string]: any };
+    currentQuestionIndex: number;
+    quizCompleted: boolean;
+  };
+}
+
+// Extending the QuizOperations interface to include all properties used in DiagnosticQuizSelector
+export interface ExtendedQuizOperations {
+  state: {
+    questions: { [questionId: string]: any };
+    currentQuestionIndex: number;
+    quizCompleted: boolean;
+  };
+  dispatch: React.Dispatch<any>;
+  markAnswer: (questionId: string, answerIndex: number) => void;
+  nextQuestion: () => void;
+  previousQuestion: () => void;
+  submitQuiz: () => void;
+  resetQuiz: () => void;
+  
+  // Additional properties used in DiagnosticQuizSelector
   currentSubject: string | null;
-  questions: Question[];
+  questions: QuizQuestion[];
   currentQuestionIndex: number;
-  selectedAnswers: Record<number, string>;
-  quizCompleted: boolean;
-  score: number;
+  selectedAnswers: { [key: number]: string };
   error: string | null;
-  isLoadingQuestions: Record<string, boolean>;
-  isGenerating: Record<string, boolean>;
-  retryCount: Record<string, number>;
-  loadingToastId: string | null;
-  quizResults: Record<string, number>;
-  setCurrentSubject: (subject: string | null) => void;
-  setQuestions: (questions: Question[]) => void;
-  setCurrentQuestionIndex: (index: number | ((prevIndex: number) => number)) => void;
-  setSelectedAnswers: (answers: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => void;
-  setQuizCompleted: (completed: boolean) => void;
-  setScore: (score: number) => void;
+  isLoadingQuestions: { [key: string]: boolean };
+  isGenerating: { [key: string]: boolean };
+  quizResults: { [key: string]: QuizResult };
+  startQuiz: (subject: string, confidence: ConfidenceLabel) => void;
+  handleAnswerSelect: (answerId: string) => void;
+  handleNextQuestion: () => void;
   setError: (error: string | null) => void;
-  setIsLoadingQuestions: (loading: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>)) => void;
-  setIsGenerating: (generating: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>)) => void;
-  setRetryCount: (count: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
-  setLoadingToastId: (id: string | null) => void;
-  setQuizResults: (results: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
-  onQuizComplete?: (subject: string, score: number) => void;
 }

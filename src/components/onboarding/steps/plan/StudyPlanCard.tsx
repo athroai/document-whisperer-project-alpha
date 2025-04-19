@@ -32,7 +32,7 @@ export const StudyPlanCard: React.FC<StudyPlanCardProps> = ({
   };
 
   return (
-    <Card>
+    <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-0">
         <div className="border-b p-4">
           <div className="flex justify-between items-start">

@@ -1,5 +1,8 @@
+
 // src/hooks/quiz/useQuizOperations.ts
-import { useReducer } from 'react';
+import { useReducer, useState } from 'react';
+import { ConfidenceLabel } from '@/types/confidence';
+import { UseQuizOperationsProps, QuizQuestion, QuizResult, ExtendedQuizOperations } from './types';
 
 interface QuestionState {
   answer: string | null;
@@ -59,25 +62,20 @@ const reducer = (state: QuizState, action: Action): QuizState => {
   }
 };
 
-interface QuizOperations {
-  state: QuizState;
-  markAnswer: (questionId: string, answerIndex: number) => void;
-  nextQuestion: () => void;
-  previousQuestion: () => void;
-  submitQuiz: () => void;
-  resetQuiz: () => void;
-  dispatch: React.Dispatch<Action>;
-}
-
-interface UseQuizOperationsProps {
-  initialState: QuizState;
-}
-
-export const useQuizOperations = ({ initialState }: UseQuizOperationsProps): QuizOperations => {
+export const useQuizOperations = ({ initialState, onQuizComplete }: UseQuizOperationsProps): ExtendedQuizOperations => {
   const [state, dispatch] = useReducer(reducer, initialState);
+  
+  // Adding missing properties for DiagnosticQuizSelector
+  const [currentSubject, setCurrentSubject] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: string}>({});
+  const [error, setError] = useState<string | null>(null);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState<{[key: string]: boolean}>({});
+  const [isGenerating, setIsGenerating] = useState<{[key: string]: boolean}>({});
+  const [quizResults, setQuizResults] = useState<{[key: string]: QuizResult}>({});
 
   const markAnswer = (questionId: string, answerIndex: number) => {
-    const stringAnswerIndex = answerIndex.toString(); // Convert number to string
+    const stringAnswerIndex = String(answerIndex);
     dispatch({ type: 'MARK_ANSWER', payload: { questionId, answer: stringAnswerIndex }});
   };
 
@@ -97,5 +95,106 @@ export const useQuizOperations = ({ initialState }: UseQuizOperationsProps): Qui
     dispatch({ type: 'RESET_QUIZ' });
   };
 
-  return { state, markAnswer, nextQuestion, previousQuestion, submitQuiz, resetQuiz, dispatch };
+  // Implementing missing functions for DiagnosticQuizSelector
+  const startQuiz = async (subject: string, confidence: ConfidenceLabel) => {
+    setCurrentSubject(subject);
+    setIsLoadingQuestions(prev => ({ ...prev, [subject]: true }));
+    setIsGenerating(prev => ({ ...prev, [subject]: true }));
+    
+    // Mock implementation - in a real app, this would fetch questions from an API
+    try {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Create mock questions
+      const mockQuestions = [
+        {
+          id: '1',
+          question: `Sample question 1 for ${subject}?`,
+          options: ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswer: 0
+        },
+        {
+          id: '2',
+          question: `Sample question 2 for ${subject}?`,
+          options: ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswer: 1
+        },
+        {
+          id: '3',
+          question: `Sample question 3 for ${subject}?`,
+          options: ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswer: 2
+        }
+      ];
+      
+      setQuestions(mockQuestions);
+      setSelectedAnswers({});
+      setError(null);
+    } catch (err) {
+      console.error('Error starting quiz:', err);
+      setError('Failed to load quiz questions');
+    } finally {
+      setIsLoadingQuestions(prev => ({ ...prev, [subject]: false }));
+      setIsGenerating(prev => ({ ...prev, [subject]: false }));
+    }
+  };
+
+  const handleAnswerSelect = (answerId: string) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [state.currentQuestionIndex]: answerId
+    }));
+  };
+
+  const handleNextQuestion = () => {
+    if (state.currentQuestionIndex < questions.length - 1) {
+      nextQuestion();
+    } else {
+      // Complete the quiz
+      const score = 85; // Mock score
+      if (currentSubject && onQuizComplete) {
+        onQuizComplete(currentSubject, score);
+      }
+      
+      // Save quiz result
+      if (currentSubject) {
+        setQuizResults(prev => ({
+          ...prev,
+          [currentSubject]: {
+            score,
+            totalQuestions: questions.length,
+            completedAt: new Date().toISOString()
+          }
+        }));
+      }
+      
+      setCurrentSubject(null);
+      setQuestions([]);
+    }
+  };
+
+  return { 
+    state, 
+    markAnswer, 
+    nextQuestion, 
+    previousQuestion, 
+    submitQuiz, 
+    resetQuiz, 
+    dispatch,
+    
+    // Additional properties for DiagnosticQuizSelector
+    currentSubject,
+    questions,
+    currentQuestionIndex: state.currentQuestionIndex,
+    selectedAnswers,
+    error,
+    isLoadingQuestions,
+    isGenerating,
+    quizResults,
+    startQuiz,
+    handleAnswerSelect,
+    handleNextQuestion,
+    setError
+  };
 };

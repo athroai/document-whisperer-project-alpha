@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { format, addDays } from 'date-fns';
 
 import { StudyPlanCard } from './plan/StudyPlanCard';
 import { UpcomingSessionsList } from './plan/UpcomingSessionsList';
@@ -39,12 +40,10 @@ export const StudyPlanStep: React.FC = () => {
     setGenerationProgress(0);
 
     try {
-      // Use existing slots or generate defaults
       const slotsToUse = studySlots.length > 0 ? 
         studySlots : 
         generateDefaultStudySlots(state.user.id);
 
-      // Calculate sessions per subject based on confidence
       const subjectDistribution = selectedSubjects.map(subject => {
         let sessionsPerWeek = 3;
         
@@ -76,7 +75,6 @@ export const StudyPlanStep: React.FC = () => {
       setStudyPlan(subjectDistribution);
       setGenerationProgress(50);
 
-      // Generate session schedule
       const sessions = await createSessions(subjectDistribution, slotsToUse);
       await saveStudyPlan(state.user.id, subjectDistribution, sessions);
       
