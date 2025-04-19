@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { format, addDays, startOfWeek, isSameDay, addWeeks, subWeeks } from 'date-fns';
+import { format, addDays, startOfWeek, isSameDay, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -21,7 +21,8 @@ import {
   Calendar, 
   Edit, 
   Trash2, 
-  BookOpen 
+  BookOpen,
+  Move
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
@@ -39,6 +40,7 @@ interface CalendarEvent {
   endTime: Date;
   type: 'study_session' | 'quiz' | 'revision';
   color?: string;
+  isDragging?: boolean;
 }
 
 // Type for time slots
@@ -90,7 +92,9 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
   const [topic, setTopic] = useState(event?.topic || '');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState(45);
   const isNewEvent = !event?.id;
+  const { toast } = useToast();
 
   useEffect(() => {
     if (event) {
@@ -99,18 +103,29 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
       setTopic(event.topic || '');
       setStartTime(format(event.startTime, 'HH:mm'));
       setEndTime(format(event.endTime, 'HH:mm'));
+      
+      // Calculate duration in minutes
+      const durationMs = event.endTime.getTime() - event.startTime.getTime();
+      const minutes = Math.round(durationMs / 60000);
+      setDurationMinutes(minutes);
     } else {
       // Default values for new event
       setTitle('Study Session');
       setSubject(subjects[0] || '');
       setTopic('');
-      setStartTime('09:00');
-      setEndTime('10:00');
+      setStartTime('15:00');
+      setEndTime('16:00');
+      setDurationMinutes(60);
     }
   }, [event, subjects]);
 
   const handleSave = () => {
     if (!title || !subject || !startTime || !endTime) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -140,6 +155,34 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
     });
     
     onClose();
+  };
+
+  // Helper to update end time when duration changes
+  const handleDurationChange = (durationInMinutes: number) => {
+    setDurationMinutes(durationInMinutes);
+    
+    // Parse current start time and add duration
+    const [hours, minutes] = startTime.split(':').map(Number);
+    
+    const startDate = new Date();
+    startDate.setHours(hours, minutes);
+    
+    const endDate = new Date(startDate.getTime() + durationInMinutes * 60000);
+    setEndTime(format(endDate, 'HH:mm'));
+  };
+
+  // Helper to update end time when start time changes
+  const handleStartTimeChange = (time: string) => {
+    setStartTime(time);
+    
+    // Update end time based on duration
+    const [hours, minutes] = time.split(':').map(Number);
+    
+    const startDate = new Date();
+    startDate.setHours(hours, minutes);
+    
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+    setEndTime(format(endDate, 'HH:mm'));
   };
 
   return (
@@ -203,9 +246,31 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
               id="start-time"
               type="time"
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              onChange={(e) => handleStartTimeChange(e.target.value)}
               className="col-span-3"
             />
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="duration" className="text-right">
+              Duration
+            </Label>
+            <Select
+              value={durationMinutes.toString()}
+              onValueChange={(value) => handleDurationChange(parseInt(value))}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select duration" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="15">15 minutes</SelectItem>
+                <SelectItem value="30">30 minutes</SelectItem>
+                <SelectItem value="45">45 minutes</SelectItem>
+                <SelectItem value="60">60 minutes</SelectItem>
+                <SelectItem value="90">90 minutes</SelectItem>
+                <SelectItem value="120">2 hours</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
@@ -218,6 +283,7 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
               className="col-span-3"
+              disabled
             />
           </div>
         </div>
@@ -259,14 +325,15 @@ const SlotBasedCalendar: React.FC = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<{dayIndex: number, time: string} | null>(null);
+  const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
 
-  // Generate time slots from 7:00 to 21:00 (7 AM to 9 PM)
+  // Generate time slots from 15:00 to 22:00 (3 PM to 10 PM) for students
   const generateTimeSlots = () => {
     const slots: TimeSlot[][] = [];
     const hours = [];
     
-    // Generate hour slots from 7 AM to 9 PM
-    for (let hour = 7; hour <= 21; hour++) {
+    // Generate hour slots from 3 PM to 10 PM
+    for (let hour = 15; hour <= 22; hour++) {
       hours.push(hour);
     }
     
@@ -447,6 +514,17 @@ const SlotBasedCalendar: React.FC = () => {
     setShowEditDialog(true);
   };
 
+  // Calculate new date based on dayIndex and time
+  const calculateEventDate = (dayIndex: number, timeStr: string): Date => {
+    const day = addDays(currentWeekStart, dayIndex);
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    
+    const result = new Date(day);
+    result.setHours(hours, minutes, 0, 0);
+    
+    return result;
+  };
+
   // Save event (create or update)
   const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
     if (!authState.user?.id) {
@@ -468,11 +546,7 @@ const SlotBasedCalendar: React.FC = () => {
       
       // If we're creating a new event from a slot
       if (isNewEvent && selectedSlot) {
-        const selectedDate = addDays(currentWeekStart, selectedSlot.dayIndex);
-        const [hours, minutes] = selectedSlot.time.split(':').map(Number);
-        
-        startTime = new Date(selectedDate);
-        startTime.setHours(hours, minutes, 0, 0);
+        startTime = calculateEventDate(selectedSlot.dayIndex, selectedSlot.time);
         
         // Default to 1 hour duration
         endTime = new Date(startTime);
@@ -486,7 +560,10 @@ const SlotBasedCalendar: React.FC = () => {
       // Prepare data for Supabase
       const eventDescription = JSON.stringify({
         subject: eventData.subject,
-        topic: eventData.topic
+        topic: eventData.topic,
+        isPomodoro: true,
+        pomodoroWorkMinutes: 25,
+        pomodoroBreakMinutes: 5
       });
       
       const eventPayload = {
@@ -572,6 +649,60 @@ const SlotBasedCalendar: React.FC = () => {
     }
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (event: CalendarEvent) => {
+    setDraggedEvent({...event, isDragging: true});
+  };
+
+  const handleDragOver = (e: React.DragEvent, slot: TimeSlot) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent, slot: TimeSlot) => {
+    e.preventDefault();
+    
+    if (!draggedEvent || !draggedEvent.id || !authState.user?.id) return;
+    
+    try {
+      // Calculate new start and end times
+      const newStartTime = calculateEventDate(slot.dayIndex, slot.time);
+      
+      // Calculate duration of original event
+      const originalDurationMs = draggedEvent.endTime.getTime() - draggedEvent.startTime.getTime();
+      
+      // Apply same duration to new time
+      const newEndTime = new Date(newStartTime.getTime() + originalDurationMs);
+      
+      // Update the event in Supabase
+      const { error } = await supabase
+        .from('calendar_events')
+        .update({
+          start_time: newStartTime.toISOString(),
+          end_time: newEndTime.toISOString()
+        })
+        .eq('id', draggedEvent.id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Event Moved",
+        description: "The study session has been rescheduled"
+      });
+      
+      // Reset drag state and reload events
+      setDraggedEvent(null);
+      await loadEvents();
+      
+    } catch (error) {
+      console.error('Error moving event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move the study session",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Load events when component mounts or week changes
   useEffect(() => {
     loadEvents();
@@ -601,12 +732,20 @@ const SlotBasedCalendar: React.FC = () => {
     return (
       <div 
         key={event.id}
-        className={`p-2 rounded-md border ${colorClass} cursor-pointer hover:shadow-md transition-shadow`}
-        onClick={() => handleEditEvent(event)}
+        className={`p-2 rounded-md border ${colorClass} cursor-move hover:shadow-md transition-shadow ${event.isDragging ? 'opacity-50' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleEditEvent(event);
+        }}
+        draggable
+        onDragStart={() => handleDragStart(event)}
       >
         <div className="flex justify-between items-center">
           <span className="font-medium text-sm">{event.title}</span>
-          <BookOpen className="h-3 w-3" />
+          <div className="flex space-x-1">
+            <Move className="h-3 w-3 cursor-move" />
+            <BookOpen className="h-3 w-3" />
+          </div>
         </div>
         <div className="text-xs mt-1 truncate">
           {format(event.startTime, 'h:mm a')} - {format(event.endTime, 'h:mm a')}
@@ -696,6 +835,9 @@ const SlotBasedCalendar: React.FC = () => {
                     <div 
                       key={`${rowIndex}-${colIndex}`} 
                       className="p-1 min-h-[60px] border-b border-gray-100"
+                      onDragOver={(e) => handleDragOver(e, slot)}
+                      onDrop={(e) => handleDrop(e, slot)}
+                      onClick={() => handleAddEvent(colIndex, slot.time)}
                     >
                       {slot.events.length > 0 ? (
                         <div className="space-y-1">

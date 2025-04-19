@@ -6,6 +6,8 @@ import { Slider } from '@/components/ui/slider';
 import { DaySelector } from '../DaySelector';
 import { DayTimePreferences } from '../DayTimePreferences';
 import { useStudySchedule } from '@/hooks/useStudySchedule';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
 
 export const StudyScheduleStep: React.FC = () => {
   const {
@@ -13,8 +15,10 @@ export const StudyScheduleStep: React.FC = () => {
     sessionsPerDay,
     dayPreferences,
     isSubmitting,
+    sessionOptions,
     handleDayToggle,
     handleSessionTimeChange,
+    handleSessionDurationChange,
     handleSessionsPerDayChange,
     handleContinue
   } = useStudySchedule();
@@ -26,21 +30,51 @@ export const StudyScheduleStep: React.FC = () => {
         toggleDaySelection={handleDayToggle} 
       />
       
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <Label className="text-base font-semibold">Sessions per Day</Label>
-          <span className="text-sm font-medium">
-            {sessionsPerDay} {sessionsPerDay === 1 ? 'session' : 'sessions'}
-          </span>
+      <Card className="p-4 border-purple-200">
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <Label className="text-base font-semibold">Study Sessions Per Day</Label>
+            <span className="text-sm font-medium text-purple-700">
+              {sessionsPerDay} {sessionsPerDay === 1 ? 'session' : 'sessions'}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Select 
+                value={sessionsPerDay.toString()}
+                onValueChange={(value) => handleSessionsPerDayChange([parseInt(value)])}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose session format" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sessionOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value.toString()}>
+                      {option.label} ({option.durationMinutes} min each)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Slider
+                value={[sessionsPerDay]}
+                min={1}
+                max={6}
+                step={1}
+                onValueChange={handleSessionsPerDayChange}
+                className="mt-2"
+              />
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-500 mt-2">
+            You can customize the time and duration for each session below.
+          </p>
         </div>
-        <Slider
-          value={[sessionsPerDay]}
-          min={1}
-          max={4}
-          step={1}
-          onValueChange={handleSessionsPerDayChange}
-        />
-      </div>
+      </Card>
       
       {selectedDays.map((dayIndex) => (
         <DayTimePreferences
@@ -49,8 +83,10 @@ export const StudyScheduleStep: React.FC = () => {
           dayName={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}
           isSelected={selectedDays.includes(dayIndex)}
           sessionsCount={sessionsPerDay}
-          sessionTimes={dayPreferences.find(p => p.dayIndex === dayIndex)?.sessionTimes || []}
+          sessionTimes={dayPreferences.find(p => p.dayIndex === dayIndex)?.sessionTimes || 
+            Array(sessionsPerDay).fill({ startHour: 15, durationMinutes: 45 })}
           onSessionTimeChange={handleSessionTimeChange}
+          onSessionDurationChange={handleSessionDurationChange}
         />
       ))}
       

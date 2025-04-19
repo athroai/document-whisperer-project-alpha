@@ -5,6 +5,7 @@ import { PreferredStudySlot } from '@/types/study';
 
 interface SessionTime {
   startHour: number;
+  durationMinutes: number;
 }
 
 interface DayPreference {
@@ -18,6 +19,14 @@ export const useStudySchedule = () => {
   const [sessionsPerDay, setSessionsPerDay] = useState<number>(2);
   const [dayPreferences, setDayPreferences] = useState<DayPreference[]>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  
+  // Session type options
+  const sessionOptions = [
+    { value: 1, label: '1 session (long)', durationMinutes: 120 },
+    { value: 2, label: '2 sessions', durationMinutes: 60 },
+    { value: 4, label: '4 sessions (short)', durationMinutes: 30 },
+    { value: 6, label: 'Many short sessions', durationMinutes: 20 },
+  ];
 
   const handleDayToggle = (dayIndex: number) => {
     const newSelectedDays = selectedDays.includes(dayIndex)
@@ -31,10 +40,19 @@ export const useStudySchedule = () => {
         ...prev,
         {
           dayIndex,
-          sessionTimes: Array(sessionsPerDay).fill({ startHour: 15 })
+          sessionTimes: Array(sessionsPerDay).fill({
+            startHour: 15,
+            durationMinutes: getSessionDurationForCount(sessionsPerDay)
+          })
         }
       ]);
     }
+  };
+
+  const getSessionDurationForCount = (count: number): number => {
+    // Find appropriate duration based on count
+    const option = sessionOptions.find(opt => opt.value === count);
+    return option ? option.durationMinutes : 45; // Default to 45 minutes
   };
 
   const handleSessionTimeChange = (dayIndex: number, sessionIndex: number, hour: number) => {
@@ -45,8 +63,11 @@ export const useStudySchedule = () => {
           ...prev,
           {
             dayIndex,
-            sessionTimes: Array(sessionsPerDay).fill({ startHour: 15 }).map((time, i) =>
-              i === sessionIndex ? { startHour: hour } : time
+            sessionTimes: Array(sessionsPerDay).fill({
+              startHour: 15,
+              durationMinutes: getSessionDurationForCount(sessionsPerDay)
+            }).map((time, i) =>
+              i === sessionIndex ? { ...time, startHour: hour } : time
             )
           }
         ];
@@ -56,7 +77,36 @@ export const useStudySchedule = () => {
       newPrefs[dayPrefIndex] = {
         ...newPrefs[dayPrefIndex],
         sessionTimes: newPrefs[dayPrefIndex].sessionTimes.map((time, i) =>
-          i === sessionIndex ? { startHour: hour } : time
+          i === sessionIndex ? { ...time, startHour: hour } : time
+        )
+      };
+      return newPrefs;
+    });
+  };
+  
+  const handleSessionDurationChange = (dayIndex: number, sessionIndex: number, minutes: number) => {
+    setDayPreferences(prev => {
+      const dayPrefIndex = prev.findIndex(p => p.dayIndex === dayIndex);
+      if (dayPrefIndex === -1) {
+        return [
+          ...prev,
+          {
+            dayIndex,
+            sessionTimes: Array(sessionsPerDay).fill({
+              startHour: 15,
+              durationMinutes: getSessionDurationForCount(sessionsPerDay)
+            }).map((time, i) =>
+              i === sessionIndex ? { ...time, durationMinutes: minutes } : time
+            )
+          }
+        ];
+      }
+
+      const newPrefs = [...prev];
+      newPrefs[dayPrefIndex] = {
+        ...newPrefs[dayPrefIndex],
+        sessionTimes: newPrefs[dayPrefIndex].sessionTimes.map((time, i) =>
+          i === sessionIndex ? { ...time, durationMinutes: minutes } : time
         )
       };
       return newPrefs;
@@ -67,10 +117,13 @@ export const useStudySchedule = () => {
     const newCount = value[0];
     setSessionsPerDay(newCount);
     
+    // Calculate appropriate duration for the new session count
+    const defaultDuration = getSessionDurationForCount(newCount);
+    
     setDayPreferences(prev => prev.map(pref => ({
       ...pref,
-      sessionTimes: Array(newCount).fill(null).map((_, i) =>
-        pref.sessionTimes[i] || { startHour: 15 }
+      sessionTimes: Array(newCount).fill(null).map((_, i) => 
+        pref.sessionTimes[i] || { startHour: 15, durationMinutes: defaultDuration }
       )
     })));
   };
@@ -83,28 +136,54 @@ export const useStudySchedule = () => {
     try {
       setStudySlots([]);
       
-      const newSlots: PreferredStudySlot[] = selectedDays.map(dayOfWeek => {
+      const newSlots: PreferredStudySlot[] = [];
+      
+      // Create a slot for each session in each selected day
+      selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
-        return {
-          id: `temp-${Date.now()}-${dayOfWeek}`,
-          user_id: 'temp-user-id',
-          day_of_week: dayOfWeek,
-          slot_count: sessionsPerDay,
-          slot_duration_minutes: 45,
-          preferred_start_hour: dayPreference?.sessionTimes[0]?.startHour || 15
-        };
+        
+        if (dayPreference) {
+          dayPreference.sessionTimes.forEach((session, sessionIndex) => {
+            newSlots.push({
+              id: `temp-${Date.now()}-${dayOfWeek}-${sessionIndex}`,
+              user_id: 'temp-user-id',
+              day_of_week: dayOfWeek,
+              slot_count: 1, // Each slot represents one session now
+              slot_duration_minutes: session.durationMinutes,
+              preferred_start_hour: session.startHour
+            });
+          });
+        } else {
+          // Fallback if no preferences were set
+          for (let i = 0; i < sessionsPerDay; i++) {
+            newSlots.push({
+              id: `temp-${Date.now()}-${dayOfWeek}-${i}`,
+              user_id: 'temp-user-id',
+              day_of_week: dayOfWeek,
+              slot_count: 1,
+              slot_duration_minutes: getSessionDurationForCount(sessionsPerDay),
+              preferred_start_hour: 15 + i // Space them out a bit
+            });
+          }
+        }
       });
       
       setStudySlots(newSlots);
       
+      // Update study slots through the context
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
-        updateStudySlots({
-          dayOfWeek,
-          slotCount: sessionsPerDay,
-          slotDurationMinutes: 45,
-          preferredStartHour: dayPreference?.sessionTimes[0]?.startHour || 15
-        });
+        
+        if (dayPreference) {
+          dayPreference.sessionTimes.forEach(session => {
+            updateStudySlots({
+              dayOfWeek,
+              slotCount: 1,
+              slotDurationMinutes: session.durationMinutes,
+              preferredStartHour: session.startHour
+            });
+          });
+        }
       });
       
       updateOnboardingStep('generatePlan');
@@ -121,8 +200,10 @@ export const useStudySchedule = () => {
     sessionsPerDay,
     dayPreferences,
     isSubmitting,
+    sessionOptions,
     handleDayToggle,
     handleSessionTimeChange,
+    handleSessionDurationChange,
     handleSessionsPerDayChange,
     handleContinue
   };
