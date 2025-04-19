@@ -17,6 +17,7 @@ const CalendarPage: React.FC = () => {
   const location = useLocation();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [fetchAttempted, setFetchAttempted] = useState(false);
   
   // Check if we're coming from onboarding
   useEffect(() => {
@@ -42,7 +43,10 @@ const CalendarPage: React.FC = () => {
     const loadCalendarEvents = async () => {
       if (!authState.user?.id) {
         console.log("No authenticated user, skipping calendar load");
-        if (isMounted) setIsInitialLoad(false);
+        if (isMounted) {
+          setIsInitialLoad(false);
+          setFetchAttempted(true);
+        }
         return;
       }
       
@@ -53,11 +57,13 @@ const CalendarPage: React.FC = () => {
         if (isMounted) {
           console.log("Calendar events loaded successfully");
           setIsInitialLoad(false);
+          setFetchAttempted(true);
         }
       } catch (err) {
         console.error('Error fetching calendar events:', err);
         if (isMounted) {
           setIsInitialLoad(false);
+          setFetchAttempted(true);
           toast({
             title: "Calendar Error",
             description: "Could not load your calendar events. Please try again.",
@@ -67,20 +73,22 @@ const CalendarPage: React.FC = () => {
       }
     };
     
-    if (authState.user?.id) {
+    if (authState.user?.id && !fetchAttempted) {
       loadCalendarEvents();
-    } else {
+    } else if (!authState.user?.id) {
       setIsInitialLoad(false);
+      setFetchAttempted(true);
     }
     
     return () => {
       isMounted = false;
-      clearEvents();
     };
-  }, [authState.user?.id, clearEvents, fetchEvents, toast, refreshTrigger]);
+  }, [authState.user?.id, fetchEvents, toast, fetchAttempted, refreshTrigger]);
   
   const handleRetryLoad = () => {
+    setFetchAttempted(false);
     setRefreshTrigger(prev => prev + 1);
+    clearEvents();
     toast({
       title: "Refreshing calendar",
       description: "Attempting to reload your calendar events..."

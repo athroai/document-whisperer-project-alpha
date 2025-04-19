@@ -62,29 +62,29 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
         onAddSession={handleAddSession}
       />
 
-      {events.length === 0 ? (
-        <Card className="shadow-md border-gray-200">
-          <CardContent className="p-8 text-center">
-            <p className="text-gray-500 mb-4">
-              No study sessions found in your calendar.
+      <Card className="shadow-md border-gray-200">
+        <CardContent className="p-4">
+          <CalendarNavigation
+            currentMonth={currentMonth}
+            onPreviousMonth={previousMonth}
+            onNextMonth={nextMonth}
+          />
+          
+          <CalendarGrid
+            days={monthDays}
+            currentMonth={currentMonth}
+            events={events}
+            onSelectDate={handleDateSelect}
+          />
+        </CardContent>
+      </Card>
+
+      {events.length === 0 && (
+        <Card className="mt-4 shadow-md border-gray-200">
+          <CardContent className="p-4 text-center">
+            <p className="text-gray-500">
+              No study sessions found in your calendar. Select a date to add a new session.
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="shadow-md border-gray-200">
-          <CardContent className="p-4">
-            <CalendarNavigation
-              currentMonth={currentMonth}
-              onPreviousMonth={previousMonth}
-              onNextMonth={nextMonth}
-            />
-            
-            <CalendarGrid
-              days={monthDays}
-              currentMonth={currentMonth}
-              events={events}
-              onSelectDate={handleDateSelect}
-            />
           </CardContent>
         </Card>
       )}

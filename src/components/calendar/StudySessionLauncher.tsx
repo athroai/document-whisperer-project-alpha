@@ -24,22 +24,7 @@ const StudySessionLauncher = () => {
       const userId = authState.user.id;
       console.log('Checking scheduled sessions for user ID:', userId);
       
-      // Check Supabase auth status to ensure we're properly authenticated
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) {
-          console.error('Error checking Supabase auth status:', authError);
-          return;
-        }
-        
-        if (!user) {
-          console.log('No authenticated Supabase user found');
-          return;
-        }
-        
-        console.log('Supabase auth confirmed, user ID:', user.id);
-        
         // Get current date
         const now = new Date();
         const fiveMinutesAgo = new Date(now.getTime() - 5 * 60000);
@@ -111,19 +96,24 @@ const StudySessionLauncher = () => {
     
     // Check for sessions if user is logged in
     if (authState.user?.id) {
-      checkForScheduledSessions();
+      // Adding delay to avoid race conditions with other components
+      const initialCheckDelay = setTimeout(() => {
+        checkForScheduledSessions();
+      }, 1500);
       
-      // Set up interval using a ref to track it
+      // Set up interval to check periodically
       checkTimeoutRef.current = setInterval(checkForScheduledSessions, 5 * 60000);
+      
+      return () => {
+        clearTimeout(initialCheckDelay);
+        if (checkTimeoutRef.current) {
+          clearInterval(checkTimeoutRef.current);
+          checkTimeoutRef.current = null;
+        }
+      };
     }
     
-    // Clean up interval when component unmounts or user logs out
-    return () => {
-      if (checkTimeoutRef.current) {
-        clearInterval(checkTimeoutRef.current);
-        checkTimeoutRef.current = null;
-      }
-    };
+    return () => {};
   }, [navigate, toast, authState.user?.id]);
   
   return null; // This is a utility component, not rendering anything
