@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 interface SessionTime {
   startHour: number;
@@ -18,6 +21,8 @@ export const useStudySchedule = () => {
   const [sessionsPerDay, setSessionsPerDay] = useState<number>(2);
   const [dayPreferences, setDayPreferences] = useState<DayPreference[]>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { state: authState } = useAuth();
+  const { toast } = useToast();
   
   // Session type options
   const sessionOptions = [
@@ -145,6 +150,14 @@ export const useStudySchedule = () => {
     setIsSubmitting(true);
     
     try {
+      // Remove any existing study slots first
+      if (authState.user?.id) {
+        await supabase
+          .from('preferred_study_slots')
+          .delete()
+          .eq('user_id', authState.user.id);
+      }
+      
       setStudySlots([]);
       
       const newSlots: PreferredStudySlot[] = [];
@@ -181,6 +194,31 @@ export const useStudySchedule = () => {
       
       setStudySlots(newSlots);
       
+      // Create slots for each session in each selected day
+      const slots = selectedDays.flatMap(dayOfWeek => {
+        const dayPref = dayPreferences.find(p => p.dayIndex === dayOfWeek);
+        
+        if (dayPref) {
+          return dayPref.sessionTimes.map((session) => ({
+            user_id: authState.user?.id,
+            day_of_week: dayOfWeek,
+            slot_count: 1,
+            slot_duration_minutes: session.durationMinutes,
+            preferred_start_hour: session.startHour
+          }));
+        }
+        
+        return [];
+      });
+
+      if (slots.length > 0 && authState.user?.id) {
+        const { error } = await supabase
+          .from('preferred_study_slots')
+          .insert(slots);
+
+        if (error) throw error;
+      }
+      
       // Update study slots through the context
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
@@ -197,10 +235,15 @@ export const useStudySchedule = () => {
         }
       });
       
-      updateOnboardingStep('generatePlan');
+      updateOnboardingStep('calendar');
     } catch (error) {
       console.error('Error saving study slots:', error);
-      updateOnboardingStep('generatePlan');
+      toast({
+        title: "Error",
+        description: "Failed to save your study schedule. Please try again.",
+        variant: "destructive"
+      });
+      updateOnboardingStep('calendar');
     } finally {
       setIsSubmitting(false);
     }

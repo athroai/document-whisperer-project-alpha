@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,7 +29,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { useSubjects } from '@/hooks/useSubjects';
 
-// Type for calendar events
 interface CalendarEvent {
   id: string;
   title: string;
@@ -43,7 +41,6 @@ interface CalendarEvent {
   isDragging?: boolean;
 }
 
-// Type for time slots
 interface TimeSlot {
   id?: string;
   time: string;
@@ -53,7 +50,6 @@ interface TimeSlot {
   dayIndex: number;
 }
 
-// Type for edit session dialog
 interface EditSessionDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -63,7 +59,6 @@ interface EditSessionDialogProps {
   subjects: string[];
 }
 
-// Color map for subjects
 const subjectColorMap: Record<string, string> = {
   'Mathematics': 'bg-purple-100 border-purple-300 text-purple-800',
   'Science': 'bg-blue-100 border-blue-300 text-blue-800',
@@ -75,10 +70,8 @@ const subjectColorMap: Record<string, string> = {
   'Religious Education': 'bg-pink-100 border-pink-300 text-pink-800'
 };
 
-// Default color for subjects not in the map
 const defaultColor = 'bg-gray-100 border-gray-300 text-gray-800';
 
-// Component for editing a session
 const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
   isOpen,
   onClose,
@@ -104,12 +97,10 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
       setStartTime(format(event.startTime, 'HH:mm'));
       setEndTime(format(event.endTime, 'HH:mm'));
       
-      // Calculate duration in minutes
       const durationMs = event.endTime.getTime() - event.startTime.getTime();
       const minutes = Math.round(durationMs / 60000);
       setDurationMinutes(minutes);
     } else {
-      // Default values for new event
       setTitle('Study Session');
       setSubject(subjects[0] || '');
       setTopic('');
@@ -129,7 +120,6 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
       return;
     }
 
-    // Calculate date values from string times
     let newStartTime = new Date();
     let newEndTime = new Date();
     
@@ -157,11 +147,9 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
     onClose();
   };
 
-  // Helper to update end time when duration changes
   const handleDurationChange = (durationInMinutes: number) => {
     setDurationMinutes(durationInMinutes);
     
-    // Parse current start time and add duration
     const [hours, minutes] = startTime.split(':').map(Number);
     
     const startDate = new Date();
@@ -171,11 +159,9 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
     setEndTime(format(endDate, 'HH:mm'));
   };
 
-  // Helper to update end time when start time changes
   const handleStartTimeChange = (time: string) => {
     setStartTime(time);
     
-    // Update end time based on duration
     const [hours, minutes] = time.split(':').map(Number);
     
     const startDate = new Date();
@@ -313,7 +299,35 @@ const EditSessionDialog: React.FC<EditSessionDialogProps> = ({
   );
 };
 
-// Main calendar component
+const generateTimeSlots = () => {
+  const slots: TimeSlot[][] = [];
+  const hours = [];
+  
+  for (let hour = 15; hour <= 22; hour++) {
+    hours.push(hour);
+  }
+  
+  for (let i = 0; i < hours.length; i++) {
+    const hour = hours[i];
+    
+    [0, 20, 40].forEach(minute => {
+      const timeSlots: TimeSlot[] = [];
+      for (let day = 0; day < 7; day++) {
+        timeSlots.push({
+          time: `${hour}:${minute.toString().padStart(2, '0')}`,
+          displayTime: `${hour}:${minute.toString().padStart(2, '0')}`,
+          events: [],
+          isActive: true,
+          dayIndex: day
+        });
+      }
+      slots.push(timeSlots);
+    });
+  }
+  
+  return slots;
+};
+
 const SlotBasedCalendar: React.FC = () => {
   const { toast } = useToast();
   const { state: authState } = useAuth();
@@ -327,97 +341,6 @@ const SlotBasedCalendar: React.FC = () => {
   const [selectedSlot, setSelectedSlot] = useState<{dayIndex: number, time: string} | null>(null);
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
 
-  // Generate time slots from 15:00 to 22:00 (3 PM to 10 PM) for students
-  const generateTimeSlots = () => {
-    const slots: TimeSlot[][] = [];
-    const hours = [];
-    
-    // Generate hour slots from 3 PM to 10 PM
-    for (let hour = 15; hour <= 22; hour++) {
-      hours.push(hour);
-    }
-    
-    // For each hour, create a 30-minute interval
-    for (let i = 0; i < hours.length; i++) {
-      const hour = hours[i];
-      
-      // Add :00 slot
-      const fullHourSlots: TimeSlot[] = [];
-      for (let day = 0; day < 7; day++) {
-        fullHourSlots.push({
-          time: `${hour}:00`,
-          displayTime: `${hour}:00`,
-          events: [],
-          isActive: true,
-          dayIndex: day
-        });
-      }
-      slots.push(fullHourSlots);
-      
-      // Add :30 slot
-      const halfHourSlots: TimeSlot[] = [];
-      for (let day = 0; day < 7; day++) {
-        halfHourSlots.push({
-          time: `${hour}:30`,
-          displayTime: `${hour}:30`,
-          events: [],
-          isActive: true,
-          dayIndex: day
-        });
-      }
-      slots.push(halfHourSlots);
-    }
-    
-    return slots;
-  };
-
-  // Assign events to time slots
-  const mapEventsToSlots = (allEvents: CalendarEvent[], weekStart: Date) => {
-    const slots = generateTimeSlots();
-    
-    // Filter events for the current week
-    const weekEnd = addDays(weekStart, 6);
-    const eventsThisWeek = allEvents.filter(event => {
-      const eventDate = new Date(event.startTime);
-      return eventDate >= weekStart && eventDate <= weekEnd;
-    });
-    
-    // Map events to slots
-    eventsThisWeek.forEach(event => {
-      const eventDate = new Date(event.startTime);
-      const dayOfWeek = (eventDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
-      
-      const eventStartHour = eventDate.getHours();
-      const eventStartMinute = eventDate.getMinutes();
-      const formattedStartTime = `${eventStartHour}:${eventStartMinute === 0 ? '00' : eventStartMinute}`;
-      
-      // Find matching time slot
-      for (let i = 0; i < slots.length; i++) {
-        const rowSlots = slots[i];
-        const slotTime = rowSlots[0].time;
-        
-        // Split slotTime into hours and minutes
-        const [slotHour, slotMinute] = slotTime.split(':').map(Number);
-        
-        // Check if event starts at or after this slot's time but before the next slot
-        if ((eventStartHour === slotHour && eventStartMinute >= slotMinute) || 
-            (eventStartHour > slotHour && i === slots.length - 1) || 
-            (eventStartHour > slotHour && eventStartHour < Number(slots[i+1][0].time.split(':')[0])) ||
-            (eventStartHour === Number(slots[i+1][0].time.split(':')[0]) && eventStartMinute < Number(slots[i+1][0].time.split(':')[1]))
-          ) {
-          // Add event to appropriate day's slot
-          if (rowSlots[dayOfWeek]) {
-            rowSlots[dayOfWeek].events.push(event);
-          }
-          break;
-        }
-      }
-    });
-    
-    return slots;
-  };
-
-  // Load events from Supabase
   const loadEvents = async () => {
     setIsLoading(true);
     
@@ -427,54 +350,76 @@ const SlotBasedCalendar: React.FC = () => {
         setTimeSlots(generateTimeSlots());
         return;
       }
-      
-      const { data: calendarEvents, error } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .or(`student_id.eq.${authState.user.id},user_id.eq.${authState.user.id}`)
-        .order('start_time', { ascending: true });
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (!calendarEvents) {
-        setEvents([]);
-        setTimeSlots(generateTimeSlots());
-        return;
-      }
-      
-      // Parse and format events
-      const parsedEvents: CalendarEvent[] = calendarEvents.map(event => {
-        // Try to parse description for additional data
-        let subject = '';
-        let topic = '';
-        
-        try {
-          if (event.description) {
-            const descriptionObj = JSON.parse(event.description);
-            subject = descriptionObj.subject || '';
-            topic = descriptionObj.topic || '';
+
+      const [calendarResponse, slotsResponse] = await Promise.all([
+        supabase
+          .from('calendar_events')
+          .select('*')
+          .or(`student_id.eq.${authState.user.id},user_id.eq.${authState.user.id}`),
+        supabase
+          .from('preferred_study_slots')
+          .select('*')
+          .eq('user_id', authState.user.id)
+      ]);
+
+      if (calendarResponse.error) throw calendarResponse.error;
+      if (slotsResponse.error) throw slotsResponse.error;
+
+      const parsedEvents: CalendarEvent[] = [];
+
+      if (calendarResponse.data) {
+        parsedEvents.push(...calendarResponse.data.map(event => {
+          let subject = '';
+          let topic = '';
+          
+          try {
+            if (event.description) {
+              const descriptionObj = JSON.parse(event.description);
+              subject = descriptionObj.subject || '';
+              topic = descriptionObj.topic || '';
+            }
+          } catch (e) {
+            subject = event.title || '';
           }
-        } catch (e) {
-          // If parsing fails, use title or empty string
-          subject = event.title || '';
-        }
-        
-        return {
-          id: event.id,
-          title: event.title,
-          subject: subject,
-          topic: topic,
-          startTime: new Date(event.start_time),
-          endTime: new Date(event.end_time),
-          type: (event.event_type as 'study_session' | 'quiz' | 'revision') || 'study_session'
-        };
-      });
+          
+          return {
+            id: event.id,
+            title: event.title,
+            subject: subject,
+            topic: topic,
+            startTime: new Date(event.start_time),
+            endTime: new Date(event.end_time),
+            type: event.event_type || 'study_session'
+          };
+        }));
+      }
+
+      if (slotsResponse.data) {
+        const studySlots = slotsResponse.data;
+        const currentWeekStart = startOfWeek(currentWeekStart, { weekStartsOn: 1 });
+
+        studySlots.forEach(slot => {
+          const slotDay = addDays(currentWeekStart, slot.day_of_week - 1);
+          const startTime = new Date(slotDay);
+          startTime.setHours(slot.preferred_start_hour, 0, 0);
+          
+          const endTime = new Date(startTime);
+          endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
+
+          parsedEvents.push({
+            id: `slot-${slot.id}`,
+            title: 'Study Session',
+            subject: '',
+            startTime,
+            endTime,
+            type: 'study_session',
+            isRecurring: true
+          });
+        });
+      }
       
       setEvents(parsedEvents);
       
-      // Map events to slots
       const mappedSlots = mapEventsToSlots(parsedEvents, currentWeekStart);
       setTimeSlots(mappedSlots);
       
@@ -491,7 +436,6 @@ const SlotBasedCalendar: React.FC = () => {
     }
   };
 
-  // Handle next/previous week navigation
   const goToNextWeek = () => {
     setCurrentWeekStart(addWeeks(currentWeekStart, 1));
   };
@@ -500,21 +444,18 @@ const SlotBasedCalendar: React.FC = () => {
     setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   };
 
-  // Handle creating a new event
   const handleAddEvent = (dayIndex: number, time: string) => {
     setSelectedEvent(null);
     setSelectedSlot({ dayIndex, time });
     setShowEditDialog(true);
   };
 
-  // Handle editing an existing event
   const handleEditEvent = (event: CalendarEvent) => {
     setSelectedEvent(event);
     setSelectedSlot(null);
     setShowEditDialog(true);
   };
 
-  // Calculate new date based on dayIndex and time
   const calculateEventDate = (dayIndex: number, timeStr: string): Date => {
     const day = addDays(currentWeekStart, dayIndex);
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -525,7 +466,6 @@ const SlotBasedCalendar: React.FC = () => {
     return result;
   };
 
-  // Save event (create or update)
   const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
     if (!authState.user?.id) {
       toast({
@@ -537,18 +477,14 @@ const SlotBasedCalendar: React.FC = () => {
     }
     
     try {
-      // Determine if we're creating or updating
       const isNewEvent = !eventData.id;
       
-      // Format event date and time
       let startTime = eventData.startTime;
       let endTime = eventData.endTime;
       
-      // If we're creating a new event from a slot
       if (isNewEvent && selectedSlot) {
         startTime = calculateEventDate(selectedSlot.dayIndex, selectedSlot.time);
         
-        // Default to 1 hour duration
         endTime = new Date(startTime);
         endTime.setHours(startTime.getHours() + 1);
       }
@@ -557,7 +493,6 @@ const SlotBasedCalendar: React.FC = () => {
         throw new Error("Start and end times are required");
       }
       
-      // Prepare data for Supabase
       const eventDescription = JSON.stringify({
         subject: eventData.subject,
         topic: eventData.topic,
@@ -577,7 +512,6 @@ const SlotBasedCalendar: React.FC = () => {
       };
       
       if (isNewEvent) {
-        // Create new event
         const { data, error } = await supabase
           .from('calendar_events')
           .insert(eventPayload)
@@ -591,7 +525,6 @@ const SlotBasedCalendar: React.FC = () => {
           description: "The study session has been added to your calendar"
         });
       } else {
-        // Update existing event
         const { error } = await supabase
           .from('calendar_events')
           .update(eventPayload)
@@ -605,7 +538,6 @@ const SlotBasedCalendar: React.FC = () => {
         });
       }
       
-      // Reload events
       await loadEvents();
       
     } catch (error) {
@@ -618,7 +550,6 @@ const SlotBasedCalendar: React.FC = () => {
     }
   };
 
-  // Delete an event
   const handleDeleteEvent = async () => {
     if (!selectedEvent?.id || !authState.user?.id) return;
     
@@ -635,7 +566,6 @@ const SlotBasedCalendar: React.FC = () => {
         description: "The study session has been removed from your calendar"
       });
       
-      // Close dialog and reload events
       setShowEditDialog(false);
       await loadEvents();
       
@@ -649,7 +579,6 @@ const SlotBasedCalendar: React.FC = () => {
     }
   };
 
-  // Drag and drop handlers
   const handleDragStart = (event: CalendarEvent) => {
     setDraggedEvent({...event, isDragging: true});
   };
@@ -664,16 +593,12 @@ const SlotBasedCalendar: React.FC = () => {
     if (!draggedEvent || !draggedEvent.id || !authState.user?.id) return;
     
     try {
-      // Calculate new start and end times
       const newStartTime = calculateEventDate(slot.dayIndex, slot.time);
       
-      // Calculate duration of original event
       const originalDurationMs = draggedEvent.endTime.getTime() - draggedEvent.startTime.getTime();
       
-      // Apply same duration to new time
       const newEndTime = new Date(newStartTime.getTime() + originalDurationMs);
       
-      // Update the event in Supabase
       const { error } = await supabase
         .from('calendar_events')
         .update({
@@ -689,7 +614,6 @@ const SlotBasedCalendar: React.FC = () => {
         description: "The study session has been rescheduled"
       });
       
-      // Reset drag state and reload events
       setDraggedEvent(null);
       await loadEvents();
       
@@ -703,12 +627,10 @@ const SlotBasedCalendar: React.FC = () => {
     }
   };
 
-  // Load events when component mounts or week changes
   useEffect(() => {
     loadEvents();
   }, [currentWeekStart, authState.user?.id]);
 
-  // Get day names for the current week
   const getDaysOfWeek = () => {
     const days = [];
     for (let i = 0; i < 7; i++) {
@@ -722,9 +644,7 @@ const SlotBasedCalendar: React.FC = () => {
     return days;
   };
 
-  // Render calendar event
   const renderEvent = (event: CalendarEvent) => {
-    // Get color based on subject
     const colorClass = event.subject && subjectColorMap[event.subject] 
       ? subjectColorMap[event.subject] 
       : defaultColor;
@@ -757,7 +677,6 @@ const SlotBasedCalendar: React.FC = () => {
     );
   };
 
-  // Render empty slot with add button
   const renderEmptySlot = (dayIndex: number, time: string) => {
     return (
       <div className="h-full flex items-center justify-center">
@@ -867,7 +786,6 @@ const SlotBasedCalendar: React.FC = () => {
         </CardContent>
       </Card>
       
-      {/* Edit Session Dialog */}
       <EditSessionDialog
         isOpen={showEditDialog}
         onClose={() => setShowEditDialog(false)}
