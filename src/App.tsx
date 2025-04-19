@@ -19,7 +19,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AthroProvider } from '@/contexts/AthroContext';
 import WelcomePage from '@/pages/WelcomePage';
-import OnboardingPage from '@/pages/OnboardingPage';
+import AthroOnboardingPage from '@/pages/AthroOnboardingPage';
 import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
 import ProgressPage from '@/pages/ProgressPage';
 
@@ -33,9 +33,9 @@ const App: React.FC = () => {
             <StudySessionLauncher />
             <Routes>
               <Route path="/" element={<WelcomePage />} />
-              <Route path="/onboarding" element={
+              <Route path="/athro-onboarding" element={
                 <ProtectedRoute>
-                  <OnboardingPage />
+                  <AthroOnboardingPage />
                 </ProtectedRoute>
               } />
               <Route path="/login" element={<LoginPage />} />
@@ -84,7 +84,7 @@ const App: React.FC = () => {
               } />
               
               <Route path="/classroom/:id" element={
-                <ProtectedRoute requiredRole="teacher">
+                <ProtectedRoute>
                   <ClassroomPage />
                 </ProtectedRoute>
               } />
