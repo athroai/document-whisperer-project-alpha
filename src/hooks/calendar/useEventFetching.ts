@@ -2,6 +2,7 @@
 import { useCallback, useRef } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { fetchDatabaseEvents } from '@/services/calendarEventService';
+import { useToast } from '@/hooks/use-toast';
 
 export const useEventFetching = (
   userId: string | undefined,
@@ -11,11 +12,12 @@ export const useEventFetching = (
   localEvents: CalendarEvent[]
 ) => {
   const isFetchingRef = useRef(false);
+  const { toast } = useToast();
 
   const fetchEvents = useCallback(async () => {
     if (isFetchingRef.current) {
       console.log('Already fetching events, skipping duplicate request');
-      return localEvents; // Return local events instead of undefined 'events'
+      return localEvents;
     }
     
     if (!userId) {
@@ -34,7 +36,7 @@ export const useEventFetching = (
       // Log the fetched events
       console.log(`Fetched ${dbEvents.length} events from database:`, dbEvents);
       
-      // Cache fetched events
+      // Cache fetched events with user ID
       if (dbEvents.length > 0) {
         const now = Date.now();
         localStorage.setItem('cached_calendar_events', JSON.stringify({
@@ -88,13 +90,18 @@ export const useEventFetching = (
       return combinedEvents;
     } catch (error) {
       console.error('Error in fetchEvents:', error);
+      toast({
+        title: "Error loading events",
+        description: "Could not load your calendar events. Please try refreshing.",
+        variant: "destructive"
+      });
       setEvents(localEvents);
       return localEvents;
     } finally {
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [userId, localEvents, setEvents, setIsLoading, setLastRefreshedAt]);
+  }, [userId, localEvents, setEvents, setIsLoading, setLastRefreshedAt, toast]);
 
   return { fetchEvents };
 };

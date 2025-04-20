@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSessionCreation } from '@/hooks/calendar/useSessionCreation';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const CreateInitialEvents: React.FC = () => {
   const { selectedSubjects, updateOnboardingStep, completeOnboarding } = useOnboarding();
@@ -13,15 +13,16 @@ export const CreateInitialEvents: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { state: authState } = useAuth();
 
   const handleBack = () => updateOnboardingStep('schedule');
 
   const handleCreateEvents = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || !authState.user?.id) return;
     setIsSubmitting(true);
 
     try {
-      // Mark onboarding as complete regardless of calendar event creation success
+      // Mark onboarding as complete first
       await completeOnboarding();
       
       const now = new Date();
@@ -33,7 +34,7 @@ export const CreateInitialEvents: React.FC = () => {
         sessionDate.setDate(sessionDate.getDate() + index);
         
         const startTime = new Date(sessionDate);
-        startTime.setHours(16, 0, 0, 0); // Using 4PM to avoid potential timezone issues
+        startTime.setHours(16, 0, 0, 0);
         
         const endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + 45);
@@ -50,7 +51,6 @@ export const CreateInitialEvents: React.FC = () => {
       console.log('Creating initial study sessions:', sessions);
       
       try {
-        // Create study sessions with explicit error handling
         const createdSessions = await createBatchCalendarSessions(sessions);
         console.log('Created sessions:', createdSessions);
         
@@ -64,27 +64,17 @@ export const CreateInitialEvents: React.FC = () => {
           localStorage.removeItem('cached_calendar_events');
           
           // Add a small delay to ensure database writes complete
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Navigate to calendar with refresh flag and user ID
+          navigate(`/calendar?fromSetup=true&refresh=true&userId=${authState.user.id}`);
         } else {
-          toast({
-            title: "Partial Success",
-            description: "Onboarding completed, but no study sessions were created.",
-            variant: "default"
-          });
+          throw new Error('No sessions were created');
         }
-      } catch (calendarError) {
-        console.error('Error creating calendar events:', calendarError);
-        toast({
-          title: "Partial Success",
-          description: "Onboarding completed, but some study sessions may not have been created.",
-          variant: "default"
-        });
+      } catch (error) {
+        console.error('Error creating calendar events:', error);
+        throw error;
       }
-      
-      // Always navigate to calendar even if calendar events fail
-      localStorage.setItem('onboarding_completed', 'true');
-      // Use refresh=true to force calendar refresh when navigating
-      navigate('/calendar?fromSetup=true&refresh=true');
     } catch (error) {
       console.error('Error completing onboarding:', error);
       toast({
