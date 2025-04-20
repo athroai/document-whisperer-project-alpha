@@ -1,42 +1,27 @@
 
-export type ConfidenceLabel = 
-  | "Very confident" 
-  | "Slightly confident" 
-  | "Neutral" 
-  | "Slightly unsure" 
-  | "Very unsure"
-  | "Very Low"
-  | "Low" 
-  | "Neutral"
-  | "High"
-  | "Very High";
+export type ConfidenceLabel = 'Very Low' | 'Low' | 'Neutral' | 'High' | 'Very High';
 
 export const confidenceOptions: ConfidenceLabel[] = [
-  "Very confident",
-  "Slightly confident", 
-  "Neutral",
-  "Slightly unsure",
-  "Very unsure"
+  'Very Low',
+  'Low', 
+  'Neutral', 
+  'High', 
+  'Very High'
 ];
 
-// Convert confidence label to difficulty (1-3)
-export const getDifficultyFromConfidence = (label: ConfidenceLabel): number => {
-  switch (label) {
-    case "Very confident":
-    case "Very High":
-      return 1;
-    case "Slightly confident":
-    case "High":
-      return 1;
-    case "Neutral":
-      return 2;
-    case "Slightly unsure":
-    case "Low":
-      return 3;
-    case "Very unsure":
-    case "Very Low":
-      return 3;
+export const getConfidenceColor = (confidence: ConfidenceLabel): string => {
+  switch (confidence) {
+    case 'Very Low':
+      return 'bg-red-100 text-red-800 border-red-200';
+    case 'Low':
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    case 'Neutral':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'High':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'Very High':
+      return 'bg-emerald-100 text-emerald-800 border-emerald-200';
     default:
-      return 2;
+      return '';
   }
 };

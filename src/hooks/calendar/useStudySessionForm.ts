@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useSessionCreation } from './useSessionCreation';
 import { format, addMinutes } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface FormState {
   title: string;
@@ -21,6 +22,8 @@ export const useStudySessionForm = (
 ) => {
   const { createEvent } = useCalendarEvents();
   const { createCalendarSession } = useSessionCreation();
+  const { toast } = useToast();
+  
   const [formState, setFormState] = useState<FormState>({
     title: '',
     subject: 'Mathematics',
@@ -64,9 +67,17 @@ export const useStudySessionForm = (
       const startDateTime = new Date(`${formState.date}T${formState.startTime}`);
       const endDateTime = addMinutes(startDateTime, formState.duration);
       
-      // Try the new session creation method first
+      console.log("Creating calendar session with:", {
+        title: formState.title || `${formState.subject} Study Session`,
+        subject: formState.subject,
+        topic: formState.topic,
+        startTime: startDateTime,
+        endTime: endDateTime
+      });
+      
+      // Try the new session creation method
       const newEvent = await createCalendarSession({
-        title: formState.title,
+        title: formState.title || `${formState.subject} Study Session`,
         subject: formState.subject,
         topic: formState.topic,
         startTime: startDateTime,
@@ -75,6 +86,8 @@ export const useStudySessionForm = (
       
       // If the new method fails, fall back to the old method
       if (!newEvent) {
+        console.log("Session creation failed, falling back to legacy method");
+        
         const fallbackEvent = await createEvent({
           title: formState.title || `${formState.subject} Study Session`,
           subject: formState.subject,
@@ -86,8 +99,15 @@ export const useStudySessionForm = (
         
         if (fallbackEvent && onSuccess) {
           onSuccess(fallbackEvent);
+        } else {
+          toast({
+            title: "Warning",
+            description: "Session may not have been saved correctly. Please check your calendar.",
+            variant: "destructive"
+          });
         }
       } else if (onSuccess) {
+        console.log("Session created successfully:", newEvent);
         onSuccess(newEvent);
       }
       
@@ -96,6 +116,11 @@ export const useStudySessionForm = (
       }
     } catch (error) {
       console.error('Error creating study session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create study session. Please try again.",
+        variant: "destructive"
+      });
       throw error;
     } finally {
       setFormState(prev => ({ ...prev, isSubmitting: false }));

@@ -1,90 +1,41 @@
-import { ConfidenceLabel } from '@/types/confidence';
-import { supabase } from '@/lib/supabase';
-import { addDays, format } from 'date-fns';
+
 import { PreferredStudySlot } from '@/types/study';
 
 export const generateDefaultStudySlots = (userId: string): PreferredStudySlot[] => {
-  const defaultSlots = [];
-  
-  for (let day = 1; day <= 5; day++) {
-    defaultSlots.push({
-      id: `default-${day}`,
-      user_id: userId,
-      day_of_week: day,
-      slot_count: 2,
-      slot_duration_minutes: 45,
-      preferred_start_hour: 16
-    });
-  }
-  
-  return defaultSlots;
+  // Generate a default set of study slots for weekdays
+  const weekdaySlots: PreferredStudySlot[] = [1, 2, 3, 4, 5].map(dayOfWeek => ({
+    id: `default-${dayOfWeek}`,
+    user_id: userId,
+    day_of_week: dayOfWeek,
+    slot_duration_minutes: 45,
+    slot_count: 2,
+    preferred_start_hour: 15, // 3 PM
+  }));
+
+  // Add weekend slots with different timing
+  const weekendSlots: PreferredStudySlot[] = [6, 7].map(dayOfWeek => ({
+    id: `default-${dayOfWeek}`,
+    user_id: userId,
+    day_of_week: dayOfWeek,
+    slot_duration_minutes: 90,
+    slot_count: 1,
+    preferred_start_hour: 10, // 10 AM for weekends
+  }));
+
+  return [...weekdaySlots, ...weekendSlots];
 };
 
-export const saveSessionsToDatabase = async (
-  sessions: any[],
-  userId: string,
-  planId: string
-): Promise<string[]> => {
-  const eventIds: string[] = [];
-  
-  for (const session of sessions) {
-    try {
-      const eventDescription = {
-        subject: session.subject,
-        confidence: session.confidence,
-        isPomodoro: true,
-        pomodoroWorkMinutes: 25,
-        pomodoroBreakMinutes: 5
-      };
-
-      const { data: eventData, error: eventError } = await supabase
-        .from('calendar_events')
-        .insert({
-          user_id: userId,
-          student_id: userId,
-          title: `${session.subject} Study Session`,
-          description: JSON.stringify(eventDescription),
-          event_type: 'study_session',
-          start_time: session.startTime.toISOString(),
-          end_time: session.endTime.toISOString()
-        })
-        .select('id')
-        .single();
-
-      if (eventError) {
-        console.error("Error creating calendar event:", eventError);
-        eventIds.push("");
-        continue;
-      }
-
-      if (!eventData?.id) {
-        console.error("No event ID returned");
-        eventIds.push("");
-        continue;
-      }
-
-      // Create study plan session
-      const { error: sessionError } = await supabase
-        .from('study_plan_sessions')
-        .insert({
-          plan_id: planId,
-          subject: session.subject,
-          topic: '',
-          start_time: session.startTime.toISOString(),
-          end_time: session.endTime.toISOString(),
-          calendar_event_id: eventData.id
-        });
-
-      if (sessionError) {
-        console.error("Error creating study plan session:", sessionError);
-      }
-
-      eventIds.push(eventData.id);
-    } catch (err) {
-      console.error("Exception when saving session:", err);
-      eventIds.push("");
-    }
+export const calculateStudySessionsPerWeek = (
+  subjectCount: number,
+  maxSessionsPerWeek = 14
+): number => {
+  if (subjectCount <= 0) {
+    return 0;
   }
-
-  return eventIds;
+  
+  // Allocate sessions evenly, minimum 1 per subject
+  const baseSessionsPerSubject = Math.max(1, Math.floor(maxSessionsPerWeek / subjectCount));
+  
+  // Cap at 3 sessions per subject per week
+  return Math.min(3, baseSessionsPerSubject);
 };

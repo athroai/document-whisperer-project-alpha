@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 interface TimeSelectorProps {
   date: string;
   startTime: string;
-  duration: string;
+  duration: number;  // Changed to number
   onDateChange: (value: string) => void;
   onStartTimeChange: (value: string) => void;
-  onDurationChange: (value: string) => void;
+  onDurationChange: (value: number) => void;  // Changed to number
 }
 
 const TimeSelector: React.FC<TimeSelectorProps> = ({
@@ -63,8 +63,8 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
       <div className="space-y-2 col-span-2">
         <Label htmlFor="duration">Duration (minutes)</Label>
         <Select 
-          value={duration} 
-          onValueChange={onDurationChange}
+          value={duration.toString()} 
+          onValueChange={(value) => onDurationChange(parseInt(value, 10))}
         >
           <SelectTrigger id="duration">
             <SelectValue placeholder="Select Duration" />

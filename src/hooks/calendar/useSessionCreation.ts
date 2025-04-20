@@ -33,6 +33,7 @@ export const useSessionCreation = () => {
     setIsCreating(true);
 
     try {
+      console.log("Creating calendar session:", sessionData);
       const {
         title,
         subject,
@@ -55,7 +56,7 @@ export const useSessionCreation = () => {
       const { data, error } = await supabase
         .from('calendar_events')
         .insert({
-          title: title || `${subject} Study Session`,
+          title: title,
           description: eventDescription,
           user_id: authState.user.id,
           student_id: authState.user.id,
@@ -111,7 +112,7 @@ export const useSessionCreation = () => {
 
   const createBatchCalendarSessions = async (
     sessions: Array<{
-      title?: string;
+      title: string;
       subject: string;
       topic?: string;
       startTime: Date;
@@ -149,7 +150,7 @@ export const useSessionCreation = () => {
         toast({
           title: "Warning",
           description: "No study sessions were created. Please try again.",
-          variant: "warning"
+          variant: "destructive"
         });
       }
 
@@ -159,7 +160,7 @@ export const useSessionCreation = () => {
       toast({
         title: "Partial Completion",
         description: `Created ${createdEvents.length} of ${sessions.length} sessions. Some sessions may have failed.`,
-        variant: "warning"
+        variant: "destructive"
       });
       return createdEvents;
     } finally {
