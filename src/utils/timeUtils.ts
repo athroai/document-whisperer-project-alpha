@@ -6,6 +6,9 @@ export const formatGMTTime = (timeString: string): string => {
   try {
     if (!timeString) return '??:??';
     
+    // Add debug info
+    console.log(`Formatting time: ${timeString}`);
+    
     const date = parseISO(timeString);
     
     if (isNaN(date.getTime())) {
@@ -14,7 +17,7 @@ export const formatGMTTime = (timeString: string): string => {
     }
     
     // Add debug info
-    console.log(`Formatting time: ${timeString}, parsed as: ${date.toISOString()}, local date: ${date.toString()}`);
+    console.log(`Parsed as: ${date.toISOString()}, local date: ${date.toString()}`);
     
     return format(date, 'h:mm a');
   } catch (error) {

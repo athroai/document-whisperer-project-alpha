@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
@@ -50,15 +49,17 @@ export const useCalendarEvents = () => {
       setIsLoading(true);
       const userId = getCurrentUserId();
       
+      console.log('Fetching calendar events, user ID exists:', !!userId);
+      
       if (!userId) {
-        console.log('No authenticated user, not fetching calendar events');
+        console.warn('No authenticated user, not fetching calendar events');
         setEvents([]);
         return [];
       }
 
       console.log(`Fetching calendar events for user ${userId}`);
       const dbEvents = await fetchDatabaseEvents(userId);
-      console.log(`Retrieved ${dbEvents.length} database events`);
+      console.log(`Retrieved ${dbEvents.length} database events:`, dbEvents);
       
       const now = Date.now();
       if (dbEvents.length > 0) {
@@ -69,10 +70,44 @@ export const useCalendarEvents = () => {
         }));
       }
       
+      // Add mock events for testing if no events are returned
+      let finalEvents = dbEvents;
+      if (dbEvents.length === 0) {
+        console.log('No events found in database, adding mock events for testing');
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        
+        finalEvents = [
+          {
+            id: 'mock-1',
+            title: 'Mathematics Study Session',
+            subject: 'Mathematics',
+            topic: 'Algebra',
+            start_time: today.toISOString(),
+            end_time: new Date(today.getTime() + 60 * 60 * 1000).toISOString(),
+            event_type: 'study_session',
+            local_only: true
+          },
+          {
+            id: 'mock-2',
+            title: 'English Literature Review',
+            subject: 'English',
+            topic: 'Shakespeare',
+            start_time: tomorrow.toISOString(),
+            end_time: new Date(tomorrow.getTime() + 90 * 60 * 1000).toISOString(),
+            event_type: 'study_session',
+            local_only: true
+          }
+        ];
+      }
+      
       const dbEventIds = new Set(dbEvents.map(event => event.id));
       const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
       
-      const combinedEvents = [...dbEvents, ...filteredLocalEvents];
+      const combinedEvents = [...finalEvents, ...filteredLocalEvents];
+      console.log('Final combined events:', combinedEvents);
+      
       setEvents(combinedEvents);
       setLastRefreshedAt(new Date());
       
@@ -92,21 +127,34 @@ export const useCalendarEvents = () => {
     }
   }, [getCurrentUserId, localEvents, toast, events]);
 
-  // Auto-refresh events periodically
+  // Auto-refresh events periodically and on mount
   useEffect(() => {
-    if (!lastRefreshedAt && authState.user) {
-      fetchEvents();
-    } else if (lastRefreshedAt && authState.user) {
-      const now = new Date();
-      const timeSinceLastRefresh = now.getTime() - lastRefreshedAt.getTime();
-      const fiveMinutesInMs = 5 * 60 * 1000;
-      
-      if (timeSinceLastRefresh > fiveMinutesInMs) {
-        console.log('Auto-refreshing calendar events (last refreshed > 5 minutes ago)');
-        fetchEvents();
+    const loadEvents = async () => {
+      if (authState.user?.id) {
+        console.log('Auto-refreshing calendar events on mount');
+        await fetchEvents();
       }
-    }
-  }, [lastRefreshedAt, authState.user, fetchEvents]);
+    };
+    
+    loadEvents();
+    
+    const intervalId = setInterval(() => {
+      if (authState.user?.id) {
+        const now = new Date();
+        const timeSinceLastRefresh = lastRefreshedAt ? 
+          now.getTime() - lastRefreshedAt.getTime() : 
+          Infinity;
+        const fiveMinutesInMs = 5 * 60 * 1000;
+        
+        if (timeSinceLastRefresh > fiveMinutesInMs) {
+          console.log('Auto-refreshing calendar events (last refreshed > 5 minutes ago)');
+          fetchEvents();
+        }
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(intervalId);
+  }, [authState.user?.id, fetchEvents, lastRefreshedAt]);
 
   const createEvent = async (
     eventData: Partial<CalendarEvent>,

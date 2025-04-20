@@ -16,7 +16,10 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
   const getEventsForDay = (day: Date) => {
     return events.filter(event => {
       try {
-        if (!event.start_time) return false;
+        if (!event.start_time) {
+          console.warn('Event missing start_time:', event);
+          return false;
+        }
         
         const eventDate = parseISO(event.start_time);
         
@@ -46,8 +49,10 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
         const isCurrentMonth = isSameMonth(day, currentMonth);
         const isCurrentDay = isToday(day);
         
-        // Debug information
-        console.log(`Rendering day: ${format(day, 'yyyy-MM-dd')} (${format(day, 'EEEE')}), isToday: ${isCurrentDay}`);
+        // Debug information about events
+        if (dayEvents.length > 0) {
+          console.log(`Found ${dayEvents.length} events for ${format(day, 'yyyy-MM-dd')}:`, dayEvents);
+        }
 
         return (
           <div 
@@ -73,8 +78,13 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
               ) : (
                 <>
                   {dayEvents.slice(0, 3).map((event, eventIndex) => {
-                    const colorStyle = getEventColor(event.subject);
-                    const formattedTime = formatGMTTime(event.start_time);
+                    const colorStyle = getEventColor(event.subject || '');
+                    let formattedTime = 'TBD';
+                    try {
+                      formattedTime = formatGMTTime(event.start_time);
+                    } catch (err) {
+                      console.warn(`Error formatting time for event ${event.id}:`, err);
+                    }
                     
                     return (
                       <div 

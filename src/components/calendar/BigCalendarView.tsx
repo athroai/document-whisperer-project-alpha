@@ -27,12 +27,13 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const { events, isLoading } = useCalendarEvents();
 
-  // Debug current date
+  // Debug current date and events
   useEffect(() => {
     const now = new Date();
     console.log(`Today is: ${now.toDateString()} (Day of week: ${now.getDay()}, where 0 = Sunday)`);
     console.log(`Current month view: ${currentMonth.toDateString()}`);
-  }, [currentMonth]);
+    console.log('Calendar events available in BigCalendarView:', events.length, events);
+  }, [currentMonth, events]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -41,6 +42,12 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
 
   const handleCreateSuccess = () => {
     setShowCreateDialog(false);
+    // If an onRetryLoad function was passed, call it to refresh events
+    if (onRetryLoad) {
+      setTimeout(() => {
+        onRetryLoad();
+      }, 1000);
+    }
   };
 
   const previousMonth = () => {
@@ -98,16 +105,6 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
           />
         </CardContent>
       </Card>
-
-      {events.length === 0 && (
-        <Card className="mt-4 shadow-md border-gray-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-gray-500">
-              No study sessions found in your calendar. Select a date to add a new session.
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="flex flex-wrap gap-2 mt-4">
         <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Mathematics</Badge>

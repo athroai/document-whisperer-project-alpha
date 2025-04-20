@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import BigCalendarView from '@/components/calendar/BigCalendarView';
@@ -28,6 +28,25 @@ const CalendarPage: React.FC = () => {
     }
   }, [authState.user, authState.isLoading, navigate]);
 
+  // Debug function to inspect calendar state
+  const debugCalendarState = useCallback(() => {
+    console.group('Calendar Debug Information');
+    console.log('Authentication state:', { 
+      isLoggedIn: !!authState.user, 
+      userId: authState.user?.id,
+      isLoading: authState.isLoading 
+    });
+    console.log('Events array:', events);
+    console.log('Initial load status:', isInitialLoad);
+    console.log('Events loading status:', isLoading);
+    console.log('Fetch attempted:', fetchAttempted);
+    console.groupEnd();
+  }, [authState.user, authState.isLoading, events, isInitialLoad, isLoading, fetchAttempted]);
+  
+  useEffect(() => {
+    debugCalendarState();
+  }, [debugCalendarState, events]);
+  
   useEffect(() => {
     let isMounted = true;
     
@@ -71,14 +90,22 @@ const CalendarPage: React.FC = () => {
       }
     };
     
-    if (authState.user?.id && !fetchAttempted) {
-      loadCalendarEvents();
+    // Force fetch events after a brief delay
+    if (authState.user?.id) {
+      const timer = setTimeout(() => {
+        loadCalendarEvents();
+      }, 500); // Small delay to ensure auth state is stable
+      
+      return () => {
+        clearTimeout(timer);
+        isMounted = false;
+      };
     }
     
     return () => {
       isMounted = false;
     };
-  }, [authState.user?.id, fetchEvents, toast, fetchAttempted, refreshTrigger]);
+  }, [authState.user?.id, fetchEvents, toast, refreshTrigger]);
   
   const handleRetryLoad = () => {
     setFetchAttempted(false);
@@ -136,10 +163,25 @@ const CalendarPage: React.FC = () => {
             <Skeleton className="h-[600px] w-full rounded-md" />
           </div>
         ) : (
-          <BigCalendarView 
-            key={`calendar-${refreshTrigger}`}
-            onRetryLoad={handleRetryLoad}
-          />
+          <>
+            <BigCalendarView 
+              key={`calendar-${refreshTrigger}`}
+              onRetryLoad={handleRetryLoad}
+            />
+            {events.length === 0 && !isLoading && (
+              <div className="mt-6 text-center p-8 bg-white rounded-lg shadow border border-gray-100">
+                <h2 className="text-xl font-semibold text-gray-700 mb-2">No calendar events found</h2>
+                <p className="text-gray-500 mb-4">
+                  It looks like you don't have any study sessions scheduled yet. 
+                  Try refreshing or click a date on the calendar to add a new study session.
+                </p>
+                <Button onClick={handleRetryLoad}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Calendar
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
