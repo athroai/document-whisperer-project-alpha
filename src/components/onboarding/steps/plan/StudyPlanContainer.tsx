@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { motion } from 'framer-motion';
@@ -198,6 +199,7 @@ export const StudyPlanContainer: React.FC = () => {
       for (const session of sessions) {
         const eventDescription = {
           subject: session.subject,
+          topic: session.topic || '',
           isPomodoro: true,
           pomodoroWorkMinutes: 25,
           pomodoroBreakMinutes: 5
@@ -223,6 +225,27 @@ export const StudyPlanContainer: React.FC = () => {
             eventIds.push("");
           } else if (eventData) {
             console.log("Successfully created calendar event:", eventData.id);
+            
+            // Also create a study plan session entry
+            try {
+              const { error: sessionError } = await supabase
+                .from('study_plan_sessions')
+                .insert({
+                  plan_id: planId,
+                  subject: session.subject,
+                  topic: session.topic || '',
+                  start_time: session.startTime.toISOString(),
+                  end_time: session.endTime.toISOString(),
+                  calendar_event_id: eventData.id
+                });
+                
+              if (sessionError) {
+                console.error("Error creating study plan session:", sessionError);
+              }
+            } catch (err) {
+              console.error("Exception creating study plan session:", err);
+            }
+            
             eventIds.push(eventData.id);
           }
         } catch (err) {
@@ -308,10 +331,10 @@ export const StudyPlanContainer: React.FC = () => {
       await completeOnboarding();
       toast.success("Onboarding completed successfully!");
       
-      // Force a small delay to ensure database operations complete
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Force a delay to ensure database operations complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Pass a flag to indicate the calendar should refresh events
+      // Pass flags to ensure the calendar refreshes when loaded
       navigate('/calendar?fromSetup=true&refresh=true');
     } catch (error) {
       console.error("Error completing onboarding:", error);

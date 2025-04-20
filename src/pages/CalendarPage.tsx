@@ -5,7 +5,7 @@ import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import BigCalendarView from '@/components/calendar/BigCalendarView';
 import BlockTimeButton from '@/components/calendar/BlockTimeButton';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,29 +16,35 @@ const CalendarPage: React.FC = () => {
   const { state: authState } = useAuth();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [fetchAttempted, setFetchAttempted] = useState(false);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  // Removed debugCalendarState which was causing extra renders
-  
+  // Check if we're coming from onboarding
+  const fromSetup = searchParams.get('fromSetup') === 'true';
+  const shouldRefresh = searchParams.get('refresh') === 'true';
+
+  // Only run once on initial mount to check authentication
   useEffect(() => {
+    if (authState.isLoading) {
+      return; // Wait for auth to finish loading
+    }
+    
     // Check authentication
-    if (!authState.user && !authState.isLoading) {
+    if (!authState.user) {
       console.log('No authenticated user, redirecting to login');
       navigate('/login');
-      return;
     }
-  }, [authState.user, authState.isLoading, navigate]);
+  }, [authState.isLoading, authState.user, navigate]);
   
+  // Handle refreshing calendar events when needed
   useEffect(() => {
     let isMounted = true;
     
     const loadCalendarEvents = async () => {
-      if (!authState.user?.id) {
-        console.log("No authenticated user, skipping calendar load");
+      if (!authState.user?.id || authState.isLoading) {
+        console.log("No authenticated user or still loading auth, skipping calendar load");
         if (isMounted) {
           setIsInitialLoad(false);
-          setFetchAttempted(true);
         }
         return;
       }
@@ -50,13 +56,12 @@ const CalendarPage: React.FC = () => {
         if (isMounted) {
           console.log(`Calendar events loaded: ${fetchedEvents.length} events found`);
           setIsInitialLoad(false);
-          setFetchAttempted(true);
           
-          // Only show toast for successful fetches with events
-          if (fetchedEvents.length > 0 && refreshTrigger > 0) {
+          // Only show toast for refresh trigger or when coming from setup
+          if ((refreshTrigger > 0 || fromSetup) && fetchedEvents.length > 0) {
             toast({
-              title: "Calendar Updated",
-              description: `Loaded ${fetchedEvents.length} calendar events.`
+              title: fromSetup ? "Calendar Setup Complete" : "Calendar Updated",
+              description: `Loaded ${fetchedEvents.length} study sessions.`
             });
           }
         }
@@ -64,7 +69,6 @@ const CalendarPage: React.FC = () => {
         console.error('Error fetching calendar events:', err);
         if (isMounted) {
           setIsInitialLoad(false);
-          setFetchAttempted(true);
           toast({
             title: "Calendar Error",
             description: "Could not load your calendar events. Please try again.",
@@ -74,25 +78,24 @@ const CalendarPage: React.FC = () => {
       }
     };
     
-    // Load events only when auth state changes or refresh is triggered
-    if (authState.user?.id) {
+    // Only load events when coming from setup, when refresh is triggered, or on initial auth
+    if (authState.user?.id && (fromSetup || shouldRefresh || refreshTrigger > 0)) {
       loadCalendarEvents();
     }
     
     return () => {
       isMounted = false;
     };
-  }, [authState.user?.id, fetchEvents, toast, refreshTrigger]);
+  }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh]);
   
-  const handleRetryLoad = () => {
-    setFetchAttempted(false);
+  const handleRetryLoad = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
     clearEvents();
     toast({
       title: "Refreshing calendar",
       description: "Attempting to reload your calendar events..."
     });
-  };
+  }, [clearEvents, toast]);
   
   // Show loading state if we're still checking auth
   if (authState.isLoading) {

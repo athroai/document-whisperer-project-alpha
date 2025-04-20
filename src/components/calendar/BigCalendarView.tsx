@@ -24,7 +24,7 @@ interface BigCalendarViewProps {
 const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
   const { events, isLoading } = useCalendarEvents();
   
   const handleDateSelect = useCallback((date: Date) => {

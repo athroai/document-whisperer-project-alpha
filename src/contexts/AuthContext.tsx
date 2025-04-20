@@ -57,54 +57,108 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
+    let mounted = true;
+    
     const getInitialSession = async () => {
       updateState({ isLoading: true });
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // First check if we have a mock user for development
+        if (localStorage.getItem('athro_user')) {
+          try {
+            const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
+            if (mockUser.id) {
+              console.log('Using mock user authentication');
+              // Only update if component is still mounted
+              if (mounted) {
+                updateState({ 
+                  user: mockUser,
+                  isLoading: false 
+                });
+              }
+              return;
+            }
+          } catch (e) {
+            console.warn('Invalid mock user in localStorage');
+          }
+        }
+        
+        // Get session from Supabase
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-        updateState({ 
+        if (error) {
+          console.error("Error getting initial session:", error);
+          throw error;
+        }
+
+        // Only update if component is still mounted
+        if (mounted) {
+          updateState({ 
+            session: session,
+            user: session?.user ?? null
+          });
+          
+          if (session?.user) {
+            await getProfile();
+          }
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+        if (mounted) {
+          updateState({ isLoading: false });
+        }
+      } finally {
+        if (mounted) {
+          updateState({ isLoading: false });
+        }
+      }
+    };
+
+    // Set up auth state change listener first to avoid race conditions
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (mounted) {
+        updateState({
           session: session,
           user: session?.user ?? null
         });
         
         if (session?.user) {
-          await getProfile();
+          // Use setTimeout to defer profile fetch to avoid potential deadlocks
+          setTimeout(() => {
+            if (mounted) getProfile();
+          }, 0);
         }
-      } catch (error) {
-        console.error("Error getting initial session:", error);
-      } finally {
-        updateState({ isLoading: false });
-      }
-    };
-
-    getInitialSession();
-
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      updateState({
-        session: session,
-        user: session?.user ?? null
-      });
-      
-      if (session?.user) {
-        await getProfile();
       }
     });
+
+    // Then get the initial session
+    getInitialSession();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
   
   const getProfile = async () => {
+    if (!state.user) {
+      console.warn("No user to fetch profile for.");
+      updateState({ profile: null });
+      return;
+    }
+    
     updateState({ isLoading: true });
     try {
-      if (!state.user) {
-        console.warn("No user to fetch profile for.");
-        updateState({ profile: null });
-        return;
-      }
+      console.log("Fetching profile for user:", state.user.id);
       
       let { data: profile, error, status } = await supabase
         .from('profiles')
         .select(`full_name, avatar_url, website, examBoard, study_subjects, preferred_language`)
         .eq('id', state.user.id)
-        .single()
+        .single();
 
       if (error && status !== 406) {
         throw error;
@@ -120,13 +174,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           preferred_language: profile?.preferred_language || 'en'
         }
       });
+      
+      console.log("Profile fetched successfully");
     } catch (error: any) {
       console.error("Error fetching profile:", error);
-      toast({
-        title: "Could not load profile",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Only show toast for non-404 errors
+      if (error.code !== 'PGRST116') {
+        toast({
+          title: "Could not load profile",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       updateState({ isLoading: false });
     }
@@ -332,5 +391,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
-  )
-}
+  );
+};

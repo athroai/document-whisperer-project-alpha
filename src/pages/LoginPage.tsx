@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,13 +14,19 @@ const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const { login, state } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Get redirect path from location state (if available)
+  const redirectTo = location.state?.from || '/home';
 
   // Redirect if already logged in
   useEffect(() => {
     if (state.user && !state.isLoading) {
-      navigate('/home');
+      console.log('User already logged in, redirecting to:', redirectTo);
+      navigate(redirectTo, { replace: true });
     }
-  }, [state.user, state.isLoading, navigate]);
+  }, [state.user, state.isLoading, navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,19 +40,28 @@ const LoginPage: React.FC = () => {
       return;
     }
     
+    setIsSubmitting(true);
+    
     try {
       await login(email, password, rememberMe);
       toast({
         title: "Login successful!",
         description: "Welcome back to Athro AI",
       });
-      navigate('/home');
-    } catch (error) {
+      
+      // Short delay before redirecting to ensure auth state is properly set
+      setTimeout(() => {
+        navigate(redirectTo, { replace: true });
+      }, 500);
+    } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Login failed",
-        description: "Please check your credentials and try again",
+        description: error?.message || "Please check your credentials and try again",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -94,6 +109,7 @@ const LoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -108,6 +124,7 @@ const LoginPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -117,6 +134,7 @@ const LoginPage: React.FC = () => {
                   id="remember-me" 
                   checked={rememberMe} 
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  disabled={isSubmitting}
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
                   Remember me
@@ -136,9 +154,9 @@ const LoginPage: React.FC = () => {
               <Button
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
-                disabled={state.isLoading}
+                disabled={isSubmitting}
               >
-                {state.isLoading ? "Logging in..." : "Log in"}
+                {isSubmitting ? "Logging in..." : "Log in"}
               </Button>
             </div>
           </form>
@@ -166,6 +184,7 @@ const LoginPage: React.FC = () => {
                 <Button
                   variant="outline"
                   className="w-full border-purple-300 text-purple-600 hover:bg-purple-50"
+                  disabled={isSubmitting}
                 >
                   Create an account
                 </Button>

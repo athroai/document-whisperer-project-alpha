@@ -13,6 +13,7 @@ export const useCalendarEvents = () => {
   const { toast } = useToast();
   const { state: authState } = useAuth();
   const isFetchingRef = useRef(false);
+  const userId = authState.user?.id;
   
   const {
     localEvents,
@@ -34,31 +35,26 @@ export const useCalendarEvents = () => {
     localStorage.removeItem('cached_calendar_events');
   }, [clearLocalEvents]);
 
-  const getCurrentUserId = useCallback(() => {
-    return authState.user?.id || null;
-  }, [authState.user]);
-
   const fetchEvents = useCallback(async () => {
     if (isFetchingRef.current) {
       console.log('Already fetching events, skipping duplicate request');
       return events;
     }
     
+    if (!userId) {
+      console.log('No authenticated user, returning empty events array');
+      setEvents([]);
+      return [];
+    }
+    
     try {
       isFetchingRef.current = true;
       setIsLoading(true);
-      const userId = getCurrentUserId();
       
-      if (!userId) {
-        console.warn('No authenticated user, not fetching calendar events');
-        setIsLoading(false);
-        setEvents([]);
-        return [];
-      }
-
       console.log(`Fetching calendar events for user ${userId}`);
       const dbEvents = await fetchDatabaseEvents(userId);
       
+      // Cache fetched events
       const now = Date.now();
       if (dbEvents.length > 0) {
         localStorage.setItem('cached_calendar_events', JSON.stringify({
@@ -70,7 +66,7 @@ export const useCalendarEvents = () => {
       
       // Add mock events for testing if no events are returned
       let finalEvents = dbEvents;
-      if (dbEvents.length === 0) {
+      if (dbEvents.length === 0 && process.env.NODE_ENV === 'development') {
         console.log('No events found in database, adding mock events for testing');
         const today = new Date();
         const tomorrow = new Date(today);
@@ -100,46 +96,51 @@ export const useCalendarEvents = () => {
         ];
       }
       
+      // Filter out local events that might duplicate DB events
       const dbEventIds = new Set(dbEvents.map(event => event.id));
       const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
       
       const combinedEvents = [...finalEvents, ...filteredLocalEvents];
-      
       setEvents(combinedEvents);
       setLastRefreshedAt(new Date());
       
       return combinedEvents;
     } catch (error) {
       console.error('Error in fetchEvents:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load calendar events. Please try again.",
-        variant: "destructive"
-      });
       setEvents(localEvents);
       return localEvents;
     } finally {
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [getCurrentUserId, localEvents, toast]);
+  }, [userId, localEvents]);
 
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
     
-    // Only fetch on initial mount, avoid auto-refreshing
-    if (authState.user?.id && !lastRefreshedAt) {
-      fetchEvents().then(() => {
-        if (isMounted) {
+    const loadInitialEvents = async () => {
+      if (!userId || lastRefreshedAt) {
+        return;
+      }
+      
+      try {
+        const fetchedEvents = await fetchEvents();
+        
+        if (mounted) {
           setLastRefreshedAt(new Date());
+          console.log(`Loaded ${fetchedEvents.length} events on initial fetch`);
         }
-      });
-    }
+      } catch (error) {
+        console.error('Error loading initial events:', error);
+      }
+    };
+    
+    loadInitialEvents();
     
     return () => {
-      isMounted = false;
+      mounted = false;
     };
-  }, [authState.user?.id, fetchEvents, lastRefreshedAt]);
+  }, [userId, fetchEvents, lastRefreshedAt]);
 
   const createEvent = async (
     eventData: Partial<CalendarEvent>,
