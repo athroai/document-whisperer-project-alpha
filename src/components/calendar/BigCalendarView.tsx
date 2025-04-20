@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -26,21 +26,13 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const { events, isLoading } = useCalendarEvents();
-
-  // Debug current date and events
-  useEffect(() => {
-    const now = new Date();
-    console.log(`Today is: ${now.toDateString()} (Day of week: ${now.getDay()}, where 0 = Sunday)`);
-    console.log(`Current month view: ${currentMonth.toDateString()}`);
-    console.log('Calendar events available in BigCalendarView:', events.length, events);
-  }, [currentMonth, events]);
-
-  const handleDateSelect = (date: Date) => {
+  
+  const handleDateSelect = useCallback((date: Date) => {
     setSelectedDate(date);
     setShowCreateDialog(true);
-  };
+  }, []);
 
-  const handleCreateSuccess = () => {
+  const handleCreateSuccess = useCallback(() => {
     setShowCreateDialog(false);
     // If an onRetryLoad function was passed, call it to refresh events
     if (onRetryLoad) {
@@ -48,15 +40,15 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
         onRetryLoad();
       }, 1000);
     }
-  };
+  }, [onRetryLoad]);
 
-  const previousMonth = () => {
+  const previousMonth = useCallback(() => {
     setCurrentMonth(prevMonth => addMonths(prevMonth, -1));
-  };
+  }, []);
 
-  const nextMonth = () => {
+  const nextMonth = useCallback(() => {
     setCurrentMonth(prevMonth => addMonths(prevMonth, 1));
-  };
+  }, []);
 
   // Get all days from the start of the first week to the end of the last week of the month
   const monthStart = startOfMonth(currentMonth);
@@ -69,10 +61,10 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
     end: calendarEnd
   });
 
-  const handleAddSession = () => {
+  const handleAddSession = useCallback(() => {
     setSelectedDate(new Date());
     setShowCreateDialog(true);
-  };
+  }, []);
 
   if (isLoading) {
     return (

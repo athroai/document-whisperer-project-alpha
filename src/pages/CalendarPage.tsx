@@ -5,7 +5,7 @@ import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import BigCalendarView from '@/components/calendar/BigCalendarView';
 import BlockTimeButton from '@/components/calendar/BlockTimeButton';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ const CalendarPage: React.FC = () => {
   const [fetchAttempted, setFetchAttempted] = useState(false);
   const navigate = useNavigate();
   
+  // Removed debugCalendarState which was causing extra renders
+  
   useEffect(() => {
     // Check authentication
     if (!authState.user && !authState.isLoading) {
@@ -27,25 +29,6 @@ const CalendarPage: React.FC = () => {
       return;
     }
   }, [authState.user, authState.isLoading, navigate]);
-
-  // Debug function to inspect calendar state
-  const debugCalendarState = useCallback(() => {
-    console.group('Calendar Debug Information');
-    console.log('Authentication state:', { 
-      isLoggedIn: !!authState.user, 
-      userId: authState.user?.id,
-      isLoading: authState.isLoading 
-    });
-    console.log('Events array:', events);
-    console.log('Initial load status:', isInitialLoad);
-    console.log('Events loading status:', isLoading);
-    console.log('Fetch attempted:', fetchAttempted);
-    console.groupEnd();
-  }, [authState.user, authState.isLoading, events, isInitialLoad, isLoading, fetchAttempted]);
-  
-  useEffect(() => {
-    debugCalendarState();
-  }, [debugCalendarState, events]);
   
   useEffect(() => {
     let isMounted = true;
@@ -69,7 +52,8 @@ const CalendarPage: React.FC = () => {
           setIsInitialLoad(false);
           setFetchAttempted(true);
           
-          if (fetchedEvents.length > 0) {
+          // Only show toast for successful fetches with events
+          if (fetchedEvents.length > 0 && refreshTrigger > 0) {
             toast({
               title: "Calendar Updated",
               description: `Loaded ${fetchedEvents.length} calendar events.`
@@ -90,16 +74,9 @@ const CalendarPage: React.FC = () => {
       }
     };
     
-    // Force fetch events after a brief delay
+    // Load events only when auth state changes or refresh is triggered
     if (authState.user?.id) {
-      const timer = setTimeout(() => {
-        loadCalendarEvents();
-      }, 500); // Small delay to ensure auth state is stable
-      
-      return () => {
-        clearTimeout(timer);
-        isMounted = false;
-      };
+      loadCalendarEvents();
     }
     
     return () => {

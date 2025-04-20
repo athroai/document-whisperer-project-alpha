@@ -49,17 +49,15 @@ export const useCalendarEvents = () => {
       setIsLoading(true);
       const userId = getCurrentUserId();
       
-      console.log('Fetching calendar events, user ID exists:', !!userId);
-      
       if (!userId) {
         console.warn('No authenticated user, not fetching calendar events');
+        setIsLoading(false);
         setEvents([]);
         return [];
       }
 
       console.log(`Fetching calendar events for user ${userId}`);
       const dbEvents = await fetchDatabaseEvents(userId);
-      console.log(`Retrieved ${dbEvents.length} database events:`, dbEvents);
       
       const now = Date.now();
       if (dbEvents.length > 0) {
@@ -106,7 +104,6 @@ export const useCalendarEvents = () => {
       const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
       
       const combinedEvents = [...finalEvents, ...filteredLocalEvents];
-      console.log('Final combined events:', combinedEvents);
       
       setEvents(combinedEvents);
       setLastRefreshedAt(new Date());
@@ -125,35 +122,23 @@ export const useCalendarEvents = () => {
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [getCurrentUserId, localEvents, toast, events]);
+  }, [getCurrentUserId, localEvents, toast]);
 
-  // Auto-refresh events periodically and on mount
   useEffect(() => {
-    const loadEvents = async () => {
-      if (authState.user?.id) {
-        console.log('Auto-refreshing calendar events on mount');
-        await fetchEvents();
-      }
-    };
+    let isMounted = true;
     
-    loadEvents();
-    
-    const intervalId = setInterval(() => {
-      if (authState.user?.id) {
-        const now = new Date();
-        const timeSinceLastRefresh = lastRefreshedAt ? 
-          now.getTime() - lastRefreshedAt.getTime() : 
-          Infinity;
-        const fiveMinutesInMs = 5 * 60 * 1000;
-        
-        if (timeSinceLastRefresh > fiveMinutesInMs) {
-          console.log('Auto-refreshing calendar events (last refreshed > 5 minutes ago)');
-          fetchEvents();
+    // Only fetch on initial mount, avoid auto-refreshing
+    if (authState.user?.id && !lastRefreshedAt) {
+      fetchEvents().then(() => {
+        if (isMounted) {
+          setLastRefreshedAt(new Date());
         }
-      }
-    }, 60000); // Check every minute
+      });
+    }
     
-    return () => clearInterval(intervalId);
+    return () => {
+      isMounted = false;
+    };
   }, [authState.user?.id, fetchEvents, lastRefreshedAt]);
 
   const createEvent = async (
