@@ -9,6 +9,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useOnboardingCheck } from '@/hooks/useOnboardingCheck';
 
 const CalendarPage: React.FC = () => {
   const { toast } = useToast();
@@ -22,6 +23,9 @@ const CalendarPage: React.FC = () => {
   // Check if we're coming from onboarding
   const fromSetup = searchParams.get('fromSetup') === 'true';
   const shouldRefresh = searchParams.get('refresh') === 'true';
+
+  // Check if user needs onboarding
+  const { needsOnboarding, isLoading: checkingOnboarding } = useOnboardingCheck(false);
 
   // Only run once on initial mount to check authentication
   useEffect(() => {
@@ -78,9 +82,15 @@ const CalendarPage: React.FC = () => {
       }
     };
     
-    // Only load events when coming from setup, when refresh is triggered, or on initial auth
-    if (authState.user?.id && (fromSetup || shouldRefresh || refreshTrigger > 0)) {
-      loadCalendarEvents();
+    // Always try to load events when authenticated, with higher priority for specific triggers
+    if (authState.user?.id && !authState.isLoading) {
+      if (fromSetup || shouldRefresh || refreshTrigger > 0) {
+        // Immediate load with refresh
+        loadCalendarEvents();
+      } else {
+        // Normal load
+        loadCalendarEvents();
+      }
     }
     
     return () => {
@@ -97,8 +107,19 @@ const CalendarPage: React.FC = () => {
     });
   }, [clearEvents, toast]);
   
+  // Redirect to onboarding if needed
+  useEffect(() => {
+    if (!checkingOnboarding && needsOnboarding === true && authState.user) {
+      toast({
+        title: "Onboarding Required",
+        description: "Please complete onboarding to set up your study plan."
+      });
+      navigate('/athro-onboarding');
+    }
+  }, [needsOnboarding, checkingOnboarding, navigate, authState.user, toast]);
+  
   // Show loading state if we're still checking auth
-  if (authState.isLoading) {
+  if (authState.isLoading || checkingOnboarding) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader className="h-8 w-8 animate-spin text-purple-600" />
@@ -155,10 +176,20 @@ const CalendarPage: React.FC = () => {
                   It looks like you don't have any study sessions scheduled yet. 
                   Try refreshing or click a date on the calendar to add a new study session.
                 </p>
-                <Button onClick={handleRetryLoad}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh Calendar
-                </Button>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 justify-center">
+                  <Button onClick={handleRetryLoad}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh Calendar
+                  </Button>
+                  {needsOnboarding && (
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => navigate('/athro-onboarding')}
+                    >
+                      Complete Onboarding
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </>

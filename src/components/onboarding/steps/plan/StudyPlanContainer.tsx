@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { motion } from 'framer-motion';
@@ -11,11 +10,13 @@ import { format, addDays } from 'date-fns';
 import { generateDefaultStudySlots } from '@/utils/studyPlanUtils';
 import { supabase } from '@/lib/supabase';
 import { ConfidenceLabel } from '@/types/confidence';
+import { useSessionCreation } from '@/hooks/calendar/useSessionCreation';
 
 export const StudyPlanContainer: React.FC = () => {
   const { selectedSubjects, completeOnboarding, updateOnboardingStep, studySlots } = useOnboarding();
   const { state } = useAuth();
   const navigate = useNavigate();
+  const { createBatchCalendarSessions } = useSessionCreation();
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -27,7 +28,6 @@ export const StudyPlanContainer: React.FC = () => {
 
   const cleanupExistingPlan = async (userId: string) => {
     try {
-      // Delete any existing study plan sessions
       const { data: existingPlan } = await supabase
         .from('study_plans')
         .select('id')
@@ -36,7 +36,6 @@ export const StudyPlanContainer: React.FC = () => {
         .single();
 
       if (existingPlan) {
-        // Delete associated calendar events
         const { data: planSessions } = await supabase
           .from('study_plan_sessions')
           .select('calendar_event_id')
@@ -55,7 +54,6 @@ export const StudyPlanContainer: React.FC = () => {
           }
         }
 
-        // Delete study plan and its sessions
         await Promise.all([
           supabase
             .from('study_plan_sessions')
@@ -83,7 +81,6 @@ export const StudyPlanContainer: React.FC = () => {
     setError(null);
 
     try {
-      // Clean up existing plan first
       await cleanupExistingPlan(state.user.id);
       setGenerationProgress(15);
       
@@ -93,7 +90,6 @@ export const StudyPlanContainer: React.FC = () => {
 
       setGenerationProgress(30);
       
-      // Create subject distribution based on confidence levels
       const subjectDistribution = selectedSubjects.map(subject => ({
         subject: subject.subject,
         confidence: subject.confidence,
@@ -103,7 +99,6 @@ export const StudyPlanContainer: React.FC = () => {
       setStudyPlan(subjectDistribution);
       setGenerationProgress(50);
 
-      // Save subject preferences first
       await Promise.all(selectedSubjects.map(subject => 
         supabase
           .from('student_subject_preferences')
@@ -114,13 +109,11 @@ export const StudyPlanContainer: React.FC = () => {
           })
       ));
 
-      // Generate actual sessions
       const sessions = await createStudySessions(subjectDistribution, slotsToUse);
       
       if (sessions && sessions.length > 0) {
         setGenerationProgress(70);
 
-        // Create new study plan
         const { data: planData, error: planError } = await supabase
           .from('study_plans')
           .insert({
@@ -136,10 +129,36 @@ export const StudyPlanContainer: React.FC = () => {
 
         if (planError) throw planError;
         
-        // Create calendar events and study plan sessions
-        const eventIds = await saveSessionsToDatabase(sessions, state.user.id, planData.id);
-        setCreatedCalendarEvents(eventIds.filter(id => id));
+        const calendarSessionsData = sessions.map(session => ({
+          title: `${session.subject} Study Session`,
+          subject: session.subject,
+          topic: session.topic || '',
+          startTime: session.startTime,
+          endTime: session.endTime,
+          eventType: 'study_session'
+        }));
         
+        const createdEvents = await createBatchCalendarSessions(calendarSessionsData);
+        
+        if (createdEvents.length > 0) {
+          const sessionEntries = createdEvents.map((event, index) => ({
+            plan_id: planData.id,
+            subject: sessions[index].subject,
+            topic: sessions[index].topic || '',
+            start_time: event.start_time,
+            end_time: event.end_time,
+            calendar_event_id: event.id,
+            is_pomodoro: true,
+            pomodoro_work_minutes: 25,
+            pomodoro_break_minutes: 5
+          }));
+          
+          await supabase
+            .from('study_plan_sessions')
+            .insert(sessionEntries);
+        }
+        
+        setCreatedCalendarEvents(createdEvents.map(e => e.id));
         setUpcomingSessions(sessions.slice(0, 5));
         setGenerationProgress(100);
         setIsComplete(true);
@@ -168,99 +187,6 @@ export const StudyPlanContainer: React.FC = () => {
     }
   };
 
-  const saveStudyPlanMetadata = async (userId: string, distribution: any[]) => {
-    try {
-      const { data: planData, error: planError } = await supabase
-        .from('study_plans')
-        .insert({
-          student_id: userId,
-          name: 'Personalized Study Plan',
-          description: 'AI-generated study plan based on your subject preferences',
-          start_date: new Date().toISOString().split('T')[0],
-          end_date: addDays(new Date(), 30).toISOString().split('T')[0],
-          is_active: true
-        })
-        .select('id')
-        .single();
-
-      if (planError) throw planError;
-      return planData?.id;
-    } catch (error) {
-      console.error('Error saving study plan metadata:', error);
-      throw error;
-    }
-  };
-
-  const saveSessionsToDatabase = async (sessions: any[], userId: string, planId: string): Promise<string[]> => {
-    try {
-      const eventIds: string[] = [];
-      
-      // Use a sequential approach for more reliable insertion
-      for (const session of sessions) {
-        const eventDescription = {
-          subject: session.subject,
-          topic: session.topic || '',
-          isPomodoro: true,
-          pomodoroWorkMinutes: 25,
-          pomodoroBreakMinutes: 5
-        };
-
-        try {
-          const { data: eventData, error: eventError } = await supabase
-            .from('calendar_events')
-            .insert({
-              user_id: userId,
-              student_id: userId,
-              title: `${session.subject} Study Session`,
-              description: JSON.stringify(eventDescription),
-              event_type: 'study_session',
-              start_time: session.startTime.toISOString(),
-              end_time: session.endTime.toISOString()
-            })
-            .select('id')
-            .single();
-
-          if (eventError) {
-            console.error("Error inserting calendar event:", eventError);
-            eventIds.push("");
-          } else if (eventData) {
-            console.log("Successfully created calendar event:", eventData.id);
-            
-            // Also create a study plan session entry
-            try {
-              const { error: sessionError } = await supabase
-                .from('study_plan_sessions')
-                .insert({
-                  plan_id: planId,
-                  subject: session.subject,
-                  topic: session.topic || '',
-                  start_time: session.startTime.toISOString(),
-                  end_time: session.endTime.toISOString(),
-                  calendar_event_id: eventData.id
-                });
-                
-              if (sessionError) {
-                console.error("Error creating study plan session:", sessionError);
-              }
-            } catch (err) {
-              console.error("Exception creating study plan session:", err);
-            }
-            
-            eventIds.push(eventData.id);
-          }
-        } catch (err) {
-          console.error("Exception when creating calendar event:", err);
-          eventIds.push("");
-        }
-      }
-
-      return eventIds;
-    } catch (error) {
-      console.error('Error in batch saving sessions to database:', error);
-      return [];
-    }
-  };
-
   const createStudySessions = async (subjectDistribution: any[], slots: any[]) => {
     const today = new Date();
     const sessions = [];
@@ -275,7 +201,7 @@ export const StudyPlanContainer: React.FC = () => {
         const slot = slots[slotIndex];
         
         const dayOfWeek = slot.day_of_week;
-        const currentDay = today.getDay() || 7; // Convert 0 (Sunday) to 7
+        const currentDay = today.getDay() || 7;
         let daysToAdd = dayOfWeek - currentDay;
         if (daysToAdd <= 0) daysToAdd += 7;
         
@@ -306,7 +232,6 @@ export const StudyPlanContainer: React.FC = () => {
       }
     }
     
-    // Sort sessions by date/time
     sessions.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
     
     return sessions;
@@ -320,7 +245,6 @@ export const StudyPlanContainer: React.FC = () => {
     try {
       setIsGenerating(true);
       
-      // Verify that calendar events were actually created
       if (createdCalendarEvents.length === 0) {
         console.warn("No calendar events were created during plan generation");
         toast.warning("Study plan created but calendar events may be missing");
@@ -331,10 +255,8 @@ export const StudyPlanContainer: React.FC = () => {
       await completeOnboarding();
       toast.success("Onboarding completed successfully!");
       
-      // Force a delay to ensure database operations complete
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Pass flags to ensure the calendar refreshes when loaded
       navigate('/calendar?fromSetup=true&refresh=true');
     } catch (error) {
       console.error("Error completing onboarding:", error);

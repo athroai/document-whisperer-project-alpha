@@ -1,180 +1,198 @@
 
-import { useState, useEffect } from 'react';
-import { supabase, verifyAuth } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  calculateSessionsPerWeek, 
-  generateDefaultStudySlots, 
-  createCalendarEvents,
-  createStudyPlan
-} from '@/utils/studyPlanGenerationUtils';
-import { PreferredStudySlot } from '@/types/study';
+import { useState, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useSessionCreation } from '@/hooks/calendar/useSessionCreation';
+import { format, addDays } from 'date-fns';
+import { SubjectPreference } from '@/contexts/onboarding/types';
 
-export const useStudyPlanGeneration = (userId: string | undefined, selectedSubjects: any[]) => {
-  const { toast } = useToast();
+export const useStudyPlanGeneration = (
+  userId: string | undefined, 
+  selectedSubjects: SubjectPreference[]
+) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
   const [studyPlan, setStudyPlan] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [authVerified, setAuthVerified] = useState(false);
-  const [diagnosticResults, setDiagnosticResults] = useState<Record<string, number>>({});
+  const [authVerified, setAuthVerified] = useState(!!userId);
   const [generationProgress, setGenerationProgress] = useState(0);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const supabaseUser = await verifyAuth();
-        if (supabaseUser) {
-          console.log("Auth verified for user:", supabaseUser.id);
-          setAuthVerified(true);
-        } else {
-          console.error("Auth verification failed");
-          setAuthVerified(false);
-          setError("Authentication error: You need to be signed in to generate a study plan.");
-        }
-      } catch (err) {
-        console.error("Auth verification error:", err);
-        setAuthVerified(false);
-        setError("Authentication error occurred. Please refresh and try again.");
-      }
-    };
-
-    if (userId) {
-      checkAuth();
+  
+  const { createBatchCalendarSessions } = useSessionCreation();
+  
+  const calculateSessionsPerWeek = (confidenceLevel: string) => {
+    switch(confidenceLevel) {
+      case 'Very Low': return 5;
+      case 'Low': return 4;
+      case 'Neutral': return 3;
+      case 'High': return 2;
+      case 'Very High': return 1;
+      default: return 3;
     }
-  }, [userId]);
-
-  useEffect(() => {
-    const fetchDiagnosticResults = async () => {
-      if (!userId) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('diagnostic_results')
-          .select('subject_name, percentage_accuracy')
-          .eq('student_id', userId);
-
-        if (error) throw error;
-
-        const resultsMap: Record<string, number> = {};
-        data?.forEach(item => {
-          resultsMap[item.subject_name] = item.percentage_accuracy;
-        });
-
-        console.log("Fetched diagnostic results:", resultsMap);
-        setDiagnosticResults(resultsMap);
-      } catch (error) {
-        console.error('Error fetching diagnostic results:', error);
-      }
-    };
-
-    fetchDiagnosticResults();
-  }, [userId]);
-
-  const generateStudyPlan = async (studySlots: PreferredStudySlot[]) => {
-    setError(null);
+  };
+  
+  const generateStudyPlan = useCallback(async (studySlots: any[]) => {
+    if (!userId) {
+      setError("User authentication required");
+      return;
+    }
+    
     setIsGenerating(true);
-    setGenerationProgress(0);
-
+    setGenerationProgress(10);
+    setError(null);
+    
     try {
-      if (!userId) {
-        toast({
-          title: "Authentication Required",
-          description: "You need to be signed in to generate a study plan.",
-          variant: "destructive"
-        });
-        setIsGenerating(false);
-        return;
-      }
-
-      if (!authVerified) {
-        toast({
-          title: "Authentication Error",
-          description: "You're not properly authenticated. Please refresh the page or sign in again.",
-          variant: "destructive"
-        });
-        setIsGenerating(false);
-        setError("Authentication error with Supabase. Please refresh the page.");
-        return;
-      }
-
-      setGenerationProgress(10);
-
-      if (!selectedSubjects || selectedSubjects.length === 0) {
-        setError("No subjects selected. Please go back to the subjects step and select at least one subject.");
-        setIsGenerating(false);
-        return;
-      }
-
-      let slotsToUse = studySlots;
+      // Clean up any existing study plan
+      const { data: existingPlan } = await supabase
+        .from('study_plans')
+        .select('id')
+        .eq('student_id', userId)
+        .eq('is_active', true)
+        .single();
       
-      if (!slotsToUse || slotsToUse.length === 0) {
-        console.log('No stored study slots found, generating default slots');
-        slotsToUse = generateDefaultStudySlots(userId);
+      if (existingPlan) {
+        // Delete old sessions
+        await Promise.all([
+          supabase
+            .from('study_plan_sessions')
+            .delete()
+            .eq('plan_id', existingPlan.id),
+          supabase
+            .from('study_plans')
+            .delete()
+            .eq('id', existingPlan.id)
+        ]);
       }
       
-      if (slotsToUse.length === 0) {
-        setError("Could not generate study slots. Please try refreshing the page.");
-        setIsGenerating(false);
-        return;
-      }
-
-      console.log("Using study slots:", slotsToUse);
       setGenerationProgress(30);
-
-      // Create study plan record
-      const plan = await createStudyPlan(userId);
-      const planId = plan.id;
       
+      // Create subject distribution
+      const subjectDistribution = selectedSubjects.map(subject => ({
+        subject: subject.subject,
+        confidence: subject.confidence,
+        sessionsPerWeek: calculateSessionsPerWeek(subject.confidence)
+      }));
+      
+      setStudyPlan(subjectDistribution);
       setGenerationProgress(50);
-
-      // Create session distribution based on subject confidence
-      const sessionDistribution = selectedSubjects.map(subject => {
-        // Calculate sessions per week based on confidence
-        const sessionsPerWeek = calculateSessionsPerWeek(subject.confidence);
-        
-        return {
-          subject: subject.subject,
-          confidence: subject.confidence,
-          sessionsPerWeek
-        };
-      });
-
-      console.log("Session distribution:", sessionDistribution);
-
-      // Create calendar events for the study plan
-      const savedEvents = await createCalendarEvents(
-        userId,
-        planId,
-        sessionDistribution,
-        slotsToUse
-      );
-
-      console.log("Created events:", savedEvents);
-      setCalendarEvents(savedEvents);
-      setStudyPlan(sessionDistribution);
-      setIsGenerationComplete(true);
-      setGenerationProgress(100);
       
-      toast({
-        title: "Study Plan Created",
-        description: `Successfully scheduled ${savedEvents.length} study sessions.`,
-      });
-
-    } catch (error) {
-      console.error('Error generating study plan:', error);
-      setError(error instanceof Error ? error.message : "Failed to generate study plan");
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate study plan. Please try again.",
-        variant: "destructive"
-      });
+      // Generate session dates and times
+      const sessionData = [];
+      const today = new Date();
+      
+      // Create a map of day index -> slots
+      const daySlotMap = studySlots.reduce((acc: any, slot) => {
+        if (!acc[slot.day_of_week]) {
+          acc[slot.day_of_week] = [];
+        }
+        acc[slot.day_of_week].push(slot);
+        return acc;
+      }, {});
+      
+      // Distribute subject sessions across available slots
+      for (const subject of subjectDistribution) {
+        let sessionsLeft = subject.sessionsPerWeek;
+        let weekOffset = 0;
+        
+        // Continue until we've assigned all sessions for this subject
+        while (sessionsLeft > 0) {
+          // Loop through each day of the week (1-7, Monday-Sunday)
+          for (let dayIndex = 1; dayIndex <= 7; dayIndex++) {
+            if (sessionsLeft <= 0) break;
+            
+            // Skip days with no slots
+            if (!daySlotMap[dayIndex] || daySlotMap[dayIndex].length === 0) {
+              continue;
+            }
+            
+            // Get a slot for this day
+            const slot = daySlotMap[dayIndex][0]; // Just use the first slot for simplicity
+            
+            const dayOfWeek = dayIndex;
+            const currentDay = today.getDay() || 7; // Convert JS Sunday (0) to 7
+            let daysToAdd = dayOfWeek - currentDay;
+            if (daysToAdd <= 0) daysToAdd += 7;
+            
+            // Add week offset
+            daysToAdd += weekOffset * 7;
+            
+            const sessionDate = addDays(today, daysToAdd);
+            
+            const startHour = slot.preferred_start_hour || 15;
+            const sessionStartTime = new Date(sessionDate);
+            sessionStartTime.setHours(startHour, 0, 0, 0);
+            
+            const sessionEndTime = new Date(sessionStartTime);
+            sessionEndTime.setMinutes(sessionEndTime.getMinutes() + slot.slot_duration_minutes);
+            
+            sessionData.push({
+              title: `${subject.subject} Study Session`,
+              subject: subject.subject,
+              startTime: sessionStartTime,
+              endTime: sessionEndTime
+            });
+            
+            sessionsLeft--;
+          }
+          
+          weekOffset++;
+        }
+      }
+      
+      setGenerationProgress(70);
+      
+      // Create study plan record
+      const { data: planData, error: planError } = await supabase
+        .from('study_plans')
+        .insert({
+          student_id: userId,
+          name: 'Personalized Study Plan',
+          description: 'AI-generated study plan based on your subject preferences',
+          start_date: new Date().toISOString().split('T')[0],
+          end_date: addDays(new Date(), 30).toISOString().split('T')[0],
+          is_active: true
+        })
+        .select()
+        .single();
+      
+      if (planError) throw planError;
+      
+      // Create calendar events
+      const createdEvents = await createBatchCalendarSessions(sessionData);
+      
+      // Create study plan sessions
+      if (createdEvents.length > 0) {
+        const sessionEntries = createdEvents.map((event, index) => ({
+          plan_id: planData.id,
+          subject: sessionData[index].subject,
+          start_time: event.start_time,
+          end_time: event.end_time,
+          calendar_event_id: event.id,
+          is_pomodoro: true,
+          pomodoro_work_minutes: 25,
+          pomodoro_break_minutes: 5
+        }));
+        
+        await supabase
+          .from('study_plan_sessions')
+          .insert(sessionEntries);
+      }
+      
+      setCalendarEvents(createdEvents);
+      setGenerationProgress(100);
+      setIsGenerationComplete(true);
+    } catch (err) {
+      console.error('Error generating study plan:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred generating your study plan');
     } finally {
       setIsGenerating(false);
     }
-  };
-
+  }, [userId, selectedSubjects, createBatchCalendarSessions]);
+  
+  // Verify auth on initial load
+  useEffect(() => {
+    setAuthVerified(!!userId);
+  }, [userId]);
+  
   return {
     isGenerating,
     isGenerationComplete,

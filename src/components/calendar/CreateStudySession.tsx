@@ -9,6 +9,9 @@ import { useSubjects } from '@/hooks/useSubjects';
 import { CalendarEvent } from '@/types/calendar';
 import TimeSelector from './TimeSelector';
 import { useStudySessionForm } from '@/hooks/calendar/useStudySessionForm';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
 interface CreateStudySessionProps {
   isOpen: boolean;
@@ -24,6 +27,8 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
   onSuccess
 }) => {
   const { subjects } = useSubjects();
+  const { state: authState } = useAuth();
+  const { toast } = useToast();
   const {
     formState,
     setTitle,
@@ -34,6 +39,41 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
     setDuration,
     handleSubmit
   } = useStudySessionForm(initialDate, onClose, onSuccess);
+
+  // Check for authentication
+  if (!authState.user) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Authentication Required</DialogTitle>
+          </DialogHeader>
+          <div className="py-6 text-center">
+            <p className="mb-4">You need to be logged in to create study sessions.</p>
+            <Button asChild>
+              <Link to="/login">Log In</Link>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const onSubmit = async () => {
+    try {
+      await handleSubmit();
+      if (onSuccess && formState) {
+        // onSuccess will be called inside handleSubmit
+      }
+    } catch (error) {
+      console.error('Failed to create study session:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create the study session. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -97,7 +137,7 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={formState.isSubmitting}>
+          <Button onClick={onSubmit} disabled={formState.isSubmitting}>
             {formState.isSubmitting ? 'Creating...' : 'Create Session'}
           </Button>
         </DialogFooter>
