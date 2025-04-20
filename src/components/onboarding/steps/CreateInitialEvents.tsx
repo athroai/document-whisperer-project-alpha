@@ -33,15 +33,19 @@ export const CreateInitialEvents: React.FC = () => {
       
       const now = new Date();
       const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+      startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Start from Monday
 
+      // Create one slot per subject
       const sessions = selectedSubjects.map((subjectPref, index) => {
+        // Create sessions on consecutive days starting from Monday of current week
         const sessionDate = new Date(startOfWeek);
         sessionDate.setDate(sessionDate.getDate() + index);
         
+        // Set study sessions to start at 4 PM
         const startTime = new Date(sessionDate);
         startTime.setHours(16, 0, 0, 0);
         
+        // Each session lasts 45 minutes
         const endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + 45);
 
@@ -55,6 +59,10 @@ export const CreateInitialEvents: React.FC = () => {
       });
 
       console.log('Creating initial study sessions:', sessions);
+      
+      if (sessions.length === 0) {
+        throw new Error('No subjects selected for scheduling');
+      }
       
       try {
         const createdSessions = await createBatchCalendarSessions(sessions);
@@ -72,7 +80,7 @@ export const CreateInitialEvents: React.FC = () => {
           // Add a delay to ensure database writes complete
           await new Promise(resolve => setTimeout(resolve, 1500));
           
-          // Navigate to calendar with refresh flag and user ID
+          // Navigate to calendar with refresh flag
           navigate(`/calendar?fromSetup=true&refresh=true`);
         } else {
           throw new Error('No sessions were created');
