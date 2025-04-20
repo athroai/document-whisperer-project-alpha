@@ -36,16 +36,6 @@ export const useEventFetching = (
       // Log the fetched events
       console.log(`Fetched ${dbEvents.length} events from database:`, dbEvents);
       
-      // Cache fetched events with user ID
-      if (dbEvents.length > 0) {
-        const now = Date.now();
-        localStorage.setItem('cached_calendar_events', JSON.stringify({
-          userId,
-          events: dbEvents,
-          timestamp: now
-        }));
-      }
-      
       // Add mock events for testing if no events are returned
       let finalEvents = dbEvents;
       if (dbEvents.length === 0 && process.env.NODE_ENV === 'development') {

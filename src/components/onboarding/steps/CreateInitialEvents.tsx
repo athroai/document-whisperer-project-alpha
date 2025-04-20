@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSessionCreation } from '@/hooks/calendar/useSessionCreation';
@@ -18,12 +19,17 @@ export const CreateInitialEvents: React.FC = () => {
   const handleBack = () => updateOnboardingStep('schedule');
 
   const handleCreateEvents = async () => {
-    if (isSubmitting || !authState.user?.id) return;
+    if (isSubmitting || !authState.user?.id) {
+      console.log('Cannot create events: submitting=', isSubmitting, 'userId=', authState.user?.id);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Mark onboarding as complete first
+      // First complete onboarding to ensure user data is saved
       await completeOnboarding();
+      console.log('Onboarding completed for user:', authState.user.id);
       
       const now = new Date();
       const startOfWeek = new Date(now);
@@ -63,11 +69,11 @@ export const CreateInitialEvents: React.FC = () => {
           // Force a clear cache for calendar events
           localStorage.removeItem('cached_calendar_events');
           
-          // Add a small delay to ensure database writes complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Add a delay to ensure database writes complete
+          await new Promise(resolve => setTimeout(resolve, 1500));
           
           // Navigate to calendar with refresh flag and user ID
-          navigate(`/calendar?fromSetup=true&refresh=true&userId=${authState.user.id}`);
+          navigate(`/calendar?fromSetup=true&refresh=true`);
         } else {
           throw new Error('No sessions were created');
         }
