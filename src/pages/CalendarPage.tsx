@@ -59,6 +59,13 @@ const CalendarPage: React.FC = () => {
         if (fromSetup || shouldRefresh) {
           console.log("Clearing events before fetching due to fromSetup or refresh flag");
           clearEvents();
+          // Also clear any cached events
+          localStorage.removeItem('cached_calendar_events');
+        }
+        
+        // Add a small delay if coming from setup to ensure DB writes complete
+        if (fromSetup) {
+          await new Promise(resolve => setTimeout(resolve, 800));
         }
         
         const fetchedEvents = await fetchEvents();
@@ -79,6 +86,15 @@ const CalendarPage: React.FC = () => {
               description: "No study sessions were found in your calendar.",
               variant: "default"
             });
+            
+            // If coming from setup and no events found, suggest creating them
+            if (fromSetup) {
+              toast({
+                title: "Try Creating Sessions",
+                description: "Click on a date in the calendar to create your first study session.",
+                variant: "default"
+              });
+            }
           }
         }
       } catch (err) {
@@ -114,6 +130,7 @@ const CalendarPage: React.FC = () => {
   const handleRetryLoad = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
     clearEvents();
+    localStorage.removeItem('cached_calendar_events');
     toast({
       title: "Refreshing calendar",
       description: "Attempting to reload your calendar events..."

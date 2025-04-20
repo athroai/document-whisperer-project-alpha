@@ -56,7 +56,7 @@ export const useSessionCreation = () => {
       const startISOString = startTime instanceof Date ? startTime.toISOString() : startTime;
       const endISOString = endTime instanceof Date ? endTime.toISOString() : endTime;
       
-      console.log(`Inserting event: ${title} from ${startISOString} to ${endISOString}`);
+      console.log(`Inserting event: ${title} from ${startISOString} to ${endISOString} for user ${authState.user.id}`);
 
       // Create event in database
       const { data, error } = await supabase
@@ -136,11 +136,11 @@ export const useSessionCreation = () => {
     const createdEvents: CalendarEvent[] = [];
 
     try {
-      console.log(`Attempting to create ${sessions.length} calendar sessions`);
+      console.log(`Attempting to create ${sessions.length} calendar sessions for user ${authState.user.id}`);
       
       // Process sessions sequentially to avoid database race conditions
       for (const session of sessions) {
-        console.log(`Processing session: ${session.title} at ${session.startTime}`);
+        console.log(`Processing session: ${session.title} at ${session.startTime.toISOString()}`);
         const newEvent = await createCalendarSession(session);
         if (newEvent) {
           console.log(`Successfully created event: ${newEvent.id}`);
@@ -155,6 +155,9 @@ export const useSessionCreation = () => {
           title: "Study Plan Created",
           description: `Created ${createdEvents.length} study sessions in your calendar.`,
         });
+        
+        // Clear any cached events to ensure fresh data
+        localStorage.removeItem('cached_calendar_events');
       } else {
         toast({
           title: "Warning",

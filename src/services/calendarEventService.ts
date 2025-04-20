@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { CalendarEvent } from '@/types/calendar';
 
@@ -10,8 +11,8 @@ export const fetchDatabaseEvents = async (userId: string | null): Promise<Calend
   try {
     console.log(`Fetching events from database for user: ${userId}`);
     
-    // Split into separate queries for better error handling
-    const [userEventsResult, studentEventsResult] = await Promise.all([
+    // Try to get both user events and student events
+    const [userEventsResult, studentEventsResult] = await Promise.allSettled([
       supabase
         .from('calendar_events')
         .select('*')
@@ -25,22 +26,30 @@ export const fetchDatabaseEvents = async (userId: string | null): Promise<Calend
         .order('start_time', { ascending: true })
     ]);
     
-    if (userEventsResult.error) {
-      console.error('Error fetching user calendar events:', userEventsResult.error);
-      return [];
+    // Handle user events
+    let userEvents: any[] = [];
+    if (userEventsResult.status === 'fulfilled') {
+      if (userEventsResult.value.error) {
+        console.error('Error fetching user calendar events:', userEventsResult.value.error);
+      } else {
+        userEvents = userEventsResult.value.data || [];
+        console.log(`Fetched ${userEvents.length} events where user_id = ${userId}`);
+      }
     }
     
-    if (studentEventsResult.error) {
-      console.error('Error fetching student calendar events:', studentEventsResult.error);
-      return userEventsResult.data || [];
+    // Handle student events
+    let studentEvents: any[] = [];
+    if (studentEventsResult.status === 'fulfilled') {
+      if (studentEventsResult.value.error) {
+        console.error('Error fetching student calendar events:', studentEventsResult.value.error);
+      } else {
+        studentEvents = studentEventsResult.value.data || [];
+        console.log(`Fetched ${studentEvents.length} events where student_id = ${userId} and user_id != ${userId}`);
+      }
     }
-    
-    const userEvents = userEventsResult.data || [];
-    const studentEvents = studentEventsResult.data || [];
-    
-    console.log(`Fetched ${userEvents.length} user events and ${studentEvents.length} student events`);
     
     const allEvents = [...userEvents, ...studentEvents];
+    console.log(`Total events fetched: ${allEvents.length}`);
 
     return allEvents.map(event => {
       let subject = '';

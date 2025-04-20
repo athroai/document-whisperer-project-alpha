@@ -31,9 +31,12 @@ export const useEventFetching = (
       console.log(`Fetching calendar events for user ${userId}`);
       const dbEvents = await fetchDatabaseEvents(userId);
       
+      // Log the fetched events
+      console.log(`Fetched ${dbEvents.length} events from database:`, dbEvents);
+      
       // Cache fetched events
-      const now = Date.now();
       if (dbEvents.length > 0) {
+        const now = Date.now();
         localStorage.setItem('cached_calendar_events', JSON.stringify({
           userId,
           events: dbEvents,
@@ -78,6 +81,7 @@ export const useEventFetching = (
       const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
       
       const combinedEvents = [...finalEvents, ...filteredLocalEvents];
+      console.log(`Setting ${combinedEvents.length} combined events`);
       setEvents(combinedEvents);
       setLastRefreshedAt(new Date());
       

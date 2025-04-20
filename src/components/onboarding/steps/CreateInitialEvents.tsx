@@ -33,7 +33,7 @@ export const CreateInitialEvents: React.FC = () => {
         sessionDate.setDate(sessionDate.getDate() + index);
         
         const startTime = new Date(sessionDate);
-        startTime.setHours(15, 0, 0, 0);
+        startTime.setHours(16, 0, 0, 0); // Using 4PM to avoid potential timezone issues
         
         const endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + 45);
@@ -59,6 +59,12 @@ export const CreateInitialEvents: React.FC = () => {
             title: "Success!",
             description: `Created ${createdSessions.length} study sessions for your calendar.`
           });
+          
+          // Force a clear cache for calendar events
+          localStorage.removeItem('cached_calendar_events');
+          
+          // Add a small delay to ensure database writes complete
+          await new Promise(resolve => setTimeout(resolve, 500));
         } else {
           toast({
             title: "Partial Success",
