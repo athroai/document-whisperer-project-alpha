@@ -89,29 +89,47 @@ export const createOnboardingActions = (
       
       // Create an array of promises for subject preferences
       const subjectPromises = subjectPrefs.map(subject => 
-        supabase.from('student_subject_preferences').upsert({
+        supabase.from('student_subject_preferences').insert({
           student_id: userId,
           subject: subject.subject,
           confidence_level: subject.confidence,
           priority: subject.priority
-        }, { onConflict: 'student_id, subject' })
+        })
       );
 
-      const { error } = await supabase
+      // First check if there's an existing record
+      const { data: existingProgress } = await supabase
         .from('onboarding_progress')
-        .upsert({
-          student_id: userId,
-          current_step: 'completed',
-          has_completed_subjects: true,
-          has_completed_availability: true,
-          has_generated_plan: true,
-          has_completed_diagnostic: true,
-          completed_at: new Date().toISOString()
-        }, {
-          onConflict: 'student_id'
-        });
-
-      if (error) throw error;
+        .select('id')
+        .eq('student_id', userId)
+        .maybeSingle();
+      
+      // Use insert or update based on whether a record exists
+      if (existingProgress) {
+        await supabase
+          .from('onboarding_progress')
+          .update({
+            current_step: 'completed',
+            has_completed_subjects: true,
+            has_completed_availability: true,
+            has_generated_plan: true,
+            has_completed_diagnostic: true,
+            completed_at: new Date().toISOString()
+          })
+          .eq('student_id', userId);
+      } else {
+        await supabase
+          .from('onboarding_progress')
+          .insert({
+            student_id: userId,
+            current_step: 'completed',
+            has_completed_subjects: true,
+            has_completed_availability: true,
+            has_generated_plan: true,
+            has_completed_diagnostic: true,
+            completed_at: new Date().toISOString()
+          });
+      }
 
       // Execute all subject preference updates in parallel
       if (subjectPromises.length > 0) {
@@ -133,17 +151,26 @@ export const createOnboardingActions = (
     
     if (userId) {
       try {
-        const { error } = await supabase
+        // First check if there's an existing record
+        const { data: existingProgress } = await supabase
           .from('onboarding_progress')
-          .upsert({ 
-            student_id: userId, 
-            current_step: step 
-          }, { 
-            onConflict: 'student_id' 
-          });
-            
-        if (error) {
-          console.error('Error updating onboarding step:', error);
+          .select('id')
+          .eq('student_id', userId)
+          .maybeSingle();
+        
+        // Use insert or update based on whether a record exists
+        if (existingProgress) {
+          await supabase
+            .from('onboarding_progress')
+            .update({ current_step: step })
+            .eq('student_id', userId);
+        } else {
+          await supabase
+            .from('onboarding_progress')
+            .insert({ 
+              student_id: userId, 
+              current_step: step 
+            });
         }
       } catch (error) {
         console.error('Error in updateOnboardingStep:', error);
