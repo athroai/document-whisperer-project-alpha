@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -6,7 +5,6 @@ import BigCalendarView from '@/components/calendar/BigCalendarView';
 import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
 import BlockTimeButton from '@/components/calendar/BlockTimeButton';
 import { useAuth } from '@/contexts/AuthContext';
-import SuggestedStudySessions from '@/components/calendar/SuggestedStudySessions';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader, RefreshCw } from 'lucide-react';
@@ -24,7 +22,6 @@ const CalendarPage: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [retryCount, setRetryCount] = useState(0);
   
-  // Check if we're coming from onboarding
   useEffect(() => {
     const fromSetup = searchParams.get('fromSetup');
     const shouldRefresh = searchParams.get('refresh');
@@ -36,10 +33,8 @@ const CalendarPage: React.FC = () => {
         description: "Your personalized study schedule has been created and is ready to use.",
       });
       
-      // Clean up the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      // If we have a refresh flag, trigger an immediate refresh
       if (shouldRefresh === 'true') {
         console.log("Refresh flag detected, forcing calendar reload");
         setRefreshTrigger(prev => prev + 1);
@@ -48,7 +43,6 @@ const CalendarPage: React.FC = () => {
     }
   }, [searchParams, toast]);
   
-  // Load calendar events with retry mechanism
   useEffect(() => {
     let isMounted = true;
     let retryTimeout: number | null = null;
@@ -77,11 +71,10 @@ const CalendarPage: React.FC = () => {
             console.log(`No events found, will retry (${retryCount + 1}/3)`);
             setRetryCount(prev => prev + 1);
             
-            // Set a retry with exponential backoff
             retryTimeout = window.setTimeout(() => {
               setRefreshTrigger(prev => prev + 1);
               setFetchAttempted(false);
-            }, 1000 * (retryCount + 1)); // 1s, 2s, 3s
+            }, 1000 * (retryCount + 1));
             
             setLoadingStatus('idle');
           } else {

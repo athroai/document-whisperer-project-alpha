@@ -1,9 +1,7 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSuggestedEvents } from './calendar/useSuggestedEvents';
 import { useLocalCalendarEvents } from './calendar/useLocalCalendarEvents';
 import { useDbCalendarEvents } from './calendar/useDbCalendarEvents';
 import { fetchDatabaseEvents } from '@/services/calendarEventService';
@@ -25,11 +23,6 @@ export const useCalendarEvents = () => {
   } = useLocalCalendarEvents();
   
   const {
-    suggestedEvents,
-    generateSuggestedSessions
-  } = useSuggestedEvents(events);
-
-  const {
     createDbEvent,
     updateDbEvent,
     deleteDbEvent
@@ -46,7 +39,6 @@ export const useCalendarEvents = () => {
   }, [authState.user]);
 
   const fetchEvents = useCallback(async () => {
-    // Prevent multiple concurrent fetch operations
     if (isFetchingRef.current) {
       console.log('Already fetching events, skipping duplicate request');
       return events;
@@ -83,13 +75,6 @@ export const useCalendarEvents = () => {
       setEvents(combinedEvents);
       setLastRefreshedAt(new Date());
       
-      if (combinedEvents.length > 0) {
-        console.log(`Combined ${combinedEvents.length} events successfully`);
-        generateSuggestedSessions();
-      } else {
-        console.log('No events found in database or local storage');
-      }
-      
       return combinedEvents;
     } catch (error) {
       console.error('Error in fetchEvents:', error);
@@ -104,12 +89,10 @@ export const useCalendarEvents = () => {
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [getCurrentUserId, localEvents, generateSuggestedSessions, toast, events]);
+  }, [getCurrentUserId, localEvents, toast, events]);
 
-  // Auto-refresh logic - will refresh events if they're more than 5 minutes old
   useEffect(() => {
     if (!lastRefreshedAt && authState.user) {
-      // Initial load
       fetchEvents();
     } else if (lastRefreshedAt && authState.user) {
       const now = new Date();
@@ -218,14 +201,12 @@ export const useCalendarEvents = () => {
 
   return {
     events,
-    suggestedEvents,
     isLoading,
     fetchEvents,
     clearEvents,
     createEvent,
     updateEvent,
     deleteEvent,
-    acceptSuggestedEvent: useSuggestedEvents(events).acceptSuggestedEvent,
     lastRefreshedAt
   };
 };
