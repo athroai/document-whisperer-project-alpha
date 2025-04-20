@@ -1,21 +1,25 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
-import { useCalendarEvents } from '@/hooks/useCalendarEvents';
+import { useSessionCreation } from '@/hooks/calendar/useSessionCreation';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const CreateInitialEvents: React.FC = () => {
   const { selectedSubjects, updateOnboardingStep } = useOnboarding();
-  const { createBatchCalendarSessions } = useCalendarEvents();
+  const { createBatchCalendarSessions, isCreating } = useSessionCreation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleBack = () => updateOnboardingStep('schedule');
 
   const handleCreateEvents = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       const now = new Date();
       const startOfWeek = new Date(now);
@@ -47,7 +51,7 @@ export const CreateInitialEvents: React.FC = () => {
         description: "Your study sessions have been scheduled."
       });
       
-      navigate('/calendar');
+      navigate('/calendar?fromSetup=true');
     } catch (error) {
       console.error('Error creating calendar events:', error);
       toast({
@@ -55,6 +59,8 @@ export const CreateInitialEvents: React.FC = () => {
         description: "Failed to create study sessions. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -82,15 +88,23 @@ export const CreateInitialEvents: React.FC = () => {
       </div>
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={handleBack}>
+        <Button variant="outline" onClick={handleBack} disabled={isSubmitting || isCreating}>
           <ChevronLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
         <Button 
           onClick={handleCreateEvents}
           className="bg-purple-600 hover:bg-purple-700"
+          disabled={isSubmitting || isCreating}
         >
-          Create Study Sessions
+          {(isSubmitting || isCreating) ? (
+            <>
+              <Loader className="mr-2 h-4 w-4 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            "Create Study Sessions"
+          )}
         </Button>
       </div>
     </div>

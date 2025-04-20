@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
-import { TimeSelector } from '@/components/calendar/TimeSelector';
+import TimeSelector from '@/components/calendar/TimeSelector';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
