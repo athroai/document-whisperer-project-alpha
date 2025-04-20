@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
@@ -91,6 +92,7 @@ export const useCalendarEvents = () => {
     }
   }, [getCurrentUserId, localEvents, toast, events]);
 
+  // Auto-refresh events periodically
   useEffect(() => {
     if (!lastRefreshedAt && authState.user) {
       fetchEvents();
