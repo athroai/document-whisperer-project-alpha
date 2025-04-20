@@ -13,6 +13,9 @@ export const formatGMTTime = (timeString: string): string => {
       return '??:??';
     }
     
+    // Add debug info
+    console.log(`Formatting time: ${timeString}, parsed as: ${date.toISOString()}, local date: ${date.toString()}`);
+    
     return format(date, 'h:mm a');
   } catch (error) {
     console.error('Error formatting GMT time:', error, timeString);

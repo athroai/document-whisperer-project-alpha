@@ -1,6 +1,13 @@
 
-import React, { useState } from 'react';
-import { startOfMonth, endOfMonth, eachDayOfInterval, addMonths } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  addMonths, 
+  startOfWeek, 
+  endOfWeek 
+} from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import CreateStudySession from './CreateStudySession';
@@ -20,6 +27,13 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const { events, isLoading } = useCalendarEvents();
 
+  // Debug current date
+  useEffect(() => {
+    const now = new Date();
+    console.log(`Today is: ${now.toDateString()} (Day of week: ${now.getDay()}, where 0 = Sunday)`);
+    console.log(`Current month view: ${currentMonth.toDateString()}`);
+  }, [currentMonth]);
+
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setShowCreateDialog(true);
@@ -37,9 +51,15 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
     setCurrentMonth(prevMonth => addMonths(prevMonth, 1));
   };
 
+  // Get all days from the start of the first week to the end of the last week of the month
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const calendarStart = startOfWeek(monthStart);
+  const calendarEnd = endOfWeek(monthEnd);
+
   const monthDays = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth)
+    start: calendarStart,
+    end: calendarEnd
   });
 
   const handleAddSession = () => {

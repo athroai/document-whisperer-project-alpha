@@ -32,15 +32,22 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
     });
   };
 
+  // Get day names in correct order starting with Sunday
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
   return (
     <div className="grid grid-cols-7 gap-2">
-      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+      {dayNames.map(day => (
         <div key={day} className="font-semibold text-gray-600 text-center">{day}</div>
       ))}
       
       {days.map((day, index) => {
         const dayEvents = getEventsForDay(day);
         const isCurrentMonth = isSameMonth(day, currentMonth);
+        const isCurrentDay = isToday(day);
+        
+        // Debug information
+        console.log(`Rendering day: ${format(day, 'yyyy-MM-dd')} (${format(day, 'EEEE')}), isToday: ${isCurrentDay}`);
 
         return (
           <div 
@@ -51,9 +58,12 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
           >
             <div className="flex justify-between items-center mb-2">
               <span className={`text-sm font-medium ${
-                isToday(day) ? 'bg-purple-600 text-white rounded-full px-2 py-1' : ''
+                isCurrentDay ? 'bg-purple-600 text-white rounded-full px-2 py-1' : ''
               }`}>
                 {format(day, 'd')}
+              </span>
+              <span className="text-xs text-gray-400">
+                {format(day, 'EEE')}
               </span>
             </div>
             
