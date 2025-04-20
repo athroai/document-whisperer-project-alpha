@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { Progress } from '@/components/ui/progress';
@@ -8,20 +7,15 @@ import { verifyAuth } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 
-import { WelcomeStep } from '@/components/onboarding/steps/WelcomeStep';
-import { SubjectSelectionStep } from '@/components/onboarding/steps/SubjectSelectionStep';
-import { StudyScheduleStep } from '@/components/onboarding/steps/StudyScheduleStep';
-import { LearningStyleStep } from '@/components/onboarding/steps/LearningStyleStep';
-import { StudyPlanStep } from '@/components/onboarding/steps/StudyPlanStep';
+import { BasicSubjectSelection } from '@/components/onboarding/steps/BasicSubjectSelection';
+import { SimpleScheduleSetup } from '@/components/onboarding/steps/SimpleScheduleSetup';
+import { CreateInitialEvents } from '@/components/onboarding/steps/CreateInitialEvents';
 
 const steps = [
-  { id: 'welcome', component: WelcomeStep, title: 'Welcome to AthroAI' },
-  { id: 'subjects', component: SubjectSelectionStep, title: 'Your Subjects' },
-  { id: 'schedule', component: StudyScheduleStep, title: 'Study Schedule' },
-  { id: 'style', component: LearningStyleStep, title: 'Learning Style' },
-  { id: 'plan', component: StudyPlanStep, title: 'Your Study Plan' }
+  { id: 'subjects', component: BasicSubjectSelection, title: 'Select Subjects' },
+  { id: 'schedule', component: SimpleScheduleSetup, title: 'Set Schedule' },
+  { id: 'createEvents', component: CreateInitialEvents, title: 'Create Sessions' }
 ];
 
 const OnboardingContent: React.FC = () => {
@@ -66,7 +60,7 @@ const OnboardingContent: React.FC = () => {
           {steps.map((step, index) => (
             <div 
               key={step.id} 
-              className={`text-xs font-medium ${index <= currentStepIndex ? 'text-primary' : 'text-muted-foreground'}`}
+              className={`text-sm font-medium ${index <= currentStepIndex ? 'text-primary' : 'text-muted-foreground'}`}
             >
               {step.title}
             </div>
