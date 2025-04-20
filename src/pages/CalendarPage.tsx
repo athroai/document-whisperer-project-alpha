@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -158,8 +159,6 @@ const CalendarPage: React.FC = () => {
             Failed to load calendar events. Please try refreshing the calendar.
           </div>
         )}
-        
-        <SuggestedStudySessions />
         
         {isLoading && isInitialLoad ? (
           <div className="space-y-4">
