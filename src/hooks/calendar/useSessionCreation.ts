@@ -33,7 +33,7 @@ export const useSessionCreation = () => {
     setIsCreating(true);
 
     try {
-      console.log("Creating calendar session:", sessionData);
+      console.log("Creating calendar session with data:", sessionData);
       const {
         title,
         subject,
@@ -52,6 +52,12 @@ export const useSessionCreation = () => {
         pomodoroBreakMinutes: 5
       });
 
+      // Make sure dates are in ISO string format for database insertion
+      const startISOString = startTime instanceof Date ? startTime.toISOString() : startTime;
+      const endISOString = endTime instanceof Date ? endTime.toISOString() : endTime;
+      
+      console.log(`Inserting event: ${title} from ${startISOString} to ${endISOString}`);
+
       // Create event in database
       const { data, error } = await supabase
         .from('calendar_events')
@@ -61,8 +67,8 @@ export const useSessionCreation = () => {
           user_id: authState.user.id,
           student_id: authState.user.id,
           event_type: eventType,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString()
+          start_time: startISOString,
+          end_time: endISOString
         })
         .select('*')
         .single();
@@ -76,6 +82,8 @@ export const useSessionCreation = () => {
         });
         return null;
       }
+
+      console.log("Successfully created calendar event:", data);
 
       // Convert the database response to a CalendarEvent
       const newEvent: CalendarEvent = {
@@ -91,11 +99,6 @@ export const useSessionCreation = () => {
         student_id: data.student_id,
       };
 
-      toast({
-        title: "Session Created",
-        description: "Study session has been added to your calendar.",
-      });
-      
       return newEvent;
     } catch (error) {
       console.error("Exception in createCalendarSession:", error);
@@ -133,14 +136,20 @@ export const useSessionCreation = () => {
     const createdEvents: CalendarEvent[] = [];
 
     try {
+      console.log(`Attempting to create ${sessions.length} calendar sessions`);
+      
       // Process sessions sequentially to avoid database race conditions
       for (const session of sessions) {
+        console.log(`Processing session: ${session.title} at ${session.startTime}`);
         const newEvent = await createCalendarSession(session);
         if (newEvent) {
+          console.log(`Successfully created event: ${newEvent.id}`);
           createdEvents.push(newEvent);
         }
       }
 
+      console.log(`Created ${createdEvents.length} out of ${sessions.length} sessions`);
+      
       if (createdEvents.length > 0) {
         toast({
           title: "Study Plan Created",
@@ -150,7 +159,7 @@ export const useSessionCreation = () => {
         toast({
           title: "Warning",
           description: "No study sessions were created. Please try again.",
-          variant: "destructive"
+          variant: "default"
         });
       }
 
@@ -160,7 +169,7 @@ export const useSessionCreation = () => {
       toast({
         title: "Partial Completion",
         description: `Created ${createdEvents.length} of ${sessions.length} sessions. Some sessions may have failed.`,
-        variant: "destructive"
+        variant: "default"
       });
       return createdEvents;
     } finally {

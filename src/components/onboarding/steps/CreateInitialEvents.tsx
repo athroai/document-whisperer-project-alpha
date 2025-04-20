@@ -47,15 +47,27 @@ export const CreateInitialEvents: React.FC = () => {
         };
       });
 
+      console.log('Creating initial study sessions:', sessions);
+      
       try {
-        await createBatchCalendarSessions(sessions);
-        toast({
-          title: "Success!",
-          description: "Your study sessions have been scheduled."
-        });
+        // Create study sessions with explicit error handling
+        const createdSessions = await createBatchCalendarSessions(sessions);
+        console.log('Created sessions:', createdSessions);
+        
+        if (createdSessions && createdSessions.length > 0) {
+          toast({
+            title: "Success!",
+            description: `Created ${createdSessions.length} study sessions for your calendar.`
+          });
+        } else {
+          toast({
+            title: "Partial Success",
+            description: "Onboarding completed, but no study sessions were created.",
+            variant: "default"
+          });
+        }
       } catch (calendarError) {
         console.error('Error creating calendar events:', calendarError);
-        // Use default variant instead of warning
         toast({
           title: "Partial Success",
           description: "Onboarding completed, but some study sessions may not have been created.",
@@ -65,7 +77,8 @@ export const CreateInitialEvents: React.FC = () => {
       
       // Always navigate to calendar even if calendar events fail
       localStorage.setItem('onboarding_completed', 'true');
-      navigate('/calendar?fromSetup=true');
+      // Use refresh=true to force calendar refresh when navigating
+      navigate('/calendar?fromSetup=true&refresh=true');
     } catch (error) {
       console.error('Error completing onboarding:', error);
       toast({

@@ -55,6 +55,12 @@ const CalendarPage: React.FC = () => {
       
       try {
         console.log(`Loading calendar events for user: ${authState.user.id}`);
+        // Clear events first if coming from setup or requesting refresh
+        if (fromSetup || shouldRefresh) {
+          console.log("Clearing events before fetching due to fromSetup or refresh flag");
+          clearEvents();
+        }
+        
         const fetchedEvents = await fetchEvents();
         
         if (isMounted) {
@@ -66,6 +72,12 @@ const CalendarPage: React.FC = () => {
             toast({
               title: fromSetup ? "Calendar Setup Complete" : "Calendar Updated",
               description: `Loaded ${fetchedEvents.length} study sessions.`
+            });
+          } else if ((refreshTrigger > 0 || fromSetup) && fetchedEvents.length === 0) {
+            toast({
+              title: "No Events Found",
+              description: "No study sessions were found in your calendar.",
+              variant: "default"
             });
           }
         }
@@ -86,6 +98,7 @@ const CalendarPage: React.FC = () => {
     if (authState.user?.id && !authState.isLoading) {
       if (fromSetup || shouldRefresh || refreshTrigger > 0) {
         // Immediate load with refresh
+        console.log("Immediate calendar refresh triggered");
         loadCalendarEvents();
       } else {
         // Normal load
@@ -96,7 +109,7 @@ const CalendarPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh]);
+  }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents]);
   
   const handleRetryLoad = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
