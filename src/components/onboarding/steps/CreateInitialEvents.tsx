@@ -8,7 +8,7 @@ import { ChevronLeft, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const CreateInitialEvents: React.FC = () => {
-  const { selectedSubjects, updateOnboardingStep } = useOnboarding();
+  const { selectedSubjects, updateOnboardingStep, completeOnboarding } = useOnboarding();
   const { createBatchCalendarSessions, isCreating } = useSessionCreation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -21,6 +21,9 @@ export const CreateInitialEvents: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      // Mark onboarding as complete regardless of calendar event creation success
+      await completeOnboarding();
+      
       const now = new Date();
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay() + 1);
@@ -44,22 +47,32 @@ export const CreateInitialEvents: React.FC = () => {
         };
       });
 
-      await createBatchCalendarSessions(sessions);
+      try {
+        await createBatchCalendarSessions(sessions);
+        toast({
+          title: "Success!",
+          description: "Your study sessions have been scheduled."
+        });
+      } catch (calendarError) {
+        console.error('Error creating calendar events:', calendarError);
+        // Show a warning but still continue with redirection
+        toast({
+          title: "Partial Success",
+          description: "Onboarding completed, but some study sessions may not have been created.",
+          variant: "warning"
+        });
+      }
       
-      toast({
-        title: "Success!",
-        description: "Your study sessions have been scheduled."
-      });
-      
+      // Always navigate to calendar even if calendar events fail
+      localStorage.setItem('onboarding_completed', 'true');
       navigate('/calendar?fromSetup=true');
     } catch (error) {
-      console.error('Error creating calendar events:', error);
+      console.error('Error completing onboarding:', error);
       toast({
         title: "Error",
-        description: "Failed to create study sessions. Please try again.",
+        description: "Failed to complete onboarding. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsSubmitting(false);
     }
   };

@@ -18,6 +18,14 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
       }
 
       try {
+        // Check if onboarding was completed via localStorage flag
+        const onboardingCompleted = localStorage.getItem('onboarding_completed') === 'true';
+        if (onboardingCompleted) {
+          setNeedsOnboarding(false);
+          setIsLoading(false);
+          return;
+        }
+        
         // Check if user has any subjects in the student_subjects table
         const { data: subjects, error: subjectsError } = await supabase
           .from('student_subjects')
