@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSessionCreation } from '@/hooks/calendar/useSessionCreation';
@@ -30,70 +29,56 @@ export const CreateInitialEvents: React.FC = () => {
       // First complete onboarding to ensure user data is saved
       await completeOnboarding();
       console.log('Onboarding completed for user:', authState.user.id);
-      
+
       const now = new Date();
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Start from Monday
 
       // Create one slot per subject
       const sessions = selectedSubjects.map((subjectPref, index) => {
-        // Create sessions on consecutive days starting from Monday of current week
         const sessionDate = new Date(startOfWeek);
         sessionDate.setDate(sessionDate.getDate() + index);
-        
-        // Set study sessions to start at 4 PM
         const startTime = new Date(sessionDate);
         startTime.setHours(16, 0, 0, 0);
-        
-        // Each session lasts 45 minutes
         const endTime = new Date(startTime);
-        endTime.setMinutes(startTime.getMinutes() + 45);
+        endTime.setMinutes(endTime.getMinutes() + 45);
 
         return {
           title: `${subjectPref.subject} Study Session`,
           subject: subjectPref.subject,
           startTime,
           endTime,
-          eventType: 'study_session'
+          eventType: 'study_session',
         };
       });
 
       console.log('Creating initial study sessions:', sessions);
-      
+
       if (sessions.length === 0) {
         throw new Error('No subjects selected for scheduling');
       }
-      
-      try {
-        const createdSessions = await createBatchCalendarSessions(sessions);
-        console.log('Created sessions:', createdSessions);
-        
-        if (createdSessions && createdSessions.length > 0) {
-          toast({
-            title: "Success!",
-            description: `Created ${createdSessions.length} study sessions for your calendar.`
-          });
-          
-          // Force a clear cache for calendar events
-          localStorage.removeItem('cached_calendar_events');
-          
-          // Add a delay to ensure database writes complete
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          
-          // Navigate to calendar with refresh flag
-          navigate(`/calendar?fromSetup=true&refresh=true`);
-        } else {
-          throw new Error('No sessions were created');
-        }
-      } catch (error) {
-        console.error('Error creating calendar events:', error);
-        throw error;
+
+      // Set batchOptions selfCreated=true to only use student_id
+      const createdSessions = await createBatchCalendarSessions(sessions, { selfCreated: true, maxRetries: 3 });
+      console.log('Created sessions:', createdSessions);
+
+      if (createdSessions && createdSessions.length > 0) {
+        toast({
+          title: "Success!",
+          description: `Created ${createdSessions.length} study sessions for your calendar.`
+        });
+
+        localStorage.removeItem('cached_calendar_events');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        navigate(`/calendar?fromSetup=true&refresh=true`);
+      } else {
+        throw new Error('No sessions were created');
       }
     } catch (error) {
       console.error('Error completing onboarding:', error);
       toast({
         title: "Error",
-        description: "Failed to complete onboarding. Please try again.",
+        description: "Failed to complete onboarding or create events. Please try again.",
         variant: "destructive"
       });
       setIsSubmitting(false);

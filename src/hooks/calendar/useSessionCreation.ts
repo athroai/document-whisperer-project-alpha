@@ -5,22 +5,28 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 
+// Type extended to allow selfCreated events
+type SessionCreationPayload = {
+  title: string;
+  subject: string;
+  topic?: string;
+  startTime: Date;
+  endTime: Date;
+  description?: string;
+  eventType?: string;
+  selfCreated?: boolean; // If true, ONLY set student_id
+};
+
 export const useSessionCreation = () => {
   const [isCreating, setIsCreating] = useState(false);
   const { state: authState } = useAuth();
   const { toast } = useToast();
 
+  // Generic calendar event creation logic
   const createCalendarSession = async (
-    sessionData: {
-      title: string;
-      subject: string;
-      topic?: string;
-      startTime: Date;
-      endTime: Date;
-      description?: string;
-      eventType?: string;
-    }
+    sessionData: SessionCreationPayload
   ): Promise<CalendarEvent | null> => {
+    const { selfCreated = false } = sessionData;
     if (!authState.user?.id) {
       toast({
         title: "Authentication Required",
@@ -33,7 +39,6 @@ export const useSessionCreation = () => {
     setIsCreating(true);
 
     try {
-      console.log("Creating calendar session with data:", sessionData);
       const {
         title,
         subject,
@@ -52,24 +57,28 @@ export const useSessionCreation = () => {
         pomodoroBreakMinutes: 5
       });
 
-      // Make sure dates are in ISO string format for database insertion
       const startISOString = startTime instanceof Date ? startTime.toISOString() : startTime;
       const endISOString = endTime instanceof Date ? endTime.toISOString() : endTime;
-      
-      console.log(`Inserting event: ${title} from ${startISOString} to ${endISOString} for user ${authState.user.id}`);
 
-      // Create event in database
+      // For onboarding or self-created sessions: only set student_id.
+      const insertObj: any = {
+        title,
+        description: eventDescription,
+        event_type: eventType,
+        start_time: startISOString,
+        end_time: endISOString
+      };
+      if (selfCreated) {
+        insertObj.student_id = authState.user.id;
+      } else {
+        // Allow both (for classic user-created cases)
+        insertObj.user_id = authState.user.id;
+        insertObj.student_id = authState.user.id;
+      }
+
       const { data, error } = await supabase
         .from('calendar_events')
-        .insert({
-          title: title,
-          description: eventDescription,
-          user_id: authState.user.id,
-          student_id: authState.user.id,
-          event_type: eventType,
-          start_time: startISOString,
-          end_time: endISOString
-        })
+        .insert(insertObj)
         .select('*')
         .single();
 
@@ -83,9 +92,6 @@ export const useSessionCreation = () => {
         return null;
       }
 
-      console.log("Successfully created calendar event:", data);
-
-      // Convert the database response to a CalendarEvent
       const newEvent: CalendarEvent = {
         id: data.id,
         title: data.title,
@@ -113,15 +119,10 @@ export const useSessionCreation = () => {
     }
   };
 
+  // Batch creation now accepts selfCreated option and retry logic.
   const createBatchCalendarSessions = async (
-    sessions: Array<{
-      title: string;
-      subject: string;
-      topic?: string;
-      startTime: Date;
-      endTime: Date;
-      eventType?: string;
-    }>
+    sessions: Array<SessionCreationPayload>,
+    batchOptions?: { selfCreated?: boolean, maxRetries?: number }
   ): Promise<CalendarEvent[]> => {
     if (!authState.user?.id) {
       toast({
@@ -131,32 +132,47 @@ export const useSessionCreation = () => {
       });
       return [];
     }
-    
+
     setIsCreating(true);
     const createdEvents: CalendarEvent[] = [];
+    const opts = batchOptions || {};
+    const selfCreated = opts.selfCreated ?? false; // Used for onboarding
+    const maxRetries = opts.maxRetries ?? 2;
+
+    // Helper for retry logic
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
     try {
-      console.log(`Attempting to create ${sessions.length} calendar sessions for user ${authState.user.id}`);
-      
-      // Process sessions sequentially to avoid database race conditions
-      for (const session of sessions) {
-        console.log(`Processing session: ${session.title} at ${session.startTime.toISOString()}`);
-        const newEvent = await createCalendarSession(session);
-        if (newEvent) {
-          console.log(`Successfully created event: ${newEvent.id}`);
-          createdEvents.push(newEvent);
+      for (let i = 0; i < sessions.length; i++) {
+        let retryCount = 0;
+        let event = null;
+        while (retryCount <= maxRetries) {
+          try {
+            const sessionPayload = { ...sessions[i], selfCreated };
+            event = await createCalendarSession(sessionPayload);
+            if (event) break; // Success!
+          } catch (err) {
+            // Wait increasing time on failure
+            await delay(400 + retryCount * 200);
+          }
+          retryCount++;
+        }
+        if (event) {
+          createdEvents.push(event);
+        } else {
+          toast({
+            title: "A session could not be created",
+            description: `Session #${i + 1} failed after ${maxRetries + 1} attempts.`,
+            variant: "destructive"
+          });
         }
       }
 
-      console.log(`Created ${createdEvents.length} out of ${sessions.length} sessions`);
-      
       if (createdEvents.length > 0) {
         toast({
           title: "Study Plan Created",
           description: `Created ${createdEvents.length} study sessions in your calendar.`,
         });
-        
-        // Clear any cached events to ensure fresh data
         localStorage.removeItem('cached_calendar_events');
       } else {
         toast({
