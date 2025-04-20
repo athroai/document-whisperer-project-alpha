@@ -55,11 +55,11 @@ export const CreateInitialEvents: React.FC = () => {
         });
       } catch (calendarError) {
         console.error('Error creating calendar events:', calendarError);
-        // Show a warning but still continue with redirection
+        // Use default variant instead of warning
         toast({
           title: "Partial Success",
           description: "Onboarding completed, but some study sessions may not have been created.",
-          variant: "warning"
+          variant: "default"
         });
       }
       
