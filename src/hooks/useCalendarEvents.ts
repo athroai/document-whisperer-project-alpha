@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,7 @@ import { fetchDatabaseEvents } from '@/services/calendarEventService';
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const { toast } = useToast();
   const { state: authState } = useAuth();
   const isFetchingRef = useRef(false);
@@ -80,10 +81,13 @@ export const useCalendarEvents = () => {
       
       const combinedEvents = [...dbEvents, ...filteredLocalEvents];
       setEvents(combinedEvents);
+      setLastRefreshedAt(new Date());
       
       if (combinedEvents.length > 0) {
         console.log(`Combined ${combinedEvents.length} events successfully`);
         generateSuggestedSessions();
+      } else {
+        console.log('No events found in database or local storage');
       }
       
       return combinedEvents;
@@ -101,6 +105,23 @@ export const useCalendarEvents = () => {
       isFetchingRef.current = false;
     }
   }, [getCurrentUserId, localEvents, generateSuggestedSessions, toast, events]);
+
+  // Auto-refresh logic - will refresh events if they're more than 5 minutes old
+  useEffect(() => {
+    if (!lastRefreshedAt && authState.user) {
+      // Initial load
+      fetchEvents();
+    } else if (lastRefreshedAt && authState.user) {
+      const now = new Date();
+      const timeSinceLastRefresh = now.getTime() - lastRefreshedAt.getTime();
+      const fiveMinutesInMs = 5 * 60 * 1000;
+      
+      if (timeSinceLastRefresh > fiveMinutesInMs) {
+        console.log('Auto-refreshing calendar events (last refreshed > 5 minutes ago)');
+        fetchEvents();
+      }
+    }
+  }, [lastRefreshedAt, authState.user, fetchEvents]);
 
   const createEvent = async (
     eventData: Partial<CalendarEvent>,
@@ -131,6 +152,10 @@ export const useCalendarEvents = () => {
       
     } catch (error) {
       console.error('Error creating calendar event:', error);
+      
+      if (!allowLocalFallback) {
+        throw error;
+      }
       
       const localId = `local-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const localEvent: CalendarEvent = {
@@ -200,6 +225,7 @@ export const useCalendarEvents = () => {
     createEvent,
     updateEvent,
     deleteEvent,
-    acceptSuggestedEvent: useSuggestedEvents(events).acceptSuggestedEvent
+    acceptSuggestedEvent: useSuggestedEvents(events).acceptSuggestedEvent,
+    lastRefreshedAt
   };
 };

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { format, isSameMonth, isToday } from 'date-fns';
+import { format, isSameMonth, isToday, parseISO } from 'date-fns';
 import { getEventColor } from '@/utils/calendarUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { formatGMTTime } from '@/utils/timeUtils';
@@ -17,11 +17,13 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
     return events.filter(event => {
       try {
         if (!event.start_time) return false;
-        const eventStart = new Date(event.start_time);
+        
+        const eventDate = parseISO(event.start_time);
+        
         return (
-          eventStart.getFullYear() === day.getFullYear() &&
-          eventStart.getMonth() === day.getMonth() &&
-          eventStart.getDate() === day.getDate()
+          eventDate.getFullYear() === day.getFullYear() &&
+          eventDate.getMonth() === day.getMonth() &&
+          eventDate.getDate() === day.getDate()
         );
       } catch (err) {
         console.error('Error parsing event date:', err, event);
@@ -44,7 +46,7 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
           <div 
             key={index}
             className={`border p-2 ${!isCurrentMonth ? 'bg-gray-100 text-gray-400' : 'bg-white'} 
-              cursor-pointer hover:bg-gray-50`}
+              cursor-pointer hover:bg-gray-50 min-h-[100px]`}
             onClick={() => isCurrentMonth && onSelectDate(day)}
           >
             <div className="flex justify-between items-center mb-2">
@@ -55,23 +57,38 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
               </span>
             </div>
             
-            {dayEvents.slice(0, 2).map((event, eventIndex) => {
-              const colorStyle = getEventColor(event.subject);
-              return (
-                <div 
-                  key={`${event.id}-${eventIndex}`}
-                  className={`text-xs p-1 mb-1 rounded truncate ${colorStyle.bg} ${colorStyle.text}`}
-                  title={`${event.title} (${formatGMTTime(event.start_time)})`}
-                >
-                  {formatGMTTime(event.start_time)} - {event.title}
-                </div>
-              );
-            })}
-            
-            {dayEvents.length > 2 && (
-              <div className="text-xs text-gray-500 text-center">
-                +{dayEvents.length - 2} more
-              </div>
+            {dayEvents.length === 0 ? (
+              <div className="text-xs text-gray-400 italic">No events</div>
+            ) : (
+              <>
+                {dayEvents.slice(0, 3).map((event, eventIndex) => {
+                  const colorStyle = getEventColor(event.subject);
+                  
+                  let formattedTime;
+                  try {
+                    formattedTime = formatGMTTime(event.start_time);
+                  } catch (e) {
+                    formattedTime = '??:??';
+                    console.error('Error formatting time:', e, event);
+                  }
+                  
+                  return (
+                    <div 
+                      key={`${event.id}-${eventIndex}`}
+                      className={`text-xs p-1 mb-1 rounded truncate ${colorStyle.bg} ${colorStyle.text}`}
+                      title={`${event.title} (${formattedTime})`}
+                    >
+                      {formattedTime} - {event.title}
+                    </div>
+                  );
+                })}
+                
+                {dayEvents.length > 3 && (
+                  <div className="text-xs text-gray-500 text-center font-medium mt-1">
+                    +{dayEvents.length - 3} more
+                  </div>
+                )}
+              </>
             )}
           </div>
         );

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { motion } from 'framer-motion';
@@ -21,6 +22,7 @@ export const StudyPlanContainer: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [studyPlan, setStudyPlan] = useState<any[]>([]);
   const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
+  const [createdCalendarEvents, setCreatedCalendarEvents] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const generateStudyPlan = async () => {
@@ -61,10 +63,15 @@ export const StudyPlanContainer: React.FC = () => {
         if (state.user) {
           setGenerationProgress(70);
           // Batch save sessions to database
-          await Promise.all([
+          const eventIds = await Promise.all([
             saveSessionsToDatabase(sessions, state.user.id),
             saveStudyPlanMetadata(state.user.id, subjectDistribution)
           ]);
+          
+          if (eventIds && eventIds[0] && Array.isArray(eventIds[0])) {
+            setCreatedCalendarEvents(eventIds[0].filter(id => id)); 
+            console.log("Created calendar event IDs:", eventIds[0]);
+          }
         }
         
         setUpcomingSessions(sessions.slice(0, 5));
@@ -118,9 +125,12 @@ export const StudyPlanContainer: React.FC = () => {
     }
   };
 
-  const saveSessionsToDatabase = async (sessions: any[], userId: string) => {
+  const saveSessionsToDatabase = async (sessions: any[], userId: string): Promise<string[]> => {
     try {
-      const calendarPromises = sessions.map(async (session) => {
+      const eventIds: string[] = [];
+      
+      // Use a sequential approach for more reliable insertion
+      for (const session of sessions) {
         const eventDescription = {
           subject: session.subject,
           isPomodoro: true,
@@ -128,28 +138,38 @@ export const StudyPlanContainer: React.FC = () => {
           pomodoroBreakMinutes: 5
         };
 
-        const { data: eventData, error: eventError } = await supabase
-          .from('calendar_events')
-          .insert({
-            user_id: userId,
-            student_id: userId,
-            title: `${session.subject} Study Session`,
-            description: JSON.stringify(eventDescription),
-            event_type: 'study_session',
-            start_time: session.startTime.toISOString(),
-            end_time: session.endTime.toISOString()
-          })
-          .select('id')
-          .single();
+        try {
+          const { data: eventData, error: eventError } = await supabase
+            .from('calendar_events')
+            .insert({
+              user_id: userId,
+              student_id: userId,
+              title: `${session.subject} Study Session`,
+              description: JSON.stringify(eventDescription),
+              event_type: 'study_session',
+              start_time: session.startTime.toISOString(),
+              end_time: session.endTime.toISOString()
+            })
+            .select('id')
+            .single();
 
-        if (eventError) throw eventError;
-        return eventData;
-      });
+          if (eventError) {
+            console.error("Error inserting calendar event:", eventError);
+            eventIds.push("");
+          } else if (eventData) {
+            console.log("Successfully created calendar event:", eventData.id);
+            eventIds.push(eventData.id);
+          }
+        } catch (err) {
+          console.error("Exception when creating calendar event:", err);
+          eventIds.push("");
+        }
+      }
 
-      await Promise.all(calendarPromises);
+      return eventIds;
     } catch (error) {
-      console.error('Error saving sessions to database:', error);
-      throw error;
+      console.error('Error in batch saving sessions to database:', error);
+      return [];
     }
   };
 
@@ -211,9 +231,23 @@ export const StudyPlanContainer: React.FC = () => {
   const handleComplete = async () => {
     try {
       setIsGenerating(true);
+      
+      // Verify that calendar events were actually created
+      if (createdCalendarEvents.length === 0) {
+        console.warn("No calendar events were created during plan generation");
+        toast.warning("Study plan created but calendar events may be missing");
+      } else {
+        console.log(`Successfully created ${createdCalendarEvents.length} calendar events`);
+      }
+      
       await completeOnboarding();
       toast.success("Onboarding completed successfully!");
-      navigate('/calendar?fromSetup=true');
+      
+      // Force a small delay to ensure database operations complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Pass a flag to indicate the calendar should refresh events
+      navigate('/calendar?fromSetup=true&refresh=true');
     } catch (error) {
       console.error("Error completing onboarding:", error);
       toast.error("There was an error completing onboarding. Please try again.");
