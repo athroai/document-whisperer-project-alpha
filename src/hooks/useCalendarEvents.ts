@@ -147,16 +147,16 @@ export const useCalendarEvents = () => {
     allowLocalFallback: boolean = false
   ): Promise<CalendarEvent> => {
     try {
-      const userId = getCurrentUserId();
+      const currentUserId = authState.user?.id;
       
-      if (!userId) {
+      if (!currentUserId) {
         if (!allowLocalFallback) {
           throw new Error('No authenticated user found');
         }
         throw new Error('No user found for database operation');
       }
 
-      const newEvent = await createDbEvent(userId, eventData);
+      const newEvent = await createDbEvent(currentUserId, eventData);
       
       if (newEvent) {
         setEvents(prevEvents => [...prevEvents, newEvent]);
