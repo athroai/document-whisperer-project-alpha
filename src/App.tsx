@@ -1,109 +1,39 @@
-
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Navigation from '@/components/Navigation';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import HomePage from '@/pages/HomePage';
-import StudySessionPage from '@/pages/StudySessionPage';
-import LoginPage from '@/pages/LoginPage';
-import SignupPage from '@/pages/SignupPage';
-import SettingsPage from '@/pages/SettingsPage';
-import CalendarPage from '@/pages/CalendarPage';
-import QuizPage from '@/pages/QuizPage';
-import TeacherDashboardPage from '@/pages/TeacherDashboardPage';
-import ClassroomPage from '@/pages/ClassroomPage';
-import StudentProgressPage from '@/pages/StudentProgressPage';
-import AthroSelectorPage from '@/pages/athro/AthroSelectorPage';
-import AthroSubjectPage from '@/pages/athro/AthroSubjectPage';
-import { Toaster } from '@/components/ui/toaster';
-import WelcomePage from '@/pages/WelcomePage';
-import AthroOnboardingPage from '@/pages/AthroOnboardingPage';
-import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
-import ProgressPage from '@/pages/ProgressPage';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'sonner';
 
-const App: React.FC = () => {
+import HomePage from './pages/HomePage';
+import CalendarPage from './pages/CalendarPage';
+import StudyPage from './pages/StudyPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import SettingsPage from './pages/SettingsPage';
+import PomodoroPage from './pages/PomodoroPage';
+import AthroChat from './pages/AthroChat';
+import OnboardingPage from './pages/OnboardingPage';
+import AthroOnboardingPage from './pages/AthroOnboardingPage';
+import WelcomePage from './pages/WelcomePage';
+
+const App = () => {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navigation />
-      <StudySessionLauncher />
-      <Routes>
-        <Route path="/" element={<WelcomePage />} />
-        <Route path="/athro-onboarding" element={
-          <ProtectedRoute>
-            <AthroOnboardingPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        
-        <Route path="/home" element={
-          <ProtectedRoute>
-            <HomePage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/study" element={
-          <ProtectedRoute>
-            <StudySessionPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/calendar" element={
-          <ProtectedRoute>
-            <CalendarPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/quiz" element={
-          <ProtectedRoute>
-            <QuizPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/progress" element={
-          <ProtectedRoute>
-            <ProgressPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <SettingsPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/teacher-dashboard" element={
-          <ProtectedRoute requiredRole="teacher">
-            <TeacherDashboardPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/classroom/:id" element={
-          <ProtectedRoute>
-            <ClassroomPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/student/:id" element={
-          <ProtectedRoute requiredRole="teacher">
-            <StudentProgressPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/athro" element={
-          <ProtectedRoute>
-            <AthroSelectorPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/athro/:subject" element={
-          <ProtectedRoute>
-            <AthroSubjectPage />
-          </ProtectedRoute>
-        } />
-      </Routes>
+    <>
+      <Router>
+        <Routes>
+          <Route path="/" element={<WelcomePage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/athro-onboarding" element={<AthroOnboardingPage />} />
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/study" element={<StudyPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/pomodoro" element={<PomodoroPage />} />
+          <Route path="/athro-chat" element={<AthroChat />} />
+        </Routes>
+      </Router>
       <Toaster />
-    </div>
+    </>
   );
 };
 

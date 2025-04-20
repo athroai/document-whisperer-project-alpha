@@ -1,97 +1,55 @@
 
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { fetchDatabaseEvents } from '@/services/calendarEventService';
-import { useToast } from '@/hooks/use-toast';
 
 export const useEventFetching = (
   userId: string | undefined,
-  setEvents: (events: CalendarEvent[]) => void,
-  setIsLoading: (loading: boolean) => void,
-  setLastRefreshedAt: (date: Date) => void,
+  setEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>,
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
+  setLastRefreshedAt: React.Dispatch<React.SetStateAction<Date | null>>,
   localEvents: CalendarEvent[]
 ) => {
-  const isFetchingRef = useRef(false);
-  const { toast } = useToast();
-
   const fetchEvents = useCallback(async () => {
-    if (isFetchingRef.current) {
-      console.log('Already fetching events, skipping duplicate request');
-      return localEvents;
-    }
-    
-    if (!userId) {
-      console.log('No authenticated user, returning empty events array');
-      setEvents([]);
-      return [];
-    }
+    setIsLoading(true);
     
     try {
-      isFetchingRef.current = true;
-      setIsLoading(true);
+      let allEvents: CalendarEvent[] = [];
       
-      console.log(`Fetching calendar events for user ${userId}`);
-      const dbEvents = await fetchDatabaseEvents(userId);
-      
-      // Log the fetched events
-      console.log(`Fetched ${dbEvents.length} events from database:`, dbEvents);
-      
-      // Add mock events for testing if no events are returned
-      let finalEvents = dbEvents;
-      if (dbEvents.length === 0 && process.env.NODE_ENV === 'development') {
-        console.log('No events found in database, adding mock events for testing');
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-        
-        finalEvents = [
-          {
-            id: 'mock-1',
-            title: 'Mathematics Study Session',
-            subject: 'Mathematics',
-            topic: 'Algebra',
-            start_time: today.toISOString(),
-            end_time: new Date(today.getTime() + 60 * 60 * 1000).toISOString(),
-            event_type: 'study_session',
-            local_only: true
-          },
-          {
-            id: 'mock-2',
-            title: 'English Literature Review',
-            subject: 'English',
-            topic: 'Shakespeare',
-            start_time: tomorrow.toISOString(),
-            end_time: new Date(tomorrow.getTime() + 90 * 60 * 1000).toISOString(),
-            event_type: 'study_session',
-            local_only: true
-          }
-        ];
+      // Try to fetch from database first
+      if (userId) {
+        const dbEvents = await fetchDatabaseEvents(userId);
+        console.log(`Fetched ${dbEvents.length} events from database`);
+        allEvents = [...dbEvents];
       }
       
-      // Filter out local events that might duplicate DB events
-      const dbEventIds = new Set(dbEvents.map(event => event.id));
-      const filteredLocalEvents = localEvents.filter(event => !dbEventIds.has(event.id));
+      // Add local events if needed
+      if (localEvents.length > 0) {
+        console.log(`Including ${localEvents.length} local events`);
+        
+        // Filter out any local events that might have been saved to the database
+        const uniqueLocalEvents = localEvents.filter(localEvent => {
+          return !allEvents.some(dbEvent => {
+            if (localEvent.id && dbEvent.id) {
+              return localEvent.id === dbEvent.id;
+            }
+            return false;
+          });
+        });
+        
+        allEvents = [...allEvents, ...uniqueLocalEvents];
+      }
       
-      const combinedEvents = [...finalEvents, ...filteredLocalEvents];
-      console.log(`Setting ${combinedEvents.length} combined events`);
-      setEvents(combinedEvents);
-      setLastRefreshedAt(new Date());
-      
-      return combinedEvents;
+      setEvents(allEvents);
+      return allEvents;
     } catch (error) {
-      console.error('Error in fetchEvents:', error);
-      toast({
-        title: "Error loading events",
-        description: "Could not load your calendar events. Please try refreshing.",
-        variant: "destructive"
-      });
-      setEvents(localEvents);
-      return localEvents;
+      console.error('Error fetching events:', error);
+      return [];
     } finally {
       setIsLoading(false);
-      isFetchingRef.current = false;
+      setLastRefreshedAt(new Date());
     }
-  }, [userId, localEvents, setEvents, setIsLoading, setLastRefreshedAt, toast]);
+  }, [userId, localEvents, setEvents, setIsLoading, setLastRefreshedAt]);
 
   return { fetchEvents };
 };

@@ -1,125 +1,168 @@
-
-import { useCallback } from 'react';
 import { CalendarEvent } from '@/types/calendar';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { useDbCalendarEvents } from './useDbCalendarEvents';
+import { createDatabaseEvent } from '@/services/calendarEventService';
+import { supabase } from '@/lib/supabase';
 import { useLocalCalendarEvents } from './useLocalCalendarEvents';
 
 export const useEventOperations = (
   events: CalendarEvent[],
   setEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>
 ) => {
-  const { state: authState } = useAuth();
-  const { toast } = useToast();
-  const {
-    createDbEvent,
-    updateDbEvent,
-    deleteDbEvent
-  } = useDbCalendarEvents();
-  
-  const {
-    addLocalEvent,
-    updateLocalEvent,
-    deleteLocalEvent
-  } = useLocalCalendarEvents();
+  const { saveLocalEvent } = useLocalCalendarEvents();
 
-  const createEvent = async (
-    eventData: Partial<CalendarEvent>,
-    allowLocalFallback: boolean = false
-  ): Promise<CalendarEvent> => {
+  const createEvent = async (eventData: Partial<CalendarEvent>, useLocalFallback = true): Promise<CalendarEvent | null> => {
     try {
-      const currentUserId = authState.user?.id;
+      const { auth } = supabase;
+      const session = auth.session();
+      const userId = session?.user?.id;
       
-      if (!currentUserId) {
-        if (!allowLocalFallback) {
-          throw new Error('No authenticated user found');
+      if (!userId) {
+        if (useLocalFallback) {
+          console.log('No authenticated user, saving event locally');
+          // Create a local event with temporary ID
+          const localEvent: CalendarEvent = {
+            id: `local-${Date.now()}`,
+            title: eventData.title || 'Study Session',
+            subject: eventData.subject || 'General',
+            description: '',
+            topic: eventData.topic || '',
+            start_time: eventData.start_time || new Date().toISOString(),
+            end_time: eventData.end_time || new Date().toISOString(),
+            event_type: eventData.event_type || 'study_session',
+            user_id: 'local',
+            student_id: 'local'
+          };
+          
+          const saved = saveLocalEvent(localEvent);
+          if (saved) {
+            setEvents(prev => [...prev, localEvent]);
+            return localEvent;
+          }
+          return null;
+        } else {
+          console.error('Cannot create event: No authenticated user');
+          return null;
         }
-        throw new Error('No user found for database operation');
       }
-
-      const newEvent = await createDbEvent(currentUserId, eventData);
+      
+      // Try to create in database
+      const newEvent = await createDatabaseEvent(userId, eventData);
       
       if (newEvent) {
-        setEvents(prevEvents => [...prevEvents, newEvent]);
-        toast({
-          title: "Success",
-          description: "Study session created successfully.",
-        });
+        setEvents(prev => [...prev, newEvent]);
         return newEvent;
       }
       
-      throw new Error('Failed to create database event');
-      
+      return null;
     } catch (error) {
-      console.error('Error creating calendar event:', error);
-      
-      if (!allowLocalFallback) {
-        throw error;
+      console.error('Error creating event:', error);
+      return null;
+    }
+  };
+
+  const updateEvent = async (eventId: string, updates: Partial<CalendarEvent>): Promise<CalendarEvent | null> => {
+    try {
+      // If it's a local event
+      if (eventId.startsWith('local-')) {
+        const updatedEvents = events.map(event => 
+          event.id === eventId ? { ...event, ...updates } : event
+        );
+        setEvents(updatedEvents);
+        
+        // Update in local storage
+        try {
+          localStorage.setItem('cached_calendar_events', JSON.stringify(
+            updatedEvents.filter(e => e.id.startsWith('local-'))
+          ));
+        } catch (e) {
+          console.error('Failed to update local storage:', e);
+        }
+        
+        return updatedEvents.find(e => e.id === eventId) || null;
       }
       
-      const localId = `local-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      const localEvent: CalendarEvent = {
-        id: localId,
-        title: eventData.title || `${eventData.subject || 'Study'} Session`,
-        subject: eventData.subject || '',
-        topic: eventData.topic || '',
-        start_time: eventData.start_time!,
-        end_time: eventData.end_time!,
-        event_type: eventData.event_type || 'study_session',
-        local_only: true
+      // Otherwise update in database
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .update({
+          title: updates.title,
+          description: updates.description ? JSON.stringify({
+            subject: updates.subject || '',
+            topic: updates.topic || '',
+            isPomodoro: true,
+            pomodoroWorkMinutes: 25,
+            pomodoroBreakMinutes: 5
+          }) : undefined,
+          start_time: updates.start_time,
+          end_time: updates.end_time,
+          event_type: updates.event_type
+        })
+        .eq('id', eventId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating event:', error);
+        return null;
+      }
+      
+      if (!data) {
+        return null;
+      }
+      
+      const updatedEvent = {
+        ...data,
+        subject: updates.subject || '',
+        topic: updates.topic || '',
       };
       
-      addLocalEvent(localEvent);
-      setEvents(prev => [...prev, localEvent]);
+      setEvents(prev => prev.map(event => 
+        event.id === eventId ? updatedEvent : event
+      ));
       
-      return localEvent;
+      return updatedEvent;
+    } catch (error) {
+      console.error('Error updating event:', error);
+      return null;
     }
   };
 
-  const updateEvent = async (id: string, updates: Partial<CalendarEvent>): Promise<boolean> => {
-    const isLocalEvent = id.startsWith('local-');
-    
-    if (isLocalEvent) {
-      const success = updateLocalEvent(id, updates);
-      if (success) {
-        setEvents(prevEvents => 
-          prevEvents.map(event => event.id === id ? { ...event, ...updates } : event)
-        );
+  const deleteEvent = async (eventId: string): Promise<boolean> => {
+    try {
+      // If it's a local event
+      if (eventId.startsWith('local-')) {
+        const updatedEvents = events.filter(event => event.id !== eventId);
+        setEvents(updatedEvents);
+        
+        // Update in local storage
+        try {
+          localStorage.setItem('cached_calendar_events', JSON.stringify(
+            updatedEvents.filter(e => e.id.startsWith('local-'))
+          ));
+        } catch (e) {
+          console.error('Failed to update local storage:', e);
+        }
+        
+        return true;
       }
-      return success;
-    }
-    
-    const success = await updateDbEvent(id, updates);
-    if (success) {
-      setEvents(prevEvents => 
-        prevEvents.map(event => event.id === id ? { ...event, ...updates } : event)
-      );
-    }
-    return success;
-  };
-
-  const deleteEvent = async (id: string): Promise<boolean> => {
-    const isLocalEvent = id.startsWith('local-');
-    
-    if (isLocalEvent) {
-      const success = deleteLocalEvent(id);
-      if (success) {
-        setEvents(prevEvents => prevEvents.filter(event => event.id !== id));
+      
+      // Otherwise delete from database
+      const { error } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('id', eventId);
+      
+      if (error) {
+        console.error('Error deleting event:', error);
+        return false;
       }
-      return success;
+      
+      setEvents(prev => prev.filter(event => event.id !== eventId));
+      return true;
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      return false;
     }
-    
-    const success = await deleteDbEvent(id);
-    if (success) {
-      setEvents(prevEvents => prevEvents.filter(event => event.id !== id));
-    }
-    return success;
   };
 
-  return {
-    createEvent,
-    updateEvent,
-    deleteEvent
-  };
+  return { createEvent, updateEvent, deleteEvent };
 };

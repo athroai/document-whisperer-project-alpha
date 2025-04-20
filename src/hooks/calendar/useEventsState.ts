@@ -5,13 +5,13 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useEventsState = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const { toast } = useToast();
 
   const clearEvents = () => {
     setEvents([]);
-    localStorage.removeItem('cached_calendar_events');
+    setLastRefreshedAt(null);
   };
 
   return {

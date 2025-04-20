@@ -1,126 +1,66 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import { ConfidenceLabel } from '@/types/confidence';
-import { parseConfidence } from '@/utils/confidenceUtils';
-
-export interface SubjectWithConfidence {
-  subject: string;
-  confidence: ConfidenceLabel;
-}
 
 export const useSubjects = () => {
   const [subjects, setSubjects] = useState<string[]>([]);
-  const [subjectsWithConfidence, setSubjectsWithConfidence] = useState<SubjectWithConfidence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { state } = useAuth();
 
   useEffect(() => {
     const fetchSubjects = async () => {
-      if (!state.user?.id) {
-        console.log('No authenticated user, skipping subject fetch');
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
       try {
-        // First try to get subjects from student_subject_preferences
-        const { data: preferences, error: preferencesError } = await supabase
-          .from('student_subject_preferences')
-          .select('subject, confidence_level')
-          .eq('student_id', state.user.id);
+        // Try to fetch from Supabase first
+        const { data: subjectData, error } = await supabase
+          .from('athro_characters')
+          .select('subject')
+          .order('subject');
 
-        if (preferencesError && preferencesError.code !== 'PGRST116') {
-          console.error('Error fetching subject preferences:', preferencesError);
-          throw preferencesError;
+        if (!error && subjectData && subjectData.length > 0) {
+          // Extract unique subjects
+          const uniqueSubjects = Array.from(
+            new Set(subjectData.map(item => item.subject))
+          );
+          setSubjects(uniqueSubjects);
+        } else {
+          // If no data in Supabase or error, use default list
+          setSubjects([
+            'Mathematics',
+            'English Language',
+            'English Literature',
+            'Biology',
+            'Chemistry',
+            'Physics',
+            'Combined Science',
+            'Geography',
+            'History',
+            'Computer Science',
+            'French',
+            'Spanish',
+            'German',
+            'Art & Design',
+            'Physical Education',
+            'Religious Studies',
+            'Drama',
+            'Music',
+            'Business Studies'
+          ]);
         }
-
-        if (preferences && preferences.length > 0) {
-          // Use subject preferences if available
-          const subjectList = preferences.map(pref => pref.subject);
-          const subjectsWithConfidenceList = preferences.map(pref => ({
-            subject: pref.subject,
-            confidence: pref.confidence_level as ConfidenceLabel
-          }));
-          
-          console.log('Fetched subjects from preferences:', subjectList);
-          setSubjects(subjectList);
-          setSubjectsWithConfidence(subjectsWithConfidenceList);
-          setIsLoading(false);
-          return;
-        }
-
-        // Fall back to student_subjects if preferences not available
-        const { data: subjectData, error: subjectsError } = await supabase
-          .from('student_subjects')
-          .select('subject_name')
-          .eq('student_id', state.user.id);
-
-        if (subjectsError && subjectsError.code !== 'PGRST116') {
-          console.error('Error fetching subjects:', subjectsError);
-          throw subjectsError;
-        }
-
-        if (subjectData && subjectData.length > 0) {
-          // Use student_subjects if available
-          const subjectList = subjectData.map(subject => subject.subject_name);
-          const subjectsWithConfidenceList = subjectList.map(subject => ({
-            subject,
-            confidence: "Neutral" as ConfidenceLabel // Default confidence
-          }));
-          
-          console.log('Fetched subjects from student_subjects:', subjectList);
-          setSubjects(subjectList);
-          setSubjectsWithConfidence(subjectsWithConfidenceList);
-          setIsLoading(false);
-          return;
-        }
-
-        // Use default GCSE subjects if no user-specific subjects are found
-        const defaultSubjects = [
-          'Mathematics', 'Science', 'English', 'History', 
-          'Geography', 'Welsh', 'Languages', 'Religious Education'
-        ];
-        const defaultSubjectsWithConfidence = defaultSubjects.map(subject => ({
-          subject,
-          confidence: "Neutral" as ConfidenceLabel // Default confidence
-        }));
-        
-        console.log('Using default subject list:', defaultSubjects);
-        setSubjects(defaultSubjects);
-        setSubjectsWithConfidence(defaultSubjectsWithConfidence);
-      } catch (error) {
-        console.error('Failed to fetch subjects:', error);
-        setError('Failed to fetch subjects');
-        // Fall back to default subjects on error
-        const defaultSubjects = [
-          'Mathematics', 'Science', 'English', 'History', 
-          'Geography', 'Welsh', 'Languages', 'Religious Education'
-        ];
-        const defaultSubjectsWithConfidence = defaultSubjects.map(subject => ({
-          subject,
-          confidence: "Neutral" as ConfidenceLabel // Default confidence
-        }));
-        
-        setSubjects(defaultSubjects);
-        setSubjectsWithConfidence(defaultSubjectsWithConfidence);
+      } catch (err) {
+        console.error('Error fetching subjects:', err);
+        // Use default subjects as fallback
+        setSubjects([
+          'Mathematics',
+          'English Language',
+          'English Literature',
+          'Science'
+        ]);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchSubjects();
-  }, [state.user?.id]);
+  }, []);
 
-  return { 
-    subjects, 
-    subjectsWithConfidence,
-    isLoading, 
-    error 
-  };
+  return { subjects, isLoading };
 };

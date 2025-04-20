@@ -1,34 +1,47 @@
 
 import React from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader, AlertCircle } from 'lucide-react';
 
 interface AuthVerificationProps {
   isAuthenticated: boolean;
   isLoading: boolean;
-  authVerified: boolean;
+  authVerified: boolean | null;
 }
 
 export const AuthVerification: React.FC<AuthVerificationProps> = ({ 
   isAuthenticated, 
-  isLoading, 
+  isLoading,
   authVerified 
 }) => {
-  if (!isAuthenticated && !isLoading) {
+  if (isLoading) {
     return (
-      <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
-        <p className="text-amber-800">
-          You need to be signed in to generate a study plan. Please refresh the page or sign in again.
-        </p>
+      <div className="flex items-center gap-2 text-muted-foreground mb-4">
+        <Loader className="h-4 w-4 animate-spin" />
+        <span>Verifying authentication...</span>
       </div>
     );
   }
 
-  if (!authVerified && isAuthenticated) {
+  if (!isAuthenticated) {
     return (
-      <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
-        <p className="text-amber-800">
-          Supabase authentication not verified. Please refresh the page or sign in again.
-        </p>
-      </div>
+      <Alert variant="destructive" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          You need to be logged in to generate a study plan.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (authVerified === false) {
+    return (
+      <Alert variant="warning" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          We're having trouble verifying your account. Your plan may be saved locally only.
+        </AlertDescription>
+      </Alert>
     );
   }
 

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader } from 'lucide-react';
 
 interface StudyPlanInfoProps {
   onGenerate: () => void;
@@ -9,52 +9,74 @@ interface StudyPlanInfoProps {
   disabled: boolean;
 }
 
-export const StudyPlanInfo: React.FC<StudyPlanInfoProps> = ({ onGenerate, isGenerating, disabled }) => {
+export const StudyPlanInfo: React.FC<StudyPlanInfoProps> = ({ 
+  onGenerate, 
+  isGenerating, 
+  disabled 
+}) => {
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg border">
-        <h3 className="text-lg font-medium mb-4">Generate Your Personalized Study Plan</h3>
-        <p className="text-gray-600 mb-6">
-          Based on your subject selections and confidence levels, we'll create a 
-          personalized study schedule in your calendar. The plan will:
+      <div>
+        <h2 className="text-2xl font-bold">Create Your Study Plan</h2>
+        <p className="text-muted-foreground mt-2">
+          We'll generate a personalized study schedule based on your subjects and availability
         </p>
+      </div>
+
+      <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
+        <h3 className="font-medium">Your Study Plan Will Include:</h3>
         
-        <ul className="space-y-3 mb-6">
+        <ul className="space-y-3">
           <li className="flex items-start">
-            <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-            <span><strong>Adapt to your confidence levels</strong> - allocating more sessions for subjects you're less confident in</span>
+            <div className="bg-purple-100 p-1 rounded-full mr-3 mt-0.5">
+              <svg className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Balanced sessions for all your selected subjects</span>
           </li>
           <li className="flex items-start">
-            <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-            <span>Schedule study sessions in your selected time slots</span>
+            <div className="bg-purple-100 p-1 rounded-full mr-3 mt-0.5">
+              <svg className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Time allocated based on your preferred schedule</span>
           </li>
           <li className="flex items-start">
-            <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-            <span>Create a balanced weekly schedule across all your subjects</span>
-          </li>
-          <li className="flex items-start">
-            <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-            <span>Add sessions directly to your calendar for easy access</span>
+            <div className="bg-purple-100 p-1 rounded-full mr-3 mt-0.5">
+              <svg className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Calendar events that sync with your Athro dashboard</span>
           </li>
         </ul>
+      </div>
 
-        {disabled && !isGenerating && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start">
-            <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-amber-700">
-              You need to select at least one subject before generating a study plan
-            </p>
-          </div>
-        )}
-        
-        <Button 
-          onClick={onGenerate} 
-          disabled={isGenerating || disabled}
-          className="w-full bg-purple-600 hover:bg-purple-700"
+      <div className="flex justify-center pt-4">
+        <Button
+          onClick={onGenerate}
+          disabled={disabled || isGenerating}
+          className="bg-purple-600 hover:bg-purple-700"
+          size="lg"
         >
-          {isGenerating ? 'Generating Plan...' : 'Generate My Study Plan'}
+          {isGenerating ? (
+            <>
+              <Loader className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            "Generate My Study Plan"
+          )}
         </Button>
       </div>
+      
+      {disabled && (
+        <p className="text-center text-sm text-muted-foreground">
+          Please complete your subject selection to generate a study plan
+        </p>
+      )}
     </div>
   );
 };
