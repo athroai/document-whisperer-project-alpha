@@ -2,7 +2,7 @@
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { Question } from '@/types/quiz';
-import { ConfidenceLabel } from '@/types/confidence';
+import { ConfidenceLabel, mapScoreToConfidence } from '@/types/confidence';
 import { UseQuizState } from './types';
 
 export async function handleQuizCompletion(
@@ -88,11 +88,7 @@ async function updateStudentPreferences(
   scorePercentage: number,
   helpLevel: string
 ) {
-  const confidenceValue: ConfidenceLabel = scorePercentage >= 80 ? "Very confident" :
-                        scorePercentage >= 60 ? "Slightly confident" :
-                        scorePercentage >= 40 ? "Neutral" :
-                        scorePercentage >= 20 ? "Slightly unsure" :
-                        "Very unsure";
+  const confidenceValue: ConfidenceLabel = mapScoreToConfidence(scorePercentage);
 
   await supabase
     .from('student_subject_preferences')

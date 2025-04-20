@@ -1,16 +1,16 @@
 
-import { ConfidenceLabel } from '@/types/confidence';
+import { ConfidenceLabel, mapLegacyConfidence } from '@/types/confidence';
 
 export function getConfidenceChange(beforeLabel: string | number | ConfidenceLabel, afterLabel: string | number | ConfidenceLabel): string {
   const before = parseConfidence(beforeLabel);
   const after = parseConfidence(afterLabel);
   
   const confidenceOrder = [
-    "Very unsure",
-    "Slightly unsure",
+    "Very Low",
+    "Low",
     "Neutral",
-    "Slightly confident", 
-    "Very confident"
+    "High", 
+    "Very High"
   ];
   
   const beforeIndex = confidenceOrder.indexOf(before);
@@ -41,20 +41,26 @@ export function parseConfidence(value: string | number | undefined | null): Conf
   
   // Handle number to string conversion (legacy support)
   if (typeof value === 'number') {
-    if (value >= 8) return "Very confident";
-    if (value >= 6) return "Slightly confident";
+    if (value >= 8) return "Very High";
+    if (value >= 6) return "High";
     if (value >= 4) return "Neutral";
-    if (value >= 2) return "Slightly unsure";
-    return "Very unsure";
+    if (value >= 2) return "Low";
+    return "Very Low";
+  }
+  
+  // Handle legacy confidence labels
+  if (typeof value === 'string' && 
+      ['Very confident', 'Slightly confident', 'Slightly unsure', 'Very unsure'].includes(value)) {
+    return mapLegacyConfidence(value);
   }
   
   // For string values
   const validLabels: ConfidenceLabel[] = [
-    "Very confident",
-    "Slightly confident",
+    "Very High",
+    "High",
     "Neutral",
-    "Slightly unsure",
-    "Very unsure"
+    "Low",
+    "Very Low"
   ];
   
   return validLabels.includes(value as ConfidenceLabel) 
