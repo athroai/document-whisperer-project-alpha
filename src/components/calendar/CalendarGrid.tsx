@@ -35,7 +35,7 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
   return (
     <div className="grid grid-cols-7 gap-2">
       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-        <div key={day} className="font-semibold text-gray-600">{day}</div>
+        <div key={day} className="font-semibold text-gray-600 text-center">{day}</div>
       ))}
       
       {days.map((day, index) => {
@@ -45,8 +45,8 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
         return (
           <div 
             key={index}
-            className={`border p-2 ${!isCurrentMonth ? 'bg-gray-100 text-gray-400' : 'bg-white'} 
-              cursor-pointer hover:bg-gray-50 min-h-[100px]`}
+            className={`border rounded-lg p-2 ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'} 
+              cursor-pointer hover:bg-gray-50 min-h-[120px] transition-colors duration-200`}
             onClick={() => isCurrentMonth && onSelectDate(day)}
           >
             <div className="flex justify-between items-center mb-2">
@@ -57,39 +57,34 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
               </span>
             </div>
             
-            {dayEvents.length === 0 ? (
-              <div className="text-xs text-gray-400 italic">No events</div>
-            ) : (
-              <>
-                {dayEvents.slice(0, 3).map((event, eventIndex) => {
-                  const colorStyle = getEventColor(event.subject);
+            <div className="space-y-1">
+              {dayEvents.length === 0 ? (
+                <div className="text-xs text-gray-400 italic">No events</div>
+              ) : (
+                <>
+                  {dayEvents.slice(0, 3).map((event, eventIndex) => {
+                    const colorStyle = getEventColor(event.subject);
+                    const formattedTime = formatGMTTime(event.start_time);
+                    
+                    return (
+                      <div 
+                        key={`${event.id}-${eventIndex}`}
+                        className={`text-xs p-1 rounded truncate ${colorStyle.bg} ${colorStyle.text}`}
+                        title={`${event.title} (${formattedTime})`}
+                      >
+                        {formattedTime} - {event.title}
+                      </div>
+                    );
+                  })}
                   
-                  let formattedTime;
-                  try {
-                    formattedTime = formatGMTTime(event.start_time);
-                  } catch (e) {
-                    formattedTime = '??:??';
-                    console.error('Error formatting time:', e, event);
-                  }
-                  
-                  return (
-                    <div 
-                      key={`${event.id}-${eventIndex}`}
-                      className={`text-xs p-1 mb-1 rounded truncate ${colorStyle.bg} ${colorStyle.text}`}
-                      title={`${event.title} (${formattedTime})`}
-                    >
-                      {formattedTime} - {event.title}
+                  {dayEvents.length > 3 && (
+                    <div className="text-xs text-gray-500 text-center font-medium mt-1">
+                      +{dayEvents.length - 3} more
                     </div>
-                  );
-                })}
-                
-                {dayEvents.length > 3 && (
-                  <div className="text-xs text-gray-500 text-center font-medium mt-1">
-                    +{dayEvents.length - 3} more
-                  </div>
-                )}
-              </>
-            )}
+                  )}
+                </>
+              )}
+            </div>
           </div>
         );
       })}

@@ -1,9 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import BigCalendarView from '@/components/calendar/BigCalendarView';
-import StudySessionLauncher from '@/components/calendar/StudySessionLauncher';
 import BlockTimeButton from '@/components/calendar/BlockTimeButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation, useSearchParams } from 'react-router-dom';
@@ -174,8 +172,6 @@ const CalendarPage: React.FC = () => {
             onRetryLoad={handleRetryLoad}
           />
         )}
-        
-        <StudySessionLauncher />
       </div>
     </div>
   );

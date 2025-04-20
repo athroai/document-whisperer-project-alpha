@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { CalendarEvent } from '@/types/calendar';
 
@@ -43,29 +42,6 @@ export const fetchDatabaseEvents = async (userId: string | null): Promise<Calend
     
     const allEvents = [...userEvents, ...studentEvents];
 
-    if (allEvents.length === 0) {
-      console.log('No calendar events found in the database for this user');
-    } else {
-      console.log(`Successfully fetched ${allEvents.length} total calendar events`);
-      
-      // Check for events with malformed dates
-      const validEvents = allEvents.filter(event => {
-        try {
-          // Validate that dates are parseable
-          new Date(event.start_time);
-          new Date(event.end_time);
-          return true;
-        } catch (e) {
-          console.error('Found event with invalid date format:', event.id);
-          return false;
-        }
-      });
-      
-      if (validEvents.length !== allEvents.length) {
-        console.warn(`Filtered out ${allEvents.length - validEvents.length} events with invalid dates`);
-      }
-    }
-    
     return allEvents.map(event => {
       let subject = '';
       let topic = '';
