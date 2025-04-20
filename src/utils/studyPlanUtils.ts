@@ -1,4 +1,3 @@
-
 import { ConfidenceLabel } from '@/types/confidence';
 import { supabase } from '@/lib/supabase';
 import { addDays, format } from 'date-fns';
@@ -21,71 +20,71 @@ export const generateDefaultStudySlots = (userId: string): PreferredStudySlot[] 
   return defaultSlots;
 };
 
-export const saveStudyPlan = async (
+export const saveSessionsToDatabase = async (
+  sessions: any[],
   userId: string,
-  subjectDistribution: any[],
-  sessions: any[]
-) => {
-  // Create study plan record
-  const { data: planData, error: planError } = await supabase
-    .from('study_plans')
-    .insert({
-      student_id: userId,
-      name: 'Personalized Study Plan',
-      description: 'AI-generated study plan based on your subject preferences',
-      start_date: new Date().toISOString().split('T')[0],
-      end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    })
-    .select();
+  planId: string
+): Promise<string[]> => {
+  const eventIds: string[] = [];
   
-  if (planError) throw planError;
-  if (!planData || planData.length === 0) throw new Error("Failed to create study plan");
-  
-  const planId = planData[0].id;
-  
-  // Save calendar events and sessions
   for (const session of sessions) {
     try {
-      // Create calendar event
+      const eventDescription = {
+        subject: session.subject,
+        confidence: session.confidence,
+        isPomodoro: true,
+        pomodoroWorkMinutes: 25,
+        pomodoroBreakMinutes: 5
+      };
+
       const { data: eventData, error: eventError } = await supabase
         .from('calendar_events')
         .insert({
-          student_id: userId,
           user_id: userId,
+          student_id: userId,
           title: `${session.subject} Study Session`,
-          description: JSON.stringify({
-            subject: session.subject,
-            isPomodoro: true,
-            pomodoroWorkMinutes: 25,
-            pomodoroBreakMinutes: 5
-          }),
+          description: JSON.stringify(eventDescription),
           event_type: 'study_session',
           start_time: session.startTime.toISOString(),
           end_time: session.endTime.toISOString()
         })
-        .select();
-        
+        .select('id')
+        .single();
+
       if (eventError) {
-        console.error('Error creating calendar event:', eventError);
+        console.error("Error creating calendar event:", eventError);
+        eventIds.push("");
         continue;
       }
-      
-      if (eventData && eventData.length > 0) {
-        await supabase
-          .from('study_plan_sessions')
-          .insert({
-            plan_id: planId,
-            subject: session.subject,
-            start_time: session.startTime.toISOString(),
-            end_time: session.endTime.toISOString(),
-            is_pomodoro: true,
-            pomodoro_work_minutes: 25,
-            pomodoro_break_minutes: 5,
-            calendar_event_id: eventData[0].id
-          });
+
+      if (!eventData?.id) {
+        console.error("No event ID returned");
+        eventIds.push("");
+        continue;
       }
+
+      // Create study plan session
+      const { error: sessionError } = await supabase
+        .from('study_plan_sessions')
+        .insert({
+          plan_id: planId,
+          subject: session.subject,
+          topic: '',
+          start_time: session.startTime.toISOString(),
+          end_time: session.endTime.toISOString(),
+          calendar_event_id: eventData.id
+        });
+
+      if (sessionError) {
+        console.error("Error creating study plan session:", sessionError);
+      }
+
+      eventIds.push(eventData.id);
     } catch (err) {
-      console.error("Error saving session:", err);
+      console.error("Exception when saving session:", err);
+      eventIds.push("");
     }
   }
+
+  return eventIds;
 };

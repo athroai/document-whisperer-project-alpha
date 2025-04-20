@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { motion } from 'framer-motion';
@@ -25,6 +24,53 @@ export const StudyPlanContainer: React.FC = () => {
   const [createdCalendarEvents, setCreatedCalendarEvents] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const cleanupExistingPlan = async (userId: string) => {
+    try {
+      // Delete any existing study plan sessions
+      const { data: existingPlan } = await supabase
+        .from('study_plans')
+        .select('id')
+        .eq('student_id', userId)
+        .eq('is_active', true)
+        .single();
+
+      if (existingPlan) {
+        // Delete associated calendar events
+        const { data: planSessions } = await supabase
+          .from('study_plan_sessions')
+          .select('calendar_event_id')
+          .eq('plan_id', existingPlan.id);
+          
+        if (planSessions) {
+          const eventIds = planSessions
+            .map(session => session.calendar_event_id)
+            .filter(id => id);
+            
+          if (eventIds.length > 0) {
+            await supabase
+              .from('calendar_events')
+              .delete()
+              .in('id', eventIds);
+          }
+        }
+
+        // Delete study plan and its sessions
+        await Promise.all([
+          supabase
+            .from('study_plan_sessions')
+            .delete()
+            .eq('plan_id', existingPlan.id),
+          supabase
+            .from('study_plans')
+            .delete()
+            .eq('id', existingPlan.id)
+        ]);
+      }
+    } catch (error) {
+      console.error('Error cleaning up existing plan:', error);
+    }
+  };
+
   const generateStudyPlan = async () => {
     if (!state.user) {
       toast.error("You need to be logged in to generate a study plan");
@@ -36,8 +82,8 @@ export const StudyPlanContainer: React.FC = () => {
     setError(null);
 
     try {
-      // Simulate API delay for first step
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Clean up existing plan first
+      await cleanupExistingPlan(state.user.id);
       setGenerationProgress(15);
       
       const slotsToUse = studySlots.length > 0 ? 
@@ -56,23 +102,42 @@ export const StudyPlanContainer: React.FC = () => {
       setStudyPlan(subjectDistribution);
       setGenerationProgress(50);
 
+      // Save subject preferences first
+      await Promise.all(selectedSubjects.map(subject => 
+        supabase
+          .from('student_subject_preferences')
+          .upsert({
+            student_id: state.user!.id,
+            subject: subject.subject,
+            confidence_level: subject.confidence,
+          })
+      ));
+
       // Generate actual sessions
       const sessions = await createStudySessions(subjectDistribution, slotsToUse);
       
       if (sessions && sessions.length > 0) {
-        if (state.user) {
-          setGenerationProgress(70);
-          // Batch save sessions to database
-          const eventIds = await Promise.all([
-            saveSessionsToDatabase(sessions, state.user.id),
-            saveStudyPlanMetadata(state.user.id, subjectDistribution)
-          ]);
-          
-          if (eventIds && eventIds[0] && Array.isArray(eventIds[0])) {
-            setCreatedCalendarEvents(eventIds[0].filter(id => id)); 
-            console.log("Created calendar event IDs:", eventIds[0]);
-          }
-        }
+        setGenerationProgress(70);
+
+        // Create new study plan
+        const { data: planData, error: planError } = await supabase
+          .from('study_plans')
+          .insert({
+            student_id: state.user.id,
+            name: 'Personalized Study Plan',
+            description: 'AI-generated study plan based on your subject preferences',
+            start_date: new Date().toISOString().split('T')[0],
+            end_date: addDays(new Date(), 30).toISOString().split('T')[0],
+            is_active: true
+          })
+          .select()
+          .single();
+
+        if (planError) throw planError;
+        
+        // Create calendar events and study plan sessions
+        const eventIds = await saveSessionsToDatabase(sessions, state.user.id, planData.id);
+        setCreatedCalendarEvents(eventIds.filter(id => id));
         
         setUpcomingSessions(sessions.slice(0, 5));
         setGenerationProgress(100);
@@ -125,7 +190,7 @@ export const StudyPlanContainer: React.FC = () => {
     }
   };
 
-  const saveSessionsToDatabase = async (sessions: any[], userId: string): Promise<string[]> => {
+  const saveSessionsToDatabase = async (sessions: any[], userId: string, planId: string): Promise<string[]> => {
     try {
       const eventIds: string[] = [];
       
