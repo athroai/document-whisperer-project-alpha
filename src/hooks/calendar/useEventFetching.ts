@@ -15,7 +15,7 @@ export const useEventFetching = (
   const fetchEvents = useCallback(async () => {
     if (isFetchingRef.current) {
       console.log('Already fetching events, skipping duplicate request');
-      return events;
+      return localEvents; // Return local events instead of undefined 'events'
     }
     
     if (!userId) {

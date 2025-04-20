@@ -41,7 +41,8 @@ export const useEventOperations = (
       const newEvent = await createDbEvent(currentUserId, eventData);
       
       if (newEvent) {
-        setEvents(prevEvents => [...prevEvents, newEvent]);
+        // Fix: Explicitly return the CalendarEvent[] type
+        setEvents((prevEvents: CalendarEvent[]) => [...prevEvents, newEvent]);
         toast({
           title: "Success",
           description: "Study session created successfully.",
@@ -71,7 +72,8 @@ export const useEventOperations = (
       };
       
       addLocalEvent(localEvent);
-      setEvents(prev => [...prev, localEvent]);
+      // Fix: Explicitly return the CalendarEvent[] type
+      setEvents((prev: CalendarEvent[]) => [...prev, localEvent]);
       
       return localEvent;
     }
@@ -83,7 +85,8 @@ export const useEventOperations = (
     if (isLocalEvent) {
       const success = updateLocalEvent(id, updates);
       if (success) {
-        setEvents(prevEvents => 
+        // Fix: Explicitly specify the parameter and return types
+        setEvents((prevEvents: CalendarEvent[]): CalendarEvent[] => 
           prevEvents.map(event => event.id === id ? { ...event, ...updates } : event)
         );
       }
@@ -92,7 +95,8 @@ export const useEventOperations = (
     
     const success = await updateDbEvent(id, updates);
     if (success) {
-      setEvents(prevEvents => 
+      // Fix: Explicitly specify the parameter and return types
+      setEvents((prevEvents: CalendarEvent[]): CalendarEvent[] => 
         prevEvents.map(event => event.id === id ? { ...event, ...updates } : event)
       );
     }
@@ -105,14 +109,20 @@ export const useEventOperations = (
     if (isLocalEvent) {
       const success = deleteLocalEvent(id);
       if (success) {
-        setEvents(prevEvents => prevEvents.filter(event => event.id !== id));
+        // Fix: Explicitly specify the parameter and return types
+        setEvents((prevEvents: CalendarEvent[]): CalendarEvent[] => 
+          prevEvents.filter(event => event.id !== id)
+        );
       }
       return success;
     }
     
     const success = await deleteDbEvent(id);
     if (success) {
-      setEvents(events.filter(event => event.id !== id));
+      // Fix: Explicitly specify the parameter and return types
+      setEvents((prevEvents: CalendarEvent[]): CalendarEvent[] => 
+        prevEvents.filter(event => event.id !== id)
+      );
     }
     return success;
   };
