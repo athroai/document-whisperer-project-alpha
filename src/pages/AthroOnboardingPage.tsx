@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { Progress } from '@/components/ui/progress';
@@ -40,7 +41,7 @@ const OnboardingContent: React.FC = () => {
       return;
     }
 
-    verifyAuth(state.user.id)
+    verifyAuth()
       .then(() => {
         setAuthVerified(true);
       })
