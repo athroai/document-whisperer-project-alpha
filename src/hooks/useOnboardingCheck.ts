@@ -129,6 +129,7 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
                 title: isRestartingOnboarding ? "Restarting Onboarding" : "Welcome to Athro",
                 description: "Let's set up your study plan",
               });
+              // Changed to navigate immediately rather than using setTimeout
               navigate('/onboarding', { replace: true });
             }
           }
@@ -146,9 +147,32 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
   
   // Function to restart onboarding
   const restartOnboarding = () => {
+    // Clear calendar events from local storage
+    localStorage.removeItem('cached_calendar_events');
+    
+    // Reset onboarding flags to force a new onboarding flow
     localStorage.removeItem('onboarding_completed');
+    
+    // Reset the check flags
     hasChecked.current = false;
     hasRedirected.current = false;
+    
+    // Clear any existing calendar events from the database when restarting
+    if (state.user?.id) {
+      // Attempt to delete existing calendar events
+      supabase
+        .from('calendar_events')
+        .delete()
+        .eq('user_id', state.user.id)
+        .then(() => {
+          console.log('Cleared existing calendar events for restart');
+        })
+        .catch(err => {
+          console.error('Failed to clear calendar events:', err);
+        });
+    }
+    
+    // Navigate to onboarding with restart flag
     navigate('/onboarding?restart=true', { replace: true });
   };
   
