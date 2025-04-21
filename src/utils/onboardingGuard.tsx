@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -28,16 +29,25 @@ export const withOnboardingGuard = (Component: React.ComponentType) => {
           }
 
           if (isNewLogin) {
+            // Clear any stale onboarding completion flags for new logins
+            localStorage.removeItem('onboarding_completed');
+            // Small delay to ensure database is ready
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
 
           const { data, error } = await supabase
             .from('onboarding_progress')
-            .select('completed_at')
+            .select('completed_at, current_step')
             .eq('student_id', state.user.id)
             .maybeSingle();
 
           if (error) {
+            console.error('Error fetching onboarding status:', error);
+            // If error, force to onboarding to be safe
+            toast({
+              title: "Welcome to Athro",
+              description: "Please complete your onboarding to get started"
+            });
             navigate('/onboarding');
             return;
           }
@@ -48,6 +58,12 @@ export const withOnboardingGuard = (Component: React.ComponentType) => {
               title: "Welcome to Athro",
               description: "Let's complete your onboarding first"
             });
+            
+            // If they have started but not finished onboarding
+            if (data?.current_step && data.current_step !== 'welcome' && data.current_step !== 'completed') {
+              console.log(`Resuming onboarding at step: ${data.current_step}`);
+            }
+            
             navigate('/onboarding');
             return;
           } else {
@@ -56,6 +72,7 @@ export const withOnboardingGuard = (Component: React.ComponentType) => {
 
           setIsChecking(false);
         } catch (err) {
+          console.error('Error in onboarding check:', err);
           setIsChecking(false);
         }
       };

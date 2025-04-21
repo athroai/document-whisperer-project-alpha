@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, AlertCircle } from 'lucide-react';
 
 export const StudyScheduleStep: React.FC = () => {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ export const StudyScheduleStep: React.FC = () => {
           <div className="flex justify-between items-center">
             <Label className="text-base font-semibold">Study Session Format</Label>
             <span className="text-sm font-medium text-purple-700">
-              {sessionsPerDay} {sessionsPerDay === 1 ? 'session' : 'sessions'} per day
+              {sessionsPerDay} {sessionsPerDay === 1 ? 'session' : 'sessions'} initially
             </span>
           </div>
           
@@ -83,8 +83,8 @@ export const StudyScheduleStep: React.FC = () => {
           <Alert className="bg-blue-50 border-blue-200">
             <Info className="h-4 w-4 text-blue-800" />
             <AlertDescription className="text-sm text-blue-800">
-              You can customize the time and length of each study session individually below. 
-              Add as many sessions as you need to each day.
+              Customize each study session's time and duration below. You can add as many 
+              sessions as you need to each selected day.
             </AlertDescription>
           </Alert>
         </div>
@@ -92,7 +92,17 @@ export const StudyScheduleStep: React.FC = () => {
       
       {error && (
         <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {selectedDays.length === 0 && (
+        <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-700">
+            Please select at least one day to continue.
+          </AlertDescription>
         </Alert>
       )}
       

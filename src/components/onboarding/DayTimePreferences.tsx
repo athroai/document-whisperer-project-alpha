@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { SessionCustomization } from './SessionCustomization';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface DayTimePreferencesProps {
   dayIndex: number;
@@ -33,7 +34,12 @@ export const DayTimePreferences: React.FC<DayTimePreferencesProps> = ({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex justify-between items-center">
-          <span>{dayName}</span>
+          <div className="flex items-center">
+            <span>{dayName}</span>
+            <Badge variant="outline" className="ml-2 bg-purple-100 text-purple-800">
+              {sessionTimes.length} sessions
+            </Badge>
+          </div>
           {onAddSession && (
             <Button 
               variant="outline" 
@@ -48,7 +54,7 @@ export const DayTimePreferences: React.FC<DayTimePreferencesProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-1">
+        <div className="space-y-3">
           {sessionTimes.map((session, sessionIndex) => (
             <SessionCustomization
               key={`${dayIndex}-${sessionIndex}`}
@@ -58,7 +64,8 @@ export const DayTimePreferences: React.FC<DayTimePreferencesProps> = ({
               duration={session.durationMinutes}
               onStartHourChange={(hour) => onSessionTimeChange(dayIndex, sessionIndex, hour)}
               onDurationChange={(mins) => onSessionDurationChange(dayIndex, sessionIndex, mins)}
-              onRemoveSession={() => onRemoveSession ? onRemoveSession(dayIndex, sessionIndex) : null}
+              onRemoveSession={sessionTimes.length > 1 ? () => onRemoveSession?.(dayIndex, sessionIndex) : undefined}
+              showRemoveButton={sessionTimes.length > 1}
             />
           ))}
         </div>

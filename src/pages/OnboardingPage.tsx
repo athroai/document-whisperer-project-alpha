@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SubjectSelector } from '@/components/onboarding/core/SubjectSelector';
@@ -65,6 +66,17 @@ const OnboardingPage: React.FC = () => {
 
     checkOnboardingStatus();
   }, [authState.user, authState.isLoading, navigate]);
+
+  useEffect(() => {
+    // Clear stale onboarding flags on initial load
+    if (authState.user && !authState.isLoading) {
+      // If user just signed in, clear any stale onboarding completion flags
+      const sessionAge = localStorage.getItem('auth_session_created');
+      if (sessionAge && (Date.now() - parseInt(sessionAge)) < 10000) { // 10 seconds
+        localStorage.removeItem('onboarding_completed');
+      }
+    }
+  }, [authState.user, authState.isLoading]);
 
   const nextStep = () => {
     switch (currentStep) {
@@ -153,17 +165,31 @@ const OnboardingPage: React.FC = () => {
 
       setGenerationProgress(40);
 
+      // Get all study slots for this user
       let studySlotsData = [];
       try {
-        const { data } = await supabase.from('preferred_study_slots').select('*').eq('user_id', authState.user.id);
+        const { data, error } = await supabase
+          .from('preferred_study_slots')
+          .select('*')
+          .eq('user_id', authState.user.id);
+          
+        if (error) {
+          throw error;
+        }
+        
         if (data && data.length > 0) {
           studySlotsData = data;
-        } else if (localStorage.getItem('athro_study_slots')) {
-          studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots'));
+          console.log(`Found ${data.length} saved study slots`);
+        } else {
+          console.log('No study slots found in database, checking local storage');
+          if (localStorage.getItem('athro_study_slots')) {
+            studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
+          }
         }
       } catch (err) {
+        console.error('Error fetching study slots:', err);
         if (localStorage.getItem('athro_study_slots')) {
-          studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots'));
+          studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
         }
       }
 
@@ -182,19 +208,23 @@ const OnboardingPage: React.FC = () => {
       const calendarEvents = [];
       const today = new Date();
 
+      // Create calendar events for each individual study slot
       for (let slot of studySlotsData) {
         let slotDay = slot.day_of_week;
-        let nowDay = today.getDay() || 7;
+        let nowDay = today.getDay() || 7; // Convert Sunday from 0 to 7
         let daysUntil = slotDay - nowDay;
         if (daysUntil < 0) daysUntil += 7;
+        
         let sessionDate = new Date(today);
         sessionDate.setDate(today.getDate() + daysUntil);
 
         let startTime = new Date(sessionDate);
         startTime.setHours(slot.preferred_start_hour, 0, 0, 0);
+        
         let endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
 
+        // Assign subjects in rotation
         const subjIndex = calendarEvents.length % onboardingData.subjects.length;
         const subjectObj = onboardingData.subjects[subjIndex];
 
@@ -214,24 +244,46 @@ const OnboardingPage: React.FC = () => {
         });
       }
 
+      setGenerationProgress(80);
+
       if (calendarEvents.length > 0) {
-        await supabase.from('calendar_events').insert(calendarEvents);
+        try {
+          const { data, error } = await supabase
+            .from('calendar_events')
+            .insert(calendarEvents)
+            .select();
+          
+          if (error) {
+            console.error('Error creating calendar events:', error);
+            throw new Error(`Failed to create calendar events: ${error.message}`);
+          }
+          
+          console.log(`Successfully created ${data?.length || 0} calendar events`);
+        } catch (insertError) {
+          console.error('Error inserting calendar events:', insertError);
+          // Continue despite error
+        }
       }
 
       setGenerationProgress(95);
 
-      await supabase
-        .from('onboarding_progress')
-        .upsert({
-          student_id: authState.user.id,
-          current_step: 'completed',
-          has_completed_subjects: true,
-          has_completed_availability: true,
-          has_generated_plan: true,
-          completed_at: new Date().toISOString()
-        });
+      try {
+        // Mark onboarding as complete
+        await supabase
+          .from('onboarding_progress')
+          .upsert({
+            student_id: authState.user.id,
+            current_step: 'completed',
+            has_completed_subjects: true,
+            has_completed_availability: true,
+            has_generated_plan: true,
+            completed_at: new Date().toISOString()
+          });
 
-      localStorage.setItem('onboarding_completed', 'true');
+        localStorage.setItem('onboarding_completed', 'true');
+      } catch (progressError) {
+        console.error('Error updating onboarding progress:', progressError);
+      }
 
       setGenerationProgress(100);
       setGenerationComplete(true);
@@ -254,7 +306,7 @@ const OnboardingPage: React.FC = () => {
   };
 
   const goToCalendar = () => {
-    navigate('/calendar?fromSetup=true');
+    navigate('/calendar?fromSetup=true&refresh=true');
   };
 
   const renderStep = () => {

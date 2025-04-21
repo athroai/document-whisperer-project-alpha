@@ -6,9 +6,9 @@ import BigCalendarView from '@/components/calendar/BigCalendarView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader } from 'lucide-react';
+import { Loader, RefreshCw } from 'lucide-react';
 import { useOnboardingCheck } from '@/hooks/useOnboardingCheck';
-
+import { Button } from '@/components/ui/button';
 import CalendarToolbar from '@/components/calendar/CalendarToolbar';
 import CalendarEmptyState from '@/components/calendar/CalendarEmptyState';
 
@@ -17,6 +17,7 @@ const CalendarPage: React.FC = () => {
   const { fetchEvents, clearEvents, events, isLoading } = useCalendarEvents();
   const { state: authState } = useAuth();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -40,22 +41,31 @@ const CalendarPage: React.FC = () => {
   // Handle refreshing calendar events when needed
   useEffect(() => {
     let isMounted = true;
+    
     const loadCalendarEvents = async () => {
       if (!authState.user?.id || authState.isLoading) {
         if (isMounted) setIsInitialLoad(false);
         return;
       }
+      
+      setLoadError(null);
+      
       try {
         if (fromSetup || shouldRefresh) {
           clearEvents();
           localStorage.removeItem('cached_calendar_events');
         }
+        
         if (fromSetup) {
+          // Small delay for better UX when coming from setup
           await new Promise(resolve => setTimeout(resolve, 800));
         }
+        
         const fetchedEvents = await fetchEvents();
+        
         if (isMounted) {
           setIsInitialLoad(false);
+          
           if ((refreshTrigger > 0 || fromSetup) && fetchedEvents.length > 0) {
             toast({
               title: fromSetup ? "Calendar Setup Complete" : "Calendar Updated",
@@ -67,6 +77,7 @@ const CalendarPage: React.FC = () => {
               description: "No study sessions were found in your calendar.",
               variant: "default"
             });
+            
             if (fromSetup) {
               toast({
                 title: "Try Creating Sessions",
@@ -76,10 +87,11 @@ const CalendarPage: React.FC = () => {
             }
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching calendar events:', err);
         if (isMounted) {
           setIsInitialLoad(false);
+          setLoadError(err.message || "Could not load calendar events");
           toast({
             title: "Calendar Error",
             description: "Could not load your calendar events. Please try again.",
@@ -88,9 +100,12 @@ const CalendarPage: React.FC = () => {
         }
       }
     };
+    
+    // Only load if we have a user
     if (authState.user?.id && !authState.isLoading) {
       loadCalendarEvents();
     }
+    
     return () => { isMounted = false; };
   }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents]);
   
@@ -128,6 +143,7 @@ const CalendarPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <CalendarToolbar isLoading={isLoading} onRefresh={handleRetryLoad} />
+        
         {isLoading && isInitialLoad ? (
           <div className="space-y-4">
             <div className="flex items-center justify-center p-8">
@@ -135,6 +151,19 @@ const CalendarPage: React.FC = () => {
               <span className="ml-2 text-gray-600">Loading your study calendar...</span>
             </div>
             <Skeleton className="h-[600px] w-full rounded-md" />
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center justify-center p-12 space-y-4 bg-white rounded-lg shadow">
+            <div className="text-red-500 font-medium">Error loading calendar events</div>
+            <p className="text-gray-600 text-center">{loadError}</p>
+            <Button 
+              variant="outline"
+              onClick={handleRetryLoad}
+              className="mt-4"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry Loading
+            </Button>
           </div>
         ) : (
           <>

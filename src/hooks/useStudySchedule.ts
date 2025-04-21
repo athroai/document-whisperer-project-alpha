@@ -38,45 +38,92 @@ export const useStudySchedule = () => {
 
   const getDefaultSessionTimes = (count: number) => {
     const duration = getSessionDurationForCount(count);
-    return Array(count).fill(null).map((_, i) => ({
-      startHour: 15 + i,
-      durationMinutes: duration
-    }));
+    
+    // Distribute sessions throughout the day (9am to 8pm)
+    return Array(count).fill(null).map((_, i) => {
+      // Start at 9am and distribute evenly
+      const startHour = 9 + Math.floor(i * (11 / Math.max(count, 1)));
+      return {
+        startHour,
+        durationMinutes: duration
+      };
+    });
   };
 
+  // Initialize day preferences for selected days
   useEffect(() => {
-    setDayPreferences(prevPrefs => {
-      let updated = [...prevPrefs];
+    const initializePreferences = () => {
+      const initialPreferences: DayPreference[] = [];
+      
       selectedDays.forEach(day => {
-        if (!updated.some(p => p.dayIndex === day)) {
-          updated.push({
+        if (!dayPreferences.some(p => p.dayIndex === day)) {
+          initialPreferences.push({
             dayIndex: day,
             sessionTimes: getDefaultSessionTimes(sessionsPerDay)
           });
         }
       });
+      
+      if (initialPreferences.length > 0) {
+        setDayPreferences(prev => [...prev, ...initialPreferences]);
+      }
+    };
+    
+    initializePreferences();
+  }, [selectedDays]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setDayPreferences(prevPrefs => {
+      let updated = [...prevPrefs];
+      
+      // Filter to only include selected days
       updated = updated.filter(p => selectedDays.includes(p.dayIndex));
+      
+      // Update session counts as needed
       updated = updated.map(p => {
-        if (p.sessionTimes.length !== sessionsPerDay) {
-          if (p.sessionTimes.length < sessionsPerDay) {
+        // Only adjust if the current session count doesn't match the target count
+        if (p.sessionTimes.length === sessionsPerDay) {
+          return p;
+        }
+        
+        if (p.sessionTimes.length < sessionsPerDay) {
+          // Add more sessions if needed
+          const additionalSessions = getDefaultSessionTimes(sessionsPerDay - p.sessionTimes.length);
+          
+          // Try to distribute new sessions at different times than existing ones
+          const existingHours = new Set(p.sessionTimes.map(s => s.startHour));
+          const adjustedAdditionalSessions = additionalSessions.map(session => {
+            let hour = session.startHour;
+            
+            // Find a free hour by incrementing until we find one that's not used
+            while (existingHours.has(hour)) {
+              hour = (hour + 1) % 24;
+              if (hour < 8) hour = 8; // Don't go before 8am
+              if (hour > 20) hour = 8; // If we reach 8pm, wrap back to 8am
+            }
+            
             return {
-              ...p,
-              sessionTimes: [
-                ...p.sessionTimes,
-                ...getDefaultSessionTimes(sessionsPerDay - p.sessionTimes.length)
-              ]
+              startHour: hour,
+              durationMinutes: session.durationMinutes
             };
-          }
+          });
+          
+          return {
+            ...p,
+            sessionTimes: [...p.sessionTimes, ...adjustedAdditionalSessions]
+          };
+        } else {
+          // If we need fewer sessions, keep the first 'sessionsPerDay' ones
           return {
             ...p,
             sessionTimes: p.sessionTimes.slice(0, sessionsPerDay)
           };
         }
-        return p;
       });
+      
       return updated;
     });
-  }, [selectedDays, sessionsPerDay]);
+  }, [sessionsPerDay, selectedDays]);
 
   const handleDayToggle = (dayIndex: number) => {
     setError(null);
@@ -119,59 +166,45 @@ export const useStudySchedule = () => {
   const handleAddSession = (dayIndex: number) => {
     setDayPreferences(prevPrefs => prevPrefs.map(p => {
       if (p.dayIndex !== dayIndex) return p;
+      
+      // Find an available hour that's not already used
+      const existingHours = new Set(p.sessionTimes.map(s => s.startHour));
+      let newHour = 16; // Default to 4pm
+      
+      // Try hours between 8am and 8pm
+      for (let h = 8; h <= 20; h++) {
+        if (!existingHours.has(h)) {
+          newHour = h;
+          break;
+        }
+      }
+      
       return {
         ...p,
-        sessionTimes: [...p.sessionTimes, { startHour: 15, durationMinutes: 45 }]
+        sessionTimes: [...p.sessionTimes, { startHour: newHour, durationMinutes: 45 }]
       };
     }));
     
-    setSessionsPerDay(prevCount => {
-      const dayPref = dayPreferences.find(p => p.dayIndex === dayIndex);
-      if (dayPref && dayPref.sessionTimes.length + 1 > prevCount) {
-        return dayPref.sessionTimes.length + 1;
-      }
-      return prevCount;
-    });
+    // Update sessions per day if needed
+    const dayPref = dayPreferences.find(p => p.dayIndex === dayIndex);
+    if (dayPref && dayPref.sessionTimes.length + 1 > sessionsPerDay) {
+      setSessionsPerDay(dayPref.sessionTimes.length + 1);
+    }
   };
 
   const handleRemoveSession = (dayIndex: number, sessionIndex: number) => {
     setDayPreferences(prevPrefs => prevPrefs.map(p => {
       if (p.dayIndex !== dayIndex) return p;
-      if (p.sessionTimes.length <= 1) return p;
-      const newTimes = p.sessionTimes.filter((_, idx) => idx !== sessionIndex);
+      if (p.sessionTimes.length <= 1) return p; // Keep at least one session
+      
+      const newTimes = [...p.sessionTimes];
+      newTimes.splice(sessionIndex, 1);
       return { ...p, sessionTimes: newTimes };
     }));
   };
 
   const handleSessionsPerDayChange = (newCount: number) => {
     setSessionsPerDay(newCount);
-    
-    const defaultDuration = getSessionDurationForCount(newCount);
-    
-    setDayPreferences(prev => prev.map(pref => {
-      const sessionTimes = Array(newCount).fill(null).map((_, i) => {
-        if (i < pref.sessionTimes.length) {
-          return pref.sessionTimes[i];
-        }
-        
-        const lastSessionIndex = i - 1;
-        const lastSession = lastSessionIndex >= 0 && lastSessionIndex < pref.sessionTimes.length 
-          ? pref.sessionTimes[lastSessionIndex]
-          : { startHour: 14, durationMinutes: defaultDuration };
-        
-        const nextStartHour = Math.min(21, lastSession.startHour + 1);
-        
-        return { 
-          startHour: nextStartHour, 
-          durationMinutes: defaultDuration 
-        };
-      });
-      
-      return {
-        ...pref,
-        sessionTimes
-      };
-    }));
   };
 
   const createCalendarEvents = async (slots: PreferredStudySlot[], useLocalFallback: boolean = true) => {
@@ -190,7 +223,7 @@ export const useStudySchedule = () => {
         nextDate.setDate(weekStartDate + slot.day_of_week - 1);
         
         const startTime = new Date(nextDate);
-        startTime.setHours(slot.preferred_start_hour, 0, 0, 0);
+        startTime.setHours(slot.preferred_start_hour || 16, 0, 0, 0);
         
         const endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
@@ -221,9 +254,15 @@ export const useStudySchedule = () => {
   };
 
   const saveStudySlotsToDatabase = async (userId: string, slots: PreferredStudySlot[]) => {
+    if (!userId) {
+      console.error('No user ID provided when saving study slots');
+      throw new Error('Authentication required');
+    }
+    
     try {
       console.log('Saving slots to database for user:', userId);
       
+      // First, delete any existing slots for this user
       try {
         await supabase
           .from('preferred_study_slots')
@@ -248,15 +287,17 @@ export const useStudySchedule = () => {
       
       console.log('Inserting slots:', slotsToInsert);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('preferred_study_slots')
-        .insert(slotsToInsert);
+        .insert(slotsToInsert)
+        .select();
       
       if (error) {
         console.error('Error inserting slots:', error);
-        throw error;
+        throw new Error(`Database error: ${error.message}`);
       }
       
+      console.log('Successfully saved study slots:', data);
       return true;
     } catch (error) {
       console.error('Error saving study slots to database:', error);
@@ -282,12 +323,13 @@ export const useStudySchedule = () => {
     for (const dayIndex of selectedDays) {
       const dayPref = dayPreferences.find(p => p.dayIndex === dayIndex);
       if (!dayPref || dayPref.sessionTimes.length === 0) {
+        const dayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1];
         setError(
-          `Please add at least one study session for ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}`
+          `Please add at least one study session for ${dayName}`
         );
         toast({
           title: "Missing Sessions",
-          description: `Please add at least one study session for ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}`,
+          description: `Please add at least one study session for ${dayName}`,
           variant: "destructive"
         });
         return;
@@ -299,6 +341,7 @@ export const useStudySchedule = () => {
     try {
       const newSlots: PreferredStudySlot[] = [];
       
+      // Create individual slots for each session time
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
         
@@ -308,7 +351,7 @@ export const useStudySchedule = () => {
               id: getSessionId(dayOfWeek, i),
               user_id: authState.user?.id || 'temp-user-id',
               day_of_week: dayOfWeek,
-              slot_count: 1,
+              slot_count: 1,  // Each session is a single slot
               slot_duration_minutes: session.durationMinutes,
               preferred_start_hour: session.startHour
             });
@@ -318,30 +361,22 @@ export const useStudySchedule = () => {
       
       setStudySlots(newSlots);
       
-      let userId = authState.user?.id;
+      // Get the authenticated user ID
+      const userId = authState.user?.id;
       
-      if (!userId && localStorage.getItem('athro_user')) {
-        try {
-          const mockUser = JSON.parse(localStorage.getItem('athro_user') || '{}');
-          if (mockUser.id) {
-            userId = mockUser.id;
-            console.log('Using mock user ID for study slots:', userId);
-          }
-        } catch (err) {
-          console.warn('Error parsing mock user:', err);
-        }
+      if (!userId) {
+        throw new Error('Authentication required to save study schedule');
       }
       
-      if (userId) {
-        try {
-          await saveStudySlotsToDatabase(userId, newSlots);
-        } catch (dbError) {
-          console.error('Database error when saving slots - continuing with local storage:', dbError);
-          localStorage.setItem('athro_study_slots', JSON.stringify(newSlots));
-        }
+      try {
+        await saveStudySlotsToDatabase(userId, newSlots);
+        console.log('Study slots saved successfully');
         
-        await createCalendarEvents(newSlots, true);
+        // Create calendar events for the sessions
+        const events = await createCalendarEvents(newSlots, false);
+        console.log(`Created ${events.length} calendar events`);
         
+        // Update onboarding progress
         try {
           const { data, error: fetchError } = await supabase
             .from('onboarding_progress')
@@ -375,29 +410,27 @@ export const useStudySchedule = () => {
         } catch (progressError) {
           console.error('Error handling onboarding progress:', progressError);
         }
-      } else {
-        localStorage.setItem('athro_study_slots', JSON.stringify(newSlots));
+        
+        updateOnboardingStep('calendar');
+        
+        navigate('/calendar?fromSetup=true&refresh=true');
+        
+        toast({
+          title: "Success",
+          description: `Your study schedule with ${newSlots.length} custom sessions has been created.`,
+        });
+      } catch (dbError: any) {
+        console.error('Database error when saving slots:', dbError);
+        throw new Error(`Failed to save study schedule: ${dbError.message}`);
       }
-      
-      updateOnboardingStep('calendar');
-      
-      navigate('/calendar?fromSetup=true');
-      
-      toast({
-        title: "Success",
-        description: "Your study schedule has been created successfully.",
-      });
     } catch (error: any) {
       console.error('Error saving study slots:', error);
       setError(error.message || "Failed to save study schedule. Please try again.");
       toast({
-        title: "Warning",
-        description: "Study schedule saved locally only. You can still use the calendar.",
-        variant: "default"
+        title: "Error",
+        description: error.message || "Failed to save study schedule",
+        variant: "destructive"
       });
-      
-      updateOnboardingStep('calendar');
-      navigate('/calendar?fromSetup=true');
     } finally {
       setIsSubmitting(false);
     }

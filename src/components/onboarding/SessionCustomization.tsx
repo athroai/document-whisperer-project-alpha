@@ -3,8 +3,9 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface SessionCustomizationProps {
   dayName: string;
@@ -14,6 +15,7 @@ interface SessionCustomizationProps {
   onStartHourChange: (hour: number) => void;
   onDurationChange: (minutes: number) => void;
   onRemoveSession?: () => void;
+  showRemoveButton?: boolean;
 }
 
 export const SessionCustomization: React.FC<SessionCustomizationProps> = ({
@@ -23,7 +25,8 @@ export const SessionCustomization: React.FC<SessionCustomizationProps> = ({
   duration,
   onStartHourChange,
   onDurationChange,
-  onRemoveSession
+  onRemoveSession,
+  showRemoveButton = true
 }) => {
   // Generate hour options (6am to 10pm)
   const hourOptions = Array.from({ length: 17 }, (_, i) => i + 6);
@@ -34,15 +37,39 @@ export const SessionCustomization: React.FC<SessionCustomizationProps> = ({
   // Format hour for display
   const formatHour = (hour: number) => {
     const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour > 12 ? hour - 12 : hour;
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     return `${displayHour}:00 ${period}`;
+  };
+
+  // Calculate end time for display
+  const calculateEndTime = () => {
+    let endHour = startHour;
+    let endMinutes = duration;
+    
+    while (endMinutes >= 60) {
+      endHour++;
+      endMinutes -= 60;
+    }
+    
+    const period = endHour >= 12 ? 'PM' : 'AM';
+    const displayHour = endHour > 12 ? endHour - 12 : endHour === 0 ? 12 : endHour;
+    
+    return `${formatHour(startHour)} - ${displayHour}:${endMinutes === 0 ? '00' : endMinutes} ${period}`;
   };
 
   return (
     <Card className="p-3 mb-2 border-dashed border">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium">Session {sessionIndex + 1}</span>
-        {onRemoveSession && (
+        <div className="flex items-center">
+          <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+            Session {sessionIndex + 1}
+          </Badge>
+          <span className="ml-2 text-xs text-gray-500">
+            <Clock className="h-3 w-3 inline mr-1" />
+            {calculateEndTime()}
+          </span>
+        </div>
+        {showRemoveButton && onRemoveSession && (
           <Button 
             variant="ghost" 
             size="sm"
