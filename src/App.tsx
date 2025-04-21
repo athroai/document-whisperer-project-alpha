@@ -1,7 +1,7 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
-import Dashboard from '@/pages/Dashboard';
 import CalendarPage from '@/pages/CalendarPage';
 import OnboardingPage from '@/pages/OnboardingPage';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -16,9 +16,9 @@ import WelcomePage from './pages/WelcomePage';
 import PomodoroPage from './pages/PomodoroPage';
 import AthroChat from './pages/AthroChat';
 import StudyPage from './pages/StudyPage';
+import AthroOnboardingPage from './pages/AthroOnboardingPage';
 
 const ProtectedCalendarPage = withOnboardingGuard(CalendarPage);
-const ProtectedDashboard = withOnboardingGuard(Dashboard);
 
 const App = () => {
   return (
@@ -26,10 +26,11 @@ const App = () => {
       <OnboardingProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<ProtectedDashboard />} />
+            <Route path="/" element={<Navigate to="/calendar" replace />} />
+            <Route path="/dashboard" element={<HomePage />} />
             <Route path="/calendar" element={<ProtectedCalendarPage />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/athro-onboarding" element={<AthroOnboardingPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />

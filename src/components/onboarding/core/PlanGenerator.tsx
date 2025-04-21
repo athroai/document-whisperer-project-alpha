@@ -114,7 +114,7 @@ export const PlanGenerator: React.FC<PlanGeneratorProps> = ({
 
       {generationComplete ? (
         <div className="space-y-4">
-          <Alert variant="success" className="bg-green-50 border-green-200">
+          <Alert className="bg-green-50 border-green-200">
             <CheckCircle className="h-5 w-5 text-green-600" />
             <AlertTitle className="text-green-800">Study Plan Ready!</AlertTitle>
             <AlertDescription className="text-green-700">
