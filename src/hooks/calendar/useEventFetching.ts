@@ -14,6 +14,7 @@ export const useEventFetching = (
   const fetchInProgress = useRef(false);
   const subscriptionActive = useRef(false);
   const fetchAttempted = useRef(false);
+  const realtimeUpdateDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   
   // Fetch events from the database and local storage
   const fetchEvents = useCallback(async (): Promise<CalendarEvent[]> => {
@@ -92,7 +93,7 @@ export const useEventFetching = (
     }
   }, [userId, setEvents, setIsLoading, localEvents]);
 
-  // Set up real-time subscription for calendar events
+  // Set up real-time subscription for calendar events - with debouncing
   useEffect(() => {
     if (!userId || subscriptionActive.current) return;
     
@@ -112,15 +113,23 @@ export const useEventFetching = (
             
             // Only fetch if we've completed at least one initial fetch
             if (fetchAttempted.current) {
-              setTimeout(async () => {
+              // Clear any existing debounce timer
+              if (realtimeUpdateDebounceTimer.current) {
+                clearTimeout(realtimeUpdateDebounceTimer.current);
+              }
+              
+              // Debounce for 2 seconds to prevent multiple rapid refreshes
+              realtimeUpdateDebounceTimer.current = setTimeout(async () => {
                 try {
-                  await fetchEvents();
-                  setLastRefreshedAt(new Date());
-                  console.log(`Refreshed calendar events after real-time update`);
+                  if (!fetchInProgress.current) {
+                    await fetchEvents();
+                    setLastRefreshedAt(new Date());
+                    console.log(`Refreshed calendar events after real-time update`);
+                  }
                 } catch (error) {
                   console.error('Error refreshing events after real-time update:', error);
                 }
-              }, 1000); // Debounce for 1 second
+              }, 2000);
             }
           }
         )
@@ -137,6 +146,10 @@ export const useEventFetching = (
         console.log('Cleaning up real-time subscription');
         subscriptionActive.current = false;
         supabase.removeChannel(subscription);
+      }
+      
+      if (realtimeUpdateDebounceTimer.current) {
+        clearTimeout(realtimeUpdateDebounceTimer.current);
       }
     };
   }, [userId, fetchEvents, setLastRefreshedAt]);

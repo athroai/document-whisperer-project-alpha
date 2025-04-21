@@ -16,7 +16,7 @@ const CalendarContainer = ({
   events, 
   isLoading, 
   needsOnboarding, 
-  refreshTrigger, 
+  refreshTrigger,
   onRetryLoad 
 }: CalendarContainerProps) => {
   return (
@@ -24,6 +24,7 @@ const CalendarContainer = ({
       <BigCalendarView 
         key={`calendar-${refreshTrigger}`}
         onRetryLoad={onRetryLoad}
+        showRefreshButton={false} // Pass this prop to hide the refresh button in BigCalendarView
       />
       {events.length === 0 && !isLoading && (
         <CalendarEmptyState 

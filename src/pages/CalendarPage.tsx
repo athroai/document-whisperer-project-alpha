@@ -23,12 +23,16 @@ const CalendarPage: React.FC = () => {
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialLoadComplete = useRef(false);
   const calendarMountedRef = useRef(false);
+  const manualRefreshInProgress = useRef(false);
   
   const fromSetup = searchParams.get('fromSetup') === 'true';
   const shouldRefresh = searchParams.get('refresh') === 'true';
   const { needsOnboarding, isLoading: checkingOnboarding } = useOnboardingCheck(false);
 
   const handleRetryLoad = useCallback(() => {
+    if (manualRefreshInProgress.current) return;
+    
+    manualRefreshInProgress.current = true;
     setRefreshTrigger(prev => prev + 1);
     clearEvents();
     initialLoadComplete.current = false;
@@ -37,6 +41,11 @@ const CalendarPage: React.FC = () => {
       title: "Refreshing calendar",
       description: "Attempting to reload your calendar events..."
     });
+    
+    // Reset the manual refresh flag after a delay
+    setTimeout(() => {
+      manualRefreshInProgress.current = false;
+    }, 3000);
   }, [clearEvents, toast]);
 
   // Check authentication and handle initial load
@@ -54,7 +63,7 @@ const CalendarPage: React.FC = () => {
     };
   }, [authState.isLoading, authState.user, navigate]);
 
-  // Handle calendar events loading
+  // Handle calendar events loading - optimized to prevent excessive refreshes
   useEffect(() => {
     let isMounted = true;
     
@@ -103,7 +112,12 @@ const CalendarPage: React.FC = () => {
       }
     };
     
-    if (authState.user?.id && !authState.isLoading && (isInitialLoad || refreshTrigger > 0 || fromSetup || shouldRefresh)) {
+    // Only trigger load on mount, manual refresh, or explicit URL parameters
+    const shouldLoad = authState.user?.id && 
+                      !authState.isLoading && 
+                      (isInitialLoad || refreshTrigger > 0 || fromSetup || shouldRefresh);
+                      
+    if (shouldLoad) {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
@@ -122,9 +136,9 @@ const CalendarPage: React.FC = () => {
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents, navigate, isInitialLoad]);
+  }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents, isInitialLoad]);
 
-  // Handle onboarding check
+  // Handle onboarding check - but don't refresh calendar when this runs
   useEffect(() => {
     if (!checkingOnboarding && needsOnboarding === true && authState.user) {
       toast({
