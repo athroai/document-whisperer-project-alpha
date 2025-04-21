@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { SubjectPreference, Availability } from './types';
 import { PreferredStudySlot } from '@/types/study';
@@ -138,6 +137,8 @@ export const createOnboardingActions = (
       
       setCurrentStep('completed');
 
+      // Persist onboarding completed flag locally for smoother onboarding check
+      localStorage.setItem('onboarding_completed', 'true');
       return;
     } catch (error) {
       console.error('Error completing onboarding:', error);

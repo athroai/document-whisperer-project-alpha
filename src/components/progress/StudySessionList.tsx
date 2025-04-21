@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { StudySession } from '@/types/study';
 import { Card, CardContent } from '@/components/ui/card';
-import { StudySessionCard } from './StudySessionCard';
 import { useFilteredSessions } from './useFilteredSessions';
+import { StudySessionCard } from './StudySessionCard';
+import { SessionGroup } from './SessionGroup';
 
 interface StudySessionListProps {
   sessions: StudySession[];
@@ -62,21 +63,15 @@ export const StudySessionList: React.FC<StudySessionListProps> = ({
     return (
       <div className="space-y-8">
         {Object.entries(groupedSessions).map(([subject, subjectSessions]) => (
-          <div key={subject}>
-            <h2 className="text-xl font-bold mb-4">{subject}</h2>
-            <div className="space-y-4">
-              {subjectSessions.map(session =>
-                <StudySessionCard
-                  key={session.id}
-                  session={session}
-                  isExpanded={expandedSession === session.id}
-                  onExpand={setExpandedSession}
-                  onScheduleReview={onScheduleReview}
-                  confidenceChange={getConfidenceChange(session)}
-                />
-              )}
-            </div>
-          </div>
+          <SessionGroup
+            key={subject}
+            subject={subject}
+            sessions={subjectSessions}
+            expandedSession={expandedSession}
+            setExpandedSession={setExpandedSession}
+            onScheduleReview={onScheduleReview}
+            getConfidenceChange={getConfidenceChange}
+          />
         ))}
       </div>
     );
@@ -98,3 +93,4 @@ export const StudySessionList: React.FC<StudySessionListProps> = ({
     </div>
   );
 };
+
