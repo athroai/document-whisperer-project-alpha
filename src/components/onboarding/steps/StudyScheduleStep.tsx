@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -91,8 +90,10 @@ export const StudyScheduleStep: React.FC = () => {
           dayName={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}
           isSelected={selectedDays.includes(dayIndex)}
           sessionsCount={sessionsPerDay}
-          sessionTimes={dayPreferences.find(p => p.dayIndex === dayIndex)?.sessionTimes || 
-            Array(sessionsPerDay).fill({ startHour: 15, durationMinutes: 45 })}
+          sessionTimes={
+            dayPreferences.find(p => p.dayIndex === dayIndex)?.sessionTimes ||
+              Array(sessionsPerDay).fill({ startHour: 15, durationMinutes: 45 })
+          }
           onSessionTimeChange={handleSessionTimeChange}
           onSessionDurationChange={handleSessionDurationChange}
           onAddSession={handleAddSession}

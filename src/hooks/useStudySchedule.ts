@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -36,56 +35,46 @@ export const useStudySchedule = () => {
     { value: 6, label: 'Many short sessions', durationMinutes: 20 },
   ];
 
+  const getDefaultSessionTimes = (count: number) => {
+    const duration = getSessionDurationForCount(count);
+    return Array(count).fill(null).map((_, i) => ({
+      startHour: 15 + i,
+      durationMinutes: duration
+    }));
+  };
+
   useEffect(() => {
-    const updateSessionsForSelectedDays = () => {
-      setDayPreferences(prevPrefs => {
-        const updatedPrefs = [...prevPrefs];
-        
-        selectedDays.forEach(dayIndex => {
-          const existingPrefIndex = updatedPrefs.findIndex(p => p.dayIndex === dayIndex);
-          
-          if (existingPrefIndex === -1) {
-            const defaultDuration = getSessionDurationForCount(sessionsPerDay);
-            const sessionTimes: SessionTime[] = Array(sessionsPerDay).fill(null).map((_, i) => ({
-              startHour: 15 + i,
-              durationMinutes: defaultDuration
-            }));
-            
-            updatedPrefs.push({
-              dayIndex,
-              sessionTimes
-            });
-          } else {
-            const currentSessionCount = updatedPrefs[existingPrefIndex].sessionTimes.length;
-            const defaultDuration = getSessionDurationForCount(sessionsPerDay);
-            
-            if (currentSessionCount < sessionsPerDay) {
-              const lastSessionTime = updatedPrefs[existingPrefIndex].sessionTimes[currentSessionCount - 1];
-              const lastEndTime = lastSessionTime ? lastSessionTime.startHour + 1 : 16;
-              
-              const newSessions = Array(sessionsPerDay - currentSessionCount)
-                .fill(null)
-                .map((_, i) => ({
-                  startHour: Math.min(21, lastEndTime + i),
-                  durationMinutes: defaultDuration
-                }));
-              
-              updatedPrefs[existingPrefIndex].sessionTimes = [
-                ...updatedPrefs[existingPrefIndex].sessionTimes,
-                ...newSessions
-              ];
-            } else if (currentSessionCount > sessionsPerDay) {
-              updatedPrefs[existingPrefIndex].sessionTimes = 
-                updatedPrefs[existingPrefIndex].sessionTimes.slice(0, sessionsPerDay);
-            }
-          }
-        });
-        
-        return updatedPrefs.filter(pref => selectedDays.includes(pref.dayIndex));
+    setDayPreferences(prevPrefs => {
+      let updated = [...prevPrefs];
+      selectedDays.forEach(day => {
+        if (!updated.some(p => p.dayIndex === day)) {
+          updated.push({
+            dayIndex: day,
+            sessionTimes: getDefaultSessionTimes(sessionsPerDay)
+          });
+        }
       });
-    };
-    
-    updateSessionsForSelectedDays();
+      updated = updated.filter(p => selectedDays.includes(p.dayIndex));
+      updated = updated.map(p => {
+        if (p.sessionTimes.length !== sessionsPerDay) {
+          if (p.sessionTimes.length < sessionsPerDay) {
+            return {
+              ...p,
+              sessionTimes: [
+                ...p.sessionTimes,
+                ...getDefaultSessionTimes(sessionsPerDay - p.sessionTimes.length)
+              ]
+            };
+          }
+          return {
+            ...p,
+            sessionTimes: p.sessionTimes.slice(0, sessionsPerDay)
+          };
+        }
+        return p;
+      });
+      return updated;
+    });
   }, [selectedDays, sessionsPerDay]);
 
   const handleDayToggle = (dayIndex: number) => {
@@ -101,117 +90,47 @@ export const useStudySchedule = () => {
     return option ? option.durationMinutes : 45;
   };
 
+  const handleSessionTimeChange = (dayIndex: number, sessionIndex: number, hour: number) => {
+    setDayPreferences(prevPrefs => prevPrefs.map(p => {
+      if (p.dayIndex !== dayIndex) return p;
+      const updatedTimes = [...p.sessionTimes];
+      updatedTimes[sessionIndex] = {
+        ...updatedTimes[sessionIndex],
+        startHour: hour
+      };
+      return { ...p, sessionTimes: updatedTimes };
+    }));
+  };
+
+  const handleSessionDurationChange = (dayIndex: number, sessionIndex: number, minutes: number) => {
+    setDayPreferences(prevPrefs => prevPrefs.map(p => {
+      if (p.dayIndex !== dayIndex) return p;
+      const updatedTimes = [...p.sessionTimes];
+      updatedTimes[sessionIndex] = {
+        ...updatedTimes[sessionIndex],
+        durationMinutes: minutes
+      };
+      return { ...p, sessionTimes: updatedTimes };
+    }));
+  };
+
   const handleAddSession = (dayIndex: number) => {
-    setDayPreferences(prev => {
-      const newPrefs = [...prev];
-      const dayPrefIndex = newPrefs.findIndex(p => p.dayIndex === dayIndex);
-      
-      if (dayPrefIndex === -1) {
-        // Create new day preference if it doesn't exist
-        const defaultDuration = 45;
-        return [
-          ...prev,
-          {
-            dayIndex,
-            sessionTimes: [{ startHour: 15, durationMinutes: defaultDuration }]
-          }
-        ];
-      } else {
-        // Add a new session to existing day
-        const lastSession = newPrefs[dayPrefIndex].sessionTimes[newPrefs[dayPrefIndex].sessionTimes.length - 1];
-        const nextStartHour = Math.min(20, lastSession ? lastSession.startHour + 2 : 15);
-        
-        newPrefs[dayPrefIndex].sessionTimes.push({
-          startHour: nextStartHour,
-          durationMinutes: 45
-        });
-        
-        return newPrefs;
-      }
-    });
+    setDayPreferences(prevPrefs => prevPrefs.map(p => {
+      if (p.dayIndex !== dayIndex) return p;
+      return {
+        ...p,
+        sessionTimes: [...p.sessionTimes, { startHour: 15, durationMinutes: 45 }]
+      };
+    }));
   };
 
   const handleRemoveSession = (dayIndex: number, sessionIndex: number) => {
-    setDayPreferences(prev => {
-      const newPrefs = [...prev];
-      const dayPrefIndex = newPrefs.findIndex(p => p.dayIndex === dayIndex);
-      
-      if (dayPrefIndex === -1 || newPrefs[dayPrefIndex].sessionTimes.length <= 1) {
-        // Don't remove if it's the last session
-        toast({
-          title: "Cannot Remove",
-          description: "Each day must have at least one study session.",
-          variant: "destructive"
-        });
-        return prev;
-      }
-      
-      newPrefs[dayPrefIndex].sessionTimes.splice(sessionIndex, 1);
-      return newPrefs;
-    });
-  };
-
-  const handleSessionTimeChange = (dayIndex: number, sessionIndex: number, hour: number) => {
-    setDayPreferences(prev => {
-      const dayPrefIndex = prev.findIndex(p => p.dayIndex === dayIndex);
-      let newPrefs = [...prev];
-      
-      if (dayPrefIndex === -1) {
-        const defaultTimes = Array(sessionsPerDay).fill(null).map((_, i) => ({
-          startHour: 15 + i,
-          durationMinutes: getSessionDurationForCount(sessionsPerDay)
-        }));
-        defaultTimes[sessionIndex] = { ...defaultTimes[sessionIndex], startHour: hour };
-        
-        newPrefs = [
-          ...prev,
-          {
-            dayIndex,
-            sessionTimes: defaultTimes
-          }
-        ];
-      } else {
-        const updatedTimes = [...newPrefs[dayPrefIndex].sessionTimes];
-        updatedTimes[sessionIndex] = { 
-          ...updatedTimes[sessionIndex], 
-          startHour: hour 
-        };
-        
-        newPrefs[dayPrefIndex] = {
-          ...newPrefs[dayPrefIndex],
-          sessionTimes: updatedTimes
-        };
-      }
-      
-      return newPrefs;
-    });
-  };
-  
-  const handleSessionDurationChange = (dayIndex: number, sessionIndex: number, minutes: number) => {
-    setDayPreferences(prev => {
-      const dayPrefIndex = prev.findIndex(p => p.dayIndex === dayIndex);
-      if (dayPrefIndex === -1) {
-        return [
-          ...prev,
-          {
-            dayIndex,
-            sessionTimes: Array(sessionsPerDay).fill(null).map((_, i) => ({
-              startHour: 15 + i,
-              durationMinutes: i === sessionIndex ? minutes : getSessionDurationForCount(sessionsPerDay)
-            }))
-          }
-        ];
-      }
-
-      const newPrefs = [...prev];
-      newPrefs[dayPrefIndex] = {
-        ...newPrefs[dayPrefIndex],
-        sessionTimes: newPrefs[dayPrefIndex].sessionTimes.map((time, i) =>
-          i === sessionIndex ? { ...time, durationMinutes: minutes } : time
-        )
-      };
-      return newPrefs;
-    });
+    setDayPreferences(prevPrefs => prevPrefs.map(p => {
+      if (p.dayIndex !== dayIndex) return p;
+      if (p.sessionTimes.length <= 1) return p;
+      const newTimes = p.sessionTimes.filter((_, idx) => idx !== sessionIndex);
+      return { ...p, sessionTimes: newTimes };
+    }));
   };
 
   const handleSessionsPerDayChange = (value: number[]) => {
