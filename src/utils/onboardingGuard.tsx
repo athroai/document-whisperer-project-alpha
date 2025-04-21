@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -14,28 +13,24 @@ export const withOnboardingGuard = (Component: React.ComponentType) => {
     useEffect(() => {
       const checkOnboardingStatus = async () => {
         if (!state.user || state.isLoading) {
-          // Still loading auth state, wait
+          // Still loading auth state
           return;
         }
-        
+
         try {
-          // Check if this is a new login
+          // Prefer DB status for new users or session just created
           const sessionAge = localStorage.getItem('auth_session_created');
           const isNewLogin = sessionAge && (Date.now() - parseInt(sessionAge)) < 10000; // 10 seconds
-          
-          // First check local storage for a quick decision
-          // Skip for new logins to force checking with database
+
           if (!isNewLogin && localStorage.getItem('onboarding_completed') === 'true') {
             setIsChecking(false);
             return;
           }
 
-          // Force a small delay to ensure database has had time to propagate
           if (isNewLogin) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
-          
-          // Then verify with the database
+
           const { data, error } = await supabase
             .from('onboarding_progress')
             .select('completed_at')
@@ -43,15 +38,12 @@ export const withOnboardingGuard = (Component: React.ComponentType) => {
             .maybeSingle();
 
           if (error) {
-            console.error('Error checking onboarding status:', error);
-            // Continue to onboarding if there's an error
             navigate('/onboarding');
             return;
           }
 
-          // If onboarding is not complete, redirect to onboarding
           if (!data?.completed_at) {
-            console.log("Onboarding not completed, redirecting to onboarding");
+            // Force user to onboarding on new account always
             toast({
               title: "Welcome to Athro",
               description: "Let's complete your onboarding first"
@@ -59,17 +51,15 @@ export const withOnboardingGuard = (Component: React.ComponentType) => {
             navigate('/onboarding');
             return;
           } else {
-            // If database says completed but localStorage disagrees, update localStorage
             localStorage.setItem('onboarding_completed', 'true');
           }
-          
+
           setIsChecking(false);
         } catch (err) {
-          console.error('Error in onboarding guard:', err);
           setIsChecking(false);
         }
       };
-      
+
       checkOnboardingStatus();
     }, [state.user, state.isLoading, navigate]);
     

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { getProfileByUserId, upsertProfile } from './authProfile';
@@ -64,7 +63,7 @@ export const signupAction = async (email: string, password: string, role: string
       await setAuthProfile(initialProfile);
     }
     
-    // Remove any stale onboarding completion flag
+    // Remove any stale onboarding completion flag for re-signups:
     localStorage.removeItem('onboarding_completed');
     
     navigate('/onboarding');

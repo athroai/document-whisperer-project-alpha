@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -126,7 +125,6 @@ export const useStudySchedule = () => {
       };
     }));
     
-    // Update sessions per day if we're adding beyond the current setting
     setSessionsPerDay(prevCount => {
       const dayPref = dayPreferences.find(p => p.dayIndex === dayIndex);
       if (dayPref && dayPref.sessionTimes.length + 1 > prevCount) {
@@ -266,6 +264,8 @@ export const useStudySchedule = () => {
     }
   };
 
+  const getSessionId = (day: number, sessIdx: number) => `session-${day}-${sessIdx}-${Date.now()}`;
+
   const handleContinue = async () => {
     setError(null);
     
@@ -279,11 +279,12 @@ export const useStudySchedule = () => {
       return;
     }
     
-    // Validate that each day has at least one study session
     for (const dayIndex of selectedDays) {
       const dayPref = dayPreferences.find(p => p.dayIndex === dayIndex);
       if (!dayPref || dayPref.sessionTimes.length === 0) {
-        setError(`Please add at least one study session for ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}`);
+        setError(
+          `Please add at least one study session for ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}`
+        );
         toast({
           title: "Missing Sessions",
           description: `Please add at least one study session for ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}`,
@@ -298,14 +299,13 @@ export const useStudySchedule = () => {
     try {
       const newSlots: PreferredStudySlot[] = [];
       
-      // Convert each individual session to a study slot
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
         
         if (dayPreference) {
-          dayPreference.sessionTimes.forEach((session) => {
+          dayPreference.sessionTimes.forEach((session, i) => {
             newSlots.push({
-              id: `temp-${Date.now()}-${dayOfWeek}-${Math.random()}`,
+              id: getSessionId(dayOfWeek, i),
               user_id: authState.user?.id || 'temp-user-id',
               day_of_week: dayOfWeek,
               slot_count: 1,
@@ -337,47 +337,40 @@ export const useStudySchedule = () => {
           await saveStudySlotsToDatabase(userId, newSlots);
         } catch (dbError) {
           console.error('Database error when saving slots - continuing with local storage:', dbError);
-          
           localStorage.setItem('athro_study_slots', JSON.stringify(newSlots));
         }
         
         await createCalendarEvents(newSlots, true);
         
-        // Save onboarding progress
         try {
-          if (userId) {
-            // First check if the record exists
-            const { data, error: fetchError } = await supabase
+          const { data, error: fetchError } = await supabase
+            .from('onboarding_progress')
+            .select('*')
+            .eq('student_id', userId)
+            .maybeSingle();
+
+          const progressData = {
+            has_completed_availability: true,
+            current_step: 'calendar',
+            updated_at: new Date().toISOString()
+          };
+
+          if (fetchError) {
+            console.warn('Error checking onboarding progress:', fetchError);
+          }
+
+          if (data) {
+            await supabase
               .from('onboarding_progress')
-              .select('*')
-              .eq('student_id', userId)
-              .maybeSingle();
-                
-            if (fetchError) {
-              console.warn('Error checking onboarding progress:', fetchError);
-            } 
-            
-            const progressData = {
-              has_completed_availability: true,
-              current_step: 'calendar',
-              updated_at: new Date().toISOString()
-            };
-            
-            if (data) {
-              // Update existing record
-              await supabase
-                .from('onboarding_progress')
-                .update(progressData)
-                .eq('student_id', userId);
-            } else {
-              // Insert new record
-              await supabase
-                .from('onboarding_progress')
-                .insert({
-                  student_id: userId,
-                  ...progressData
-                });
-            }
+              .update(progressData)
+              .eq('student_id', userId);
+          } else {
+            await supabase
+              .from('onboarding_progress')
+              .insert({
+                student_id: userId,
+                ...progressData
+              });
           }
         } catch (progressError) {
           console.error('Error handling onboarding progress:', progressError);
@@ -404,7 +397,7 @@ export const useStudySchedule = () => {
       });
       
       updateOnboardingStep('calendar');
-      navigate('/calendar');
+      navigate('/calendar?fromSetup=true');
     } finally {
       setIsSubmitting(false);
     }
