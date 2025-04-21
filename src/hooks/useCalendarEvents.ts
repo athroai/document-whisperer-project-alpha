@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalCalendarEvents } from './calendar/useLocalCalendarEvents';
 import { useEventsState } from './calendar/useEventsState';
@@ -9,6 +9,7 @@ import { useEventOperations } from './calendar/useEventOperations';
 export const useCalendarEvents = () => {
   const { state: authState } = useAuth();
   const userId = authState.user?.id;
+  const initialFetchDone = useRef(false);
   
   const {
     events,
@@ -44,11 +45,12 @@ export const useCalendarEvents = () => {
     let mounted = true;
     
     const loadInitialEvents = async () => {
-      if (!userId || lastRefreshedAt) {
+      if (!userId || initialFetchDone.current) {
         return;
       }
       
       try {
+        initialFetchDone.current = true;
         const fetchedEvents = await fetchEvents();
         
         if (mounted) {
@@ -65,7 +67,7 @@ export const useCalendarEvents = () => {
     return () => {
       mounted = false;
     };
-  }, [userId, fetchEvents, lastRefreshedAt]);
+  }, [userId, fetchEvents, setLastRefreshedAt]);
 
   return {
     events,

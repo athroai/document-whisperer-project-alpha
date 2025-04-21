@@ -114,10 +114,10 @@ const CalendarPage: React.FC = () => {
       }
     }, 8000); // 8 second timeout
     
-    // Only load if we have a user
-    if (userId && !authState.isLoading) {
+    // Only load if we have a user and this is the initial load OR refresh is triggered
+    if (userId && !authState.isLoading && (isInitialLoad || refreshTrigger > 0 || fromSetup || shouldRefresh)) {
       loadCalendarEvents();
-    } else if (!authState.isLoading) {
+    } else if (!authState.isLoading && isInitialLoad) {
       setIsInitialLoad(false);
     }
     
@@ -125,7 +125,7 @@ const CalendarPage: React.FC = () => {
       isMounted = false;
       clearTimeout(loadingTimeout);
     };
-  }, [userId, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents]);
+  }, [userId, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents, navigate]);
   
   const handleRetryLoad = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
