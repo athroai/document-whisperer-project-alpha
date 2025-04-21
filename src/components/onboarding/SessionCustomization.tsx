@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown, Clock, Calendar } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 
 interface SessionCustomizationProps {
   dayName: string;
@@ -11,8 +12,8 @@ interface SessionCustomizationProps {
   startHour: number;
   duration: number;
   onStartHourChange: (hour: number) => void;
-  onDurationChange: (duration: number) => void;
-  onRemoveSession: () => void;
+  onDurationChange: (minutes: number) => void;
+  onRemoveSession?: () => void;
 }
 
 export const SessionCustomization: React.FC<SessionCustomizationProps> = ({
@@ -24,75 +25,74 @@ export const SessionCustomization: React.FC<SessionCustomizationProps> = ({
   onDurationChange,
   onRemoveSession
 }) => {
+  // Generate hour options (6am to 10pm)
+  const hourOptions = Array.from({ length: 17 }, (_, i) => i + 6);
+  
+  // Duration options in minutes
+  const durationOptions = [15, 20, 30, 45, 60, 90, 120];
+  
+  // Format hour for display
   const formatHour = (hour: number) => {
-    if (hour === 0) return '12 AM';
-    if (hour < 12) return `${hour} AM`;
-    if (hour === 12) return '12 PM';
-    return `${hour - 12} PM`;
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:00 ${period}`;
   };
 
   return (
-    <div className="bg-white p-4 rounded-md border border-gray-200 mb-3">
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center">
-          <Calendar className="h-4 w-4 mr-2 text-purple-600" />
-          <span className="text-sm font-medium">
-            {dayName} - Session {sessionIndex + 1}
-          </span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-gray-500 h-8 w-8 p-0"
-          onClick={onRemoveSession}
-        >
-          <ChevronUp className="h-4 w-4" />
-        </Button>
+    <Card className="p-3 mb-2 border-dashed border">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium">Session {sessionIndex + 1}</span>
+        {onRemoveSession && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="h-7 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+            onClick={onRemoveSession}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
       
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs">Start Time: {formatHour(startHour)}</Label>
-          </div>
-          <Slider
-            value={[startHour]}
-            min={9}
-            max={21}
-            step={0.5}
-            onValueChange={(values) => onStartHourChange(values[0])}
-            className="my-2"
-          />
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>9 AM</span>
-            <span>3 PM</span>
-            <span>9 PM</span>
-          </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs text-gray-500">Start Time</Label>
+          <Select 
+            value={startHour.toString()} 
+            onValueChange={value => onStartHourChange(parseInt(value))}
+          >
+            <SelectTrigger className="text-sm h-8">
+              <SelectValue placeholder="Start time" />
+            </SelectTrigger>
+            <SelectContent>
+              {hourOptions.map(hour => (
+                <SelectItem key={hour} value={hour.toString()}>
+                  {formatHour(hour)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
-        <div className="space-y-2">
-          <div className="flex items-center">
-            <Clock className="h-4 w-4 mr-1 text-purple-600" />
-            <Label className="text-xs">Duration: {duration} minutes</Label>
-          </div>
-          <div className="flex justify-between items-center space-x-2">
-            {[15, 30, 45, 60, 90].map((mins) => (
-              <Button
-                key={mins}
-                onClick={() => onDurationChange(mins)}
-                className={`h-7 px-2 py-1 text-xs rounded-full transition-colors ${
-                  duration === mins 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                variant="ghost"
-              >
-                {mins} min
-              </Button>
-            ))}
-          </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-gray-500">Duration</Label>
+          <Select 
+            value={duration.toString()} 
+            onValueChange={value => onDurationChange(parseInt(value))}
+          >
+            <SelectTrigger className="text-sm h-8">
+              <SelectValue placeholder="Duration" />
+            </SelectTrigger>
+            <SelectContent>
+              {durationOptions.map(mins => (
+                <SelectItem key={mins} value={mins.toString()}>
+                  {mins} min
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };

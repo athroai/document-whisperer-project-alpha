@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,8 @@ import { useStudySchedule } from '@/hooks/useStudySchedule';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 export const StudyScheduleStep: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +27,8 @@ export const StudyScheduleStep: React.FC = () => {
     handleSessionsPerDayChange,
     handleAddSession,
     handleRemoveSession,
-    handleContinue
+    handleContinue,
+    error
   } = useStudySchedule();
 
   const onContinue = async () => {
@@ -57,10 +61,10 @@ export const StudyScheduleStep: React.FC = () => {
           
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
-              <Label className="text-sm text-gray-600">Choose your preferred study format:</Label>
+              <Label className="text-sm text-gray-600">Choose initial session count:</Label>
               <Select 
                 value={sessionsPerDay.toString()}
-                onValueChange={(value) => handleSessionsPerDayChange([parseInt(value)])}
+                onValueChange={(value) => handleSessionsPerDayChange(parseInt(value))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Choose session format" />
@@ -76,12 +80,21 @@ export const StudyScheduleStep: React.FC = () => {
             </div>
           </div>
           
-          <p className="text-sm text-gray-500 mt-2">
-            You can customize each session's time and duration individually below. 
-            Feel free to add more sessions to any day.
-          </p>
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-800" />
+            <AlertDescription className="text-sm text-blue-800">
+              You can customize the time and length of each study session individually below. 
+              Add as many sessions as you need to each day.
+            </AlertDescription>
+          </Alert>
         </div>
       </Card>
+      
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
       {selectedDays.map((dayIndex) => (
         <DayTimePreferences

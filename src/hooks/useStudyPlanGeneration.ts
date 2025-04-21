@@ -5,6 +5,7 @@ import { verifyAuth } from '@/lib/supabase';
 import { SubjectPreference } from '@/contexts/onboarding/types';
 import { PreferredStudySlot } from '@/types/study';
 import { format, addDays, getDay } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface StudySession {
   subject: string;
@@ -19,6 +20,7 @@ interface StudySession {
 }
 
 export const useStudyPlanGeneration = (userId: string | undefined, subjects: SubjectPreference[]) => {
+  const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -44,11 +46,31 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
   const generateStudyPlan = async (studySlots: PreferredStudySlot[]) => {
     if (!userId) {
       setError("You must be logged in to generate a study plan");
+      toast({
+        title: "Authentication Required",
+        description: "You must be logged in to generate a study plan",
+        variant: "destructive"
+      });
       return;
     }
     
     if (subjects.length === 0) {
       setError("Please select at least one subject");
+      toast({
+        title: "No Subjects Selected",
+        description: "Please select at least one subject to generate a study plan",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!studySlots || studySlots.length === 0) {
+      setError("Please set up your study schedule first");
+      toast({
+        title: "No Study Schedule",
+        description: "Please set up your study schedule before generating a plan",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -80,20 +102,26 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       }
       
       // Create the study plan in the database
+      const planData = {
+        student_id: userId,
+        name: 'Personalized Study Plan',
+        description: 'AI-generated study plan based on your preferences',
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: addDays(new Date(), 30).toISOString().split('T')[0],
+        is_active: true
+      };
+      
       const { data: plan, error: planError } = await supabase
         .from('study_plans')
-        .insert({
-          student_id: userId,
-          name: 'Personalized Study Plan',
-          description: 'AI-generated study plan based on your preferences',
-          start_date: new Date().toISOString().split('T')[0],
-          end_date: addDays(new Date(), 30).toISOString().split('T')[0],
-          is_active: true
-        })
+        .insert(planData)
         .select()
         .single();
         
-      if (planError) throw planError;
+      if (planError) {
+        console.error("Error creating study plan:", planError);
+        throw new Error("Failed to create study plan in database. Please try again later.");
+      }
+      
       setGenerationProgress(75);
       
       // Create calendar events for the sessions
@@ -118,7 +146,11 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
         .insert(calendarEventsData)
         .select();
         
-      if (eventsError) throw eventsError;
+      if (eventsError) {
+        console.error("Error creating calendar events:", eventsError);
+        throw new Error("Failed to create calendar events. Please try again later.");
+      }
+      
       setGenerationProgress(90);
       
       // Link the calendar events to the study plan
@@ -135,17 +167,33 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
           pomodoro_break_minutes: 5
         }));
         
-        await supabase
+        const { error: sessionsError } = await supabase
           .from('study_plan_sessions')
           .insert(studyPlanSessions);
+          
+        if (sessionsError) {
+          console.error("Error creating study plan sessions:", sessionsError);
+          // Non-critical error, just log it and continue
+        }
       }
       
       setCalendarEvents(createdEvents || []);
       setGenerationProgress(100);
       setIsGenerationComplete(true);
-    } catch (err) {
+      
+      toast({
+        title: "Success",
+        description: "Your study plan has been generated successfully!",
+      });
+    } catch (err: any) {
       console.error("Error generating study plan:", err);
       setError(err instanceof Error ? err.message : "An error occurred while generating your study plan");
+      
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to generate study plan",
+        variant: "destructive"
+      });
     } finally {
       setIsGenerating(false);
     }

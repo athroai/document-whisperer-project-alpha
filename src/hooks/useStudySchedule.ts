@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -24,6 +25,7 @@ export const useStudySchedule = () => {
   const [sessionsPerDay, setSessionsPerDay] = useState<number>(2);
   const [dayPreferences, setDayPreferences] = useState<DayPreference[]>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const { state: authState } = useAuth();
   const { toast } = useToast();
   const { createEvent } = useCalendarEvents();
@@ -78,6 +80,7 @@ export const useStudySchedule = () => {
   }, [selectedDays, sessionsPerDay]);
 
   const handleDayToggle = (dayIndex: number) => {
+    setError(null);
     const newSelectedDays = selectedDays.includes(dayIndex)
       ? selectedDays.filter(d => d !== dayIndex)
       : [...selectedDays, dayIndex].sort();
@@ -122,6 +125,15 @@ export const useStudySchedule = () => {
         sessionTimes: [...p.sessionTimes, { startHour: 15, durationMinutes: 45 }]
       };
     }));
+    
+    // Update sessions per day if we're adding beyond the current setting
+    setSessionsPerDay(prevCount => {
+      const dayPref = dayPreferences.find(p => p.dayIndex === dayIndex);
+      if (dayPref && dayPref.sessionTimes.length + 1 > prevCount) {
+        return dayPref.sessionTimes.length + 1;
+      }
+      return prevCount;
+    });
   };
 
   const handleRemoveSession = (dayIndex: number, sessionIndex: number) => {
@@ -133,8 +145,7 @@ export const useStudySchedule = () => {
     }));
   };
 
-  const handleSessionsPerDayChange = (value: number[]) => {
-    const newCount = value[0];
+  const handleSessionsPerDayChange = (newCount: number) => {
     setSessionsPerDay(newCount);
     
     const defaultDuration = getSessionDurationForCount(newCount);
@@ -256,7 +267,10 @@ export const useStudySchedule = () => {
   };
 
   const handleContinue = async () => {
+    setError(null);
+    
     if (selectedDays.length === 0) {
+      setError("Please select at least one day for your study schedule.");
       toast({
         title: "No Days Selected",
         description: "Please select at least one day for your study schedule.",
@@ -265,11 +279,26 @@ export const useStudySchedule = () => {
       return;
     }
     
+    // Validate that each day has at least one study session
+    for (const dayIndex of selectedDays) {
+      const dayPref = dayPreferences.find(p => p.dayIndex === dayIndex);
+      if (!dayPref || dayPref.sessionTimes.length === 0) {
+        setError(`Please add at least one study session for ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}`);
+        toast({
+          title: "Missing Sessions",
+          description: `Please add at least one study session for ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
     setIsSubmitting(true);
     
     try {
       const newSlots: PreferredStudySlot[] = [];
       
+      // Convert each individual session to a study slot
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
         
@@ -284,17 +313,6 @@ export const useStudySchedule = () => {
               preferred_start_hour: session.startHour
             });
           });
-        } else {
-          for (let i = 0; i < sessionsPerDay; i++) {
-            newSlots.push({
-              id: `temp-${Date.now()}-${dayOfWeek}-${i}`,
-              user_id: authState.user?.id || 'temp-user-id',
-              day_of_week: dayOfWeek,
-              slot_count: 1,
-              slot_duration_minutes: getSessionDurationForCount(sessionsPerDay),
-              preferred_start_hour: 15 + i
-            });
-          }
         }
       });
       
@@ -325,39 +343,40 @@ export const useStudySchedule = () => {
         
         await createCalendarEvents(newSlots, true);
         
+        // Save onboarding progress
         try {
-          const { data, error } = await supabase
-            .from('onboarding_progress')
-            .select('*')
-            .eq('student_id', userId)
-            .maybeSingle();
+          if (userId) {
+            // First check if the record exists
+            const { data, error: fetchError } = await supabase
+              .from('onboarding_progress')
+              .select('*')
+              .eq('student_id', userId)
+              .maybeSingle();
+                
+            if (fetchError) {
+              console.warn('Error checking onboarding progress:', fetchError);
+            } 
             
-          if (error) {
-            console.warn('Error checking onboarding progress:', error);
-          } else if (data) {
-            try {
+            const progressData = {
+              has_completed_availability: true,
+              current_step: 'calendar',
+              updated_at: new Date().toISOString()
+            };
+            
+            if (data) {
+              // Update existing record
               await supabase
                 .from('onboarding_progress')
-                .update({
-                  has_completed_availability: true,
-                  current_step: 'calendar',
-                  updated_at: new Date().toISOString()
-                })
+                .update(progressData)
                 .eq('student_id', userId);
-            } catch (updateError) {
-              console.warn('Error updating onboarding progress:', updateError);
-            }
-          } else {
-            try {
+            } else {
+              // Insert new record
               await supabase
                 .from('onboarding_progress')
                 .insert({
                   student_id: userId,
-                  current_step: 'calendar',
-                  has_completed_availability: true
+                  ...progressData
                 });
-            } catch (insertError) {
-              console.warn('Error creating onboarding progress:', insertError);
             }
           }
         } catch (progressError) {
@@ -369,21 +388,6 @@ export const useStudySchedule = () => {
       
       updateOnboardingStep('calendar');
       
-      selectedDays.forEach(dayOfWeek => {
-        const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
-        
-        if (dayPreference) {
-          dayPreference.sessionTimes.forEach(session => {
-            updateStudySlots({
-              dayOfWeek,
-              slotCount: 1,
-              slotDurationMinutes: session.durationMinutes,
-              preferredStartHour: session.startHour
-            });
-          });
-        }
-      });
-      
       navigate('/calendar?fromSetup=true');
       
       toast({
@@ -392,6 +396,7 @@ export const useStudySchedule = () => {
       });
     } catch (error: any) {
       console.error('Error saving study slots:', error);
+      setError(error.message || "Failed to save study schedule. Please try again.");
       toast({
         title: "Warning",
         description: "Study schedule saved locally only. You can still use the calendar.",
@@ -411,6 +416,7 @@ export const useStudySchedule = () => {
     dayPreferences,
     isSubmitting,
     sessionOptions,
+    error,
     handleDayToggle,
     handleSessionTimeChange,
     handleSessionDurationChange,
