@@ -1,4 +1,3 @@
-
 import { ConfidenceLabel } from './confidence';
 
 export interface StudySession {
@@ -8,6 +7,12 @@ export interface StudySession {
   endTime: Date;
   completed: boolean;
   confidence?: ConfidenceLabel;
+  topic?: string;
+  duration?: number;
+  notes?: string;
+  summary?: string;
+  confidenceBefore?: ConfidenceLabel;
+  confidenceAfter?: ConfidenceLabel;
 }
 
 export interface StudyPlan {

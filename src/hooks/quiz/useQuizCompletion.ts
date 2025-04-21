@@ -1,135 +1,81 @@
 
-import { toast } from 'sonner';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Question } from '@/types/quiz';
-import { ConfidenceLabel, mapScoreToConfidence } from '@/types/confidence';
-import { UseQuizState } from './types';
+import { useAuth } from '@/contexts/AuthContext';
+import { ConfidenceLabel } from '@/types/confidence';
 
-export async function handleQuizCompletion(
-  userId: string,
-  quizState: UseQuizState,
-  subject: string
-) {
-  let correctCount = 0;
-  let totalQuestions = quizState.questions.length;
-  
-  quizState.questions.forEach((question, index) => {
-    const userAnswerId = quizState.selectedAnswers[index];
-    if (userAnswerId) {
-      const selectedAnswer = question.answers?.find(a => a.id === userAnswerId);
-      if (selectedAnswer && selectedAnswer.isCorrect) {
-        correctCount++;
-      }
-    }
-  });
-
-  const scorePercentage = Math.round((correctCount / totalQuestions) * 100);
-  
-  try {
-    console.log(`Quiz completed for ${subject}. Score: ${correctCount}/${totalQuestions} (${scorePercentage}%)`);
-    
-    let helpLevel = "medium";
-    if (scorePercentage >= 80) {
-      helpLevel = "low";
-    } else if (scorePercentage <= 40) {
-      helpLevel = "high";
-    }
-
-    await saveQuizResults(userId, subject, correctCount, totalQuestions, scorePercentage);
-    await updateStudentPreferences(userId, subject, scorePercentage, helpLevel);
-
-    quizState.setScore(scorePercentage);
-    quizState.setQuizCompleted(true);
-    quizState.setQuizResults(prev => ({ ...prev, [subject]: scorePercentage }));
-    
-    if (quizState.onQuizComplete) {
-      quizState.onQuizComplete(subject, scorePercentage);
-    }
-    
-    toast.success(`You scored ${scorePercentage}% on ${subject}`);
-    
-    return scorePercentage;
-  } catch (error: any) {
-    console.error('Error saving quiz result:', error);
-    throw new Error(error.message || "Could not save your quiz results");
-  }
+// Helper function to map score to confidence
+function mapScoreToConfidence(score: number): ConfidenceLabel {
+  if (score >= 80) return 'high';
+  if (score >= 60) return 'medium';
+  return 'low';
 }
 
-async function saveQuizResults(
-  userId: string,
-  subject: string,
-  correctCount: number,
-  totalQuestions: number,
-  scorePercentage: number
-) {
-  await supabase
-    .from('diagnostic_quiz_results')
-    .insert({
-      student_id: userId,
-      subject: subject,
-      score: correctCount,
-      total_questions: totalQuestions
-    })
-    .select();
-
-  await supabase
-    .from('diagnostic_results')
-    .insert({
-      student_id: userId,
-      subject_name: subject,
-      percentage_accuracy: scorePercentage
-    })
-    .select();
-}
-
-async function updateStudentPreferences(
-  userId: string,
-  subject: string,
-  scorePercentage: number,
-  helpLevel: string
-) {
-  const confidenceValue: ConfidenceLabel = mapScoreToConfidence(scorePercentage);
-
-  await supabase
-    .from('student_subject_preferences')
-    .upsert({
-      student_id: userId,
-      subject: subject,
-      confidence_level: confidenceValue
-    }, { onConflict: 'student_id, subject' });
-
-  try {
-    const { data: existingSubject } = await supabase
-      .from('student_subjects')
-      .select('*')
-      .eq('student_id', userId)
-      .eq('subject_name', subject)
-      .maybeSingle();
+export const useQuizCompletion = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const { state } = useAuth();
+  
+  const completeQuiz = async (
+    subject: string, 
+    topic: string | null, 
+    score: number, 
+    maxScore: number,
+    durationSeconds: number
+  ) => {
+    if (!state.user) {
+      setError("You must be logged in to save quiz results");
+      return;
+    }
     
-    if (existingSubject) {
-      await supabase
-        .from('student_subjects')
-        .update({ help_level: helpLevel })
-        .eq('id', existingSubject.id);
-    } else {
-      await supabase
-        .from('student_subjects')
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      const confidence = mapScoreToConfidence(Math.round((score / maxScore) * 100));
+      
+      const { error: quizError } = await supabase
+        .from('quiz_results')
         .insert({
-          student_id: userId,
-          subject_name: subject,
-          help_level: helpLevel
+          student_id: state.user.id,
+          score,
+          max_score: maxScore,
+          subject,
+          topic: topic || undefined,
+          duration: durationSeconds
         });
+        
+      if (quizError) throw quizError;
+      
+      // Also update progress signals
+      const { error: progressError } = await supabase
+        .from('ai_progress_signals')
+        .upsert({
+          user_id: state.user.id,
+          subject,
+          topic: topic || subject,
+          avg_confidence: confidence === 'high' ? 8 : confidence === 'medium' ? 5 : 2,
+          last_confidence: confidence
+        }, { 
+          onConflict: 'user_id, subject, topic' 
+        });
+        
+      if (progressError) throw progressError;
+      
+      setSuccess(true);
+    } catch (err: any) {
+      console.error("Error saving quiz results:", err);
+      setError(err.message || "Failed to save quiz results");
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (e) {
-    console.error("Error updating student_subjects:", e);
-  }
-
-  await supabase
-    .from('onboarding_progress')
-    .insert({
-      student_id: userId,
-      current_step: 'diagnosticQuiz',
-      has_completed_diagnostic: true
-    })
-    .select();
-}
+  };
+  
+  return {
+    completeQuiz,
+    isSubmitting,
+    error,
+    success
+  };
+};

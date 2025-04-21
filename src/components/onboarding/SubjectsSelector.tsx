@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Check, Plus } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ConfidenceLabel, confidenceOptions } from '@/types/confidence';
+import { ConfidenceLabel } from '@/types/confidence';
 
 export const SubjectsSelector: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject, updateOnboardingStep } = useOnboarding();
   const { subjects, isLoading } = useSubjects();
+
+  const confidenceOptions: ConfidenceLabel[] = ['low', 'medium', 'high'];
 
   const isSubjectSelected = (subject: string) => {
     return selectedSubjects.some(s => s.subject === subject);
@@ -19,7 +21,7 @@ export const SubjectsSelector: React.FC = () => {
     if (isSubjectSelected(subject)) {
       removeSubject(subject);
     } else {
-      selectSubject(subject, "Neutral" as ConfidenceLabel);
+      selectSubject(subject, "medium" as ConfidenceLabel);
     }
   };
 
@@ -45,7 +47,7 @@ export const SubjectsSelector: React.FC = () => {
         {subjects.map((subject) => {
           const isSelected = isSubjectSelected(subject);
           const subjectData = selectedSubjects.find(s => s.subject === subject);
-          const currentConfidence = subjectData?.confidence || "Neutral";
+          const currentConfidence = subjectData?.confidence || "medium";
           
           return (
             <div key={subject} className="border rounded-lg p-4 bg-white">
@@ -78,7 +80,7 @@ export const SubjectsSelector: React.FC = () => {
                     <SelectContent>
                       {confidenceOptions.map((option) => (
                         <SelectItem key={option} value={option}>
-                          {option}
+                          {option.charAt(0).toUpperCase() + option.slice(1)}
                         </SelectItem>
                       ))}
                     </SelectContent>

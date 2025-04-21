@@ -34,7 +34,7 @@ export const SlotOptionSelector: React.FC<SlotOptionSelectorProps> = ({
                 <div className="text-sm text-gray-500 mt-1">{option.count} × {option.duration}min</div>
               </div>
               <div className={`${option.color} p-2 rounded-md text-white`}>
-                <Icon className="h-4 w-4" />
+                <Icon />
               </div>
             </div>
           </div>

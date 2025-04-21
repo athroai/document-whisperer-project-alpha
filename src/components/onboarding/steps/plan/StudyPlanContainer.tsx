@@ -178,11 +178,9 @@ export const StudyPlanContainer: React.FC = () => {
 
   const calculateSessionsPerWeek = (confidence: ConfidenceLabel) => {
     switch(confidence) {
-      case 'Very Low': return 5;
-      case 'Low': return 4;
-      case 'Neutral': return 3;
-      case 'High': return 2;
-      case 'Very High': return 1;
+      case 'low': return 5;
+      case 'medium': return 3;
+      case 'high': return 1;
       default: return 3;
     }
   };

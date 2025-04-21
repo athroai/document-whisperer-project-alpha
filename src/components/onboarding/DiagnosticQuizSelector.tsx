@@ -1,162 +1,56 @@
 
 import React, { useState } from 'react';
-import { useOnboarding } from '@/contexts/OnboardingContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useNavigate } from 'react-router-dom';
 import { useSubjects } from '@/hooks/useSubjects';
-import { useQuiz } from '@/hooks/useQuiz';
-import { SubjectQuizCard } from './quiz/SubjectQuizCard';
-import { QuizQuestion } from './quiz/QuizQuestion';
-import { useToast } from '@/hooks/use-toast';
-import { ConfidenceLabel, confidenceOptions } from '@/types/confidence';
-import { cn } from '@/lib/utils';
-import { QuizResult } from '@/hooks/quiz/types';
-import { Question } from '@/types/quiz';
+import { ConfidenceLabel } from '@/types/confidence';
 
 export const DiagnosticQuizSelector: React.FC = () => {
-  const { toast: uiToast } = useToast();
-  const { selectedSubjects, updateOnboardingStep } = useOnboarding();
-  const { subjects, isLoading: isLoadingSubjects } = useSubjects();
-  const [selectedConfidence, setSelectedConfidence] = useState<ConfidenceLabel>("Neutral");
+  const { subjects, isLoading } = useSubjects();
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const navigate = useNavigate();
   
-  const { 
-    currentSubject,
-    questions,
-    currentQuestionIndex,
-    selectedAnswers,
-    error,
-    isLoadingQuestions,
-    isGenerating,
-    quizResults,
-    startQuiz,
-    handleAnswerSelect,
-    handleNextQuestion,
-    setError
-  } = useQuiz({
-    onQuizComplete: (subject: string, score: number) => {
-      uiToast({
-        description: `You scored ${score}% on ${subject}`,
-      });
+  const handleStartQuiz = () => {
+    if (selectedSubject) {
+      navigate(`/diagnostic?subject=${encodeURIComponent(selectedSubject)}&confidence=medium`);
     }
-  });
-
-  const handleStartQuiz = (subject: string) => {
-    if (!subject.trim()) return;
-    startQuiz(subject.trim(), selectedConfidence);
   };
-
-  const allQuizzesCompleted = () => {
-    return selectedSubjects.length > 0 && 
-      selectedSubjects.every(subject => {
-        const result = quizResults[subject.subject];
-        return result !== undefined;
-      });
-  };
-
-  const handleContinue = () => {
-    updateOnboardingStep('generatePlan');
-  };
-
-  if (isLoadingSubjects) {
-    return <div className="text-center py-4">Loading subjects...</div>;
-  }
-
-  const subjectsToShow = selectedSubjects?.map(subject => subject.subject) || [];
   
-  if (!subjectsToShow || subjectsToShow.length === 0) {
-    return (
-      <div className="text-center py-4">
-        <p>No subjects selected. Please go back to the previous step to select subjects.</p>
-      </div>
-    );
+  if (isLoading) {
+    return <div>Loading subjects...</div>;
   }
-
-  if (currentSubject && questions.length > 0) {
-    const currentQuestion = questions[currentQuestionIndex];
-    
-    return (
-      <QuizQuestion
-        question={{
-          id: currentQuestion.id,
-          text: currentQuestion.question || currentQuestion.text,
-          options: currentQuestion.options || [],
-          correctAnswer: currentQuestion.correctAnswer,
-          difficulty: currentQuestion.difficulty,
-          subject: currentQuestion.subject
-        }}
-        currentIndex={currentQuestionIndex}
-        totalQuestions={questions.length}
-        selectedAnswerId={selectedAnswers[currentQuestionIndex]}
-        onAnswerSelect={handleAnswerSelect}
-        onNextQuestion={handleNextQuestion}
-        subject={currentSubject}
-      />
-    );
-  }
-
+  
+  const confidenceOptions: ConfidenceLabel[] = ['low', 'medium', 'high'];
+  
   return (
-    <div className="space-y-6">
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">How confident are you in these subjects?</h3>
-        <p className="text-sm text-muted-foreground">
-          We'll use this to choose how challenging your quiz should be.
-        </p>
-        
-        <div className="flex flex-wrap gap-2">
-          {confidenceOptions.map((confidence) => (
-            <Button
-              key={confidence}
-              onClick={() => setSelectedConfidence(confidence)}
-              variant={selectedConfidence === confidence ? "default" : "outline"}
-              className={cn(
-                "flex-1 min-w-[120px]",
-                selectedConfidence === confidence && "bg-purple-600 hover:bg-purple-700"
-              )}
-            >
-              {confidence}
-            </Button>
-          ))}
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {subjectsToShow.map((subject) => (
-          <SubjectQuizCard
-            key={subject}
-            subject={String(subject)}
-            score={typeof quizResults[subject] === 'number' 
-              ? quizResults[subject] as number
-              : (quizResults[subject] as QuizResult)?.score}
-            isLoading={isLoadingQuestions[subject] || false}
-            isGenerating={isGenerating[subject] || false}
-            onStartQuiz={() => handleStartQuiz(String(subject))}
-            disabled={currentSubject !== null}
-          />
-        ))}
-      </div>
-      
-      <div className="flex justify-between mt-6">
-        <Button 
-          variant="outline"
-          onClick={() => updateOnboardingStep('generatePlan')}
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <label htmlFor="subject-select" className="text-sm font-medium">
+          Select a subject to test your knowledge
+        </label>
+        <Select
+          value={selectedSubject}
+          onValueChange={setSelectedSubject}
         >
-          Skip All Quizzes
-        </Button>
-        <Button 
-          onClick={handleContinue}
-          disabled={!allQuizzesCompleted()}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          Continue
-        </Button>
+          <SelectTrigger id="subject-select">
+            <SelectValue placeholder="Choose a subject" />
+          </SelectTrigger>
+          <SelectContent>
+            {subjects.map(subject => (
+              <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+      
+      <Button 
+        onClick={handleStartQuiz}
+        disabled={!selectedSubject}
+        className="w-full"
+      >
+        Start Diagnostic Quiz
+      </Button>
     </div>
   );
 };

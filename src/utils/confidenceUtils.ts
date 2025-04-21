@@ -1,16 +1,14 @@
 
-import { ConfidenceLabel, mapLegacyConfidence } from '@/types/confidence';
+import { ConfidenceLabel } from '@/types/confidence';
 
 export function getConfidenceChange(beforeLabel: string | number | ConfidenceLabel, afterLabel: string | number | ConfidenceLabel): string {
   const before = parseConfidence(beforeLabel);
   const after = parseConfidence(afterLabel);
   
   const confidenceOrder = [
-    "Very Low",
-    "Low",
-    "Neutral",
-    "High", 
-    "Very High"
+    "low",
+    "medium",
+    "high"
   ];
   
   const beforeIndex = confidenceOrder.indexOf(before);
@@ -37,33 +35,32 @@ export function getConfidenceColor(label: string): string {
 
 // Helper to ensure confidence value is a valid label
 export function parseConfidence(value: string | number | undefined | null): ConfidenceLabel {
-  if (value === undefined || value === null) return "Neutral";
+  if (value === undefined || value === null) return "medium";
   
   // Handle number to string conversion (legacy support)
   if (typeof value === 'number') {
-    if (value >= 8) return "Very High";
-    if (value >= 6) return "High";
-    if (value >= 4) return "Neutral";
-    if (value >= 2) return "Low";
-    return "Very Low";
+    if (value >= 8) return "high";
+    if (value >= 4) return "medium";
+    return "low";
   }
   
   // Handle legacy confidence labels
   if (typeof value === 'string' && 
       ['Very confident', 'Slightly confident', 'Slightly unsure', 'Very unsure'].includes(value)) {
-    return mapLegacyConfidence(value);
+    if (value === 'Very confident') return "high";
+    if (value === 'Slightly confident') return "medium";
+    if (value === 'Slightly unsure') return "medium";
+    if (value === 'Very unsure') return "low";
   }
   
   // For string values
   const validLabels: ConfidenceLabel[] = [
-    "Very High",
-    "High",
-    "Neutral",
-    "Low",
-    "Very Low"
+    "high",
+    "medium",
+    "low"
   ];
   
   return validLabels.includes(value as ConfidenceLabel) 
     ? value as ConfidenceLabel 
-    : "Neutral";
+    : "medium";
 }

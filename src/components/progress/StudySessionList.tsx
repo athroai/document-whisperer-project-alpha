@@ -1,96 +1,94 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Clock, RefreshCw, BookOpen, ArrowRight } from 'lucide-react';
-import { formatDistance, format } from 'date-fns';
+import React, { useState } from 'react';
 import { StudySession } from '@/types/study';
-import { getConfidenceChange, getConfidenceColor, parseConfidence } from '@/utils/confidenceUtils';
-import { ConfidenceLabel } from '@/types/confidence';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { 
+  Clock, 
+  Calendar, 
+  ChevronDown, 
+  ChevronUp,
+  FileText, 
+  ThumbsUp, 
+  ThumbsDown,
+  Bookmark 
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface StudySessionListProps {
   sessions: StudySession[];
-  isLoading: boolean;
-  groupBySubject: boolean;
-  confidenceFilter: 'all' | 'unsure';
-  subjectFilter: string;
-  onScheduleReview: (subject: string, topic: string | undefined, sessionId?: string) => void;
+  loading?: boolean;
 }
 
-const StudySessionList: React.FC<StudySessionListProps> = ({
-  sessions,
-  isLoading,
-  groupBySubject,
-  confidenceFilter,
-  subjectFilter,
-  onScheduleReview
-}) => {
-  // Apply filters
-  const filteredSessions = sessions.filter(session => {
-    // Filter by confidence
-    if (confidenceFilter === 'unsure') {
-      // Include "Still unsure" or "No change" sessions
-      if (session.confidence_after !== undefined && session.confidence_before !== undefined) {
-        const confidenceChange = getConfidenceChange(
-          parseConfidence(session.confidence_before),
-          parseConfidence(session.confidence_after)
-        );
-        if (confidenceChange !== "Still unsure" && confidenceChange !== "No change") return false;
-      }
+export const StudySessionList: React.FC<StudySessionListProps> = ({ sessions, loading }) => {
+  const [expandedSession, setExpandedSession] = useState<string | null>(null);
+
+  const getConfidenceChange = (session: StudySession) => {
+    if (!session.confidenceAfter || !session.confidenceBefore) {
+      return null;
     }
     
-    // Filter by subject
-    if (subjectFilter !== 'all' && session.subject !== subjectFilter) {
-      return false;
-    }
+    const beforeValue = session.confidenceBefore;
+    const afterValue = session.confidenceAfter;
     
-    return true;
-  });
+    if (afterValue === beforeValue) {
+      return "No change";
+    } else if (afterValue === "high" && beforeValue !== "high") {
+      return "Greatly improved";
+    } else if (afterValue === "medium" && beforeValue === "low") {
+      return "Slightly improved";
+    } else {
+      return "Needs more work";
+    }
+  };
   
-  // Group sessions by subject if requested
-  const groupedSessions: [string, StudySession[]][] = groupBySubject 
-    ? Object.entries(
-        filteredSessions.reduce((acc: {[key: string]: StudySession[]}, session) => {
-          const subject = session.subject || 'Other';
-          if (!acc[subject]) acc[subject] = [];
-          acc[subject].push(session);
-          return acc;
-        }, {})
-      )
-    : [['All', filteredSessions]];
-  
-  if (isLoading) {
+  const getConfidenceBadgeColor = (changeType: string | null) => {
+    if (!changeType) return "bg-gray-100 text-gray-800";
+    
+    switch (changeType) {
+      case "Greatly improved":
+        return "bg-green-100 text-green-800";
+      case "Slightly improved":
+        return "bg-blue-100 text-blue-800";
+      case "No change":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-red-100 text-red-800";
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="grid gap-6">
+      <div className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <Card key={i}>
+          <Card key={i} className="animate-pulse">
             <CardHeader>
-              <Skeleton className="h-8 w-1/3" />
-              <Skeleton className="h-4 w-1/4" />
+              <div className="h-5 bg-gray-200 rounded w-1/3"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-24 w-full" />
+              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
             </CardContent>
           </Card>
         ))}
       </div>
     );
   }
-  
-  if (filteredSessions.length === 0) {
+
+  if (!sessions || sessions.length === 0) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <div className="text-center py-8">
-            <BookOpen className="mx-auto h-12 w-12 text-gray-300" />
-            <h3 className="mt-4 text-lg font-medium">No study sessions found</h3>
-            <p className="mt-1 text-gray-500">
-              {confidenceFilter !== 'all' || subjectFilter !== 'all'
-                ? "Try changing your filters to see more sessions"
-                : "Once you complete some study sessions, they will appear here"}
-            </p>
+          <div className="text-center text-gray-500">
+            <p>No study sessions found</p>
           </div>
         </CardContent>
       </Card>
@@ -98,103 +96,111 @@ const StudySessionList: React.FC<StudySessionListProps> = ({
   }
 
   return (
-    <div className="space-y-8">
-      {groupedSessions.map(([subject, subjectSessions]) => (
-        <div key={subject} className="space-y-4">
-          {groupBySubject && (
-            <div className="flex items-center">
-              <h2 className="text-xl font-semibold">{subject}</h2>
-              <Badge variant="outline" className="ml-2">
-                {subjectSessions.length} {subjectSessions.length === 1 ? 'session' : 'sessions'}
-              </Badge>
-            </div>
-          )}
-          
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {subjectSessions.map((session) => {
-              const confidenceLabel = session.confidence_after !== undefined && session.confidence_before !== undefined
-                ? getConfidenceChange(
-                    parseConfidence(session.confidence_before),
-                    parseConfidence(session.confidence_after)
-                  )
-                : "No change";
+    <div className="space-y-4">
+      {sessions.map((session) => {
+        const isExpanded = expandedSession === session.id;
+        const confidenceChange = getConfidenceChange(session);
+        const badgeColor = getConfidenceBadgeColor(confidenceChange);
+        
+        return (
+          <Card key={session.id} className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>{session.subject}</CardTitle>
+                  {session.topic && (
+                    <CardDescription className="mt-1">
+                      Topic: {session.topic}
+                    </CardDescription>
+                  )}
+                </div>
                 
-              const confidenceColor = getConfidenceColor(confidenceLabel);
+                {confidenceChange && (
+                  <Badge className={badgeColor}>
+                    {confidenceChange}
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            
+            <CardContent className="pb-3">
+              <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                <div className="flex items-center">
+                  <Calendar className="mr-1 h-4 w-4" />
+                  {format(new Date(session.startTime), 'PPP')}
+                </div>
+                
+                <div className="flex items-center">
+                  <Clock className="mr-1 h-4 w-4" />
+                  {format(new Date(session.startTime), 'p')} - {format(new Date(session.endTime), 'p')}
+                </div>
+                
+                {session.duration && (
+                  <div className="flex items-center">
+                    <Clock className="mr-1 h-4 w-4" />
+                    {session.duration} minutes
+                  </div>
+                )}
+              </div>
               
-              return (
-                <Card key={session.id} className="flex flex-col h-full">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-base font-medium">
-                          {session.topic || session.subject}
-                        </CardTitle>
-                        {session.topic && (
-                          <CardDescription className="mt-1">{session.subject}</CardDescription>
-                        )}
-                      </div>
-                      <Badge className={`${confidenceColor}`}>
-                        {confidenceLabel}
-                      </Badge>
+              {isExpanded && (
+                <div className="space-y-4 mt-4 border-t pt-4">
+                  {session.confidenceBefore && (
+                    <div className="flex items-center gap-2">
+                      <ThumbsDown className="h-4 w-4 text-red-500" />
+                      <span className="text-sm font-medium">Confidence before: </span>
+                      <span className="text-sm">{session.confidenceBefore}</span>
                     </div>
-                  </CardHeader>
+                  )}
                   
-                  <CardContent className="flex-grow">
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center text-gray-500">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        <span>{session.start_time ? format(new Date(session.start_time), 'PPP') : 'Unknown date'}</span>
-                      </div>
-                      
-                      {session.duration_minutes && (
-                        <div className="flex items-center text-gray-500">
-                          <Clock className="mr-2 h-4 w-4" />
-                          <span>{session.duration_minutes} minutes</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center mt-2">
-                        <span className="text-gray-600 font-medium">Confidence:</span>
-                        <span className="mx-2">{session.confidence_before !== undefined ? parseConfidence(session.confidence_before) : 'N/A'}</span>
-                        <ArrowRight className="h-3 w-3 text-gray-400" />
-                        <span className="ml-2">{session.confidence_after !== undefined ? parseConfidence(session.confidence_after) : 'N/A'}</span>
-                      </div>
-                      
-                      {session.notes && (
-                        <div className="mt-3">
-                          <div className="font-medium text-gray-600 mb-1">Notes:</div>
-                          <div className="text-gray-600 text-sm line-clamp-3">{session.notes}</div>
-                        </div>
-                      )}
-                      
-                      {session.summary && (
-                        <div className="mt-3">
-                          <div className="font-medium text-gray-600 mb-1">Summary:</div>
-                          <div className="text-gray-600 text-sm line-clamp-3">{session.summary}</div>
-                        </div>
-                      )}
+                  {session.confidenceAfter && (
+                    <div className="flex items-center gap-2">
+                      <ThumbsUp className="h-4 w-4 text-green-500" />
+                      <span className="text-sm font-medium">Confidence after: </span>
+                      <span className="text-sm">{session.confidenceAfter}</span>
                     </div>
-                  </CardContent>
+                  )}
                   
-                  <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => onScheduleReview(session.subject, session.topic, session.id)}
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" /> 
-                      Review this topic again
-                    </Button>
-                  </CardFooter>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+                  {session.notes && (
+                    <div>
+                      <div className="text-sm font-medium flex items-center gap-1 mb-1">
+                        <FileText className="h-4 w-4" /> Notes:
+                      </div>
+                      <div className="text-sm bg-gray-50 p-3 rounded-md">
+                        {session.notes}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {session.summary && (
+                    <div>
+                      <div className="text-sm font-medium flex items-center gap-1 mb-1">
+                        <Bookmark className="h-4 w-4" /> Summary:
+                      </div>
+                      <div className="text-sm bg-gray-50 p-3 rounded-md">
+                        {session.summary}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <Button
+                variant="ghost" 
+                size="sm" 
+                className="w-full mt-2 text-gray-500"
+                onClick={() => setExpandedSession(isExpanded ? null : session.id)}
+              >
+                {isExpanded ? (
+                  <><ChevronUp className="h-4 w-4 mr-1" /> Show less</>
+                ) : (
+                  <><ChevronDown className="h-4 w-4 mr-1" /> {session.topic ? `View details` : `Show more`}</>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };
-
-export default StudySessionList;
