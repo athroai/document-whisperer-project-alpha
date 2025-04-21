@@ -160,7 +160,7 @@ const DayPlannerView: React.FC<DayPlannerViewProps> = ({
                               className="group"
                             >
                               <Card className="cursor-move border-l-4 hover:shadow-md transition-shadow duration-200"
-                                style={{ borderLeftColor: colorStyle.borderColor }}
+                                style={{ borderLeftColor: colorStyle.color }}
                               >
                                 <CardContent className="p-4">
                                   <div className="flex justify-between items-start">
