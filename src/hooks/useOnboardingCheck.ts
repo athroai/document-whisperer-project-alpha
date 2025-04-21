@@ -167,7 +167,7 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
         .then(() => {
           console.log('Cleared existing calendar events for restart');
         })
-        .catch(err => {
+        .catch((err) => {
           console.error('Failed to clear calendar events:', err);
         });
     }

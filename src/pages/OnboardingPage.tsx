@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SubjectSelector } from '@/components/onboarding/core/SubjectSelector';
 import { AvailabilitySettings } from '@/components/onboarding/core/AvailabilitySettings';
 import { StudyPreferences } from '@/components/onboarding/core/StudyPreferences';
@@ -16,10 +15,14 @@ type OnboardingStep = 'subjects' | 'availability' | 'preferences' | 'generate';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isRestarting = searchParams.get('restart') === 'true';
   const { toast } = useToast();
   const { state: authState } = useAuth();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('subjects');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
   
   const [onboardingData, setOnboardingData] = useState({
     subjects: [] as {subject: string, confidence: 'low' | 'medium' | 'high'}[],
@@ -44,7 +47,12 @@ const OnboardingPage: React.FC = () => {
       if (!authState.user || authState.isLoading) return;
 
       try {
-        if (localStorage.getItem('onboarding_completed') === 'true') {
+        if (isRestarting) {
+          setInitialCheckDone(true);
+          return;
+        }
+
+        if (localStorage.getItem('onboarding_completed') === 'true' && !isRestarting) {
           navigate('/calendar');
           return;
         }
@@ -55,30 +63,29 @@ const OnboardingPage: React.FC = () => {
           .eq('student_id', authState.user.id)
           .maybeSingle();
 
-        if (data?.completed_at) {
+        if (data?.completed_at && !isRestarting) {
           localStorage.setItem('onboarding_completed', 'true');
           navigate('/calendar');
         }
+        
+        setInitialCheckDone(true);
       } catch (err) {
         console.error('Error checking onboarding status:', err);
+        setInitialCheckDone(true);
       }
     };
 
     checkOnboardingStatus();
-  }, [authState.user, authState.isLoading, navigate]);
+  }, [authState.user, authState.isLoading, navigate, isRestarting]);
 
   useEffect(() => {
-    // Clear stale onboarding flags on initial load
-    if (authState.user && !authState.isLoading) {
-      // If user just signed in, clear any stale onboarding completion flags
-      const sessionAge = localStorage.getItem('auth_session_created');
-      if (sessionAge && (Date.now() - parseInt(sessionAge)) < 10000) { // 10 seconds
-        localStorage.removeItem('onboarding_completed');
-      }
+    if (isRestarting && authState.user && !authState.isLoading) {
+      console.log('Clearing onboarding completion data for restart');
+      localStorage.removeItem('onboarding_completed');
     }
-  }, [authState.user, authState.isLoading]);
+  }, [isRestarting, authState.user, authState.isLoading]);
 
-  const nextStep = () => {
+  function nextStep() {
     switch (currentStep) {
       case 'subjects':
         if (onboardingData.subjects.length === 0) {
@@ -100,9 +107,9 @@ const OnboardingPage: React.FC = () => {
       default:
         break;
     }
-  };
+  }
 
-  const prevStep = () => {
+  function prevStep() {
     switch (currentStep) {
       case 'availability':
         setCurrentStep('subjects');
@@ -116,30 +123,30 @@ const OnboardingPage: React.FC = () => {
       default:
         break;
     }
-  };
+  }
 
-  const updateSubjects = (subjects: {subject: string, confidence: 'low' | 'medium' | 'high'}[]) => {
+  function updateSubjects(subjects: {subject: string, confidence: 'low' | 'medium' | 'high'}[]) {
     setOnboardingData(prev => ({
       ...prev,
       subjects
     }));
-  };
+  }
 
-  const updateAvailability = (availability: typeof onboardingData.availability) => {
+  function updateAvailability(availability: typeof onboardingData.availability) {
     setOnboardingData(prev => ({
       ...prev,
       availability
     }));
-  };
+  }
 
-  const updatePreferences = (preferences: typeof onboardingData.preferences) => {
+  function updatePreferences(preferences: typeof onboardingData.preferences) {
     setOnboardingData(prev => ({
       ...prev,
       preferences
     }));
-  };
+  }
 
-  const completeOnboarding = async () => {
+  async function completeOnboarding() {
     if (!authState.user) {
       toast({
         title: "Authentication required",
@@ -303,13 +310,13 @@ const OnboardingPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }
 
-  const goToCalendar = () => {
+  function goToCalendar() {
     navigate('/calendar?fromSetup=true&refresh=true');
-  };
+  }
 
-  const renderStep = () => {
+  function renderStep() {
     switch (currentStep) {
       case 'subjects':
         return (
@@ -346,9 +353,9 @@ const OnboardingPage: React.FC = () => {
       default:
         return null;
     }
-  };
+  }
 
-  const getProgressPercentage = () => {
+  function getProgressPercentage() {
     switch (currentStep) {
       case 'subjects': return 25;
       case 'availability': return 50;
@@ -356,9 +363,9 @@ const OnboardingPage: React.FC = () => {
       case 'generate': return generationComplete ? 100 : 90;
       default: return 0;
     }
-  };
+  }
 
-  if (authState.isLoading) {
+  if (authState.isLoading || (!initialCheckDone && !isRestarting)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-purple-600" />

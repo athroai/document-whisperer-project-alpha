@@ -24,7 +24,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
     );
     
     if (confirmed) {
-      // Call the onRestartOnboarding prop directly without any additional logic
+      // Call the onRestartOnboarding prop directly
       onRestartOnboarding();
     }
   };

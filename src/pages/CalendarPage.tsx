@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -27,8 +28,12 @@ const CalendarPage: React.FC = () => {
   
   const fromSetup = searchParams.get('fromSetup') === 'true';
   const shouldRefresh = searchParams.get('refresh') === 'true';
+  // Set redirectOnNeeded to false to prevent automatic redirects from within the hook itself
   const { needsOnboarding, isLoading: checkingOnboarding, restartOnboarding } = useOnboardingCheck(false);
 
+  // Check URL parameters to see if we're restarting onboarding
+  const isRestartingOnboarding = searchParams.get('restart') === 'true';
+  
   const handleRetryLoad = useCallback(() => {
     const now = Date.now();
     if (manualRefreshInProgress.current || (now - lastRefreshTime.current < 3000)) {
@@ -69,6 +74,13 @@ const CalendarPage: React.FC = () => {
       calendarMountedRef.current = false;
     };
   }, []);
+
+  // If the URL has a restart=true parameter, immediately go to onboarding
+  useEffect(() => {
+    if (isRestartingOnboarding && !checkingOnboarding) {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [isRestartingOnboarding, checkingOnboarding, navigate]);
 
   useEffect(() => {
     if (authState.isLoading) return;
@@ -142,6 +154,7 @@ const CalendarPage: React.FC = () => {
     };
   }, [authState.user?.id, isInitialLoad, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh]);
 
+  // Modified to manually check onboarding status and redirect if needed without OnboardingCheck's internal redirects
   useEffect(() => {
     if (!checkingOnboarding && needsOnboarding === true && authState.user && calendarMountedRef.current) {
       toast({
