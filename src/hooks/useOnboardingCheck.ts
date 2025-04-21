@@ -16,10 +16,18 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
   
   const isOnboardingPage = location.pathname.includes('onboarding');
   const hasFromSetupParam = new URLSearchParams(location.search).get('fromSetup') === 'true';
+  const isRestartingOnboarding = new URLSearchParams(location.search).get('restart') === 'true';
   
   useEffect(() => {
-    // Only check once per component mount
-    if (hasChecked.current) return;
+    // If explicitly restarting onboarding, clear the local storage flag
+    if (isRestartingOnboarding) {
+      console.log('Restarting onboarding, clearing local storage flag');
+      localStorage.removeItem('onboarding_completed');
+      hasChecked.current = false; // Reset check to force a re-check
+    }
+    
+    // Only check once per component mount, unless explicitly restarting
+    if (hasChecked.current && !isRestartingOnboarding) return;
     
     const checkOnboardingStatus = async () => {
       if (isOnboardingPage || hasFromSetupParam) {
@@ -37,12 +45,17 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
         // Mark that we've checked
         hasChecked.current = true;
         
+        // Skip localstorage check when restarting onboarding
+        const skipLocalStorageCheck = isRestartingOnboarding;
+        
         // Skip localstorage check for recently created users
         // to force checking with the database
         const sessionAge = localStorage.getItem('auth_session_created');
         const isNewLogin = sessionAge && (Date.now() - parseInt(sessionAge)) < 10000; // 10 seconds
         
-        const onboardingCompleted = !isNewLogin && localStorage.getItem('onboarding_completed') === 'true';
+        const onboardingCompleted = !skipLocalStorageCheck && !isNewLogin && 
+          localStorage.getItem('onboarding_completed') === 'true';
+          
         if (onboardingCompleted) {
           setNeedsOnboarding(false);
           setIsLoading(false);
@@ -52,6 +65,28 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
         // Force a small delay to ensure database has had time to propagate
         if (isNewLogin) {
           await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        // When restarting onboarding, update the database record
+        if (isRestartingOnboarding) {
+          try {
+            // Mark onboarding as incomplete in the database
+            await supabase
+              .from('onboarding_progress')
+              .update({
+                completed_at: null,
+                current_step: 'welcome',
+                has_completed_subjects: false,
+                has_completed_availability: false,
+                has_generated_plan: false,
+                has_completed_diagnostic: false
+              })
+              .eq('student_id', state.user.id);
+              
+            console.log('Reset onboarding progress in database');
+          } catch (err) {
+            console.error('Failed to reset onboarding progress:', err);
+          }
         }
         
         const { data: progress, error } = await supabase
@@ -69,23 +104,28 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
           });
           setNeedsOnboarding(true);
         } else {
-          const onboardingNeeded = !progress?.completed_at;
+          // Force onboarding needed when restarting
+          const onboardingNeeded = isRestartingOnboarding ? true : !progress?.completed_at;
           setNeedsOnboarding(onboardingNeeded);
           
-          if (!onboardingNeeded) {
+          if (!onboardingNeeded && !isRestartingOnboarding) {
             localStorage.setItem('onboarding_completed', 'true');
           }
           
           // Only redirect once, and only if we should redirect
-          if (onboardingNeeded && redirectOnNeeded && !isOnboardingPage && !hasRedirected.current) {
+          if ((onboardingNeeded || isRestartingOnboarding) && 
+              redirectOnNeeded && 
+              !isOnboardingPage && 
+              !hasRedirected.current) {
             hasRedirected.current = true;
+            
             // Use setTimeout to prevent rapid navigation
             console.log("Redirecting to onboarding from useOnboardingCheck");
             
             // No need to navigate directly for new users, signupAction already navigates
             if (!isNewLogin) {
               toast({
-                title: "Welcome to Athro",
+                title: isRestartingOnboarding ? "Restarting Onboarding" : "Welcome to Athro",
                 description: "Let's set up your study plan",
               });
               navigate('/onboarding', { replace: true });
@@ -101,7 +141,13 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
     };
     
     checkOnboardingStatus();
-  }, [state.user, state.isLoading, navigate, redirectOnNeeded, isOnboardingPage, hasFromSetupParam, toast]);
+  }, [state.user, state.isLoading, navigate, redirectOnNeeded, isOnboardingPage, hasFromSetupParam, toast, isRestartingOnboarding]);
   
-  return { needsOnboarding, isLoading };
+  // Function to restart onboarding
+  const restartOnboarding = () => {
+    localStorage.removeItem('onboarding_completed');
+    navigate('/onboarding?restart=true', { replace: true });
+  };
+  
+  return { needsOnboarding, isLoading, restartOnboarding };
 };

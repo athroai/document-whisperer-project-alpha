@@ -28,7 +28,7 @@ const CalendarPage: React.FC = () => {
   
   const fromSetup = searchParams.get('fromSetup') === 'true';
   const shouldRefresh = searchParams.get('refresh') === 'true';
-  const { needsOnboarding, isLoading: checkingOnboarding } = useOnboardingCheck(false);
+  const { needsOnboarding, isLoading: checkingOnboarding, restartOnboarding } = useOnboardingCheck(false);
 
   // Added cooldown period to prevent rapid refreshes
   const handleRetryLoad = useCallback(() => {
@@ -148,6 +148,14 @@ const CalendarPage: React.FC = () => {
     }
   }, [needsOnboarding, checkingOnboarding, navigate, authState.user, toast]);
 
+  const handleRestartOnboarding = () => {
+    toast({
+      title: "Restarting Onboarding",
+      description: "Taking you back to the beginning of the setup process..."
+    });
+    restartOnboarding();
+  };
+
   if (authState.isLoading || checkingOnboarding) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -161,7 +169,11 @@ const CalendarPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <CalendarToolbar isLoading={isLoading} onRefresh={handleRetryLoad} />
+        <CalendarToolbar 
+          isLoading={isLoading} 
+          onRefresh={handleRetryLoad} 
+          onRestartOnboarding={handleRestartOnboarding} 
+        />
         
         {(isLoading && isInitialLoad) ? (
           <CalendarLoading />

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { User } from '@/types/auth';
 
@@ -7,11 +8,19 @@ export interface RouterResponse {
   subjectId?: string;
 }
 
-export const checkUserOnboardingStatus = async (user: User | null): Promise<RouterResponse> => {
+export const checkUserOnboardingStatus = async (user: User | null, forceRestart: boolean = false): Promise<RouterResponse> => {
   if (!user) {
     return {
       routeTo: 'error',
       reason: 'User not authenticated'
+    };
+  }
+
+  // If force restart is requested, always route to onboarding
+  if (forceRestart) {
+    return {
+      routeTo: 'onboarding',
+      reason: 'Onboarding restart requested'
     };
   }
 

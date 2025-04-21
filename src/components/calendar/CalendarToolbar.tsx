@@ -1,34 +1,50 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader, RefreshCw } from 'lucide-react';
-import BlockTimeButton from './BlockTimeButton';
+import { RefreshCw, Calendar, Check } from 'lucide-react';
 
 interface CalendarToolbarProps {
   isLoading: boolean;
   onRefresh: () => void;
+  onRestartOnboarding: () => void;
 }
 
-const CalendarToolbar: React.FC<CalendarToolbarProps> = ({ isLoading, onRefresh }) => (
-  <div className="flex justify-between items-center mb-6">
-    <h1 className="text-3xl font-bold text-gray-800">Study Calendar</h1>
-    <div className="flex space-x-2">
-      <Button 
-        variant="outline" 
-        size="sm"
-        onClick={onRefresh}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <Loader className="h-4 w-4 mr-2 animate-spin" />
-        ) : (
-          <RefreshCw className="h-4 w-4 mr-2" />
-        )}
-        Refresh
-      </Button>
-      <BlockTimeButton />
+const CalendarToolbar: React.FC<CalendarToolbarProps> = ({ 
+  isLoading, 
+  onRefresh,
+  onRestartOnboarding
+}) => {
+  return (
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Study Calendar</h1>
+        <p className="text-muted-foreground">
+          View and manage your upcoming study sessions
+        </p>
+      </div>
+      
+      <div className="flex space-x-2 mt-4 sm:mt-0">
+        <Button 
+          variant="outline" 
+          onClick={onRestartOnboarding}
+          className="text-sm"
+        >
+          <Calendar className="mr-2 h-4 w-4" />
+          Restart Onboarding
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          onClick={onRefresh}
+          disabled={isLoading}
+          className="text-sm"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          {isLoading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default CalendarToolbar;
