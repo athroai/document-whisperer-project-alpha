@@ -1,16 +1,15 @@
 
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
-import BigCalendarView from '@/components/calendar/BigCalendarView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Loader, RefreshCw } from 'lucide-react';
 import { useOnboardingCheck } from '@/hooks/useOnboardingCheck';
-import { Button } from '@/components/ui/button';
+import { Loader } from 'lucide-react';
 import CalendarToolbar from '@/components/calendar/CalendarToolbar';
-import CalendarEmptyState from '@/components/calendar/CalendarEmptyState';
+import CalendarLoading from '@/components/calendar/CalendarLoading';
+import CalendarError from '@/components/calendar/CalendarError';
+import CalendarContainer from '@/components/calendar/CalendarContainer';
 
 const CalendarPage: React.FC = () => {
   const { toast } = useToast();
@@ -25,17 +24,22 @@ const CalendarPage: React.FC = () => {
   const initialLoadComplete = useRef(false);
   const calendarMountedRef = useRef(false);
   
-  // Check if we're coming from onboarding
   const fromSetup = searchParams.get('fromSetup') === 'true';
   const shouldRefresh = searchParams.get('refresh') === 'true';
-
-  // Check if user needs onboarding
   const { needsOnboarding, isLoading: checkingOnboarding } = useOnboardingCheck(false);
 
-  // Memoize user ID to prevent unnecessary re-renders
-  const userId = useMemo(() => authState.user?.id, [authState.user?.id]);
+  const handleRetryLoad = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+    clearEvents();
+    initialLoadComplete.current = false;
+    localStorage.removeItem('cached_calendar_events');
+    toast({
+      title: "Refreshing calendar",
+      description: "Attempting to reload your calendar events..."
+    });
+  }, [clearEvents, toast]);
 
-  // Only run once on initial mount to check authentication
+  // Check authentication and handle initial load
   useEffect(() => {
     if (authState.isLoading) return;
     if (!authState.user) {
@@ -43,20 +47,19 @@ const CalendarPage: React.FC = () => {
       navigate('/login');
     }
     
-    // Mark component as mounted
     calendarMountedRef.current = true;
     
     return () => {
       calendarMountedRef.current = false;
     };
   }, [authState.isLoading, authState.user, navigate]);
-  
-  // Handle refreshing calendar events when needed
+
+  // Handle calendar events loading
   useEffect(() => {
     let isMounted = true;
     
     const loadCalendarEvents = async () => {
-      if (!userId || authState.isLoading || initialLoadComplete.current || !calendarMountedRef.current) {
+      if (!authState.user?.id || authState.isLoading || initialLoadComplete.current || !calendarMountedRef.current) {
         if (isMounted && !initialLoadComplete.current && !authState.isLoading) setIsInitialLoad(false);
         return;
       }
@@ -70,14 +73,12 @@ const CalendarPage: React.FC = () => {
         }
         
         if (fromSetup) {
-          // Small delay for better UX when coming from setup
           await new Promise(resolve => setTimeout(resolve, 800));
         }
         
         const fetchedEvents = await fetchEvents();
         
         if (isMounted && calendarMountedRef.current) {
-          // Mark initial load complete to prevent repeated fetches
           initialLoadComplete.current = true;
           setIsInitialLoad(false);
           
@@ -86,20 +87,6 @@ const CalendarPage: React.FC = () => {
               title: fromSetup ? "Calendar Setup Complete" : "Calendar Updated",
               description: `Loaded ${fetchedEvents.length} study sessions.`
             });
-          } else if ((refreshTrigger > 0 || fromSetup) && fetchedEvents.length === 0) {
-            toast({
-              title: "No Events Found",
-              description: "No study sessions were found in your calendar.",
-              variant: "default"
-            });
-            
-            if (fromSetup) {
-              toast({
-                title: "Try Creating Sessions",
-                description: "Click on a date in the calendar to create your first study session.",
-                variant: "default"
-              });
-            }
           }
         }
       } catch (err: any) {
@@ -116,9 +103,7 @@ const CalendarPage: React.FC = () => {
       }
     };
     
-    // Prevent duplicate event loading by using a debounced approach
-    if (userId && !authState.isLoading && (isInitialLoad || refreshTrigger > 0 || fromSetup || shouldRefresh)) {
-      // Clear any previous timeout to prevent multiple fetches
+    if (authState.user?.id && !authState.isLoading && (isInitialLoad || refreshTrigger > 0 || fromSetup || shouldRefresh)) {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
@@ -126,7 +111,7 @@ const CalendarPage: React.FC = () => {
       refreshTimeoutRef.current = setTimeout(() => {
         loadCalendarEvents();
         refreshTimeoutRef.current = null;
-      }, 300); // Small debounce to prevent duplicate fetches
+      }, 300);
     } else if (!authState.isLoading && isInitialLoad) {
       setIsInitialLoad(false);
     }
@@ -137,19 +122,9 @@ const CalendarPage: React.FC = () => {
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, [userId, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents, navigate, isInitialLoad]);
-  
-  const handleRetryLoad = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1);
-    clearEvents();
-    initialLoadComplete.current = false; // Reset the flag to allow reloading
-    localStorage.removeItem('cached_calendar_events');
-    toast({
-      title: "Refreshing calendar",
-      description: "Attempting to reload your calendar events..."
-    });
-  }, [clearEvents, toast]);
-  
+  }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents, navigate, isInitialLoad]);
+
+  // Handle onboarding check
   useEffect(() => {
     if (!checkingOnboarding && needsOnboarding === true && authState.user) {
       toast({
@@ -159,8 +134,7 @@ const CalendarPage: React.FC = () => {
       navigate('/athro-onboarding');
     }
   }, [needsOnboarding, checkingOnboarding, navigate, authState.user, toast]);
-  
-  // Render loading state
+
   if (authState.isLoading || checkingOnboarding) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -168,7 +142,7 @@ const CalendarPage: React.FC = () => {
       </div>
     );
   }
-  
+
   if (!authState.user) return null;
 
   return (
@@ -177,39 +151,17 @@ const CalendarPage: React.FC = () => {
         <CalendarToolbar isLoading={isLoading} onRefresh={handleRetryLoad} />
         
         {(isLoading && isInitialLoad) ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-center p-8">
-              <Loader className="h-8 w-8 animate-spin text-purple-600" />
-              <span className="ml-2 text-gray-600">Loading your study calendar...</span>
-            </div>
-            <Skeleton className="h-[600px] w-full rounded-md opacity-40" />
-          </div>
+          <CalendarLoading />
         ) : loadError ? (
-          <div className="flex flex-col items-center justify-center p-12 space-y-4 bg-white rounded-lg shadow">
-            <div className="text-red-500 font-medium">Error loading calendar events</div>
-            <p className="text-gray-600 text-center">{loadError}</p>
-            <Button 
-              variant="outline"
-              onClick={handleRetryLoad}
-              className="mt-4"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry Loading
-            </Button>
-          </div>
+          <CalendarError error={loadError} onRetry={handleRetryLoad} />
         ) : (
-          <>
-            <BigCalendarView 
-              key={`calendar-${refreshTrigger}`}
-              onRetryLoad={handleRetryLoad}
-            />
-            {events.length === 0 && !isLoading && (
-              <CalendarEmptyState 
-                needsOnboarding={!!needsOnboarding}
-                onRefresh={handleRetryLoad}
-              />
-            )}
-          </>
+          <CalendarContainer
+            events={events}
+            isLoading={isLoading}
+            needsOnboarding={!!needsOnboarding}
+            refreshTrigger={refreshTrigger}
+            onRetryLoad={handleRetryLoad}
+          />
         )}
       </div>
     </div>
