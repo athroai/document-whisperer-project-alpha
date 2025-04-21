@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -9,16 +8,25 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const isOnboardingPage = location.pathname.includes('onboarding');
+  const hasFromSetupParam = new URLSearchParams(location.search).get('fromSetup') === 'true';
   
   useEffect(() => {
     const checkOnboardingStatus = async () => {
+      if (isOnboardingPage || hasFromSetupParam) {
+        setNeedsOnboarding(false);
+        setIsLoading(false);
+        return;
+      }
+      
       if (!state.user || state.isLoading) {
         setIsLoading(true);
         return;
       }
 
       try {
-        // Check if onboarding was completed via localStorage flag
         const onboardingCompleted = localStorage.getItem('onboarding_completed') === 'true';
         if (onboardingCompleted) {
           setNeedsOnboarding(false);
@@ -26,26 +34,29 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
           return;
         }
         
-        // Check if user has any subjects in the student_subjects table
-        const { data: subjects, error: subjectsError } = await supabase
-          .from('student_subjects')
-          .select('id')
+        const { data: progress, error } = await supabase
+          .from('onboarding_progress')
+          .select('completed_at')
           .eq('student_id', state.user.id)
-          .limit(1);
+          .maybeSingle();
           
-        if (subjectsError) throw subjectsError;
-        
-        // If no subjects, user needs onboarding
-        const onboardingNeeded = !subjects || subjects.length === 0;
-        setNeedsOnboarding(onboardingNeeded);
-        
-        // Redirect if needed
-        if (onboardingNeeded && redirectOnNeeded) {
-          navigate('/athro-onboarding');
+        if (error) {
+          console.error("Error checking onboarding status:", error);
+          setNeedsOnboarding(false);
+        } else {
+          const onboardingNeeded = !progress?.completed_at;
+          setNeedsOnboarding(onboardingNeeded);
+          
+          if (!onboardingNeeded) {
+            localStorage.setItem('onboarding_completed', 'true');
+          }
+          
+          if (onboardingNeeded && redirectOnNeeded && !isOnboardingPage) {
+            navigate('/onboarding');
+          }
         }
       } catch (error) {
         console.error('Error checking onboarding status:', error);
-        // Default to not needing onboarding on error
         setNeedsOnboarding(false);
       } finally {
         setIsLoading(false);
@@ -53,7 +64,7 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
     };
     
     checkOnboardingStatus();
-  }, [state.user, state.isLoading, navigate, redirectOnNeeded]);
+  }, [state.user, state.isLoading, navigate, redirectOnNeeded, isOnboardingPage, hasFromSetupParam]);
   
   return { needsOnboarding, isLoading };
 };
