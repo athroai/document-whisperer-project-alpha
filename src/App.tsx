@@ -19,30 +19,29 @@ import StudyPage from './pages/StudyPage';
 import AthroOnboardingPage from './pages/AthroOnboardingPage';
 
 const ProtectedCalendarPage = withOnboardingGuard(CalendarPage);
+const ProtectedHomePage = withOnboardingGuard(HomePage);
 
 const App = () => {
   return (
-    <AuthProvider>
-      <OnboardingProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Navigate to="/calendar" replace />} />
-            <Route path="/dashboard" element={<HomePage />} />
-            <Route path="/calendar" element={<ProtectedCalendarPage />} />
-            <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/athro-onboarding" element={<AthroOnboardingPage />} />
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/pomodoro" element={<PomodoroPage />} />
-            <Route path="/athro-chat" element={<AthroChat />} />
-            <Route path="/study" element={<StudyPage />} />
-          </Routes>
-          <Toaster />
-        </Router>
-      </OnboardingProvider>
-    </AuthProvider>
+    <OnboardingProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/calendar" replace />} />
+          <Route path="/dashboard" element={<ProtectedHomePage />} />
+          <Route path="/calendar" element={<ProtectedCalendarPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/athro-onboarding" element={<AthroOnboardingPage />} />
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/pomodoro" element={<PomodoroPage />} />
+          <Route path="/athro-chat" element={<AthroChat />} />
+          <Route path="/study" element={<StudyPage />} />
+        </Routes>
+        <Toaster />
+      </Router>
+    </OnboardingProvider>
   );
 };
 
