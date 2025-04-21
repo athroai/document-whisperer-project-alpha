@@ -23,6 +23,8 @@ export const StudyScheduleStep: React.FC = () => {
     handleSessionTimeChange,
     handleSessionDurationChange,
     handleSessionsPerDayChange,
+    handleAddSession,
+    handleRemoveSession,
     handleContinue
   } = useStudySchedule();
 
@@ -76,7 +78,8 @@ export const StudyScheduleStep: React.FC = () => {
           </div>
           
           <p className="text-sm text-gray-500 mt-2">
-            You can customize the time and duration for each session below
+            You can customize each session's time and duration individually below. 
+            Feel free to add more sessions to any day.
           </p>
         </div>
       </Card>
@@ -92,6 +95,8 @@ export const StudyScheduleStep: React.FC = () => {
             Array(sessionsPerDay).fill({ startHour: 15, durationMinutes: 45 })}
           onSessionTimeChange={handleSessionTimeChange}
           onSessionDurationChange={handleSessionDurationChange}
+          onAddSession={handleAddSession}
+          onRemoveSession={handleRemoveSession}
         />
       ))}
       

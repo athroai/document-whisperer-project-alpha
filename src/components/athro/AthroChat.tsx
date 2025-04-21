@@ -1,632 +1,342 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Send, AlertTriangle, Wifi, WifiOff, Bug, Info, Upload, FileText, FileImage } from 'lucide-react';
-import { AthroMessage, AthroCharacter } from '@/types/athro';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import AthroMathsRenderer from './AthroMathsRenderer';
-import { toast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { DocumentMetadata, uploadDocumentForChat, getDocumentsForCharacter, linkDocumentToMessage } from '@/services/documentService';
-import { extractTextFromImageWithMathpix } from '@/lib/mathpixService';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { v4 as uuidv4 } from 'uuid';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { useToast } from '@/hooks/use-toast';
+import { Calendar } from 'lucide-react';
+import { CalendarEvent } from '@/types/calendar';
+import { useCalendarEvents } from '@/hooks/useCalendarEvents';
+import { useSessionCreation } from '@/hooks/calendar/useSessionCreation';
 
-interface AthroChatProps {
-  isCompactMode?: boolean;
-  character?: AthroCharacter;
-}
-
-const AthroChat: React.FC<AthroChatProps> = ({ 
-  isCompactMode = false, 
-  character 
-}) => {
-  const { activeCharacter, messages, sendMessage, isTyping } = useAthro();
-  const [inputMessage, setInputMessage] = useState<string>('');
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
-  const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [showOcrDialog, setShowOcrDialog] = useState(false);
-  const [ocrResult, setOcrResult] = useState<{text: string, latex: string, latexConfidence: number}|null>(null);
-  const [processingOcr, setProcessingOcr] = useState(false);
-  const [hasWelcomed, setHasWelcomed] = useState(false);
+const AthroChat = () => {
+  const { activeCharacter } = useAthro();
+  const { state: authState } = useAuth();
+  const userId = authState.user?.id;
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const ocrFileInputRef = useRef<HTMLInputElement>(null);
-  const messageEndRef = useRef<HTMLDivElement>(null);
-  
-  const currentCharacter = character || activeCharacter;
-  
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const { createEvent } = useCalendarEvents();
+  const { createCalendarSession } = useSessionCreation();
+
   useEffect(() => {
-    const handleOnline = () => {
-      console.log('🌐 Network status: Online');
-      setIsOnline(true);
-    };
-    
-    const handleOffline = () => {
-      console.log('🌐 Network status: Offline');
-      setIsOnline(false);
-    };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    console.log('🌐 Initial network status:', navigator.onLine ? 'Online' : 'Offline');
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-  
-  useEffect(() => {
-    console.log('🎭 AthroChat component mounted with', messages.length, 'messages');
-    
-    const sendWelcomeMessage = async () => {
-      if (!currentCharacter || hasWelcomed || messages.length > 0) {
-        return;
-      }
-      
+    if (!userId || !activeCharacter) return;
+
+    const fetchSession = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'student';
-        
-        if (currentCharacter) {
-          sendMessage(`Welcome ${userName}! I'm ${currentCharacter.name}. What would you like to study in ${currentCharacter.subject} today?`);
-          setHasWelcomed(true);
-        }
-      } catch (error) {
-        console.error('Error generating welcome message:', error);
-      }
-    };
-    
-    sendWelcomeMessage();
-    
-    return () => {
-      console.log('🎭 AthroChat component unmounted');
-    };
-  }, [messages.length, currentCharacter, sendMessage, hasWelcomed]);
-  
-  useEffect(() => {
-    console.log('📜 Messages in AthroChat:', messages.length, 'messages');
-    if (messageEndRef.current) {
-      messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
+        const { data: session, error } = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('student_id', userId)
+          .eq('character_id', activeCharacter.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-  useEffect(() => {
-    const loadDocumentsForCharacter = async () => {
-      if (currentCharacter) {
-        try {
-          const docs = await getDocumentsForCharacter(currentCharacter.id);
-          setDocuments(docs);
-        } catch (error) {
-          console.error('Error loading documents:', error);
-        }
-      }
-    };
+        if (error) throw error;
 
-    loadDocumentsForCharacter();
-  }, [currentCharacter]);
-  
-  useEffect(() => {
-    setHasWelcomed(false);
-  }, [currentCharacter]);
-  
-  const handleSend = () => {
-    if (!inputMessage.trim() || !currentCharacter) {
-      if (!currentCharacter) {
-        console.log('❌ Send attempted with no active character');
+        if (session) {
+          setCurrentSessionId(session.id);
+          fetchMessages(session.id);
+        } else {
+          // Create a new session if none exists
+          const newSessionId = uuidv4();
+          await createNewSession(newSessionId);
+        }
+      } catch (error: any) {
+        console.error("Error fetching or creating session:", error);
         toast({
-          title: "No Subject Selected",
-          description: "Please select a subject mentor first.",
-          variant: "default",
+          title: "Error",
+          description: "Failed to load or create session.",
+          variant: "destructive"
         });
       }
-      return;
-    }
-    
-    console.log('💬 AthroChat - Sending message:', inputMessage);
-    sendMessage(inputMessage);
-    setInputMessage('');
-  };
+    };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+    fetchSession();
+  }, [userId, activeCharacter]);
 
-  const handleUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !currentCharacter) {
-      return;
-    }
-    
-    const file = e.target.files[0];
-    const fileType = file.name.split('.').pop()?.toLowerCase() || '';
-    const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'jpg', 'jpeg', 'png'];
-    
-    if (!allowedTypes.includes(fileType)) {
-      toast({
-        title: "Invalid File Type",
-        description: "Please upload only PDF, DOC, XLS, CSV, DOCX, JPG, or PNG files.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File Too Large",
-        description: "File size should be less than 10MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setUploading(true);
-    
+  const createNewSession = async (sessionId: string) => {
+    if (!userId || !activeCharacter) return;
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) {
-        toast({
-          title: "Authentication Required",
-          description: "You need to be logged in to upload files.",
-          variant: "destructive",
+      const { error } = await supabase
+        .from('sessions')
+        .insert({
+          id: sessionId,
+          student_id: userId,
+          character_id: activeCharacter.id,
+          start_time: new Date().toISOString()
         });
-        setUploading(false);
-        return;
-      }
 
-      const uploadResult = await uploadDocumentForChat(file, currentCharacter.id);
-
-      if (uploadResult) {
-        const messageContent = `I've uploaded a document: ${file.name}`;
-        const messageResult = await sendMessage(messageContent);
-        
-        if (messageResult?.id && uploadResult.id) {
-          await linkDocumentToMessage(uploadResult.id, messageResult.id);
-          console.log('Document linked to message:', uploadResult.id, messageResult.id);
-        }
-
-        const updatedDocs = await getDocumentsForCharacter(currentCharacter.id);
-        setDocuments(updatedDocs);
-        
-        toast({
-          title: "File Uploaded",
-          description: `${file.name} has been uploaded successfully.`,
-        });
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error);
+      if (error) throw error;
+      setCurrentSessionId(sessionId);
+    } catch (error: any) {
+      console.error("Error creating new session:", error);
       toast({
-        title: "Upload Failed",
-        description: "There was an error uploading your file.",
-        variant: "destructive",
+        title: "Error",
+        description: "Failed to create new session.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchMessages = async (sessionId: string) => {
+    if (!sessionId) return;
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error: any) {
+      console.error("Error fetching messages:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages.",
+        variant: "destructive"
       });
     } finally {
-      setUploading(false);
+      setIsLoading(false);
+      // Scroll to bottom after messages are loaded
+      setTimeout(() => {
+        chatContainerRef.current?.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!input.trim() || !userId || !activeCharacter || !currentSessionId) return;
+
+    const messageId = uuidv4();
+    const newMessage = {
+      id: messageId,
+      session_id: currentSessionId,
+      sender_id: userId,
+      content: input,
+      created_at: new Date().toISOString(),
+      character_id: activeCharacter.id,
+      is_student: true
+    };
+
+    setMessages(prevMessages => [...prevMessages, newMessage]);
+    setInput('');
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          id: messageId,
+          session_id: currentSessionId,
+          sender_id: userId,
+          content: input,
+          character_id: activeCharacter.id,
+          is_student: true
+        });
+
+      if (error) throw error;
+
+      // Optimistically scroll to bottom
+      setTimeout(() => {
+        chatContainerRef.current?.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+
+    } catch (error: any) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message.",
+        variant: "destructive"
+      });
+      // Revert the message on failure
+      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!file || !userId || !activeCharacter || !currentSessionId) return;
+
+    const messageId = uuidv4();
+    const newMessage = {
+      id: messageId,
+      session_id: currentSessionId,
+      sender_id: userId,
+      content: `Uploaded file: ${file.name}`,
+      created_at: new Date().toISOString(),
+      character_id: activeCharacter.id,
+      is_student: true,
+      file_name: file.name,
+      file_size: file.size,
+      file_type: file.type
+    };
+
+    setMessages(prevMessages => [...prevMessages, newMessage]);
+
+    const storagePath = `documents/${userId}/${currentSessionId}/${file.name}`;
+
+    try {
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('documents')
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      if (!uploadData?.path) {
+        throw new Error('File upload failed');
+      }
+      
+      const { data: document, error: uploadError } = await supabase
+        .from('documents')
+        .insert({
+          filename: file.name,
+          original_name: file.name,
+          mime_type: file.type,
+          size: file.size,
+          file_type: file.type.split('/')[1] || 'unknown',
+          storage_path: storagePath,
+          user_id: userId,
+          session_id: currentSessionId || 'temp-session',
+          character_id: activeCharacter?.id || 'default',
+        })
+        .select()
+        .single();
+
+      if (uploadError) throw uploadError;
+      
+      if (!document) {
+        throw new Error('Failed to create document record');
+      }
+      
+      // Now document.id exists because we got it from the database
+      const messageDoc = await supabase
+        .from('message_documents')
+        .insert({
+          message_id: messageId,
+          document_id: document.id
+        })
+        .select()
+        .single();
+
+      // Scroll to bottom after file is uploaded
+      setTimeout(() => {
+        chatContainerRef.current?.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+
+      toast({
+        title: "Success",
+        description: `${file.name} uploaded successfully!`
+      });
+    } catch (error: any) {
+      console.error("File upload error:", error);
+      toast({
+        title: "Error",
+        description: `Failed to upload ${file.name}.`,
+        variant: "destructive"
+      });
+      // Revert the message on failure
+      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+    } finally {
+      setFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
   };
 
-  const handleOcrClick = () => {
-    if (ocrFileInputRef.current) {
-      ocrFileInputRef.current.click();
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
-  const handleOcrFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !currentCharacter) {
-      return;
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      handleFileUpload(selectedFile);
     }
-    
-    const file = e.target.files[0];
-    const fileType = file.name.split('.').pop()?.toLowerCase() || '';
-    const allowedTypes = ['jpg', 'jpeg', 'png', 'pdf'];
-    
-    if (!allowedTypes.includes(fileType)) {
-      toast({
-        title: "Invalid File Type",
-        description: "Please upload only JPG, PNG, or PDF files for OCR.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File Too Large",
-        description: "File size should be less than 10MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setProcessingOcr(true);
-    setShowOcrDialog(true);
-    
-    try {
-      const result = await extractTextFromImageWithMathpix(file);
-      setOcrResult(result);
-
-      const uploadResult = await uploadDocumentForChat(file, currentCharacter.id);
-
-      if (uploadResult) {
-        const updatedDocs = await getDocumentsForCharacter(currentCharacter.id);
-        setDocuments(updatedDocs);
-      }
-      
-    } catch (error) {
-      console.error('Error processing OCR:', error);
-      toast({
-        title: "OCR Processing Failed",
-        description: "There was an error processing your file with OCR.",
-        variant: "destructive",
-      });
-      setShowOcrDialog(false);
-    } finally {
-      setProcessingOcr(false);
-      if (ocrFileInputRef.current) {
-        ocrFileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const sendOcrToChat = () => {
-    if (!ocrResult || !currentCharacter) return;
-    
-    const message = `I've scanned this document using OCR: \n\n${ocrResult.text}${ocrResult.latex ? `\n\nLaTeX formatted content:\n${ocrResult.latex}` : ''}`;
-    sendMessage(message);
-    setShowOcrDialog(false);
-    setOcrResult(null);
-  };
-
-  const openDocument = (doc: DocumentMetadata) => {
-    if (doc.url) {
-      window.open(doc.url, '_blank');
-    } else {
-      toast({
-        title: "Document Unavailable",
-        description: "Unable to access this document at the moment.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const sendDebugMessage = () => {
-    console.log('🐛 Sending debug test message');
-    if (!currentCharacter) {
-      console.log('❌ No active character for debug message');
-      toast({
-        title: "No Character Selected",
-        description: "Please select a subject mentor first.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    sendMessage("2+2=?");
-  };
-
-  const sendMathTest = () => {
-    console.log('🧮 Testing math response');
-    if (!currentCharacter) {
-      console.log('❌ No active character for math test');
-      toast({
-        title: "No Character Selected",
-        description: "Please select a subject mentor first.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    sendMessage("2-1");
   };
 
   return (
     <div className="flex flex-col h-full">
-      {!isOnline && (
-        <Alert variant="destructive" className="mb-2">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            You appear to be offline. Some features may not work correctly.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <div className="flex items-center justify-between px-4 py-1 text-xs text-muted-foreground">
-        <div className="flex items-center">
-          {isOnline ? (
-            <Wifi className="h-3 w-3 mr-1" />
-          ) : (
-            <WifiOff className="h-3 w-3 mr-1" />
-          )}
-          <span>Status: {isOnline ? 'Connected' : 'Offline'}</span>
+      <ScrollArea ref={chatContainerRef} className="flex-grow p-4">
+        <div className="space-y-4">
+          {messages.map((message) => (
+            <div key={message.id} className={`flex ${message.is_student ? 'justify-start' : 'justify-end'}`}>
+              <div className="flex flex-col">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={`/images/characters/${activeCharacter?.image}`} alt={activeCharacter?.name} />
+                  <AvatarFallback>{activeCharacter?.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="text-xs text-gray-500">{message.is_student ? 'You' : activeCharacter?.name}</div>
+              </div>
+              <div className={`ml-2 p-3 rounded-lg ${message.is_student ? 'bg-gray-100 text-gray-800' : 'bg-purple-200 text-purple-800'}`}>
+                {message.content}
+                {message.file_name && (
+                  <p className="text-xs mt-1">
+                    File: {message.file_name} ({message.file_size} bytes, {message.file_type})
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+          {isLoading && <div className="text-center">Loading messages...</div>}
         </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t">
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-6 text-xs" 
-            onClick={() => {
-              if (currentCharacter) {
-                sendMessage("2-1");
-              }
-            }}
-          >
-            <Info className="h-3 w-3 mr-1" />
-            Test 2-1
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-6 text-xs" 
-            onClick={() => {
-              if (currentCharacter) {
-                sendMessage("2+2=?");
-              }
-            }}
-          >
-            <Bug className="h-3 w-3 mr-1" />
-            Test Chat
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-6 text-xs" 
-            onClick={() => setShowDebugInfo(!showDebugInfo)}
-          >
-            {showDebugInfo ? 'Hide Debug' : 'Show Debug'}
-          </Button>
-        </div>
-      </div>
-      
-      {showDebugInfo && (
-        <div className="bg-muted text-xs p-2 mb-2 overflow-auto max-h-24">
-          <p>Active Character: {currentCharacter?.name || 'None'}</p>
-          <p>Messages: {messages.length}</p>
-          <p>Is Typing: {isTyping ? 'Yes' : 'No'}</p>
-          <p>Network: {isOnline ? 'Online' : 'Offline'}</p>
-          <p>Last Updated: {new Date().toLocaleTimeString()}</p>
-        </div>
-      )}
-      
-      <div className="flex flex-1">
-        <div className="w-56 border-r p-4 flex flex-col">
-          <div className="space-y-2 mb-4">
-            <Button 
-              onClick={handleUploadClick} 
-              className="w-full"
-              disabled={uploading || !currentCharacter}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {uploading ? "Uploading..." : "Upload Study Materials"}
-            </Button>
-
-            <Button 
-              onClick={handleOcrClick}
-              className="w-full"
-              disabled={processingOcr || !currentCharacter}
-              variant="secondary"
-            >
-              <FileImage className="h-4 w-4 mr-2" />
-              {processingOcr ? "Processing..." : "Scan with OCR"}
-            </Button>
-          </div>
-          
-          <input 
+          <Input
+            type="text"
+            placeholder="Type your message..."
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            className="flex-grow"
+          />
+          <input
             type="file"
+            id="file-upload"
+            className="hidden"
+            onChange={handleFileSelect}
             ref={fileInputRef}
-            className="hidden"
-            onChange={handleFileChange}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png"
           />
-
-          <input 
-            type="file"
-            ref={ocrFileInputRef}
-            className="hidden"
-            onChange={handleOcrFileChange}
-            accept=".jpg,.jpeg,.png,.pdf"
-          />
-          
-          <h3 className="text-sm font-medium mb-2">Documents</h3>
-          
-          <div className="overflow-y-auto flex-1">
-            {documents.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No documents uploaded</p>
-            ) : (
-              <div className="space-y-2">
-                {documents.map((doc) => (
-                  <div 
-                    key={doc.id}
-                    className="p-2 border rounded text-xs cursor-pointer hover:bg-muted flex items-center"
-                    onClick={() => openDocument(doc)}
-                  >
-                    <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
-                    <span className="truncate">{doc.name}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="flex-1 flex flex-col">
-          <ScrollArea className="flex-grow p-4">
-            <div className="space-y-4">
-              {messages.length === 0 && currentCharacter && (
-                <div className="text-center p-4 text-muted-foreground">
-                  {isTyping ? "Loading..." : "Starting a conversation with " + currentCharacter.name}
-                </div>
-              )}
-              
-              {messages.length === 0 && !currentCharacter && (
-                <div className="text-center p-4 text-muted-foreground">
-                  Please select a subject mentor to begin chatting
-                </div>
-              )}
-              
-              {messages.map((msg: AthroMessage) => (
-                <div 
-                  key={msg.id} 
-                  className={`flex ${msg.senderId === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
-                >
-                  <div 
-                    className={`max-w-[80%] rounded-lg p-4 ${
-                      msg.senderId === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted'
-                    }`}
-                  >
-                    {msg.senderId !== 'user' && (
-                      <div className="flex items-center mb-2">
-                        <Avatar className="h-6 w-6 mr-2">
-                          <AvatarImage src={currentCharacter?.avatarUrl} alt={currentCharacter?.name} />
-                          <AvatarFallback>{currentCharacter?.name?.charAt(0) || 'A'}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-medium">{currentCharacter?.name || 'Athro AI'}</span>
-                      </div>
-                    )}
-                    
-                    {msg.senderId !== 'user' && currentCharacter?.supportsMathNotation ? (
-                      <AthroMathsRenderer content={msg.content} />
-                    ) : (
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
-                    )}
-                    
-                    {msg.referencedResources && msg.referencedResources.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-gray-200">
-                        <Button variant="link" size="sm" className="p-0 h-auto text-xs">
-                          View referenced materials
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] rounded-lg p-4 bg-muted">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '600ms' }}></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={messageEndRef} />
-            </div>
-          </ScrollArea>
-          
-          <div className={`p-4 border-t ${isCompactMode ? 'bg-background' : ''}`}>
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                placeholder={`Ask ${currentCharacter?.name || 'Athro AI'} a question...`}
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-purple-200"
-                disabled={!currentCharacter || !isOnline}
-              />
-              <Button 
-                onClick={handleSend}
-                className="shrink-0"
-                disabled={!inputMessage.trim() || isTyping || !currentCharacter || !isOnline}
-              >
-                <Send className="h-4 w-4" />
-                <span className={isCompactMode ? 'sr-only' : 'ml-2'}>Send</span>
-              </Button>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Press Enter to send. Use Shift+Enter for a new line.
-            </p>
-          </div>
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            Upload
+          </Button>
+          <Button onClick={sendMessage}>Send</Button>
         </div>
       </div>
-      
-      <Dialog open={showOcrDialog} onOpenChange={setShowOcrDialog}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>OCR Scan Results</DialogTitle>
-          </DialogHeader>
-          
-          {processingOcr ? (
-            <div className="py-8 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
-              <p>Processing your document with Mathpix OCR...</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {ocrResult && (
-                <>
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium">Extracted Text</h3>
-                    <div className="p-4 bg-muted rounded border max-h-40 overflow-y-auto">
-                      <pre className="text-sm whitespace-pre-wrap">{ocrResult.text}</pre>
-                    </div>
-                  </div>
-                  
-                  {ocrResult.latex && (
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium">
-                        LaTeX Formatted Content
-                        {ocrResult.latexConfidence > 0 && (
-                          <span className="text-xs ml-2 text-muted-foreground">
-                            (Confidence: {Math.round(ocrResult.latexConfidence * 100)}%)
-                          </span>
-                        )}
-                      </h3>
-                      <div className="p-4 bg-muted rounded border max-h-40 overflow-y-auto">
-                        <pre className="text-sm whitespace-pre-wrap font-mono">{ocrResult.latex}</pre>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button variant="outline" onClick={() => setShowOcrDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={sendOcrToChat}>
-                      Send to Chat
-                    </Button>
-                  </div>
-                </>
-              )}
-              
-              {!ocrResult && !processingOcr && (
-                <div className="py-8 text-center">
-                  <p>Unable to process the document. Please try again.</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4" 
-                    onClick={() => setShowOcrDialog(false)}
-                  >
-                    Close
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

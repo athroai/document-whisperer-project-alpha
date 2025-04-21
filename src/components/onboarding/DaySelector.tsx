@@ -1,44 +1,37 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 
 interface DaySelectorProps {
   selectedDays: number[];
-  toggleDaySelection: (dayIndex: number) => void;
+  toggleDaySelection: (day: number) => void;
 }
 
-export const DaySelector: React.FC<DaySelectorProps> = ({
-  selectedDays,
-  toggleDaySelection
-}) => {
+export const DaySelector: React.FC<DaySelectorProps> = ({ selectedDays, toggleDaySelection }) => {
   const days = [
-    { index: 0, name: 'Sun', fullName: 'Sunday' },
-    { index: 1, name: 'Mon', fullName: 'Monday' },
-    { index: 2, name: 'Tue', fullName: 'Tuesday' },
-    { index: 3, name: 'Wed', fullName: 'Wednesday' },
-    { index: 4, name: 'Thu', fullName: 'Thursday' },
-    { index: 5, name: 'Fri', fullName: 'Friday' },
-    { index: 6, name: 'Sat', fullName: 'Saturday' },
+    { value: 1, label: 'Mon' },
+    { value: 2, label: 'Tue' },
+    { value: 3, label: 'Wed' },
+    { value: 4, label: 'Thu' },
+    { value: 5, label: 'Fri' },
+    { value: 6, label: 'Sat' },
+    { value: 7, label: 'Sun' },
   ];
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Choose Your Study Days</h3>
-      <p className="text-sm text-gray-500">
-        Select the days when you want to study. We'll create sessions on these days.
-      </p>
-      
-      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+    <div className="space-y-3">
+      <Label>Which days would you like to study?</Label>
+      <div className="flex gap-2 flex-wrap">
         {days.map((day) => (
           <Button
-            key={day.index}
+            key={day.value}
             type="button"
-            variant={selectedDays.includes(day.index) ? "default" : "outline"}
-            className={selectedDays.includes(day.index) ? "bg-purple-600 hover:bg-purple-700" : ""}
-            onClick={() => toggleDaySelection(day.index)}
-            title={day.fullName}
+            variant={selectedDays.includes(day.value) ? "default" : "outline"}
+            className="w-12"
+            onClick={() => toggleDaySelection(day.value)}
           >
-            {day.name}
+            {day.label}
           </Button>
         ))}
       </div>

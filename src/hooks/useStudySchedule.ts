@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -98,6 +99,56 @@ export const useStudySchedule = () => {
   const getSessionDurationForCount = (count: number): number => {
     const option = sessionOptions.find(opt => opt.value === count);
     return option ? option.durationMinutes : 45;
+  };
+
+  const handleAddSession = (dayIndex: number) => {
+    setDayPreferences(prev => {
+      const newPrefs = [...prev];
+      const dayPrefIndex = newPrefs.findIndex(p => p.dayIndex === dayIndex);
+      
+      if (dayPrefIndex === -1) {
+        // Create new day preference if it doesn't exist
+        const defaultDuration = 45;
+        return [
+          ...prev,
+          {
+            dayIndex,
+            sessionTimes: [{ startHour: 15, durationMinutes: defaultDuration }]
+          }
+        ];
+      } else {
+        // Add a new session to existing day
+        const lastSession = newPrefs[dayPrefIndex].sessionTimes[newPrefs[dayPrefIndex].sessionTimes.length - 1];
+        const nextStartHour = Math.min(20, lastSession ? lastSession.startHour + 2 : 15);
+        
+        newPrefs[dayPrefIndex].sessionTimes.push({
+          startHour: nextStartHour,
+          durationMinutes: 45
+        });
+        
+        return newPrefs;
+      }
+    });
+  };
+
+  const handleRemoveSession = (dayIndex: number, sessionIndex: number) => {
+    setDayPreferences(prev => {
+      const newPrefs = [...prev];
+      const dayPrefIndex = newPrefs.findIndex(p => p.dayIndex === dayIndex);
+      
+      if (dayPrefIndex === -1 || newPrefs[dayPrefIndex].sessionTimes.length <= 1) {
+        // Don't remove if it's the last session
+        toast({
+          title: "Cannot Remove",
+          description: "Each day must have at least one study session.",
+          variant: "destructive"
+        });
+        return prev;
+      }
+      
+      newPrefs[dayPrefIndex].sessionTimes.splice(sessionIndex, 1);
+      return newPrefs;
+    });
   };
 
   const handleSessionTimeChange = (dayIndex: number, sessionIndex: number, hour: number) => {
@@ -445,6 +496,8 @@ export const useStudySchedule = () => {
     handleSessionTimeChange,
     handleSessionDurationChange,
     handleSessionsPerDayChange,
+    handleAddSession,
+    handleRemoveSession,
     handleContinue
   };
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { motion } from 'framer-motion';
@@ -11,7 +10,6 @@ import { supabase } from '@/lib/supabase';
 import { ConfidenceLabel } from '@/types/confidence';
 import { useSessionCreation } from '@/hooks/calendar/useSessionCreation';
 
-// Components needed for this page
 const PlanGenerationStep: React.FC<{
   isGenerating: boolean;
   progress: number;
@@ -75,7 +73,6 @@ const StudyPlanCard: React.FC<{
   confidence: string;
   sessionsPerWeek: number;
 }> = ({ subject, confidence, sessionsPerWeek }) => {
-  // Determine color based on confidence
   let colorClass = 'bg-purple-100 text-purple-800 border-purple-200';
   if (confidence === 'low') {
     colorClass = 'bg-red-100 text-red-800 border-red-200';
@@ -286,13 +283,22 @@ export const StudyPlanContainer: React.FC = () => {
   const generateStudyPlan = async () => {
     if (!state.user) {
       toast({
-        title: "Error",
-        description: "You need to be logged in to generate a study plan",
+        title: "Authentication Required",
+        description: "Please sign in to generate a study plan",
         variant: "destructive"
       });
       return;
     }
 
+    if (selectedSubjects.length === 0) {
+      toast({
+        title: "No Subjects Selected",
+        description: "Please select at least one subject before generating a study plan",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsGenerating(true);
     setGenerationProgress(0);
     setError(null);
@@ -305,6 +311,10 @@ export const StudyPlanContainer: React.FC = () => {
         studySlots : 
         generateDefaultStudySlots(state.user.id);
 
+      if (slotsToUse.length === 0) {
+        throw new Error("No study slots are configured. Please go back and set up your study schedule.");
+      }
+
       setGenerationProgress(30);
       
       const subjectDistribution = selectedSubjects.map(subject => ({
@@ -316,21 +326,29 @@ export const StudyPlanContainer: React.FC = () => {
       setStudyPlan(subjectDistribution);
       setGenerationProgress(50);
 
-      await Promise.all(selectedSubjects.map(subject => 
-        supabase
-          .from('student_subject_preferences')
-          .upsert({
-            student_id: state.user!.id,
-            subject: subject.subject,
-            confidence_level: subject.confidence,
-          })
-      ));
+      try {
+        await Promise.all(selectedSubjects.map(subject => 
+          supabase
+            .from('student_subject_preferences')
+            .upsert({
+              student_id: state.user!.id,
+              subject: subject.subject,
+              confidence_level: subject.confidence,
+            })
+        ));
+      } catch (prefError) {
+        console.error("Error saving subject preferences:", prefError);
+      }
 
       const sessions = await createStudySessions(subjectDistribution, slotsToUse);
       
-      if (sessions && sessions.length > 0) {
-        setGenerationProgress(70);
+      if (sessions.length === 0) {
+        throw new Error("No study sessions could be generated. Please check your schedule settings.");
+      }
+      
+      setGenerationProgress(60);
 
+      try {
         const { data: planData, error: planError } = await supabase
           .from('study_plans')
           .insert({
@@ -345,6 +363,8 @@ export const StudyPlanContainer: React.FC = () => {
           .single();
 
         if (planError) throw planError;
+        
+        setGenerationProgress(75);
         
         const calendarSessionsData = sessions.map(session => ({
           title: `${session.subject} Study Session`,
@@ -384,15 +404,16 @@ export const StudyPlanContainer: React.FC = () => {
           title: "Success",
           description: "Your personalized study plan has been created!"
         });
-      } else {
-        throw new Error("Failed to generate study sessions");
+      } catch (planCreationError) {
+        console.error("Error creating study plan:", planCreationError);
+        throw new Error("Failed to create study plan. Please try again later.");
       }
     } catch (error) {
       console.error("Error generating study plan:", error);
       setError(error instanceof Error ? error.message : "Failed to generate study plan");
       toast({
         title: "Error",
-        description: "Failed to generate study plan. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate study plan. Please try again.",
         variant: "destructive"
       });
     } finally {
