@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,15 +9,21 @@ const WelcomePage: React.FC = () => {
   const { state } = useAuth();
   const navigate = useNavigate();
   const { needsOnboarding, isLoading } = useOnboardingCheck(false);
+  const hasRedirected = useRef(false);
   
   useEffect(() => {
     // If user is logged in, check if they need onboarding
-    if (state.user && !isLoading) {
-      if (needsOnboarding) {
-        navigate('/athro-onboarding');
-      } else {
-        navigate('/home');
-      }
+    if (state.user && !isLoading && !hasRedirected.current) {
+      hasRedirected.current = true;
+      
+      // Use setTimeout to prevent rapid state changes
+      setTimeout(() => {
+        if (needsOnboarding) {
+          navigate('/athro-onboarding', { replace: true });
+        } else {
+          navigate('/home', { replace: true });
+        }
+      }, 100);
     }
   }, [state.user, navigate, needsOnboarding, isLoading]);
   

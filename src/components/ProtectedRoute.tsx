@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader } from 'lucide-react';
@@ -18,6 +18,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { state } = useAuth();
   const { user, isLoading } = state;
   const location = useLocation();
+  const [hasRedirected, setHasRedirected] = useState(false);
   
   // Log authentication state for debugging
   useEffect(() => {
@@ -30,6 +31,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }, [user, isLoading]);
   
+  // Prevent multiple redirects
+  useEffect(() => {
+    if (!isLoading) {
+      setHasRedirected(false);
+    }
+  }, [isLoading]);
+  
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -38,27 +46,31 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
   
-  if (!user) {
+  if (!user && !hasRedirected) {
     console.log('Redirecting to login from:', location.pathname);
-    // Pass the current location to redirect back after login
+    setHasRedirected(true);
+    // Use replace to avoid building up history stack
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
   
   // Check for required role if specified
-  if (requiredRole && user.role !== requiredRole) {
+  if (user && requiredRole && user.role !== requiredRole && !hasRedirected) {
+    setHasRedirected(true);
     return <Navigate to="/home" replace />;
   }
   
   // If license is required and user doesn't have a license exemption, check license
-  if (requireLicense && !user.licenseExempt && !user.email.endsWith('@nexastream.co.uk')) {
+  if (user && requireLicense && !user.licenseExempt && !user.email?.endsWith('@nexastream.co.uk') && !hasRedirected) {
     // Mock license check - in production would check against Firestore
     if (!user.schoolId) {
+      setHasRedirected(true);
       return <Navigate to="/license-required" replace />;
     }
   }
 
   // Redirect teachers to dashboard if trying to access student routes
-  if (user.role === 'teacher' && location.pathname === '/home') {
+  if (user && user.role === 'teacher' && location.pathname === '/home' && !hasRedirected) {
+    setHasRedirected(true);
     return <Navigate to="/teacher-dashboard" replace />;
   }
   
@@ -67,7 +79,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return children({ user });
   }
   
-  return <>{children}</>;
+  // Only render children if we have a user and aren't redirecting
+  return user ? <>{children}</> : null;
 };
 
 export default ProtectedRoute;

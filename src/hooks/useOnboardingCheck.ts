@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,11 +10,16 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const hasChecked = useRef(false);
+  const hasRedirected = useRef(false);
   
   const isOnboardingPage = location.pathname.includes('onboarding');
   const hasFromSetupParam = new URLSearchParams(location.search).get('fromSetup') === 'true';
   
   useEffect(() => {
+    // Only check once per component mount
+    if (hasChecked.current) return;
+    
     const checkOnboardingStatus = async () => {
       if (isOnboardingPage || hasFromSetupParam) {
         setNeedsOnboarding(false);
@@ -28,6 +33,9 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
       }
 
       try {
+        // Mark that we've checked
+        hasChecked.current = true;
+        
         const onboardingCompleted = localStorage.getItem('onboarding_completed') === 'true';
         if (onboardingCompleted) {
           setNeedsOnboarding(false);
@@ -52,8 +60,13 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
             localStorage.setItem('onboarding_completed', 'true');
           }
           
-          if (onboardingNeeded && redirectOnNeeded && !isOnboardingPage) {
-            navigate('/onboarding');
+          // Only redirect once, and only if we should redirect
+          if (onboardingNeeded && redirectOnNeeded && !isOnboardingPage && !hasRedirected.current) {
+            hasRedirected.current = true;
+            // Use setTimeout to prevent rapid navigation
+            setTimeout(() => {
+              navigate('/onboarding', { replace: true });
+            }, 100);
           }
         }
       } catch (error) {

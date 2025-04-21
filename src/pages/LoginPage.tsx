@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -16,15 +16,20 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasRedirected = useRef(false);
   
   // Get redirect path from location state (if available)
   const redirectTo = location.state?.from || '/home';
 
-  // Redirect if already logged in
+  // Redirect if already logged in, but only once
   useEffect(() => {
-    if (state.user && !state.isLoading) {
+    if (!hasRedirected.current && state.user && !state.isLoading) {
       console.log('User already logged in, redirecting to:', redirectTo);
-      navigate(redirectTo, { replace: true });
+      hasRedirected.current = true;
+      // Use setTimeout to avoid immediate state changes
+      setTimeout(() => {
+        navigate(redirectTo, { replace: true });
+      }, 100);
     }
   }, [state.user, state.isLoading, navigate, redirectTo]);
 
@@ -40,6 +45,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     
+    if (isSubmitting) return;
     setIsSubmitting(true);
     
     try {
@@ -49,7 +55,7 @@ const LoginPage: React.FC = () => {
         description: "Welcome back to Athro AI",
       });
       
-      // Short delay before redirecting to ensure auth state is properly set
+      // To prevent rapid navigation, set a longer delay
       setTimeout(() => {
         navigate(redirectTo, { replace: true });
       }, 500);
@@ -60,7 +66,6 @@ const LoginPage: React.FC = () => {
         description: error?.message || "Please check your credentials and try again",
         variant: "destructive",
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -72,6 +77,17 @@ const LoginPage: React.FC = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-4 text-purple-800">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If already logged in, show a message
+  if (state.user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-100 to-white">
+        <div className="text-center">
+          <div className="text-purple-800">Redirecting to application...</div>
         </div>
       </div>
     );

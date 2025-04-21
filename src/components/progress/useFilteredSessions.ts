@@ -1,62 +1,52 @@
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { StudySession } from '@/types/study';
 
-export function useFilteredSessions(
-  sessions: StudySession[],
-  confidenceFilter: 'all' | 'unsure',
-  subjectFilter: string,
-  groupBySubject: boolean = false
-) {
-  // getConfidenceChange and getConfidenceBadgeColor adapted from original implementation
-  const getConfidenceChange = (session: StudySession) => {
-    if (!session.confidenceAfter || !session.confidenceBefore) return null;
-
-    const beforeValue = session.confidenceBefore;
-    const afterValue = session.confidenceAfter;
-
-    if (afterValue === beforeValue) {
-      return "No change";
-    } else if (afterValue === "high" && beforeValue !== "high") {
-      return "Greatly improved";
-    } else if (afterValue === "medium" && beforeValue === "low") {
-      return "Slightly improved";
-    } else {
-      return "Needs more work";
-    }
-  };
-
+export const useFilteredSessions = (sessions: StudySession[] = []) => {
+  const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
+  
+  // Filter sessions based on subject
   const filteredSessions = useMemo(() => {
-    let result = [...sessions];
-
-    if (confidenceFilter === 'unsure') {
-      result = result.filter(session => {
-        const confidenceChange = getConfidenceChange(session);
-        return confidenceChange === "No change" || confidenceChange === "Needs more work";
-      });
-    }
-    if (subjectFilter !== 'all') {
-      result = result.filter(session => session.subject === subjectFilter);
-    }
-    return result;
-  }, [sessions, confidenceFilter, subjectFilter]);
-
-  const groupedSessions = useMemo(() => {
-    if (!groupBySubject) return null;
-    const groups: Record<string, StudySession[]> = {};
-    filteredSessions.forEach(session => {
-      const subject = session.subject;
-      if (!groups[subject]) {
-        groups[subject] = [];
+    if (!subjectFilter) return sessions;
+    return sessions.filter(session => session.subject === subjectFilter);
+  }, [sessions, subjectFilter]);
+  
+  // Calculate improvement metrics
+  const improvementMetrics = useMemo(() => {
+    const sessionsWithConfidence = sessions.filter(
+      session => session.confidence_after != null && session.confidence_before != null
+    );
+    
+    const averageImprovement = sessionsWithConfidence.length > 0 
+      ? sessionsWithConfidence.reduce((sum, session) => {
+          const before = session.confidence_before || 0;
+          const after = session.confidence_after || 0;
+          return sum + (after - before);
+        }, 0) / sessionsWithConfidence.length
+      : 0;
+      
+    const subjectImprovements = sessionsWithConfidence.reduce((acc: Record<string, number[]>, session) => {
+      if (!acc[session.subject]) {
+        acc[session.subject] = [];
       }
-      groups[subject].push(session);
-    });
-    return groups;
-  }, [filteredSessions, groupBySubject]);
-
+      
+      const before = session.confidence_before || 0;
+      const after = session.confidence_after || 0;
+      acc[session.subject].push(after - before);
+      
+      return acc;
+    }, {});
+    
+    return {
+      averageImprovement,
+      subjectImprovements
+    };
+  }, [sessions]);
+  
   return {
     filteredSessions,
-    groupedSessions,
-    getConfidenceChange,
+    subjectFilter,
+    setSubjectFilter,
+    improvementMetrics
   };
-}
+};

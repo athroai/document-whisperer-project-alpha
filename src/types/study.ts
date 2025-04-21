@@ -17,7 +17,7 @@ export interface PreferredStudySlot {
   created_at?: string;
 }
 
-// Add StudySession type for the progress components
+// Update StudySession type for the progress components
 export interface StudySession {
   id: string;
   subject: string;

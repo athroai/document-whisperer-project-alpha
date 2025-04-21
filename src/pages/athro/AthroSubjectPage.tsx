@@ -2,12 +2,11 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAthro } from '@/contexts/AthroContext';
-import AthroChat from '@/components/athro/AthroChat';
 import { Card } from '@/components/ui/card';
 
 const AthroSubjectPage: React.FC = () => {
   const { subject } = useParams<{ subject: string }>();
-  const { characters, setActiveCharacter, clearMessages } = useAthro();
+  const { characters, setActiveCharacter } = useAthro();
   const navigate = useNavigate();
 
   // Find the character that matches the subject from the URL
@@ -19,13 +18,15 @@ const AthroSubjectPage: React.FC = () => {
 
   useEffect(() => {
     if (character) {
+      // Set the active character first
+      setActiveCharacter(character);
       // Instead of displaying chat here, redirect to study page with subject
-      navigate(`/study?subject=${subject}`);
+      navigate(`/study?subject=${subject}`, { replace: true });
     } else {
       // If no matching character found, redirect to Athro selector page
-      navigate('/athro');
+      navigate('/athro', { replace: true });
     }
-  }, [character, navigate, subject]);
+  }, [character, navigate, subject, setActiveCharacter]);
 
   // This will be shown briefly before redirect
   return (

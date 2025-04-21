@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader } from 'lucide-react';
@@ -7,17 +7,33 @@ import { Loader } from 'lucide-react';
 const Index = () => {
   const navigate = useNavigate();
   const { state, logout } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   useEffect(() => {
-    // Log out users on app init
-    if (state.user) {
-      logout().then(() => {
-        navigate('/welcome');
-      });
-    } else if (!state.isLoading) {
-      navigate('/welcome');
+    // Prevent multiple redirects by using a flag
+    if (isRedirecting) return;
+    
+    const handleNavigation = async () => {
+      setIsRedirecting(true);
+      
+      if (state.user) {
+        try {
+          await logout();
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+      }
+      
+      // Navigate only once and after a short delay to prevent rapid state changes
+      setTimeout(() => {
+        navigate('/welcome', { replace: true });
+      }, 100);
+    };
+    
+    if (!state.isLoading) {
+      handleNavigation();
     }
-  }, [navigate, state.user, state.isLoading, logout]);
+  }, [navigate, state.user, state.isLoading, logout, isRedirecting]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
