@@ -93,4 +93,3 @@ export const StudySessionList: React.FC<StudySessionListProps> = ({
     </div>
   );
 };
-

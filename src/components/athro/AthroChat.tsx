@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
 import { DocumentMetadata, uploadDocumentForChat, getDocumentsForCharacter, linkDocumentToMessage } from '@/services/documentService';
 import { extractTextFromImageWithMathpix } from '@/lib/mathpixService';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface AthroChatProps {
   isCompactMode?: boolean;
@@ -73,7 +74,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
         const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'student';
         
         if (currentCharacter) {
-          sendMessage(`Welcome ${userName}! I'm ${currentCharacter.name}. What would you like to study in ${currentCharacter.subject} today?`, currentCharacter);
+          sendMessage(`Welcome ${userName}! I'm ${currentCharacter.name}. What would you like to study in ${currentCharacter.subject} today?`);
           setHasWelcomed(true);
         }
       } catch (error) {
@@ -128,7 +129,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
     }
     
     console.log('💬 AthroChat - Sending message:', inputMessage);
-    sendMessage(inputMessage, currentCharacter);
+    sendMessage(inputMessage);
     setInputMessage('');
   };
 
@@ -189,7 +190,8 @@ const AthroChat: React.FC<AthroChatProps> = ({
       const uploadResult = await uploadDocumentForChat(file, currentCharacter.id);
 
       if (uploadResult) {
-        const messageResult = await sendMessage(`I've uploaded a document: ${file.name}`, currentCharacter);
+        const messageContent = `I've uploaded a document: ${file.name}`;
+        const messageResult = await sendMessage(messageContent);
         
         if (messageResult?.id && uploadResult.id) {
           await linkDocumentToMessage(uploadResult.id, messageResult.id);
@@ -259,10 +261,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
       const result = await extractTextFromImageWithMathpix(file);
       setOcrResult(result);
 
-      const uploadResult = await uploadDocumentForChat(
-        file, 
-        currentCharacter.id
-      );
+      const uploadResult = await uploadDocumentForChat(file, currentCharacter.id);
 
       if (uploadResult) {
         const updatedDocs = await getDocumentsForCharacter(currentCharacter.id);
@@ -289,7 +288,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
     if (!ocrResult || !currentCharacter) return;
     
     const message = `I've scanned this document using OCR: \n\n${ocrResult.text}${ocrResult.latex ? `\n\nLaTeX formatted content:\n${ocrResult.latex}` : ''}`;
-    sendMessage(message, currentCharacter);
+    sendMessage(message);
     setShowOcrDialog(false);
     setOcrResult(null);
   };
@@ -318,7 +317,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
       return;
     }
     
-    sendMessage("2+2=?", currentCharacter);
+    sendMessage("2+2=?");
   };
 
   const sendMathTest = () => {
@@ -333,7 +332,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
       return;
     }
     
-    sendMessage("2-1", currentCharacter);
+    sendMessage("2-1");
   };
 
   return (
@@ -363,7 +362,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
             className="h-6 text-xs" 
             onClick={() => {
               if (currentCharacter) {
-                sendMessage("2-1", currentCharacter);
+                sendMessage("2-1");
               }
             }}
           >
@@ -376,7 +375,7 @@ const AthroChat: React.FC<AthroChatProps> = ({
             className="h-6 text-xs" 
             onClick={() => {
               if (currentCharacter) {
-                sendMessage("2+2=?", currentCharacter);
+                sendMessage("2+2=?");
               }
             }}
           >
