@@ -11,6 +11,7 @@ export const loginAction = async (email: string, password: string, rememberMe: b
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     updateState({ session: data.session, user: data.user });
+    localStorage.setItem('auth_session_created', Date.now().toString());
     await getProfile();
     navigate('/home');
   } catch (error: any) {
@@ -24,6 +25,20 @@ export const loginAction = async (email: string, password: string, rememberMe: b
 export const signupAction = async (email: string, password: string, role: string, updateState: any, navigate: any, setAuthProfile: any) => {
   updateState({ isLoading: true, error: undefined });
   try {
+    // First check if user already exists
+    const { data: userData, error: checkError } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false
+      }
+    });
+    
+    // If user doesn't throw an error, the email already exists
+    if (!checkError) {
+      throw new Error('User with this email already exists');
+    }
+    
+    // If we get here, email isn't registered, so proceed with signup
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -31,8 +46,12 @@ export const signupAction = async (email: string, password: string, role: string
         data: { role }
       }
     });
+    
     if (error) throw error;
+    
     updateState({ session: data.session, user: data.user });
+    localStorage.setItem('auth_session_created', Date.now().toString());
+    
     if (data.user) {
       const initialProfile: Profile = {
         full_name: '',
@@ -44,7 +63,11 @@ export const signupAction = async (email: string, password: string, role: string
       };
       await setAuthProfile(initialProfile);
     }
-    navigate('/athro-onboarding');
+    
+    // Remove any stale onboarding completion flag
+    localStorage.removeItem('onboarding_completed');
+    
+    navigate('/onboarding');
   } catch (error: any) {
     updateState({ error: error.message });
     throw error;
@@ -59,6 +82,8 @@ export const signOutAction = async (updateState: any, navigate: any) => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     updateState({ session: null, user: null, profile: null });
+    localStorage.removeItem('onboarding_completed');
+    localStorage.removeItem('auth_session_created');
     navigate('/login');
   } catch (error: any) {
     toast({

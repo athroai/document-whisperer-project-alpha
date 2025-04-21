@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase';
 
 const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'student' | 'parent' | 'teacher'>('student');
   const { signup, state } = useAuth();
+  const [isChecking, setIsChecking] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,18 +51,48 @@ const SignupPage: React.FC = () => {
     }
     
     try {
+      setIsChecking(true);
+      
+      // Check if email exists before attempting signup
+      const { data, error: checkError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false
+        }
+      });
+      
+      if (!checkError) {
+        toast({
+          title: "Account exists",
+          description: "An account with this email already exists. Please log in instead.",
+          variant: "destructive",
+        });
+        setIsChecking(false);
+        return;
+      }
+
       await signup(email, password, role);
       toast({
         title: "Account created!",
         description: "Welcome to Athro AI",
       });
-      navigate('/home');
-    } catch (error) {
-      toast({
-        title: "Signup failed",
-        description: "Please try again",
-        variant: "destructive",
-      });
+      // We'll let the signup process handle the navigation
+    } catch (error: any) {
+      if (error.message?.includes('already registered')) {
+        toast({
+          title: "Account exists",
+          description: "An account with this email already exists. Please log in instead.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Signup failed",
+          description: error.message || "Please try again",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsChecking(false);
     }
   };
 
@@ -144,9 +176,9 @@ const SignupPage: React.FC = () => {
               <Button
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
-                disabled={state.isLoading}
+                disabled={state.isLoading || isChecking}
               >
-                {state.isLoading ? "Creating account..." : "Sign up"}
+                {state.isLoading || isChecking ? "Creating account..." : "Sign up"}
               </Button>
             </div>
           </form>
