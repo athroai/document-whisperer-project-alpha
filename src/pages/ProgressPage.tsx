@@ -20,7 +20,7 @@ const ProgressPage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'unsure'>('all');
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
   
-  const { sessions, loading, error, subjects } = useStudySessions(user?.id);
+  const { sessions, isLoading, error, subjects } = useStudySessions(user?.id);
   const { scheduleReviewSession } = useReviewScheduler({
     subject: '',
     topic: '',
@@ -108,10 +108,7 @@ const ProgressPage: React.FC = () => {
         <TabsContent value="subjects">
           <StudySessionList 
             sessions={sessions} 
-            loading={loading}
-            groupBySubject={true}
-            confidenceFilter={filter}
-            subjectFilter={subjectFilter}
+            loading={isLoading}
             onScheduleReview={handleScheduleReview}
           />
         </TabsContent>
@@ -119,10 +116,7 @@ const ProgressPage: React.FC = () => {
         <TabsContent value="chronological">
           <StudySessionList 
             sessions={sessions} 
-            loading={loading}
-            groupBySubject={false}
-            confidenceFilter={filter}
-            subjectFilter={subjectFilter}
+            loading={isLoading}
             onScheduleReview={handleScheduleReview}
           />
         </TabsContent>
@@ -132,4 +126,3 @@ const ProgressPage: React.FC = () => {
 };
 
 export default ProgressPage;
-
