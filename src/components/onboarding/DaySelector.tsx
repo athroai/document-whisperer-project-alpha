@@ -16,7 +16,7 @@ export const DaySelector: React.FC<DaySelectorProps> = ({ selectedDays, toggleDa
     { value: 4, label: 'Thu' },
     { value: 5, label: 'Fri' },
     { value: 6, label: 'Sat' },
-    { value: 7, label: 'Sun' },
+    { value: 0, label: 'Sun' }, // Using 0 for Sunday to match JavaScript's Date.getDay()
   ];
 
   return (

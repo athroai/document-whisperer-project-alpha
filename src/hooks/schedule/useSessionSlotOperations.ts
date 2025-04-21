@@ -14,11 +14,19 @@ export const useSessionSlotOperations = () => {
       const weekStartDate = today.getDate() - today.getDay() + 1; // Monday
 
       for (const slot of slots) {
-        let dayDiff = slot.day_of_week - today.getDay();
-        if (dayDiff <= 0) dayDiff += 7;
+        // Correctly handle the day of week to match JavaScript's Sunday=0 convention
+        let dayIndex = slot.day_of_week;
+        
+        // Calculate days until next occurrence of this day
+        const currentDayIndex = today.getDay(); // 0 = Sunday, ..., 6 = Saturday
+        let daysUntilNext = dayIndex - currentDayIndex;
+        if (daysUntilNext <= 0) {
+          daysUntilNext += 7; // Go to next week if day has passed this week
+        }
 
+        // Create the next date for this day
         const nextDate = new Date(today);
-        nextDate.setDate(weekStartDate + slot.day_of_week - 1);
+        nextDate.setDate(today.getDate() + daysUntilNext);
 
         const startTime = new Date(nextDate);
         startTime.setHours(slot.preferred_start_hour || 16, 0, 0, 0);

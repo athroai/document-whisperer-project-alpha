@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { verifyAuth } from '@/lib/supabase';
@@ -245,7 +244,6 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
   };
   
   const getSessionsForConfidence = (confidence: string) => {
-    // Assign more sessions to subjects with lower confidence
     switch (confidence) {
       case 'low': return 5;
       case 'medium': return 3;
@@ -260,7 +258,6 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
   ): StudySession[] => {
     const result: StudySession[] = [];
     
-    // If no slots, create a default one for each weekday
     if (!slots || slots.length === 0) {
       slots = [1, 2, 3, 4, 5].map(day => ({
         id: `default-${day}`,
@@ -273,29 +270,23 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
     }
     
     const today = startOfDay(new Date());
-    let daysOut = 1; // Start planning from tomorrow
+    let daysOut = 1;
     
-    // Create a queue of subjects to schedule, respecting their sessionsPerWeek
     const subjectsToSchedule = subjectDistribution.flatMap(subj => 
       Array(subj.sessionsPerWeek).fill(subj)
     );
     
-    while (subjectsToSchedule.length > 0 && daysOut <= 21) { // Plan for 3 weeks maximum
+    while (subjectsToSchedule.length > 0 && daysOut <= 21) {
       const dateToCheck = addDays(today, daysOut);
-      const dayOfWeekIndex = getDay(dateToCheck); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+      const dayOfWeekIndex = getDay(dateToCheck);
       
-      // Convert to our 1-7 format where 1 = Monday, ..., 7 = Sunday
-      const dayOfWeek = dayOfWeekIndex === 0 ? 7 : dayOfWeekIndex;
+      console.log(`Checking day ${daysOut}: ${format(dateToCheck, 'yyyy-MM-dd')} (day of week: ${dayOfWeekIndex})`);
       
-      console.log(`Checking day ${daysOut}: ${format(dateToCheck, 'yyyy-MM-dd')} (day of week: ${dayOfWeek})`);
-      
-      // Find slots for this day
-      const slotsForDay = slots.filter(slot => slot.day_of_week === dayOfWeek);
+      const slotsForDay = slots.filter(slot => slot.day_of_week === dayOfWeekIndex);
       
       if (slotsForDay.length > 0) {
-        console.log(`Found ${slotsForDay.length} slots for day ${dayOfWeek}`);
+        console.log(`Found ${slotsForDay.length} slots for day ${dayOfWeekIndex}`);
         
-        // Schedule as many subjects as we have slots for this day
         for (let i = 0; i < slotsForDay.length && subjectsToSchedule.length > 0; i++) {
           const slot = slotsForDay[i];
           const subject = subjectsToSchedule.shift();
@@ -327,7 +318,6 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       daysOut++;
     }
     
-    // Sort sessions chronologically
     return result.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   };
   
