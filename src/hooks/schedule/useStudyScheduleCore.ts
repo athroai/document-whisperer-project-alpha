@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -7,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useDayPreferences } from './useDayPreferences';
 import { useSessionSlotOperations } from './useSessionSlotOperations';
+import { supabase } from '@/lib/supabase';
 
 const sessionOptions = [
   { value: 1, label: '1 session (long)', durationMinutes: 120 },
