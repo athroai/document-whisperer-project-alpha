@@ -1,19 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { DaySelector } from '../DaySelector';
-import { DayTimePreferences } from '../DayTimePreferences';
-import { useStudySchedule } from '@/hooks/useStudySchedule';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { IndividualSessionPlanner } from '../IndividualSessionPlanner';
 import { Info, AlertCircle, Clock } from 'lucide-react';
+import { useStudySchedule } from '@/hooks/useStudySchedule';
 
 export const StudyScheduleStep: React.FC = () => {
-  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { updateOnboardingStep } = useOnboarding();
   const {
@@ -48,27 +45,22 @@ export const StudyScheduleStep: React.FC = () => {
       <div className="mb-4">
         <h2 className="text-xl font-semibold mb-2">Your Study Schedule</h2>
         <p className="text-gray-600 text-sm">
-          Select the days you want to study and customize your sessions for each day.
+          Create your personalized study schedule by selecting days and setting up individual study sessions.
         </p>
       </div>
-      
-      <DaySelector 
-        selectedDays={selectedDays} 
-        toggleDaySelection={handleDayToggle} 
-      />
       
       <Card className="p-4 border-purple-200">
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label className="text-base font-semibold">Study Session Format</Label>
+            <Label className="text-base font-semibold">Initial Session Format</Label>
             <span className="text-sm font-medium text-purple-700">
-              {sessionsPerDay} {sessionsPerDay === 1 ? 'session' : 'sessions'} initially
+              {sessionsPerDay} {sessionsPerDay === 1 ? 'session' : 'sessions'} per day
             </span>
           </div>
           
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
-              <Label className="text-sm text-gray-600">Choose initial session count:</Label>
+              <Label className="text-sm text-gray-600">Choose starting template:</Label>
               <Select 
                 value={sessionsPerDay.toString()}
                 onValueChange={(value) => handleSessionsPerDayChange(parseInt(value))}
@@ -90,8 +82,7 @@ export const StudyScheduleStep: React.FC = () => {
           <Alert className="bg-blue-50 border-blue-200">
             <Info className="h-4 w-4 text-blue-800" />
             <AlertDescription className="text-sm text-blue-800">
-              Customize each study session's time and duration below. You can add as many 
-              sessions as you need to each selected day.
+              After selecting a template, you can customize each session's time and duration individually below.
             </AlertDescription>
           </Alert>
         </div>
@@ -104,41 +95,17 @@ export const StudyScheduleStep: React.FC = () => {
         </Alert>
       )}
       
-      {selectedDays.length === 0 && (
-        <Alert variant="default" className="bg-amber-50 border-amber-200">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-700">
-            Please select at least one day to continue.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {selectedDays.length > 0 && (
-        <div className="mb-3">
-          <h3 className="text-lg font-medium text-gray-800 mb-2">Your Customized Schedule</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            For each day, customize your study session times and durations. Add more sessions if needed.
-          </p>
-        </div>
-      )}
-      
-      {selectedDays.map((dayIndex) => (
-        <DayTimePreferences
-          key={dayIndex}
-          dayIndex={dayIndex}
-          dayName={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1]}
-          isSelected={selectedDays.includes(dayIndex)}
-          sessionsCount={sessionsPerDay}
-          sessionTimes={
-            dayPreferences.find(p => p.dayIndex === dayIndex)?.sessionTimes ||
-              Array(sessionsPerDay).fill({ startHour: 15, durationMinutes: 45 })
-          }
-          onSessionTimeChange={handleSessionTimeChange}
-          onSessionDurationChange={handleSessionDurationChange}
-          onAddSession={handleAddSession}
-          onRemoveSession={handleRemoveSession}
-        />
-      ))}
+      {/* This is our new component for individual session planning */}
+      <IndividualSessionPlanner
+        selectedDays={selectedDays}
+        handleDayToggle={handleDayToggle}
+        dayPreferences={dayPreferences}
+        handleSessionTimeChange={handleSessionTimeChange}
+        handleSessionDurationChange={handleSessionDurationChange}
+        handleAddSession={handleAddSession}
+        handleRemoveSession={handleRemoveSession}
+        sessionsPerDay={sessionsPerDay}
+      />
       
       <div className="pt-6">
         <Button
@@ -146,7 +113,7 @@ export const StudyScheduleStep: React.FC = () => {
           disabled={selectedDays.length === 0 || isSubmitting}
           className="w-full bg-purple-600 hover:bg-purple-700"
         >
-          {isSubmitting ? "Saving..." : "Continue"}
+          {isSubmitting ? "Saving..." : "Continue to Plan Generation"}
         </Button>
       </div>
     </div>

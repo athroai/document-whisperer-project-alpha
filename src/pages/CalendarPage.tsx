@@ -22,6 +22,7 @@ const CalendarPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialLoadComplete = useRef(false);
   
   // Check if we're coming from onboarding
   const fromSetup = searchParams.get('fromSetup') === 'true';
@@ -48,8 +49,8 @@ const CalendarPage: React.FC = () => {
     let loadingTimeout: NodeJS.Timeout;
     
     const loadCalendarEvents = async () => {
-      if (!userId || authState.isLoading) {
-        if (isMounted) setIsInitialLoad(false);
+      if (!userId || authState.isLoading || initialLoadComplete.current) {
+        if (isMounted && !initialLoadComplete.current) setIsInitialLoad(false);
         return;
       }
       
@@ -69,7 +70,8 @@ const CalendarPage: React.FC = () => {
         const fetchedEvents = await fetchEvents();
         
         if (isMounted) {
-          // Ensure we set isInitialLoad to false even if there's an error
+          // Mark initial load complete to prevent repeated fetches
+          initialLoadComplete.current = true;
           setIsInitialLoad(false);
           
           if ((refreshTrigger > 0 || fromSetup) && fetchedEvents.length > 0) {
@@ -137,11 +139,12 @@ const CalendarPage: React.FC = () => {
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, [userId, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents, navigate]);
+  }, [userId, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents, navigate, isInitialLoad]);
   
   const handleRetryLoad = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
     clearEvents();
+    initialLoadComplete.current = false; // Reset the flag to allow reloading
     localStorage.removeItem('cached_calendar_events');
     toast({
       title: "Refreshing calendar",
@@ -175,13 +178,13 @@ const CalendarPage: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <CalendarToolbar isLoading={isLoading} onRefresh={handleRetryLoad} />
         
-        {isLoading && isInitialLoad ? (
+        {(isLoading && isInitialLoad) ? (
           <div className="space-y-4">
             <div className="flex items-center justify-center p-8">
               <Loader className="h-8 w-8 animate-spin text-purple-600" />
               <span className="ml-2 text-gray-600">Loading your study calendar...</span>
             </div>
-            <Skeleton className="h-[600px] w-full rounded-md" />
+            <Skeleton className="h-[600px] w-full rounded-md opacity-40" />
           </div>
         ) : loadError ? (
           <div className="flex flex-col items-center justify-center p-12 space-y-4 bg-white rounded-lg shadow">

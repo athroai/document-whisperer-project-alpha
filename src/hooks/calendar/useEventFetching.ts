@@ -49,6 +49,7 @@ export const useEventFetching = (
           setEvents([]);
         }
         
+        setIsLoading(false); // Important: Set loading to false even when using cached data
         return localEvents;
       }
       
@@ -62,6 +63,7 @@ export const useEventFetching = (
         
         console.log(`Fetched ${dbEvents.length} database events and ${localOnlyEvents.length} local-only events`);
         setEvents(combinedEvents);
+        setIsLoading(false); // Set loading to false after successful fetch
         return combinedEvents;
       } catch (fetchError) {
         console.error('Error fetching database events:', fetchError);
@@ -73,13 +75,14 @@ export const useEventFetching = (
           setEvents([]);
         }
         
+        setIsLoading(false); // Important: Set loading to false even on error
         return localEvents;
       }
     } catch (error) {
       console.error('Error in fetchEvents:', error);
+      setIsLoading(false); // Make sure loading state is cleared on error
       return [];
     } finally {
-      setIsLoading(false);
       fetchInProgress.current = false;
     }
   }, [userId, setEvents, setIsLoading, localEvents]);
