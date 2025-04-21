@@ -15,18 +15,28 @@ export const useEventFetching = (
   const subscriptionActive = useRef(false);
   const fetchAttempted = useRef(false);
   const realtimeUpdateDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  // Track the last fetch time to prevent excessive refreshes
+  const lastFetchTime = useRef<number>(0);
   
-  // Fetch events from the database and local storage
+  // Fetch events from the database and local storage with rate limiting
   const fetchEvents = useCallback(async (): Promise<CalendarEvent[]> => {
-    // Prevent multiple concurrent fetches
+    // Prevent multiple concurrent fetches and implement rate limiting
+    const now = Date.now();
     if (fetchInProgress.current) {
       console.log('Fetch already in progress, skipping');
+      return [];
+    }
+    
+    // Rate limiting: only allow fetch every 2 seconds
+    if ((now - lastFetchTime.current) < 2000 && fetchAttempted.current) {
+      console.log('Fetch attempted too recently, skipping');
       return [];
     }
     
     try {
       fetchInProgress.current = true;
       setIsLoading(true);
+      lastFetchTime.current = now;
       
       // Verify authentication or get authenticated user ID
       let authenticatedId = userId;
@@ -89,11 +99,14 @@ export const useEventFetching = (
       fetchAttempted.current = true;
       return [];
     } finally {
-      fetchInProgress.current = false;
+      // Give a small delay before allowing next fetch
+      setTimeout(() => {
+        fetchInProgress.current = false;
+      }, 1000);
     }
   }, [userId, setEvents, setIsLoading, localEvents]);
 
-  // Set up real-time subscription for calendar events - with debouncing
+  // Set up real-time subscription for calendar events - with improved debouncing
   useEffect(() => {
     if (!userId || subscriptionActive.current) return;
     
@@ -118,18 +131,24 @@ export const useEventFetching = (
                 clearTimeout(realtimeUpdateDebounceTimer.current);
               }
               
-              // Debounce for 2 seconds to prevent multiple rapid refreshes
+              // Debounce for 5 seconds to prevent multiple rapid refreshes
               realtimeUpdateDebounceTimer.current = setTimeout(async () => {
                 try {
                   if (!fetchInProgress.current) {
-                    await fetchEvents();
-                    setLastRefreshedAt(new Date());
-                    console.log(`Refreshed calendar events after real-time update`);
+                    const now = Date.now();
+                    // Only refresh if it's been at least 3 seconds since the last fetch
+                    if ((now - lastFetchTime.current) >= 3000) {
+                      await fetchEvents();
+                      setLastRefreshedAt(new Date());
+                      console.log(`Refreshed calendar events after real-time update`);
+                    } else {
+                      console.log('Skipping refresh, too soon after last fetch');
+                    }
                   }
                 } catch (error) {
                   console.error('Error refreshing events after real-time update:', error);
                 }
-              }, 2000);
+              }, 5000); // Increased debounce time to 5 seconds
             }
           }
         )
@@ -142,9 +161,10 @@ export const useEventFetching = (
     }
       
     return () => {
+      console.log('Cleaning up real-time subscription');
+      subscriptionActive.current = false;
+      
       if (subscription) {
-        console.log('Cleaning up real-time subscription');
-        subscriptionActive.current = false;
         supabase.removeChannel(subscription);
       }
       

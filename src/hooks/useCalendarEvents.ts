@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalCalendarEvents } from './calendar/useLocalCalendarEvents';
 import { useEventsState } from './calendar/useEventsState';
@@ -11,6 +11,7 @@ export const useCalendarEvents = () => {
   const userId = authState.user?.id;
   const initialFetchDone = useRef(false);
   const initialFetchInProgress = useRef(false);
+  const fetchCooldown = useRef(false);
   
   const {
     events,
@@ -28,13 +29,35 @@ export const useCalendarEvents = () => {
     clearLocalEvents
   } = useLocalCalendarEvents();
   
-  const { fetchEvents } = useEventFetching(
+  const { fetchEvents: fetchEventsFromService } = useEventFetching(
     userId,
     setEvents,
     setIsLoading,
     setLastRefreshedAt,
     localEvents
   );
+
+  // Create a stabilized fetchEvents function with cooldown protection
+  const fetchEvents = useCallback(async () => {
+    // If in cooldown period, return cached events
+    if (fetchCooldown.current) {
+      console.log('Fetch in cooldown period, returning cached events');
+      return events;
+    }
+    
+    // Set cooldown to prevent rapid repeated calls
+    fetchCooldown.current = true;
+    
+    try {
+      const result = await fetchEventsFromService();
+      return result;
+    } finally {
+      // Release the cooldown after a delay
+      setTimeout(() => {
+        fetchCooldown.current = false;
+      }, 2000);
+    }
+  }, [events, fetchEventsFromService]);
   
   const {
     createEvent,
@@ -42,6 +65,7 @@ export const useCalendarEvents = () => {
     deleteEvent
   } = useEventOperations(events, setEvents);
 
+  // Optimize the initial load effect to prevent unnecessary re-fetches
   useEffect(() => {
     let mounted = true;
     

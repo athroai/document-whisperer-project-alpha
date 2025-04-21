@@ -22,21 +22,26 @@ const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialLoadComplete = useRef(false);
-  const calendarMountedRef = useRef(false);
+  const calendarMountedRef = useRef(true); // Start as true since component is mounted
   const manualRefreshInProgress = useRef(false);
+  const lastRefreshTime = useRef<number>(0);
   
   const fromSetup = searchParams.get('fromSetup') === 'true';
   const shouldRefresh = searchParams.get('refresh') === 'true';
   const { needsOnboarding, isLoading: checkingOnboarding } = useOnboardingCheck(false);
 
+  // Added cooldown period to prevent rapid refreshes
   const handleRetryLoad = useCallback(() => {
-    if (manualRefreshInProgress.current) return;
+    const now = Date.now();
+    if (manualRefreshInProgress.current || (now - lastRefreshTime.current < 3000)) {
+      console.log('Refresh already in progress or too soon since last refresh');
+      return;
+    }
     
     manualRefreshInProgress.current = true;
+    lastRefreshTime.current = now;
+    
     setRefreshTrigger(prev => prev + 1);
-    clearEvents();
-    initialLoadComplete.current = false;
-    localStorage.removeItem('cached_calendar_events');
     toast({
       title: "Refreshing calendar",
       description: "Attempting to reload your calendar events..."
@@ -46,7 +51,15 @@ const CalendarPage: React.FC = () => {
     setTimeout(() => {
       manualRefreshInProgress.current = false;
     }, 3000);
-  }, [clearEvents, toast]);
+  }, [toast]);
+
+  // Set calendarMountedRef on mount/unmount to prevent memory leaks and extra renders
+  useEffect(() => {
+    calendarMountedRef.current = true;
+    return () => {
+      calendarMountedRef.current = false;
+    };
+  }, []);
 
   // Check authentication and handle initial load
   useEffect(() => {
@@ -55,34 +68,24 @@ const CalendarPage: React.FC = () => {
       console.log('No authenticated user, redirecting to login');
       navigate('/login');
     }
-    
-    calendarMountedRef.current = true;
-    
-    return () => {
-      calendarMountedRef.current = false;
-    };
   }, [authState.isLoading, authState.user, navigate]);
 
   // Handle calendar events loading - optimized to prevent excessive refreshes
   useEffect(() => {
     let isMounted = true;
     
+    // Avoid loading if already loaded or no user
+    if (initialLoadComplete.current || !calendarMountedRef.current || !authState.user?.id) {
+      if (isMounted && isInitialLoad) setIsInitialLoad(false);
+      return;
+    }
+    
     const loadCalendarEvents = async () => {
-      if (!authState.user?.id || authState.isLoading || initialLoadComplete.current || !calendarMountedRef.current) {
-        if (isMounted && !initialLoadComplete.current && !authState.isLoading) setIsInitialLoad(false);
-        return;
-      }
-      
       setLoadError(null);
       
       try {
-        if (fromSetup || shouldRefresh) {
-          clearEvents();
+        if ((fromSetup || shouldRefresh) && !initialLoadComplete.current) {
           localStorage.removeItem('cached_calendar_events');
-        }
-        
-        if (fromSetup) {
-          await new Promise(resolve => setTimeout(resolve, 800));
         }
         
         const fetchedEvents = await fetchEvents();
@@ -109,26 +112,22 @@ const CalendarPage: React.FC = () => {
             variant: "destructive"
           });
         }
+      } finally {
+        if (isMounted) {
+          manualRefreshInProgress.current = false;
+        }
       }
     };
     
-    // Only trigger load on mount, manual refresh, or explicit URL parameters
-    const shouldLoad = authState.user?.id && 
-                      !authState.isLoading && 
-                      (isInitialLoad || refreshTrigger > 0 || fromSetup || shouldRefresh);
-                      
-    if (shouldLoad) {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-      
-      refreshTimeoutRef.current = setTimeout(() => {
-        loadCalendarEvents();
-        refreshTimeoutRef.current = null;
-      }, 300);
-    } else if (!authState.isLoading && isInitialLoad) {
-      setIsInitialLoad(false);
+    // Add a small delay to prevent rapid consecutive loads
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
     }
+    
+    refreshTimeoutRef.current = setTimeout(() => {
+      loadCalendarEvents();
+      refreshTimeoutRef.current = null;
+    }, 300);
     
     return () => {
       isMounted = false;
@@ -136,11 +135,11 @@ const CalendarPage: React.FC = () => {
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents, isInitialLoad]);
+  }, [authState.user?.id, isInitialLoad, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh]);
 
-  // Handle onboarding check - but don't refresh calendar when this runs
+  // Handle onboarding check separately to avoid calendar reloads
   useEffect(() => {
-    if (!checkingOnboarding && needsOnboarding === true && authState.user) {
+    if (!checkingOnboarding && needsOnboarding === true && authState.user && calendarMountedRef.current) {
       toast({
         title: "Onboarding Required",
         description: "Please complete onboarding to set up your study plan."
