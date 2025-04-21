@@ -1,25 +1,26 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, BookOpen, Edit, BarChart2, RefreshCw } from 'lucide-react';
+import { Calendar, BookOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudySessions } from '@/hooks/useStudySessions';
 import { useToast } from '@/hooks/use-toast';
 import { useReviewScheduler } from '@/hooks/useReviewScheduler';
 import { StudySessionList } from '@/components/progress/StudySessionList';
+import { useNavigate } from 'react-router-dom';
 
 const ProgressPage: React.FC = () => {
   const { state } = useAuth();
   const { user } = state;
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | 'unsure'>('all');
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
   
-  const { sessions, isLoading, error, subjects } = useStudySessions(user?.id);
+  const { sessions, loading, error, subjects } = useStudySessions(user?.id);
   const { scheduleReviewSession } = useReviewScheduler({
     subject: '',
     topic: '',
@@ -42,6 +43,9 @@ const ProgressPage: React.FC = () => {
       title: "Review Scheduled",
       description: `A review session for ${topic} has been suggested in your calendar.`,
     });
+
+    // Navigate to calendar page after scheduling
+    navigate('/calendar');
   };
 
   if (error) {
@@ -104,7 +108,7 @@ const ProgressPage: React.FC = () => {
         <TabsContent value="subjects">
           <StudySessionList 
             sessions={sessions} 
-            isLoading={isLoading}
+            loading={loading}
             groupBySubject={true}
             confidenceFilter={filter}
             subjectFilter={subjectFilter}
@@ -115,7 +119,7 @@ const ProgressPage: React.FC = () => {
         <TabsContent value="chronological">
           <StudySessionList 
             sessions={sessions} 
-            isLoading={isLoading}
+            loading={loading}
             groupBySubject={false}
             confidenceFilter={filter}
             subjectFilter={subjectFilter}
