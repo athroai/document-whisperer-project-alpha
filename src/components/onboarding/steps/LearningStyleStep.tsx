@@ -2,84 +2,102 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useOnboarding } from '@/contexts/OnboardingContext';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { ArrowLeft, ArrowRight, Book, PenTool, Headphones, Eye, Users } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
-const LEARNING_STYLES = [
+const LearningStyles = [
   {
     id: 'visual',
-    name: 'Visual',
-    description: 'Learn best through images, diagrams, and visual information',
-    examples: 'Charts, maps, diagrams, highlighting'
+    title: 'Visual Learner',
+    description: 'You prefer diagrams, charts, and seeing information',
+    icon: Eye
   },
   {
     id: 'auditory',
-    name: 'Auditory',
-    description: 'Learn best through listening and speaking',
-    examples: 'Lectures, discussions, talking through concepts'
+    title: 'Auditory Learner',
+    description: 'You prefer listening to explanations and discussions',
+    icon: Headphones
   },
   {
     id: 'reading',
-    name: 'Reading/Writing',
-    description: 'Learn best through text-based information',
-    examples: 'Reading textbooks, taking notes, writing summaries'
+    title: 'Reading/Writing',
+    description: 'You prefer reading texts and writing notes',
+    icon: Book
   },
   {
     id: 'kinesthetic',
-    name: 'Kinesthetic',
-    description: 'Learn best through hands-on experience',
-    examples: 'Experiments, practice exercises, role-playing'
+    title: 'Hands-on Learner',
+    description: 'You prefer doing practical exercises and examples',
+    icon: PenTool
+  },
+  {
+    id: 'social',
+    title: 'Social Learner',
+    description: 'You prefer studying in groups and discussing topics',
+    icon: Users
   }
 ];
 
 export const LearningStyleStep: React.FC = () => {
-  const { updateOnboardingStep, updateLearningPreferences } = useOnboarding();
+  const { updateLearningPreferences, updateOnboardingStep } = useOnboarding();
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   
   const toggleStyle = (styleId: string) => {
-    setSelectedStyles(prev => 
-      prev.includes(styleId) 
-        ? prev.filter(id => id !== styleId)
-        : [...prev, styleId]
-    );
+    setSelectedStyles(prev => {
+      if (prev.includes(styleId)) {
+        return prev.filter(id => id !== styleId);
+      } else {
+        return [...prev, styleId];
+      }
+    });
+  };
+  
+  const handleBack = () => {
+    updateOnboardingStep('availability');
   };
   
   const handleContinue = () => {
+    // Save selected learning styles
     updateLearningPreferences({ learningStyles: selectedStyles });
-    updateOnboardingStep('calendar-preview');
+    
+    // Move to next step
+    updateOnboardingStep('generatePlan');
   };
-
+  
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold mb-2">Your Learning Style</h2>
+        <h2 className="text-xl font-semibold mb-2">What's Your Learning Style?</h2>
         <p className="text-gray-600 text-sm mb-4">
-          How do you prefer to learn? Select all that apply. This helps us recommend the best study approaches for each subject.
+          Select the learning styles that work best for you. This helps us tailor your study materials.
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {LEARNING_STYLES.map(style => {
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {LearningStyles.map((style) => {
           const isSelected = selectedStyles.includes(style.id);
-          
           return (
             <Card 
-              key={style.id}
-              className={`p-4 cursor-pointer transition-colors ${
-                isSelected ? 'border-purple-500 bg-purple-50' : ''
-              }`}
+              key={style.id} 
+              className={cn(
+                "cursor-pointer transition-all",
+                isSelected ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+              )}
               onClick={() => toggleStyle(style.id)}
             >
-              <div className="flex justify-between items-start">
-                <h3 className="font-medium">{style.name}</h3>
-                {isSelected && (
-                  <span className="bg-purple-500 text-white p-1 rounded-full">
-                    <Check className="h-3 w-3" />
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-gray-600 mt-2">{style.description}</p>
-              <p className="text-xs text-gray-500 mt-1">Examples: {style.examples}</p>
+              <CardContent className="p-4 flex items-center">
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center mr-3",
+                  isSelected ? "bg-primary text-primary-foreground" : "bg-muted"
+                )}>
+                  <style.icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-medium">{style.title}</h3>
+                  <p className="text-xs text-muted-foreground">{style.description}</p>
+                </div>
+              </CardContent>
             </Card>
           );
         })}
@@ -88,13 +106,13 @@ export const LearningStyleStep: React.FC = () => {
       <div className="pt-4 flex justify-between">
         <Button 
           variant="outline" 
-          onClick={() => updateOnboardingStep('availability')}
+          onClick={handleBack}
         >
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-        <Button
+        
+        <Button 
           onClick={handleContinue}
-          className="bg-purple-600 hover:bg-purple-700"
           disabled={selectedStyles.length === 0}
         >
           Continue <ArrowRight className="ml-2 h-4 w-4" />

@@ -1,46 +1,101 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { DaySelector } from './DaySelector';
-import { SlotOptionSelector } from './SlotOptionSelector';
-import { TimeSlotPreview } from './TimeSlotPreview';
-import { SlotOption } from '@/types/study';
 import { Calendar, Clock } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
-const SLOT_OPTIONS: SlotOption[] = [
-  {
-    name: 'Short Sessions',
-    count: 3,
-    duration: 25,
-    color: 'bg-blue-500',
-    icon: Calendar
-  },
-  {
-    name: 'Medium Sessions',
-    count: 2,
-    duration: 45,
-    color: 'bg-purple-500',
-    icon: Calendar
-  },
-  {
-    name: 'Long Session',
-    count: 1,
-    duration: 90,
-    color: 'bg-green-500',
-    icon: Calendar
-  }
-];
+// Day selection component
+const DaySelector: React.FC<{
+  selectedDays: number[];
+  toggleDaySelection: (day: number) => void;
+}> = ({ selectedDays, toggleDaySelection }) => {
+  const days = [
+    { value: 1, label: 'Mon' },
+    { value: 2, label: 'Tue' },
+    { value: 3, label: 'Wed' },
+    { value: 4, label: 'Thu' },
+    { value: 5, label: 'Fri' },
+    { value: 6, label: 'Sat' },
+    { value: 7, label: 'Sun' },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <Label>Which days would you like to study?</Label>
+      <div className="flex gap-2 flex-wrap">
+        {days.map((day) => (
+          <Button
+            key={day.value}
+            type="button"
+            variant={selectedDays.includes(day.value) ? "default" : "outline"}
+            className="w-12"
+            onClick={() => toggleDaySelection(day.value)}
+          >
+            {day.label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Study options for session type/duration
+const SlotOptionSelector: React.FC<{
+  selectedOption: number | null;
+  onSelectOption: (index: number) => void;
+}> = ({ selectedOption, onSelectOption }) => {
+  const options = [
+    {
+      name: 'Short Sessions',
+      description: '3 x 25 min sessions',
+      color: 'bg-blue-100 border-blue-300',
+      icon: <Calendar className="h-5 w-5 text-blue-500" />,
+    },
+    {
+      name: 'Medium Sessions',
+      description: '2 x 45 min sessions',
+      color: 'bg-purple-100 border-purple-300',
+      icon: <Calendar className="h-5 w-5 text-purple-500" />,
+    },
+    {
+      name: 'Long Session',
+      description: '1 x 90 min deep focus',
+      color: 'bg-green-100 border-green-300',
+      icon: <Calendar className="h-5 w-5 text-green-500" />,
+    }
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {options.map((option, index) => (
+        <div
+          key={option.name}
+          className={`cursor-pointer rounded-lg border p-4 ${
+            selectedOption === index
+              ? `${option.color} border-2`
+              : 'border-muted hover:border-gray-300'
+          }`}
+          onClick={() => onSelectOption(index)}
+        >
+          <div className="flex items-center mb-2">
+            {option.icon}
+            <h3 className="font-medium ml-2">{option.name}</h3>
+          </div>
+          <p className="text-xs text-gray-500">{option.description}</p>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const SlotSelection: React.FC = () => {
-  const { updateOnboardingStep, updateStudySlots, studySlots, setStudySlots } = useOnboarding();
+  const { updateOnboardingStep } = useOnboarding();
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [selectedOption, setSelectedOption] = useState<number | null>(0);
-  const [preferredStartHour, setPreferredStartHour] = useState<number>(15); // Default to 3pm now
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [preferredStartHour, setPreferredStartHour] = useState<number>(15); // Default to 3pm
 
   const toggleDaySelection = (dayIndex: number) => {
     if (selectedDays.includes(dayIndex)) {
@@ -49,60 +104,7 @@ export const SlotSelection: React.FC = () => {
       setSelectedDays([...selectedDays, dayIndex]);
     }
   };
-
-  // Clear existing slots when component mounts to avoid duplicates
-  useEffect(() => {
-    setStudySlots([]);
-  }, [setStudySlots]);
-
-  const handleContinue = async () => {
-    if (selectedDays.length === 0 || selectedOption === null) {
-      toast.error("Please select at least one day and a study session type");
-      return;
-    }
-    
-    const selectedSlotOption = SLOT_OPTIONS[selectedOption];
-    setIsSubmitting(true);
-    
-    try {
-      // Clear any existing slots first
-      setStudySlots([]);
-      
-      // Create in-memory slots immediately for each selected day
-      const newSlots = selectedDays.map(dayOfWeek => ({
-        id: `temp-${Date.now()}-${dayOfWeek}`,
-        user_id: 'temp-user-id', // Will be replaced when user is available
-        day_of_week: dayOfWeek,
-        slot_count: selectedSlotOption.count,
-        slot_duration_minutes: selectedSlotOption.duration,
-        preferred_start_hour: preferredStartHour,
-        created_at: new Date().toISOString()
-      }));
-      
-      // Update context with all new slots at once
-      setStudySlots(newSlots);
-      
-      // Store each slot separately, but don't block UI if this fails
-      selectedDays.forEach(dayOfWeek => {
-        updateStudySlots({
-          dayOfWeek,
-          slotCount: selectedSlotOption.count,
-          slotDurationMinutes: selectedSlotOption.duration,
-          preferredStartHour
-        });
-      });
-      
-      // Proceed to next step regardless of database save success
-      updateOnboardingStep('generatePlan');
-    } catch (error) {
-      console.error('Error saving study slots:', error);
-      // Continue anyway since we've stored slots in context
-      updateOnboardingStep('generatePlan');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  
   const getTimeLabel = (hour: number) => {
     if (hour === 0) return '12 AM';
     if (hour < 12) return `${hour} AM`;
@@ -118,67 +120,33 @@ export const SlotSelection: React.FC = () => {
       />
       
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Choose Your Study Session Length</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          Select a study pattern that works best for you
-        </p>
-        
+        <Label>Choose Your Study Session Length</Label>
         <SlotOptionSelector 
-          slotOptions={SLOT_OPTIONS} 
           selectedOption={selectedOption} 
           onSelectOption={setSelectedOption} 
         />
       </div>
       
       <div className="space-y-4">
-        <h3 className="text-lg font-medium flex items-center">
+        <div className="flex items-center">
           <Clock className="mr-2 h-5 w-5" />
-          Preferred Start Time
-        </h3>
+          <Label>Preferred Start Time: {getTimeLabel(preferredStartHour)}</Label>
+        </div>
         
-        <div className="space-y-6">
+        <div className="px-2">
           <Slider
             value={[preferredStartHour]}
-            min={15} // 3 PM
-            max={23} // 11 PM
+            min={9} // 9 AM
+            max={20} // 8 PM
             step={1}
             onValueChange={(values) => setPreferredStartHour(values[0])}
           />
-          
-          <div className="flex justify-between text-sm text-gray-500">
-            <span>3 PM</span>
-            <span>7 PM</span>
-            <span>11 PM</span>
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>9 AM</span>
+            <span>2 PM</span>
+            <span>8 PM</span>
           </div>
-          
-          <Label className="block text-center font-medium">
-            Starting at {getTimeLabel(preferredStartHour)}
-          </Label>
         </div>
-        
-        {selectedOption !== null && (
-          <TimeSlotPreview
-            selectedOption={SLOT_OPTIONS[selectedOption]}
-            preferredStartHour={preferredStartHour}
-          />
-        )}
-      </div>
-      
-      <div className="pt-6 flex justify-between">
-        <Button
-          variant="outline"
-          onClick={() => updateOnboardingStep('subjects')}
-          disabled={isSubmitting}
-        >
-          Back
-        </Button>
-        <Button
-          onClick={handleContinue}
-          disabled={selectedDays.length === 0 || selectedOption === null || isSubmitting}
-          className="bg-purple-600 hover:bg-purple-700"
-        >
-          {isSubmitting ? "Saving..." : "Continue to Generate Study Plan"}
-        </Button>
       </div>
     </div>
   );

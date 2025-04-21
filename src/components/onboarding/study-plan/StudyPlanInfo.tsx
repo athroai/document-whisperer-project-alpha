@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader } from 'lucide-react';
+import { Calendar, Clock, Sparkles } from 'lucide-react';
 
 interface StudyPlanInfoProps {
   onGenerate: () => void;
@@ -9,72 +9,72 @@ interface StudyPlanInfoProps {
   disabled: boolean;
 }
 
-export const StudyPlanInfo: React.FC<StudyPlanInfoProps> = ({ 
-  onGenerate, 
-  isGenerating, 
-  disabled 
+export const StudyPlanInfo: React.FC<StudyPlanInfoProps> = ({
+  onGenerate,
+  isGenerating,
+  disabled
 }) => {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Create Your Study Plan</h2>
-        <p className="text-muted-foreground mt-2">
-          We'll generate a personalized study schedule based on your subjects and availability
-        </p>
-      </div>
-
-      <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
-        <h3 className="font-medium">Your Study Plan Will Include:</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="border rounded-lg p-4 bg-muted/30">
+          <div className="flex items-center mb-3">
+            <div className="bg-primary/20 p-2 rounded-full mr-3">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="font-medium">AI-Optimized</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Custom study plan based on your subject confidence levels and learning preferences.
+          </p>
+        </div>
         
-        <ul className="space-y-3">
-          <li className="flex items-start">
-            <div className="bg-purple-100 p-1 rounded-full mr-3 mt-0.5">
-              <svg className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+        <div className="border rounded-lg p-4 bg-muted/30">
+          <div className="flex items-center mb-3">
+            <div className="bg-primary/20 p-2 rounded-full mr-3">
+              <Calendar className="h-5 w-5 text-primary" />
             </div>
-            <span>Balanced sessions for all your selected subjects</span>
-          </li>
-          <li className="flex items-start">
-            <div className="bg-purple-100 p-1 rounded-full mr-3 mt-0.5">
-              <svg className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+            <h3 className="font-medium">Calendar Integration</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Study sessions automatically added to your calendar with smart scheduling.
+          </p>
+        </div>
+        
+        <div className="border rounded-lg p-4 bg-muted/30">
+          <div className="flex items-center mb-3">
+            <div className="bg-primary/20 p-2 rounded-full mr-3">
+              <Clock className="h-5 w-5 text-primary" />
             </div>
-            <span>Time allocated based on your preferred schedule</span>
-          </li>
-          <li className="flex items-start">
-            <div className="bg-purple-100 p-1 rounded-full mr-3 mt-0.5">
-              <svg className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <span>Calendar events that sync with your Athro dashboard</span>
-          </li>
-        </ul>
+            <h3 className="font-medium">Optimal Timing</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Sessions scheduled at your preferred times to maximize focus and retention.
+          </p>
+        </div>
       </div>
-
-      <div className="flex justify-center pt-4">
+      
+      <div className="flex justify-center">
         <Button
           onClick={onGenerate}
           disabled={disabled || isGenerating}
-          className="bg-purple-600 hover:bg-purple-700"
+          className="px-8 py-2"
           size="lg"
         >
           {isGenerating ? (
             <>
-              <Loader className="mr-2 h-4 w-4 animate-spin" />
+              <div className="animate-spin h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full"></div>
               Generating...
             </>
           ) : (
-            "Generate My Study Plan"
+            'Generate My Study Plan'
           )}
         </Button>
       </div>
       
-      {disabled && (
+      {disabled && !isGenerating && (
         <p className="text-center text-sm text-muted-foreground">
-          Please complete your subject selection to generate a study plan
+          Please complete all previous steps before generating your plan.
         </p>
       )}
     </div>

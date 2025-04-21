@@ -8,6 +8,14 @@ import { SlotSelection } from '@/components/onboarding/SlotSelection';
 export const AvailabilitySelectionStep: React.FC = () => {
   const { updateOnboardingStep } = useOnboarding();
   
+  const handleBack = () => {
+    updateOnboardingStep('subjects');
+  };
+  
+  const handleContinue = () => {
+    updateOnboardingStep('style');
+  };
+  
   return (
     <div className="space-y-6">
       <div>
@@ -22,9 +30,13 @@ export const AvailabilitySelectionStep: React.FC = () => {
       <div className="pt-4 flex justify-between">
         <Button 
           variant="outline" 
-          onClick={() => updateOnboardingStep('subjects')}
+          onClick={handleBack}
         >
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
+        </Button>
+        
+        <Button onClick={handleContinue}>
+          Continue <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

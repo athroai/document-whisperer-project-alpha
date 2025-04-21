@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { SubjectPreference, Availability } from './types';
 import { PreferredStudySlot } from '@/types/study';

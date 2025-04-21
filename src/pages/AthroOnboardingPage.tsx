@@ -15,17 +15,18 @@ import { AvailabilitySelectionStep } from '@/components/onboarding/steps/Availab
 import { LearningStyleStep } from '@/components/onboarding/steps/LearningStyleStep';
 import { CalendarPreviewStep } from '@/components/onboarding/steps/CalendarPreviewStep';
 import { WelcomeStep } from '@/components/onboarding/steps/WelcomeStep';
+import { StudyPlanContainer } from '@/components/onboarding/steps/plan/StudyPlanContainer';
 
 const steps = [
   { id: 'welcome', component: WelcomeStep, title: 'Welcome' },
   { id: 'subjects', component: SubjectSelectionStep, title: 'Select Subjects' },
   { id: 'availability', component: AvailabilitySelectionStep, title: 'Set Schedule' },
-  { id: 'learning-style', component: LearningStyleStep, title: 'Learning Style' },
-  { id: 'calendar-preview', component: CalendarPreviewStep, title: 'Your Calendar' }
+  { id: 'style', component: LearningStyleStep, title: 'Learning Style' },
+  { id: 'generatePlan', component: StudyPlanContainer, title: 'Your Calendar' }
 ];
 
 const OnboardingContent: React.FC = () => {
-  const { currentStep } = useOnboarding();
+  const { currentStep, updateOnboardingStep } = useOnboarding();
   const { state } = useAuth();
   const [authVerified, setAuthVerified] = useState<boolean | null>(null);
   const [isVerifying, setIsVerifying] = useState(true);
@@ -52,6 +53,20 @@ const OnboardingContent: React.FC = () => {
         setIsVerifying(false);
       });
   }, [state.isLoading, state.user, navigate]);
+
+  // If user has completed onboarding, redirect to calendar
+  useEffect(() => {
+    if (localStorage.getItem('onboarding_completed') === 'true' && !isVerifying && authVerified) {
+      navigate('/calendar');
+    }
+  }, [authVerified, isVerifying, navigate]);
+
+  // Initialize step if needed
+  useEffect(() => {
+    if (authVerified && !currentStep) {
+      updateOnboardingStep('welcome');
+    }
+  }, [authVerified, currentStep, updateOnboardingStep]);
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep) !== -1 
     ? steps.findIndex(s => s.id === currentStep) 
@@ -85,7 +100,7 @@ const OnboardingContent: React.FC = () => {
       </div>
       
       <div className="bg-card border rounded-lg shadow-sm p-6">
-        <CurrentComponent />
+        {CurrentComponent && <CurrentComponent />}
       </div>
     </div>
   );

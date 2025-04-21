@@ -1,7 +1,9 @@
 
 import React from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader, AlertCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthVerificationProps {
   isAuthenticated: boolean;
@@ -9,41 +11,49 @@ interface AuthVerificationProps {
   authVerified: boolean | null;
 }
 
-export const AuthVerification: React.FC<AuthVerificationProps> = ({ 
-  isAuthenticated, 
+export const AuthVerification: React.FC<AuthVerificationProps> = ({
+  isAuthenticated,
   isLoading,
-  authVerified 
+  authVerified
 }) => {
+  const navigate = useNavigate();
+  
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-muted-foreground mb-4">
-        <Loader className="h-4 w-4 animate-spin" />
-        <span>Verifying authentication...</span>
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        <p>Verifying authentication...</p>
       </div>
     );
   }
-
+  
   if (!isAuthenticated) {
     return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
+      <Alert className="mb-6">
+        <AlertTitle>Authentication Required</AlertTitle>
         <AlertDescription>
-          You need to be logged in to generate a study plan.
+          <p className="mb-3">You need to be logged in to set up your study plan.</p>
+          <Button onClick={() => navigate('/login')}>
+            Log In
+          </Button>
         </AlertDescription>
       </Alert>
     );
   }
-
+  
   if (authVerified === false) {
     return (
-      <Alert variant="default" className="mb-4 border-yellow-400 bg-yellow-50">
-        <AlertCircle className="h-4 w-4 text-yellow-600" />
-        <AlertDescription className="text-yellow-700">
-          We're having trouble verifying your account. Your plan may be saved locally only.
+      <Alert variant="destructive" className="mb-6">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          <p className="mb-3">There was an issue verifying your authentication. Please try again.</p>
+          <Button variant="outline" onClick={() => navigate('/login')}>
+            Log In Again
+          </Button>
         </AlertDescription>
       </Alert>
     );
   }
-
+  
   return null;
 };

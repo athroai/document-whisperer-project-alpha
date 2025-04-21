@@ -1,35 +1,17 @@
 
+export type ExamBoard = 'AQA' | 'WJEC' | 'EDEXCEL' | 'OCR' | 'SQA' | 'CCEA';
+
 export interface AthroCharacter {
   id: string;
   name: string;
   subject: string;
+  tone: string;
   shortDescription: string;
   fullDescription: string;
   avatarUrl: string;
-  tone: string;
-  supportsMathNotation: boolean;
-  supportsSpecialCharacters: boolean;
-  supportedLanguages: string[];
-  examBoards: string[];
+  supportsMathNotation?: boolean;
+  supportsSpecialCharacters?: boolean;
+  examBoards: ExamBoard[];
   topics: string[];
+  supportedLanguages?: string[];
 }
-
-export interface AthroMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date | string;
-  senderId?: string;
-  referencedResources?: string[];
-  attachments?: string[];
-  metadata?: Record<string, any>;
-}
-
-// Update AthroSubject from interface to string type
-export type AthroSubject = string;
-
-// Update AthroLanguage to include 'cy' for Welsh
-export type AthroLanguage = 'en' | 'fr' | 'es' | 'de' | 'cy';
-
-// Update ExamBoard to include 'none' option
-export type ExamBoard = 'AQA' | 'Edexcel' | 'OCR' | 'WJEC' | 'CCEA' | 'none';

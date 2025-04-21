@@ -1,6 +1,6 @@
 
-import { PreferredStudySlot } from '@/types/study';
 import { ConfidenceLabel } from '@/types/confidence';
+import { PreferredStudySlot } from '@/types/study';
 
 export interface SubjectPreference {
   subject: string;
@@ -10,8 +10,8 @@ export interface SubjectPreference {
 
 export interface Availability {
   dayOfWeek: number;
-  startTime: string;
-  endTime: string;
+  startHour: number;
+  endHour: number;
 }
 
 export interface OnboardingContextType {
@@ -23,14 +23,14 @@ export interface OnboardingContextType {
   selectSubject: (subject: string, confidence: ConfidenceLabel) => void;
   removeSubject: (subject: string) => void;
   updateAvailability: (availability: Availability[]) => void;
-  completeOnboarding: () => Promise<void>;
-  updateOnboardingStep: (step: string) => void;
-  setStudySlots: (slots: PreferredStudySlot[]) => void;
-  updateStudySlots: (slot: { 
-    dayOfWeek: number, 
-    slotCount: number, 
-    slotDurationMinutes: number, 
-    preferredStartHour: number 
-  }) => void;
   updateLearningPreferences: (preferences: Record<string, any>) => void;
+  completeOnboarding: () => Promise<void>;
+  updateOnboardingStep: (step: string) => Promise<void>;
+  updateStudySlots: (params: {
+    dayOfWeek: number,
+    slotCount: number,
+    slotDurationMinutes: number,
+    preferredStartHour: number
+  }) => Promise<void>;
+  setStudySlots: (slots: PreferredStudySlot[]) => void;
 }

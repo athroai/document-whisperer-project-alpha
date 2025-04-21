@@ -1,34 +1,10 @@
-import { ConfidenceLabel } from './confidence';
-
-export interface StudySession {
-  id: string;
-  subject: string;
-  startTime: Date;
-  endTime: Date;
-  completed: boolean;
-  confidence?: ConfidenceLabel;
-  topic?: string;
-  duration?: number;
-  notes?: string;
-  summary?: string;
-  confidenceBefore?: ConfidenceLabel;
-  confidenceAfter?: ConfidenceLabel;
-}
-
-export interface StudyPlan {
-  id: string;
-  name: string;
-  sessions: StudySession[];
-  startDate: Date;
-  endDate: Date;
-}
 
 export interface SlotOption {
   name: string;
   count: number;
   duration: number;
   color: string;
-  icon: React.ComponentType;
+  icon: any;
 }
 
 export interface PreferredStudySlot {
@@ -37,6 +13,6 @@ export interface PreferredStudySlot {
   day_of_week: number;
   slot_count: number;
   slot_duration_minutes: number;
-  preferred_start_hour: number;
+  preferred_start_hour?: number;
   created_at?: string;
 }
