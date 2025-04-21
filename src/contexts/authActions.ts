@@ -24,20 +24,6 @@ export const loginAction = async (email: string, password: string, rememberMe: b
 export const signupAction = async (email: string, password: string, role: string, updateState: any, navigate: any, setAuthProfile: any) => {
   updateState({ isLoading: true, error: undefined });
   try {
-    // First check if user already exists
-    const { data: userData, error: checkError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false
-      }
-    });
-    
-    // If user doesn't throw an error, the email already exists
-    if (!checkError) {
-      throw new Error('User with this email already exists');
-    }
-    
-    // If we get here, email isn't registered, so proceed with signup
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -46,7 +32,12 @@ export const signupAction = async (email: string, password: string, role: string
       }
     });
     
-    if (error) throw error;
+    if (error) {
+      if (error.message.includes('email address is already registered')) {
+        throw new Error('User with this email already exists');
+      }
+      throw error;
+    }
     
     updateState({ session: data.session, user: data.user });
     localStorage.setItem('auth_session_created', Date.now().toString());
@@ -63,7 +54,6 @@ export const signupAction = async (email: string, password: string, role: string
       await setAuthProfile(initialProfile);
     }
     
-    // Remove any stale onboarding completion flag for re-signups:
     localStorage.removeItem('onboarding_completed');
     
     navigate('/onboarding');

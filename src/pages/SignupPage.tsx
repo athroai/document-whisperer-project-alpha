@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase';
+import { toast } from '@/hooks/use-toast';
 
 const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -53,35 +51,27 @@ const SignupPage: React.FC = () => {
     try {
       setIsChecking(true);
       
-      // Check if email exists before attempting signup
-      const { data, error: checkError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false
-        }
-      });
-      
-      if (!checkError) {
-        toast({
-          title: "Account exists",
-          description: "An account with this email already exists. Please log in instead.",
-          variant: "destructive",
-        });
-        setIsChecking(false);
-        return;
-      }
-
+      // Directly attempt signup without pre-checking if email exists
+      // The signup function in authActions.ts will handle the error if email already exists
       await signup(email, password, role);
       toast({
         title: "Account created!",
         description: "Welcome to Athro AI",
       });
       // We'll let the signup process handle the navigation
+      
     } catch (error: any) {
-      if (error.message?.includes('already registered')) {
+      // More specific error handling
+      if (error.message?.includes('already registered') || error.message?.includes('already exists')) {
         toast({
           title: "Account exists",
           description: "An account with this email already exists. Please log in instead.",
+          variant: "destructive",
+        });
+      } else if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+        toast({
+          title: "Too many attempts",
+          description: "Please wait a few minutes before trying again.",
           variant: "destructive",
         });
       } else {
