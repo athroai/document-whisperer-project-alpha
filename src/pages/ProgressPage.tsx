@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useStudySessions } from '@/hooks/useStudySessions';
 import { useToast } from '@/hooks/use-toast';
 import { useReviewScheduler } from '@/hooks/useReviewScheduler';
-import StudySessionList from '@/components/progress/StudySessionList';
+import { StudySessionList } from '@/components/progress/StudySessionList';
 
 const ProgressPage: React.FC = () => {
   const { state } = useAuth();
@@ -128,3 +128,4 @@ const ProgressPage: React.FC = () => {
 };
 
 export default ProgressPage;
+
