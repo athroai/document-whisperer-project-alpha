@@ -21,6 +21,7 @@ const CalendarPage: React.FC = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Check if we're coming from onboarding
   const fromSetup = searchParams.get('fromSetup') === 'true';
@@ -114,9 +115,17 @@ const CalendarPage: React.FC = () => {
       }
     }, 8000); // 8 second timeout
     
-    // Only load if we have a user and this is the initial load OR refresh is triggered
+    // Prevent duplicate event loading by using a debounced approach
     if (userId && !authState.isLoading && (isInitialLoad || refreshTrigger > 0 || fromSetup || shouldRefresh)) {
-      loadCalendarEvents();
+      // Clear any previous timeout to prevent multiple fetches
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
+      refreshTimeoutRef.current = setTimeout(() => {
+        loadCalendarEvents();
+        refreshTimeoutRef.current = null;
+      }, 300); // Small debounce to prevent duplicate fetches
     } else if (!authState.isLoading && isInitialLoad) {
       setIsInitialLoad(false);
     }
@@ -124,6 +133,9 @@ const CalendarPage: React.FC = () => {
     return () => {
       isMounted = false;
       clearTimeout(loadingTimeout);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
     };
   }, [userId, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents, navigate]);
   

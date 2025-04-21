@@ -1,5 +1,5 @@
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { fetchDatabaseEvents } from '@/services/calendarEventService';
 import { CalendarEvent } from '@/types/calendar';
 import { supabase } from '@/lib/supabase';
@@ -11,9 +11,19 @@ export const useEventFetching = (
   setLastRefreshedAt: React.Dispatch<React.SetStateAction<Date | null>>,
   localEvents: CalendarEvent[]
 ) => {
+  const fetchInProgress = useRef(false);
+  const subscriptionActive = useRef(false);
+  
   // Fetch events from the database and local storage
   const fetchEvents = useCallback(async (): Promise<CalendarEvent[]> => {
+    // Prevent multiple concurrent fetches
+    if (fetchInProgress.current) {
+      console.log('Fetch already in progress, skipping');
+      return [];
+    }
+    
     try {
+      fetchInProgress.current = true;
       setIsLoading(true);
       
       // Verify authentication or get authenticated user ID
@@ -70,34 +80,44 @@ export const useEventFetching = (
       return [];
     } finally {
       setIsLoading(false);
+      fetchInProgress.current = false;
     }
   }, [userId, setEvents, setIsLoading, localEvents]);
 
   // Set up real-time subscription for calendar events
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || subscriptionActive.current) return;
+    
+    subscriptionActive.current = true;
+    console.log('Setting up real-time subscription for calendar events');
     
     const subscription = supabase
       .channel('calendar-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'calendar_events' },
-        async (payload) => {
+        (payload) => {
           console.log('Received real-time update for calendar_events:', payload);
           
-          // Refresh events when changes occur
-          try {
-            await fetchEvents();
-            setLastRefreshedAt(new Date());
-            console.log(`Refreshed calendar events after real-time update`);
-          } catch (error) {
-            console.error('Error refreshing events after real-time update:', error);
-          }
+          // Use a debounce mechanism for real-time updates
+          const debounceDelay = setTimeout(async () => {
+            try {
+              await fetchEvents();
+              setLastRefreshedAt(new Date());
+              console.log(`Refreshed calendar events after real-time update`);
+            } catch (error) {
+              console.error('Error refreshing events after real-time update:', error);
+            }
+          }, 1000); // Debounce for 1 second
+          
+          return () => clearTimeout(debounceDelay);
         }
       )
       .subscribe();
       
     return () => {
+      console.log('Cleaning up real-time subscription');
+      subscriptionActive.current = false;
       supabase.removeChannel(subscription);
     };
   }, [userId, fetchEvents, setLastRefreshedAt]);

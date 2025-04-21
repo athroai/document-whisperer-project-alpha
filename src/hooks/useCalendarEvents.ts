@@ -10,6 +10,7 @@ export const useCalendarEvents = () => {
   const { state: authState } = useAuth();
   const userId = authState.user?.id;
   const initialFetchDone = useRef(false);
+  const initialFetchInProgress = useRef(false);
   
   const {
     events,
@@ -45,20 +46,24 @@ export const useCalendarEvents = () => {
     let mounted = true;
     
     const loadInitialEvents = async () => {
-      if (!userId || initialFetchDone.current) {
+      if (!userId || initialFetchDone.current || initialFetchInProgress.current) {
         return;
       }
       
       try {
-        initialFetchDone.current = true;
+        initialFetchInProgress.current = true;
+        console.log('Initial calendar events fetch starting...');
         const fetchedEvents = await fetchEvents();
         
         if (mounted) {
+          initialFetchDone.current = true;
           setLastRefreshedAt(new Date());
           console.log(`Loaded ${fetchedEvents.length} events on initial fetch`);
         }
       } catch (error) {
         console.error('Error loading initial events:', error);
+      } finally {
+        initialFetchInProgress.current = false;
       }
     };
     
