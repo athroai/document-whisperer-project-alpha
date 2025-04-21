@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,22 +33,28 @@ export const useStudySchedule = () => {
   const sessionOptions = [
     { value: 1, label: '1 session (long)', durationMinutes: 120 },
     { value: 2, label: '2 sessions', durationMinutes: 60 },
+    { value: 3, label: '3 sessions', durationMinutes: 45 },
     { value: 4, label: '4 sessions (short)', durationMinutes: 30 },
     { value: 6, label: 'Many short sessions', durationMinutes: 20 },
   ];
 
-  const getDefaultSessionTimes = (count: number) => {
+  const getDefaultSessionTimes = useCallback((count: number) => {
     const duration = getSessionDurationForCount(count);
     
     // Distribute sessions throughout the day (9am to 8pm)
     return Array(count).fill(null).map((_, i) => {
       // Start at 9am and distribute evenly
-      const startHour = 9 + Math.floor(i * (11 / Math.max(count, 1)));
+      const startHour = 9 + Math.floor(i * (11 / Math.max(count, 1))) % 12;
       return {
-        startHour,
+        startHour: startHour < 8 ? startHour + 8 : startHour,
         durationMinutes: duration
       };
     });
+  }, []);
+
+  const getSessionDurationForCount = (count: number): number => {
+    const option = sessionOptions.find(opt => opt.value === count);
+    return option ? option.durationMinutes : 45;
   };
 
   // Initialize day preferences for selected days
@@ -70,8 +77,9 @@ export const useStudySchedule = () => {
     };
     
     initializePreferences();
-  }, [selectedDays]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedDays, sessionsPerDay, getDefaultSessionTimes]); // Add sessionsPerDay to dependencies
 
+  // Update session counts when session count changes or days change
   useEffect(() => {
     setDayPreferences(prevPrefs => {
       let updated = [...prevPrefs];
@@ -102,6 +110,8 @@ export const useStudySchedule = () => {
               if (hour > 20) hour = 8; // If we reach 8pm, wrap back to 8am
             }
             
+            existingHours.add(hour); // Mark this hour as used
+            
             return {
               startHour: hour,
               durationMinutes: session.durationMinutes
@@ -123,7 +133,7 @@ export const useStudySchedule = () => {
       
       return updated;
     });
-  }, [sessionsPerDay, selectedDays]);
+  }, [sessionsPerDay, selectedDays, getDefaultSessionTimes]);
 
   const handleDayToggle = (dayIndex: number) => {
     setError(null);
@@ -134,19 +144,16 @@ export const useStudySchedule = () => {
     setSelectedDays(newSelectedDays);
   };
 
-  const getSessionDurationForCount = (count: number): number => {
-    const option = sessionOptions.find(opt => opt.value === count);
-    return option ? option.durationMinutes : 45;
-  };
-
   const handleSessionTimeChange = (dayIndex: number, sessionIndex: number, hour: number) => {
     setDayPreferences(prevPrefs => prevPrefs.map(p => {
       if (p.dayIndex !== dayIndex) return p;
       const updatedTimes = [...p.sessionTimes];
-      updatedTimes[sessionIndex] = {
-        ...updatedTimes[sessionIndex],
-        startHour: hour
-      };
+      if (updatedTimes[sessionIndex]) {
+        updatedTimes[sessionIndex] = {
+          ...updatedTimes[sessionIndex],
+          startHour: hour
+        };
+      }
       return { ...p, sessionTimes: updatedTimes };
     }));
   };
@@ -155,10 +162,12 @@ export const useStudySchedule = () => {
     setDayPreferences(prevPrefs => prevPrefs.map(p => {
       if (p.dayIndex !== dayIndex) return p;
       const updatedTimes = [...p.sessionTimes];
-      updatedTimes[sessionIndex] = {
-        ...updatedTimes[sessionIndex],
-        durationMinutes: minutes
-      };
+      if (updatedTimes[sessionIndex]) {
+        updatedTimes[sessionIndex] = {
+          ...updatedTimes[sessionIndex],
+          durationMinutes: minutes
+        };
+      }
       return { ...p, sessionTimes: updatedTimes };
     }));
   };

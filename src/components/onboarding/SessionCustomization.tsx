@@ -31,8 +31,8 @@ export const SessionCustomization: React.FC<SessionCustomizationProps> = ({
   // Generate hour options (6am to 10pm)
   const hourOptions = Array.from({ length: 17 }, (_, i) => i + 6);
   
-  // Duration options in minutes - expanded for more flexibility
-  const durationOptions = [15, 20, 30, 45, 60, 90, 120];
+  // Duration options in minutes - more granular options
+  const durationOptions = [15, 20, 30, 45, 60, 90, 120, 180];
   
   // Format hour for display
   const formatHour = (hour: number) => {

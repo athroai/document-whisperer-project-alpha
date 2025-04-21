@@ -3,7 +3,6 @@ import { useEffect, useCallback } from 'react';
 import { fetchDatabaseEvents } from '@/services/calendarEventService';
 import { CalendarEvent } from '@/types/calendar';
 import { supabase } from '@/lib/supabase';
-import { verifyAuth } from '@/lib/supabase';
 
 export const useEventFetching = (
   userId: string | undefined,
@@ -17,9 +16,9 @@ export const useEventFetching = (
     try {
       setIsLoading(true);
       
-      // Verify authentication or get mock user for development
+      // Verify authentication or get authenticated user ID
       let authenticatedId = userId;
-      if (!userId) {
+      if (!authenticatedId) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           authenticatedId = session?.user?.id;
@@ -29,27 +28,29 @@ export const useEventFetching = (
         }
       }
 
+      // If still no authenticated ID, use local events only
       if (!authenticatedId) {
         console.log('No authenticated user ID found, using only local events');
         
         if (localEvents.length > 0) {
           console.log(`Loading ${localEvents.length} local events`);
           setEvents(localEvents);
-          return localEvents;
+        } else {
+          setEvents([]);
         }
         
-        setEvents([]);
-        return [];
+        return localEvents;
       }
       
       try {
         console.log(`Fetching database events for user: ${authenticatedId}`);
         const dbEvents = await fetchDatabaseEvents(authenticatedId);
         
-        // Combine with local events
-        const combinedEvents = [...dbEvents, ...localEvents.filter(e => e.local_only)];
-        console.log(`Fetched ${dbEvents.length} database events and ${localEvents.length} local events`);
+        // Combine with local events, ensuring no duplicates
+        const localOnlyEvents = localEvents.filter(e => e.local_only);
+        const combinedEvents = [...dbEvents, ...localOnlyEvents];
         
+        console.log(`Fetched ${dbEvents.length} database events and ${localOnlyEvents.length} local-only events`);
         setEvents(combinedEvents);
         return combinedEvents;
       } catch (fetchError) {
@@ -58,11 +59,11 @@ export const useEventFetching = (
         // Fall back to local events if database fetch fails
         if (localEvents.length > 0) {
           setEvents(localEvents);
-          return localEvents;
+        } else {
+          setEvents([]);
         }
         
-        setEvents([]);
-        return [];
+        return localEvents;
       }
     } catch (error) {
       console.error('Error in fetchEvents:', error);

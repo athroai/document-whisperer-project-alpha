@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -45,6 +45,13 @@ export const StudyScheduleStep: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold mb-2">Your Study Schedule</h2>
+        <p className="text-gray-600 text-sm">
+          Select the days you want to study and customize your sessions for each day.
+        </p>
+      </div>
+      
       <DaySelector 
         selectedDays={selectedDays} 
         toggleDaySelection={handleDayToggle} 
@@ -104,6 +111,15 @@ export const StudyScheduleStep: React.FC = () => {
             Please select at least one day to continue.
           </AlertDescription>
         </Alert>
+      )}
+      
+      {selectedDays.length > 0 && (
+        <div className="mb-3">
+          <h3 className="text-lg font-medium text-gray-800 mb-2">Your Customized Schedule</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            For each day, customize your study session times and durations. Add more sessions if needed.
+          </p>
+        </div>
       )}
       
       {selectedDays.map((dayIndex) => (

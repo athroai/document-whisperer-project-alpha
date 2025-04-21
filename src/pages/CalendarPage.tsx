@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import BigCalendarView from '@/components/calendar/BigCalendarView';
@@ -29,6 +29,9 @@ const CalendarPage: React.FC = () => {
   // Check if user needs onboarding
   const { needsOnboarding, isLoading: checkingOnboarding } = useOnboardingCheck(false);
 
+  // Memoize user ID to prevent unnecessary re-renders
+  const userId = useMemo(() => authState.user?.id, [authState.user?.id]);
+
   // Only run once on initial mount to check authentication
   useEffect(() => {
     if (authState.isLoading) return;
@@ -44,7 +47,7 @@ const CalendarPage: React.FC = () => {
     let loadingTimeout: NodeJS.Timeout;
     
     const loadCalendarEvents = async () => {
-      if (!authState.user?.id || authState.isLoading) {
+      if (!userId || authState.isLoading) {
         if (isMounted) setIsInitialLoad(false);
         return;
       }
@@ -109,10 +112,10 @@ const CalendarPage: React.FC = () => {
         setIsInitialLoad(false);
         console.log("Force-ending loading state after timeout");
       }
-    }, 10000); // 10 second timeout
+    }, 8000); // 8 second timeout
     
     // Only load if we have a user
-    if (authState.user?.id && !authState.isLoading) {
+    if (userId && !authState.isLoading) {
       loadCalendarEvents();
     } else if (!authState.isLoading) {
       setIsInitialLoad(false);
@@ -122,7 +125,7 @@ const CalendarPage: React.FC = () => {
       isMounted = false;
       clearTimeout(loadingTimeout);
     };
-  }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents]);
+  }, [userId, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents]);
   
   const handleRetryLoad = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
@@ -144,6 +147,7 @@ const CalendarPage: React.FC = () => {
     }
   }, [needsOnboarding, checkingOnboarding, navigate, authState.user, toast]);
   
+  // Render loading state
   if (authState.isLoading || checkingOnboarding) {
     return (
       <div className="min-h-screen flex items-center justify-center">
