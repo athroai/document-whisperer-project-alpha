@@ -36,9 +36,9 @@ export const AuthVerification: React.FC<AuthVerificationProps> = ({
 
   if (authVerified === false) {
     return (
-      <Alert variant="warning" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
+      <Alert variant="default" className="mb-4 border-yellow-400 bg-yellow-50">
+        <AlertCircle className="h-4 w-4 text-yellow-600" />
+        <AlertDescription className="text-yellow-700">
           We're having trouble verifying your account. Your plan may be saved locally only.
         </AlertDescription>
       </Alert>
