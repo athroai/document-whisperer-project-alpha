@@ -30,7 +30,8 @@ export const useEventOperations = (
             end_time: eventData.end_time || new Date().toISOString(),
             event_type: eventData.event_type || 'study_session',
             user_id: 'local',
-            student_id: 'local'
+            student_id: 'local',
+            local_only: true
           };
           
           const saved = saveLocalEvent(localEvent);
@@ -46,7 +47,11 @@ export const useEventOperations = (
       }
       
       // Try to create in database
-      const newEvent = await createDatabaseEvent(userId, eventData);
+      const newEvent = await createDatabaseEvent(userId, {
+        ...eventData,
+        user_id: userId,
+        student_id: userId
+      });
       
       if (newEvent) {
         setEvents(prev => [...prev, newEvent]);

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, AlertCircle } from 'lucide-react';
+import { Info, AlertCircle, Clock } from 'lucide-react';
 
 export const StudyScheduleStep: React.FC = () => {
   const navigate = useNavigate();

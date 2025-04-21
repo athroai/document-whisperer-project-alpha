@@ -373,7 +373,7 @@ export const useStudySchedule = () => {
         console.log('Study slots saved successfully');
         
         // Create calendar events for the sessions
-        const events = await createCalendarEvents(newSlots, false);
+        const events = await createCalendarEvents(newSlots, true);
         console.log(`Created ${events.length} calendar events`);
         
         // Update onboarding progress
@@ -412,8 +412,6 @@ export const useStudySchedule = () => {
         }
         
         updateOnboardingStep('calendar');
-        
-        navigate('/calendar?fromSetup=true&refresh=true');
         
         toast({
           title: "Success",

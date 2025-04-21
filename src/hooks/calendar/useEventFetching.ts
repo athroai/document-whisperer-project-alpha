@@ -21,9 +21,9 @@ export const useEventFetching = (
       let authenticatedId = userId;
       if (!userId) {
         try {
-          const user = await verifyAuth();
-          authenticatedId = user?.id;
-          console.log('Authenticated user ID:', authenticatedId);
+          const { data: { session } } = await supabase.auth.getSession();
+          authenticatedId = session?.user?.id;
+          console.log('Using authenticated user ID:', authenticatedId);
         } catch (err) {
           console.error('Auth verification failed:', err);
         }
@@ -86,9 +86,9 @@ export const useEventFetching = (
           
           // Refresh events when changes occur
           try {
-            const events = await fetchEvents();
+            await fetchEvents();
             setLastRefreshedAt(new Date());
-            console.log(`Refreshed ${events.length} calendar events after real-time update`);
+            console.log(`Refreshed calendar events after real-time update`);
           } catch (error) {
             console.error('Error refreshing events after real-time update:', error);
           }

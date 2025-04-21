@@ -41,6 +41,7 @@ const CalendarPage: React.FC = () => {
   // Handle refreshing calendar events when needed
   useEffect(() => {
     let isMounted = true;
+    let loadingTimeout: NodeJS.Timeout;
     
     const loadCalendarEvents = async () => {
       if (!authState.user?.id || authState.isLoading) {
@@ -64,6 +65,7 @@ const CalendarPage: React.FC = () => {
         const fetchedEvents = await fetchEvents();
         
         if (isMounted) {
+          // Ensure we set isInitialLoad to false even if there's an error
           setIsInitialLoad(false);
           
           if ((refreshTrigger > 0 || fromSetup) && fetchedEvents.length > 0) {
@@ -101,12 +103,25 @@ const CalendarPage: React.FC = () => {
       }
     };
     
+    // Set a timeout to ensure we don't get stuck in loading state
+    loadingTimeout = setTimeout(() => {
+      if (isMounted && isInitialLoad) {
+        setIsInitialLoad(false);
+        console.log("Force-ending loading state after timeout");
+      }
+    }, 10000); // 10 second timeout
+    
     // Only load if we have a user
     if (authState.user?.id && !authState.isLoading) {
       loadCalendarEvents();
+    } else if (!authState.isLoading) {
+      setIsInitialLoad(false);
     }
     
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+      clearTimeout(loadingTimeout);
+    };
   }, [authState.user?.id, authState.isLoading, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh, clearEvents]);
   
   const handleRetryLoad = useCallback(() => {
