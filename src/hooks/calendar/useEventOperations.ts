@@ -1,3 +1,4 @@
+
 import { CalendarEvent } from '@/types/calendar';
 import { createDatabaseEvent } from '@/services/calendarEventService';
 import { supabase } from '@/lib/supabase';
@@ -11,8 +12,8 @@ export const useEventOperations = (
 
   const createEvent = async (eventData: Partial<CalendarEvent>, useLocalFallback = true): Promise<CalendarEvent | null> => {
     try {
-      const { auth } = supabase;
-      const session = auth.session();
+      // Get the current session using the correct API method
+      const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       
       if (!userId) {
