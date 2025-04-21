@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { AthroCharacter } from '@/types/athro';
+import { AthroCharacter, ExamBoard } from '@/types/athro';
 
 export const useAthroCharacters = () => {
   const [characters, setCharacters] = useState<AthroCharacter[]>([]);
@@ -22,7 +22,11 @@ export const useAthroCharacters = () => {
           throw new Error(error.message);
         }
 
-        setCharacters(data || []);
+        // Convert examBoards fields from API to correct type, if needed
+        setCharacters((data || []).map((char: any) => ({
+          ...char,
+          examBoards: (char.examBoards || []).map((eb: string) => eb.toUpperCase()) as ExamBoard[]
+        })));
       } catch (err) {
         console.error('Error fetching Athro characters:', err);
         setError(err instanceof Error ? err : new Error('Unknown error fetching characters'));
@@ -40,7 +44,7 @@ export const useAthroCharacters = () => {
             supportsMathNotation: true,
             supportsSpecialCharacters: false,
             supportedLanguages: ['en'],
-            examBoards: ['AQA', 'Edexcel'],
+            examBoards: ['AQA', 'EDEXCEL'], // FIX
             topics: ['Algebra', 'Geometry', 'Statistics', 'Number']
           },
           {
@@ -54,7 +58,7 @@ export const useAthroCharacters = () => {
             supportsMathNotation: true,
             supportsSpecialCharacters: true,
             supportedLanguages: ['en'],
-            examBoards: ['AQA', 'Edexcel', 'OCR'],
+            examBoards: ['AQA', 'EDEXCEL', 'OCR'], // FIX
             topics: ['Biology', 'Chemistry', 'Physics']
           },
           {
@@ -68,7 +72,7 @@ export const useAthroCharacters = () => {
             supportsMathNotation: false,
             supportsSpecialCharacters: false,
             supportedLanguages: ['en'],
-            examBoards: ['AQA', 'Edexcel', 'OCR'],
+            examBoards: ['AQA', 'EDEXCEL', 'OCR'], // FIX
             topics: ['Language', 'Literature', 'Poetry', 'Shakespeare']
           }
         ]);

@@ -1,4 +1,3 @@
-
 export const athroCharacters = [
   {
     id: "mathematics",
@@ -9,7 +8,7 @@ export const athroCharacters = [
     tone: "Encouraging and methodical",
     fullDescription: "AthroMaths helps you master mathematical concepts through step-by-step problem solving and visual explanations.",
     shortDescription: "Your GCSE Mathematics mentor specializing in clear explanations and worked examples",
-    examBoards: ["wjec", "aqa", "ocr"],
+    examBoards: ["WJEC", "AQA", "OCR", "EDEXCEL"],
     supportsMathNotation: true,
     supportsSpecialCharacters: false,
     supportedLanguages: ["en"]
@@ -23,7 +22,7 @@ export const athroCharacters = [
     tone: "Curious and explanatory",
     fullDescription: "AthroScience connects theoretical concepts to real-world applications, making complex scientific ideas accessible.",
     shortDescription: "Your GCSE Science mentor specializing in connecting theory to practical applications",
-    examBoards: ["wjec", "aqa", "ocr"],
+    examBoards: ["WJEC", "AQA", "OCR", "EDEXCEL"],
     supportsMathNotation: true,
     supportsSpecialCharacters: true,
     supportedLanguages: ["en"]
@@ -37,7 +36,7 @@ export const athroCharacters = [
     tone: "Thoughtful and encouraging",
     fullDescription: "AthroEnglish guides you through literary analysis, creative writing, and developing strong communication skills.",
     shortDescription: "Your GCSE English mentor specializing in literary analysis and writing techniques",
-    examBoards: ["wjec", "aqa", "ocr"],
+    examBoards: ["WJEC", "AQA", "OCR", "EDEXCEL"],
     supportsMathNotation: false,
     supportsSpecialCharacters: false,
     supportedLanguages: ["en"]
@@ -51,7 +50,7 @@ export const athroCharacters = [
     tone: "Narrative and analytical",
     fullDescription: "AthroHistory brings the past to life by connecting historical events to their causes and consequences.",
     shortDescription: "Your GCSE History mentor specializing in contextual understanding and source analysis",
-    examBoards: ["wjec", "aqa", "ocr"],
+    examBoards: ["WJEC", "AQA", "OCR", "EDEXCEL"],
     supportsMathNotation: false,
     supportsSpecialCharacters: false,
     supportedLanguages: ["en"]
@@ -65,7 +64,7 @@ export const athroCharacters = [
     tone: "Explorative and observant",
     fullDescription: "AthroGeography helps you understand the relationships between people, places, and the environment through spatial analysis.",
     shortDescription: "Your GCSE Geography mentor specializing in physical and human geography concepts",
-    examBoards: ["wjec", "aqa", "ocr"],
+    examBoards: ["WJEC", "AQA", "OCR", "EDEXCEL"],
     supportsMathNotation: false,
     supportsSpecialCharacters: false,
     supportedLanguages: ["en"]
@@ -79,7 +78,7 @@ export const athroCharacters = [
     tone: "Supportive and culturally engaged",
     fullDescription: "AthroWelsh guides you through Welsh language learning with a focus on practical communication skills and cultural context.",
     shortDescription: "Your GCSE Welsh mentor specializing in language skills and cultural understanding",
-    examBoards: ["wjec"],
+    examBoards: ["WJEC"],
     supportsMathNotation: false,
     supportsSpecialCharacters: false,
     supportedLanguages: ["en", "cy"]
@@ -93,7 +92,7 @@ export const athroCharacters = [
     tone: "Patient and conversational",
     fullDescription: "AthroLanguages helps you develop proficiency in foreign languages through practice and cultural context.",
     shortDescription: "Your GCSE Modern Languages mentor specializing in language acquisition and practical communication",
-    examBoards: ["wjec", "aqa", "ocr"],
+    examBoards: ["WJEC", "AQA", "OCR", "EDEXCEL"],
     supportsMathNotation: false,
     supportsSpecialCharacters: true,
     supportedLanguages: ["en", "fr", "es", "de"]
@@ -107,25 +106,22 @@ export const athroCharacters = [
     tone: "Respectful and informative",
     fullDescription: "AthroReligiousStudies explores world religions, ethics, and philosophical questions with respect and critical thinking.",
     shortDescription: "Your GCSE Religious Studies mentor specializing in world religions and ethical frameworks",
-    examBoards: ["wjec", "aqa", "ocr"],
+    examBoards: ["WJEC", "AQA", "OCR", "EDEXCEL"],
     supportsMathNotation: false,
     supportsSpecialCharacters: false,
     supportedLanguages: ["en"]
   }
 ];
 
-// Helper functions to find Athro characters
 export const getAthroById = (id: string) => {
   return athroCharacters.find(char => char.id === id) || athroCharacters[0];
 };
 
 export const getAthroBySubject = (subject: string) => {
-  // First try exact match
   let character = athroCharacters.find(char => 
     char.subject.toLowerCase() === subject.toLowerCase()
   );
   
-  // If no exact match, try handling special cases
   if (!character) {
     if (subject.toLowerCase().includes('religious')) {
       character = athroCharacters.find(char => char.id === 'religious-education');
@@ -135,6 +131,5 @@ export const getAthroBySubject = (subject: string) => {
     }
   }
   
-  // Return the found character or the default (Mathematics)
   return character || athroCharacters[0];
 };

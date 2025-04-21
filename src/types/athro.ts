@@ -15,3 +15,12 @@ export interface AthroCharacter {
   topics: string[];
   supportedLanguages?: string[];
 }
+
+// ADDED: AthroMessage needed by multiple components
+export interface AthroMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  senderId: string; // user id or athro id
+  content: string;
+  timestamp: string;
+}
