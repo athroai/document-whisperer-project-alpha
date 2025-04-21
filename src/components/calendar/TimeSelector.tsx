@@ -21,16 +21,24 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   onStartTimeChange,
   onDurationChange
 }) => {
-  // Generate time options from 3 PM to 11 PM (15-23)
-  const timeOptions = [];
-  for (let hour = 15; hour <= 23; hour++) {
-    const hourFormatted = hour.toString().padStart(2, '0');
-    const hourDisplay = hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
-    const halfHourDisplay = hour > 12 ? `${hour - 12}:30 PM` : `${hour}:30 AM`;
-    
-    timeOptions.push({ value: `${hourFormatted}:00`, label: hourDisplay });
-    timeOptions.push({ value: `${hourFormatted}:30`, label: halfHourDisplay });
-  }
+  // Generate time options with correct formatting for 24-hour display
+  const generateTimeOptions = () => {
+    const options = [];
+    // Generate times from 9 AM (09:00) to 9 PM (21:00) with half-hour intervals
+    for (let hour = 9; hour <= 21; hour++) {
+      const hourFormatted = hour.toString().padStart(2, '0');
+      
+      // Format for display (12-hour format)
+      const hourDisplay = hour > 12 ? `${hour - 12}:00 ${hour >= 12 ? 'PM' : 'AM'}` : `${hour}:00 AM`;
+      const halfHourDisplay = hour > 12 ? `${hour - 12}:30 ${hour >= 12 ? 'PM' : 'AM'}` : `${hour}:30 AM`;
+      
+      options.push({ value: `${hourFormatted}:00`, label: hourDisplay });
+      options.push({ value: `${hourFormatted}:30`, label: halfHourDisplay });
+    }
+    return options;
+  };
+  
+  const timeOptions = generateTimeOptions();
 
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -44,7 +52,7 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="time">Start Time (3 PM - 11 PM)</Label>
+        <Label htmlFor="time">Start Time (9 AM - 9 PM)</Label>
         <Select
           value={startTime}
           onValueChange={onStartTimeChange}

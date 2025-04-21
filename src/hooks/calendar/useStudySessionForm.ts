@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useSessionCreation } from './useSessionCreation';
-import { format, addMinutes, startOfHour, setHours } from 'date-fns';
+import { format, addMinutes, startOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 interface FormState {
@@ -24,15 +24,18 @@ export const useStudySessionForm = (
   const { createCalendarSession } = useSessionCreation();
   const { toast } = useToast();
   
+  // Ensure we're working with the start of day to avoid time issues
+  const dateToUse = startOfDay(initialDate);
+  
   // Initialize with a reasonable default time (4 PM)
-  const defaultTime = setHours(startOfHour(initialDate), 16);
+  const defaultStartTime = "16:00";
   
   const [formState, setFormState] = useState<FormState>({
     title: '',
     subject: 'Mathematics',
     topic: '',
-    date: format(initialDate, 'yyyy-MM-dd'),
-    startTime: format(defaultTime, 'HH:mm'),
+    date: format(dateToUse, 'yyyy-MM-dd'),
+    startTime: defaultStartTime,
     duration: 60,
     isSubmitting: false
   });
@@ -65,7 +68,9 @@ export const useStudySessionForm = (
     try {
       setFormState(prev => ({ ...prev, isSubmitting: true }));
       
-      const startDateTime = new Date(`${formState.date}T${formState.startTime}`);
+      // Create a proper Date object combining the date and time
+      const dateStr = `${formState.date}T${formState.startTime}`;
+      const startDateTime = new Date(dateStr);
       const endDateTime = addMinutes(startDateTime, formState.duration);
       
       console.log("Creating calendar session with:", {
@@ -73,7 +78,8 @@ export const useStudySessionForm = (
         subject: formState.subject,
         topic: formState.topic,
         startTime: startDateTime,
-        endTime: endDateTime
+        endTime: endDateTime,
+        dateString: dateStr
       });
       
       // Try the new session creation method

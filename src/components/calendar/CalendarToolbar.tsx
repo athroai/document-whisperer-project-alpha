@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Calendar, ArrowRight } from 'lucide-react';
+import { RefreshCw, Calendar } from 'lucide-react';
 
 interface CalendarToolbarProps {
   isLoading: boolean;
@@ -15,7 +15,10 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onRestartOnboarding
 }) => {
   // Handle the restart onboarding click with confirmation
-  const handleRestartOnboarding = () => {
+  const handleRestartOnboarding = (e: React.MouseEvent) => {
+    // Prevent default to avoid page reload
+    e.preventDefault();
+    
     const confirmed = window.confirm(
       "Are you sure you want to restart onboarding? This will reset your study plan setup."
     );

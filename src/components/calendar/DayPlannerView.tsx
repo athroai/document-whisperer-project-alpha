@@ -27,17 +27,26 @@ const DayPlannerView = ({
   const { deleteEvent } = useCalendarEvents();
 
   useEffect(() => {
-    // Improved date filtering to ensure exact day matching
+    // Normalize selectedDate to start of day to ensure proper comparison
+    const normalizedSelectedDate = startOfDay(selectedDate);
+    
+    // Filter events that match the selected day
     const filteredEvents = events.filter(event => {
       try {
-        const eventDate = parseISO(event.start_time);
-        return isSameDay(eventDate, selectedDate);
+        if (!event.start_time) {
+          return false;
+        }
+        
+        // Parse event date and normalize to start of day
+        const eventDate = startOfDay(parseISO(event.start_time));
+        return isSameDay(eventDate, normalizedSelectedDate);
       } catch (err) {
         console.error('Error parsing event date:', err, event);
         return false;
       }
     });
     
+    // Sort events by start time
     filteredEvents.sort((a, b) => 
       new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
     );

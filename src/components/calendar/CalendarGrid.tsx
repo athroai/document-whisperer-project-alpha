@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { format, isSameMonth, isToday, parseISO, isSameDay } from 'date-fns';
+import { format, isSameMonth, isToday, parseISO, isSameDay, startOfDay } from 'date-fns';
 import { getEventColor } from '@/utils/calendarUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { formatGMTTime } from '@/utils/timeUtils';
@@ -14,15 +14,18 @@ interface CalendarGridProps {
 
 const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGridProps) => {
   const getEventsForDay = (day: Date) => {
+    const normalizedDay = startOfDay(day);
+    
     return events.filter(event => {
       try {
         if (!event.start_time) {
           return false;
         }
         
-        const eventDate = parseISO(event.start_time);
-        return isSameDay(eventDate, day);
+        const eventDate = startOfDay(parseISO(event.start_time));
+        return isSameDay(eventDate, normalizedDay);
       } catch (err) {
+        console.error('Error comparing event date:', err, event);
         return false;
       }
     });
@@ -68,6 +71,7 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
                     formattedTime = formatGMTTime(event.start_time);
                   } catch (err) {
                     // Silent fail, already showing TBD as fallback
+                    console.error('Error formatting time:', err, event);
                   }
                   
                   return (

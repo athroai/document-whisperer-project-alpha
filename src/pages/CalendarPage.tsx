@@ -53,6 +53,19 @@ const CalendarPage: React.FC = () => {
     }, 3000);
   }, [toast]);
 
+  // Handle restart onboarding button click
+  const handleRestartOnboarding = useCallback(() => {
+    // This calls the restartOnboarding function from useOnboardingCheck
+    // which redirects to the onboarding page with restart flag
+    if (restartOnboarding) {
+      toast({
+        title: "Restarting onboarding",
+        description: "Taking you to the beginning of setup..."
+      });
+      restartOnboarding();
+    }
+  }, [restartOnboarding, toast]);
+
   // Set calendarMountedRef on mount/unmount to prevent memory leaks and extra renders
   useEffect(() => {
     calendarMountedRef.current = true;
@@ -144,17 +157,9 @@ const CalendarPage: React.FC = () => {
         title: "Onboarding Required",
         description: "Please complete onboarding to set up your study plan."
       });
-      navigate('/athro-onboarding');
+      navigate('/onboarding');
     }
   }, [needsOnboarding, checkingOnboarding, navigate, authState.user, toast]);
-
-  const handleRestartOnboarding = () => {
-    toast({
-      title: "Restarting Onboarding",
-      description: "Taking you back to the beginning of the setup process..."
-    });
-    restartOnboarding();
-  };
 
   if (authState.isLoading || checkingOnboarding) {
     return (
