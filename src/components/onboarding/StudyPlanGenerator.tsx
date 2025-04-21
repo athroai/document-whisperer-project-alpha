@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -84,20 +85,25 @@ export const StudyPlanGenerator: React.FC = () => {
   const handleComplete = async () => {
     try {
       setIsSubmitting(true);
-      
+
       // Save to database if user exists
       if (state.user) {
         await completeOnboarding();
+
+        // Ensure onboarding_completed flag is set; this guards against localStorage being out of sync
+        localStorage.setItem('onboarding_completed', 'true');
       }
-      
+
       toast({
         title: "Success",
         description: "Your study plan has been created successfully!",
       });
-      
-      // Ensure we navigate to calendar with clear parameters
-      console.log("Navigating to calendar after study plan generation");
-      navigate('/calendar?fromSetup=true');
+
+      // Wait briefly for Supabase propagation if needed
+      setTimeout(() => {
+        // Now navigate to calendar
+        navigate('/calendar?fromSetup=true');
+      }, 500);
     } catch (error) {
       console.error("Error completing onboarding:", error);
       toast({
