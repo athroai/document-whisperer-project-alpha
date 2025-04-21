@@ -1,33 +1,42 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Plus } from 'lucide-react';
+import { CalendarPlus, RefreshCw } from 'lucide-react';
 
 interface CalendarHeaderProps {
   onRefresh: () => void;
   onAddSession: () => void;
+  showRefreshButton?: boolean;
 }
 
-const CalendarHeader = ({ onRefresh, onAddSession }: CalendarHeaderProps) => {
+const CalendarHeader: React.FC<CalendarHeaderProps> = ({ 
+  onRefresh, 
+  onAddSession,
+  showRefreshButton = true 
+}) => {
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex items-center justify-between mb-4">
       <h2 className="text-2xl font-bold text-gray-800">Study Calendar</h2>
-      <div className="flex gap-2">
-        <Button 
-          onClick={onRefresh}
-          variant="outline"
+      <div className="flex space-x-2">
+        {showRefreshButton && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
+        )}
+        <Button
+          variant="default"
           size="sm"
-          className="flex items-center gap-1"
+          onClick={onAddSession}
+          className="bg-purple-600 hover:bg-purple-700"
         >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-        <Button 
-          onClick={onAddSession} 
-          className="bg-purple-600 hover:bg-purple-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Session
+          <CalendarPlus className="h-4 w-4 mr-1" />
+          New Session
         </Button>
       </div>
     </div>

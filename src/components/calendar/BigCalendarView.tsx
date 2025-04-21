@@ -19,9 +19,13 @@ import CalendarGrid from './CalendarGrid';
 
 interface BigCalendarViewProps {
   onRetryLoad?: () => void;
+  showRefreshButton?: boolean;
 }
 
-const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
+const BigCalendarView: React.FC<BigCalendarViewProps> = ({ 
+  onRetryLoad,
+  showRefreshButton = true
+}) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
@@ -79,6 +83,7 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({ onRetryLoad }) => {
       <CalendarHeader
         onRefresh={onRetryLoad || (() => {})}
         onAddSession={handleAddSession}
+        showRefreshButton={showRefreshButton}
       />
 
       <Card className="shadow-md border-gray-200">
