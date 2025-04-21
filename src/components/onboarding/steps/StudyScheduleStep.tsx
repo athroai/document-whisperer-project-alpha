@@ -98,7 +98,7 @@ export const StudyScheduleStep: React.FC = () => {
       )}
       
       {selectedDays.length === 0 && (
-        <Alert variant="warning" className="bg-amber-50 border-amber-200">
+        <Alert variant="default" className="bg-amber-50 border-amber-200">
           <AlertCircle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-700">
             Please select at least one day to continue.
