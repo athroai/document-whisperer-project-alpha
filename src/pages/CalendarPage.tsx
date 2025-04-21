@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useAuth } from '@/contexts/AuthContext';
