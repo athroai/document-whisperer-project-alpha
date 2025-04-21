@@ -13,6 +13,7 @@ export const useEventFetching = (
 ) => {
   const fetchInProgress = useRef(false);
   const subscriptionActive = useRef(false);
+  const fetchAttempted = useRef(false);
   
   // Fetch events from the database and local storage
   const fetchEvents = useCallback(async (): Promise<CalendarEvent[]> => {
@@ -49,7 +50,8 @@ export const useEventFetching = (
           setEvents([]);
         }
         
-        setIsLoading(false); // Important: Set loading to false even when using cached data
+        setIsLoading(false);
+        fetchAttempted.current = true;
         return localEvents;
       }
       
@@ -63,7 +65,8 @@ export const useEventFetching = (
         
         console.log(`Fetched ${dbEvents.length} database events and ${localOnlyEvents.length} local-only events`);
         setEvents(combinedEvents);
-        setIsLoading(false); // Set loading to false after successful fetch
+        setIsLoading(false);
+        fetchAttempted.current = true;
         return combinedEvents;
       } catch (fetchError) {
         console.error('Error fetching database events:', fetchError);
@@ -75,12 +78,14 @@ export const useEventFetching = (
           setEvents([]);
         }
         
-        setIsLoading(false); // Important: Set loading to false even on error
+        setIsLoading(false);
+        fetchAttempted.current = true;
         return localEvents;
       }
     } catch (error) {
       console.error('Error in fetchEvents:', error);
-      setIsLoading(false); // Make sure loading state is cleared on error
+      setIsLoading(false);
+      fetchAttempted.current = true;
       return [];
     } finally {
       fetchInProgress.current = false;
@@ -91,37 +96,48 @@ export const useEventFetching = (
   useEffect(() => {
     if (!userId || subscriptionActive.current) return;
     
-    subscriptionActive.current = true;
-    console.log('Setting up real-time subscription for calendar events');
+    let subscription: any;
     
-    const subscription = supabase
-      .channel('calendar-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'calendar_events' },
-        (payload) => {
-          console.log('Received real-time update for calendar_events:', payload);
-          
-          // Use a debounce mechanism for real-time updates
-          const debounceDelay = setTimeout(async () => {
-            try {
-              await fetchEvents();
-              setLastRefreshedAt(new Date());
-              console.log(`Refreshed calendar events after real-time update`);
-            } catch (error) {
-              console.error('Error refreshing events after real-time update:', error);
+    const setupSubscription = () => {
+      subscriptionActive.current = true;
+      console.log('Setting up real-time subscription for calendar events');
+      
+      subscription = supabase
+        .channel('calendar-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'calendar_events' },
+          (payload) => {
+            console.log('Received real-time update for calendar_events:', payload);
+            
+            // Only fetch if we've completed at least one initial fetch
+            if (fetchAttempted.current) {
+              setTimeout(async () => {
+                try {
+                  await fetchEvents();
+                  setLastRefreshedAt(new Date());
+                  console.log(`Refreshed calendar events after real-time update`);
+                } catch (error) {
+                  console.error('Error refreshing events after real-time update:', error);
+                }
+              }, 1000); // Debounce for 1 second
             }
-          }, 1000); // Debounce for 1 second
-          
-          return () => clearTimeout(debounceDelay);
-        }
-      )
-      .subscribe();
+          }
+        )
+        .subscribe();
+    };
+    
+    // Only setup subscription if userId exists
+    if (userId) {
+      setupSubscription();
+    }
       
     return () => {
-      console.log('Cleaning up real-time subscription');
-      subscriptionActive.current = false;
-      supabase.removeChannel(subscription);
+      if (subscription) {
+        console.log('Cleaning up real-time subscription');
+        subscriptionActive.current = false;
+        supabase.removeChannel(subscription);
+      }
     };
   }, [userId, fetchEvents, setLastRefreshedAt]);
 

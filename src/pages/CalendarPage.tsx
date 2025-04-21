@@ -23,6 +23,7 @@ const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialLoadComplete = useRef(false);
+  const calendarMountedRef = useRef(false);
   
   // Check if we're coming from onboarding
   const fromSetup = searchParams.get('fromSetup') === 'true';
@@ -41,16 +42,22 @@ const CalendarPage: React.FC = () => {
       console.log('No authenticated user, redirecting to login');
       navigate('/login');
     }
+    
+    // Mark component as mounted
+    calendarMountedRef.current = true;
+    
+    return () => {
+      calendarMountedRef.current = false;
+    };
   }, [authState.isLoading, authState.user, navigate]);
   
   // Handle refreshing calendar events when needed
   useEffect(() => {
     let isMounted = true;
-    let loadingTimeout: NodeJS.Timeout;
     
     const loadCalendarEvents = async () => {
-      if (!userId || authState.isLoading || initialLoadComplete.current) {
-        if (isMounted && !initialLoadComplete.current) setIsInitialLoad(false);
+      if (!userId || authState.isLoading || initialLoadComplete.current || !calendarMountedRef.current) {
+        if (isMounted && !initialLoadComplete.current && !authState.isLoading) setIsInitialLoad(false);
         return;
       }
       
@@ -69,7 +76,7 @@ const CalendarPage: React.FC = () => {
         
         const fetchedEvents = await fetchEvents();
         
-        if (isMounted) {
+        if (isMounted && calendarMountedRef.current) {
           // Mark initial load complete to prevent repeated fetches
           initialLoadComplete.current = true;
           setIsInitialLoad(false);
@@ -97,7 +104,7 @@ const CalendarPage: React.FC = () => {
         }
       } catch (err: any) {
         console.error('Error fetching calendar events:', err);
-        if (isMounted) {
+        if (isMounted && calendarMountedRef.current) {
           setIsInitialLoad(false);
           setLoadError(err.message || "Could not load calendar events");
           toast({
@@ -108,14 +115,6 @@ const CalendarPage: React.FC = () => {
         }
       }
     };
-    
-    // Set a timeout to ensure we don't get stuck in loading state
-    loadingTimeout = setTimeout(() => {
-      if (isMounted && isInitialLoad) {
-        setIsInitialLoad(false);
-        console.log("Force-ending loading state after timeout");
-      }
-    }, 8000); // 8 second timeout
     
     // Prevent duplicate event loading by using a debounced approach
     if (userId && !authState.isLoading && (isInitialLoad || refreshTrigger > 0 || fromSetup || shouldRefresh)) {
@@ -134,7 +133,6 @@ const CalendarPage: React.FC = () => {
     
     return () => {
       isMounted = false;
-      clearTimeout(loadingTimeout);
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }

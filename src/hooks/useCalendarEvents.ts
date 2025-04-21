@@ -46,6 +46,7 @@ export const useCalendarEvents = () => {
     let mounted = true;
     
     const loadInitialEvents = async () => {
+      // Prevent multiple simultaneous initial loads
       if (!userId || initialFetchDone.current || initialFetchInProgress.current) {
         return;
       }
@@ -63,11 +64,16 @@ export const useCalendarEvents = () => {
       } catch (error) {
         console.error('Error loading initial events:', error);
       } finally {
-        initialFetchInProgress.current = false;
+        if (mounted) {
+          initialFetchInProgress.current = false;
+        }
       }
     };
     
-    loadInitialEvents();
+    // Only attempt to load events if we have a userId and haven't already loaded
+    if (userId && !initialFetchDone.current && !initialFetchInProgress.current) {
+      loadInitialEvents();
+    }
     
     return () => {
       mounted = false;
