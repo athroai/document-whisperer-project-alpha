@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import CalendarPage from '@/pages/CalendarPage';
 import OnboardingPage from '@/pages/OnboardingPage';
@@ -12,7 +12,6 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import SettingsPage from './pages/SettingsPage';
-import WelcomePage from './pages/WelcomePage';
 import PomodoroPage from './pages/PomodoroPage';
 import AthroChat from './pages/AthroChat';
 import StudyPage from './pages/StudyPage';
@@ -23,8 +22,8 @@ const ProtectedHomePage = withOnboardingGuard(HomePage);
 
 const App = () => {
   return (
-    <OnboardingProvider>
-      <Router>
+    <AuthProvider>
+      <OnboardingProvider>
         <Routes>
           <Route path="/" element={<Navigate to="/calendar" replace />} />
           <Route path="/dashboard" element={<ProtectedHomePage />} />
@@ -40,8 +39,8 @@ const App = () => {
           <Route path="/study" element={<StudyPage />} />
         </Routes>
         <Toaster />
-      </Router>
-    </OnboardingProvider>
+      </OnboardingProvider>
+    </AuthProvider>
   );
 };
 

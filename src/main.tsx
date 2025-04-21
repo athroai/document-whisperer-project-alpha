@@ -4,18 +4,18 @@ import App from './App.tsx'
 import './index.css'
 import { AthroProvider } from './contexts/AthroContext';
 import { StudentRecordProvider } from './contexts/StudentRecordContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter as Router } from 'react-router-dom';
 
 const rootElement = document.getElementById("root");
 if (rootElement) {
   createRoot(rootElement).render(
-    <AuthProvider>
+    <Router>
       <StudentRecordProvider>
         <AthroProvider>
           <App />
         </AthroProvider>
       </StudentRecordProvider>
-    </AuthProvider>
+    </Router>
   );
 } else {
   console.error("Root element not found. Cannot render app.");
