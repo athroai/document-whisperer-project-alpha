@@ -6,19 +6,18 @@ import { Loader } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { state } = useAuth();
+  const { state, logout } = useAuth();
   
   useEffect(() => {
-    if (state.isLoading) {
-      return; // Wait for auth to finish loading
-    }
-    
+    // Log out users on app init
     if (state.user) {
-      navigate('/calendar');
-    } else {
-      navigate('/login');
+      logout().then(() => {
+        navigate('/welcome');
+      });
+    } else if (!state.isLoading) {
+      navigate('/welcome');
     }
-  }, [navigate, state.user, state.isLoading]);
+  }, [navigate, state.user, state.isLoading, logout]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

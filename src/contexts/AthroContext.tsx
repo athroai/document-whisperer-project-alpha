@@ -1,167 +1,69 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { AthroCharacter, AthroMessage } from '@/types/athro';
-import { athroCharacters, getAthroById } from '@/config/athrosConfig';
-import { useAthroMessages } from '@/hooks/useAthroMessages';
-import { useStudentProgress } from '@/hooks/useStudentProgress';
-import { toast } from '@/hooks/use-toast';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { AthroCharacter } from '@/types/athro';
+import { useAthroCharacters } from '@/hooks/useAthroCharacters';
+import { athroCharacters as defaultCharacters } from '@/config/athrosConfig';
 
 interface AthroContextType {
-  activeCharacter: AthroCharacter | null;
-  setActiveCharacter: (character: AthroCharacter | null) => void;
   characters: AthroCharacter[];
-  messages: AthroMessage[];
-  sendMessage: (content: string, character?: AthroCharacter | null) => Promise<AthroMessage | null>;
-  clearMessages: () => void;
-  isTyping: boolean;
-  studentProgress: Record<string, {
-    confidenceScores: Record<string, number>;
-    quizScores: Array<{ topic: string; score: number; date: string }>;
-  }>;
-  getSuggestedTopics: (subject: string) => string[];
+  selectedCharacter: AthroCharacter | null;
+  setSelectedCharacter: (character: AthroCharacter | null) => void;
+  isLoading: boolean;
+  getCharacterById: (id: string) => AthroCharacter | null;
+  getCharacterBySubject: (subject: string) => AthroCharacter | null;
 }
 
 const AthroContext = createContext<AthroContextType>({
-  activeCharacter: null,
-  setActiveCharacter: () => {},
   characters: [],
-  messages: [],
-  sendMessage: () => Promise.resolve(null),
-  clearMessages: () => {},
-  isTyping: false,
-  studentProgress: {} as Record<string, {
-    confidenceScores: Record<string, number>;
-    quizScores: Array<{ topic: string; score: number; date: string }>;
-  }>,
-  getSuggestedTopics: () => [],
+  selectedCharacter: null,
+  setSelectedCharacter: () => {},
+  isLoading: true,
+  getCharacterById: () => null,
+  getCharacterBySubject: () => null,
 });
 
 export const useAthro = () => useContext(AthroContext);
 
-interface AthroProviderProps {
-  children: ReactNode;
-}
+export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Convert default characters to ensure they match the AthroCharacter type
+  const convertedDefaultChars = defaultCharacters.map(char => ({
+    ...char,
+    examBoards: char.examBoards as unknown as AthroCharacter['examBoards']
+  }));
 
-export const AthroProvider: React.FC<AthroProviderProps> = ({ children }) => {
-  const [activeCharacter, setActiveCharacter] = useState<AthroCharacter | null>(null);
-  const [characters, setCharacters] = useState<AthroCharacter[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const { messages, isTyping, sendMessage: sendAthroMessage, clearMessages } = useAthroMessages();
-  const { studentProgress, getSuggestedTopics: getTopics } = useStudentProgress();
-  const characterInitialized = useRef(false);
-  
+  const { characters: fetchedCharacters, isLoading } = useAthroCharacters();
+  const [characters, setCharacters] = useState<AthroCharacter[]>(convertedDefaultChars);
+  const [selectedCharacter, setSelectedCharacter] = useState<AthroCharacter | null>(null);
+
   useEffect(() => {
-    console.log('📊 AthroProvider mounted');
-    return () => {
-      console.log('📊 AthroProvider unmounted');
-    };
-  }, []);
-  
-  useEffect(() => {
-    if (isInitialized) {
-      console.log('🛑 Preventing duplicate initialization of Athro characters');
-      return;
-    }
-    
-    console.log('🚀 Initializing Athro characters');
-    
-    try {
-      console.log('📋 Loaded characters:', athroCharacters.map(c => c.name).join(', '));
-      const updatedCharacters = athroCharacters.map(character => ({
-        ...character,
-        supportsSpecialCharacters: character.supportsSpecialCharacters || false,
-        supportedLanguages: character.supportedLanguages || ['en']
-      }));
+    if (fetchedCharacters.length > 0 && !isLoading) {
+      setCharacters(fetchedCharacters);
       
-      setCharacters(updatedCharacters);
-
-      if (updatedCharacters.length > 0) {
-        console.log('🎯 Setting initial active character:', updatedCharacters[0].name);
-        setActiveCharacter(updatedCharacters[0]);
-        characterInitialized.current = true;
+      // If no character is selected, set the first one as default
+      if (!selectedCharacter) {
+        setSelectedCharacter(fetchedCharacters[0]);
       }
-      
-      setIsInitialized(true);
-    } catch (error) {
-      console.error('🔥 Error setting up Athro characters:', error);
-      toast({
-        title: "Setup Error",
-        description: "Failed to initialize Athro characters. Please refresh the page.",
-        variant: "destructive",
-      });
     }
-  }, []);
+  }, [fetchedCharacters, isLoading, selectedCharacter]);
 
-  const memoizedClearMessages = useCallback(() => {
-    console.log('🧹 Clearing messages from context');
-    clearMessages();
-  }, [clearMessages]);
+  const getCharacterById = (id: string): AthroCharacter | null => {
+    return characters.find(character => character.id === id) || null;
+  };
 
-  useEffect(() => {
-    if (activeCharacter && characterInitialized.current) {
-      console.log('👤 Active character changed to:', activeCharacter.name);
-      memoizedClearMessages();
-    }
-  }, [activeCharacter, memoizedClearMessages]);
-
-  const getSuggestedTopics = useCallback((subject: string): string[] => {
-    const character = characters.find(c => c.subject === subject);
-    if (!character) return [];
-    
-    return getTopics(subject, character.topics);
-  }, [characters, getTopics]);
-
-  const sendMessage = useCallback(async (content: string, character: AthroCharacter | null = null): Promise<AthroMessage | null> => {
-    console.log("✉️ SEND MESSAGE TRIGGERED with content:", content);
-    
-    const charToUse = character || activeCharacter;
-    
-    if (!charToUse) {
-      console.warn("❌ No active character to send message to");
-      toast({
-        title: "No Character Selected",
-        description: "Please select a subject character first.",
-      });
-      return null;
-    }
-    
-    try {
-      console.log("📨 Sending message to:", charToUse.name);
-      console.log("Character data:", charToUse);
-      return await sendAthroMessage(content, charToUse);
-    } catch (error) {
-      console.error("💥 Error in sendMessage:", error);
-      toast({
-        title: "Message Error",
-        description: "Failed to send your message. Please try again.",
-        variant: "destructive",
-      });
-      return null;
-    }
-  }, [activeCharacter, sendAthroMessage]);
-
-  useEffect(() => {
-    console.log('Current context state:', {
-      activeCharacter: activeCharacter?.name || 'None',
-      characterCount: characters.length,
-      messageCount: messages.length,
-      isTyping,
-      initialized: isInitialized
-    });
-  }, [activeCharacter, characters, messages, isTyping, isInitialized]);
+  const getCharacterBySubject = (subject: string): AthroCharacter | null => {
+    const lowercaseSubject = subject.toLowerCase();
+    return characters.find(character => character.subject.toLowerCase() === lowercaseSubject) || null;
+  };
 
   return (
     <AthroContext.Provider
       value={{
-        activeCharacter,
-        setActiveCharacter,
         characters,
-        messages,
-        sendMessage,
-        clearMessages,
-        isTyping,
-        studentProgress,
-        getSuggestedTopics
+        selectedCharacter,
+        setSelectedCharacter,
+        isLoading,
+        getCharacterById,
+        getCharacterBySubject,
       }}
     >
       {children}

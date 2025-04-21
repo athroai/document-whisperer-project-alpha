@@ -22,11 +22,19 @@ export const useAthroCharacters = () => {
           throw new Error(error.message);
         }
 
-        // Convert examBoards fields from API to correct type, if needed
-        setCharacters((data || []).map((char: any) => ({
-          ...char,
-          examBoards: (char.examBoards || []).map((eb: string) => eb.toUpperCase()) as ExamBoard[]
-        })));
+        // Convert examBoards fields from API to correct type
+        setCharacters((data || []).map((char: any) => {
+          // Ensure examBoards are properly typed as ExamBoard[]
+          const examBoards: ExamBoard[] = (char.examBoards || []).map((eb: string) => {
+            if (eb === 'Edexcel') return 'EDEXCEL';
+            return eb.toUpperCase() as ExamBoard;
+          });
+          
+          return {
+            ...char,
+            examBoards
+          };
+        }));
       } catch (err) {
         console.error('Error fetching Athro characters:', err);
         setError(err instanceof Error ? err : new Error('Unknown error fetching characters'));
@@ -44,7 +52,7 @@ export const useAthroCharacters = () => {
             supportsMathNotation: true,
             supportsSpecialCharacters: false,
             supportedLanguages: ['en'],
-            examBoards: ['AQA', 'EDEXCEL'], // FIX
+            examBoards: ['AQA', 'EDEXCEL'] as ExamBoard[],
             topics: ['Algebra', 'Geometry', 'Statistics', 'Number']
           },
           {
@@ -58,7 +66,7 @@ export const useAthroCharacters = () => {
             supportsMathNotation: true,
             supportsSpecialCharacters: true,
             supportedLanguages: ['en'],
-            examBoards: ['AQA', 'EDEXCEL', 'OCR'], // FIX
+            examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
             topics: ['Biology', 'Chemistry', 'Physics']
           },
           {
@@ -72,7 +80,7 @@ export const useAthroCharacters = () => {
             supportsMathNotation: false,
             supportsSpecialCharacters: false,
             supportedLanguages: ['en'],
-            examBoards: ['AQA', 'EDEXCEL', 'OCR'], // FIX
+            examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
             topics: ['Language', 'Literature', 'Poetry', 'Shakespeare']
           }
         ]);

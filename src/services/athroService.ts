@@ -1,140 +1,128 @@
 
-import { AthroCharacterConfig } from '@/types/athroCharacter';
-import { AthroSubject, AthroLanguage } from '@/types/athro';
+import { supabase } from '@/lib/supabase';
+import { AthroCharacter, ExamBoard, AthroSubject, AthroLanguage } from '@/types/athro';
 
-// Update the subject values to be compatible with string type
-const subjects: Record<string, string> = {
-  Mathematics: 'Mathematics',
-  Science: 'Science',
-  English: 'English',
-  History: 'History',
-  Geography: 'Geography',
-  Welsh: 'Welsh',
-  Languages: 'Languages',
-  RE: 'RE'
+// Helper function to convert string exam boards to proper ExamBoard type
+const convertToExamBoardType = (boards: string[]): ExamBoard[] => {
+  return boards.map(board => {
+    // Make sure all board values match the ExamBoard type options
+    if (board === 'Edexcel') return 'EDEXCEL';
+    if (board === 'AQA') return 'AQA';
+    if (board === 'OCR') return 'OCR';
+    if (board === 'WJEC') return 'WJEC';
+    if (board === 'SQA') return 'SQA';
+    if (board === 'CCEA') return 'CCEA';
+    return board as ExamBoard;
+  });
 };
 
-export const getTopicsForSubject = (subject: string): string[] => {
-  // And also update any indexing with string
-  const subjectKey = subject as string;
-  const topicsForSubject = subjects[subjectKey];
-
-  // Replace this with actual logic to fetch topics based on the subject
-  return ['Topic 1', 'Topic 2', 'Topic 3'];
+// Get all Athro characters
+export const getAthroCharacters = async (): Promise<AthroCharacter[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('athro_characters')
+      .select('*');
+    
+    if (error) {
+      throw new Error(error.message);
+    }
+    
+    // Format the data to match AthroCharacter type
+    const characters: AthroCharacter[] = data.map((char: any) => ({
+      id: char.id,
+      name: char.name,
+      subject: char.subject,
+      tone: char.tone,
+      shortDescription: char.short_description,
+      fullDescription: char.full_description,
+      avatarUrl: char.avatar_url,
+      supportsMathNotation: char.supports_math_notation,
+      supportsSpecialCharacters: char.supports_special_characters,
+      examBoards: convertToExamBoardType(char.exam_boards || []),
+      topics: char.topics || [],
+      supportedLanguages: char.supported_languages
+    }));
+    
+    return characters;
+  } catch (error) {
+    console.error('Error fetching Athro characters:', error);
+    // Return fallback characters
+    return [
+      {
+        id: 'mathematics',
+        name: 'AthroMaths',
+        subject: 'Mathematics',
+        shortDescription: 'Your mathematics mentor',
+        fullDescription: 'I can help with all areas of GCSE mathematics, from algebra to statistics.',
+        avatarUrl: '/avatars/athro-maths.png',
+        tone: 'Clear and methodical',
+        supportsMathNotation: true,
+        supportsSpecialCharacters: false,
+        supportedLanguages: ['en'],
+        examBoards: ['AQA', 'EDEXCEL'] as ExamBoard[],
+        topics: ['Algebra', 'Geometry', 'Statistics', 'Number']
+      },
+      {
+        id: 'science',
+        name: 'AthroScience',
+        subject: 'Science',
+        shortDescription: 'Your science mentor',
+        fullDescription: 'I can help with physics, chemistry and biology at GCSE level.',
+        avatarUrl: '/avatars/athro-science.png',
+        tone: 'Curious and explanatory',
+        supportsMathNotation: true,
+        supportsSpecialCharacters: true,
+        supportedLanguages: ['en'],
+        examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
+        topics: ['Biology', 'Chemistry', 'Physics']
+      },
+      {
+        id: 'english',
+        name: 'AthroEnglish',
+        subject: 'English',
+        shortDescription: 'Your English mentor',
+        fullDescription: 'I can help with both English Language and English Literature at GCSE level.',
+        avatarUrl: '/avatars/athro-english.png',
+        tone: 'Articulate and encouraging',
+        supportsMathNotation: false,
+        supportsSpecialCharacters: false,
+        supportedLanguages: ['en'],
+        examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
+        topics: ['Language', 'Literature', 'Poetry', 'Shakespeare']
+      }
+    ];
+  }
 };
 
-// Fix the mock Athro character data to use proper types
-export const athroCharacterConfigs: AthroCharacterConfig[] = [
-  {
-    id: 'maths-mentor-1',
-    name: 'Alan Turing',
-    subject: 'Mathematics',
-    avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
-    shortDescription: 'Your friendly maths mentor',
-    fullDescription: 'Alan Turing is here to help you with all your maths needs.',
-    tone: 'friendly',
-    promptTemplate: 'You are Alan Turing, a friendly maths mentor. {context} {message}',
-    responseStyle: 'maths',
-    usesMathFont: true,
-    supportsImageOCR: false,
-    specialFeatures: ['latexSupport', 'stepByStepSolutions'],
-    supportsMathNotation: true,
-    supportsSpecialCharacters: false,
-    supportedLanguages: ['en'],
-    topics: ['Algebra', 'Geometry', 'Calculus', 'Statistics'],
-    examBoards: ['AQA', 'Edexcel', 'OCR', 'WJEC'],
-    features: {
-      latexSupport: true,
-      pastPaperIntegration: true,
-      aiMarking: false,
-    },
-    examBoardLogic: {
-      default: 'AQA',
-      fallback: ['Edexcel', 'OCR', 'WJEC'],
-    },
-  },
-  {
-    id: 'science-mentor-1',
-    name: 'Marie Curie',
-    subject: 'Science',
-    avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
-    shortDescription: 'Your inspiring science mentor',
-    fullDescription: 'Marie Curie is here to guide you through the wonders of science.',
-    tone: 'inspiring',
-    promptTemplate: 'You are Marie Curie, an inspiring science mentor. {context} {message}',
-    responseStyle: 'essay',
-    usesMathFont: false,
-    supportsImageOCR: true,
-    specialFeatures: ['diagramAnalysis', 'experimentSuggestions'],
-    supportsMathNotation: false,
-    supportsSpecialCharacters: false,
-    supportedLanguages: ['en', 'fr'],
-    topics: ['Biology', 'Chemistry', 'Physics'],
-    examBoards: ['AQA', 'Edexcel', 'OCR', 'WJEC'],
-    features: {
-      latexSupport: false,
-      pastPaperIntegration: true,
-      aiMarking: true,
-    },
-    examBoardLogic: {
-      default: 'AQA',
-      fallback: ['Edexcel', 'OCR', 'WJEC'],
-    },
-  },
-  {
-    id: 'english-mentor-1',
-    name: 'William Shakespeare',
-    subject: 'English',
-    avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
-    shortDescription: 'Your eloquent English mentor',
-    fullDescription: 'William Shakespeare is here to help you master the English language.',
-    tone: 'eloquent',
-    promptTemplate: 'You are William Shakespeare, an eloquent English mentor. {context} {message}',
-    responseStyle: 'essay',
-    usesMathFont: false,
-    supportsImageOCR: false,
-    specialFeatures: ['poetryAnalysis', 'creativeWritingPrompts'],
-    supportsMathNotation: false,
-    supportsSpecialCharacters: true,
-    supportedLanguages: ['en'],
-    topics: ['Literature', 'Grammar', 'Writing'],
-    examBoards: ['AQA', 'Edexcel', 'OCR', 'WJEC'],
-    features: {
-      latexSupport: false,
-      pastPaperIntegration: true,
-      aiMarking: true,
-    },
-    examBoardLogic: {
-      default: 'AQA',
-      fallback: ['Edexcel', 'OCR', 'WJEC'],
-    },
-  },
-  {
-    id: 'welsh-mentor-1',
-    name: 'Gwyneth Lewis',
-    subject: 'Welsh',
-    avatarUrl: '/lovable-uploads/40369f55-a9f5-48fb-bcf9-fdf91c946daa.png',
-    shortDescription: 'Your friendly Welsh mentor',
-    fullDescription: 'Gwyneth Lewis is here to help you master the Welsh language.',
-    tone: 'friendly',
-    promptTemplate: 'You are Gwyneth Lewis, a friendly Welsh mentor. {context} {message}',
-    responseStyle: 'language',
-    usesMathFont: false,
-    supportsImageOCR: false,
-    specialFeatures: ['poetryAnalysis', 'creativeWritingPrompts'],
-    supportsMathNotation: false,
-    supportsSpecialCharacters: true,
-    supportedLanguages: ['en', 'cy'],
-    topics: ['Literature', 'Grammar', 'Writing'],
-    examBoards: ['WJEC'],
-    features: {
-      latexSupport: false,
-      pastPaperIntegration: true,
-      aiMarking: true,
-    },
-    examBoardLogic: {
-      default: 'WJEC',
-      fallback: ['WJEC'],
-    },
-  },
-];
+// Get a specific Athro character by ID
+export const getAthroCharacterById = async (id: string): Promise<AthroCharacter | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('athro_characters')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error || !data) {
+      throw new Error(error?.message || 'Character not found');
+    }
+    
+    return {
+      id: data.id,
+      name: data.name,
+      subject: data.subject,
+      tone: data.tone,
+      shortDescription: data.short_description,
+      fullDescription: data.full_description,
+      avatarUrl: data.avatar_url,
+      supportsMathNotation: data.supports_math_notation,
+      supportsSpecialCharacters: data.supports_special_characters,
+      examBoards: convertToExamBoardType(data.exam_boards || []),
+      topics: data.topics || [],
+      supportedLanguages: data.supported_languages
+    };
+  } catch (error) {
+    console.error(`Error fetching Athro character with ID ${id}:`, error);
+    return null;
+  }
+};
