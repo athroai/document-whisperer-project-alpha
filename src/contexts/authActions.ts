@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { getProfileByUserId, upsertProfile } from './authProfile';
@@ -24,18 +25,29 @@ export const loginAction = async (email: string, password: string, rememberMe: b
 export const signupAction = async (email: string, password: string, role: string, updateState: any, navigate: any, setAuthProfile: any) => {
   updateState({ isLoading: true, error: undefined });
   try {
+    console.log('Attempting signup for:', email);
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { role }
+        data: { role },
+        emailRedirectTo: window.location.origin + '/auth/confirm'
       }
     });
     
     if (error) {
+      console.error('Signup error:', error);
+      
       if (error.message.includes('email address is already registered')) {
         throw new Error('User with this email already exists');
       }
+      
+      // Handle rate limits explicitly
+      if (error.status === 429 || error.message.includes('rate limit') || error.message.includes('Too many requests')) {
+        throw new Error('Too many signup attempts. Please wait a few minutes before trying again.');
+      }
+      
       throw error;
     }
     
@@ -51,13 +63,20 @@ export const signupAction = async (email: string, password: string, role: string
         study_subjects: [],
         preferred_language: 'en'
       };
-      await setAuthProfile(initialProfile);
+      
+      try {
+        await setAuthProfile(initialProfile);
+      } catch (profileError) {
+        console.error('Error setting initial profile:', profileError);
+        // Continue with signup flow even if profile creation fails
+      }
     }
     
     localStorage.removeItem('onboarding_completed');
     
     navigate('/onboarding');
   } catch (error: any) {
+    console.error('Signup action error:', error);
     updateState({ error: error.message });
     throw error;
   } finally {

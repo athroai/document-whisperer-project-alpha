@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/hooks/use-toast';
+import { Loader } from 'lucide-react';
 
 const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -13,6 +15,7 @@ const SignupPage: React.FC = () => {
   const [role, setRole] = useState<'student' | 'parent' | 'teacher'>('student');
   const { signup, state } = useAuth();
   const [isChecking, setIsChecking] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,20 +50,36 @@ const SignupPage: React.FC = () => {
       });
       return;
     }
+
+    // Check if too many attempts
+    if (attemptCount > 4) {
+      toast({
+        title: "Too many attempts",
+        description: "Please wait a few minutes before trying again",
+        variant: "destructive",
+      });
+      
+      // Reset attempt count after 2 minutes
+      setTimeout(() => setAttemptCount(0), 120000);
+      return;
+    }
     
     try {
       setIsChecking(true);
+      setAttemptCount(prev => prev + 1);
       
-      // Directly attempt signup without pre-checking if email exists
-      // The signup function in authActions.ts will handle the error if email already exists
       await signup(email, password, role);
+      
+      // Reset attempt count on success
+      setAttemptCount(0);
+      
       toast({
         title: "Account created!",
         description: "Welcome to Athro AI",
       });
-      // We'll let the signup process handle the navigation
-      
     } catch (error: any) {
+      console.error('Signup error:', error);
+      
       // More specific error handling
       if (error.message?.includes('already registered') || error.message?.includes('already exists')) {
         toast({
@@ -68,12 +87,15 @@ const SignupPage: React.FC = () => {
           description: "An account with this email already exists. Please log in instead.",
           variant: "destructive",
         });
-      } else if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+      } else if (error.message?.includes('rate limit') || error.message?.includes('Too many') || error.message?.includes('429')) {
         toast({
           title: "Too many attempts",
           description: "Please wait a few minutes before trying again.",
           variant: "destructive",
         });
+        
+        // Reset attempt count after 2 minutes
+        setTimeout(() => setAttemptCount(0), 120000);
       } else {
         toast({
           title: "Signup failed",
@@ -118,6 +140,7 @@ const SignupPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
+                disabled={isChecking}
               />
             </div>
 
@@ -132,6 +155,7 @@ const SignupPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
+                disabled={isChecking}
               />
               <p className="mt-1 text-xs text-gray-500">
                 Password must be at least 8 characters long
@@ -146,6 +170,7 @@ const SignupPage: React.FC = () => {
                 value={role}
                 onValueChange={(value) => setRole(value as 'student' | 'parent' | 'teacher')}
                 className="flex flex-col space-y-1"
+                disabled={isChecking}
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="student" id="student" />
@@ -168,7 +193,12 @@ const SignupPage: React.FC = () => {
                 className="w-full bg-purple-600 hover:bg-purple-700"
                 disabled={state.isLoading || isChecking}
               >
-                {state.isLoading || isChecking ? "Creating account..." : "Sign up"}
+                {state.isLoading || isChecking ? (
+                  <span className="flex items-center">
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </span>
+                ) : "Sign up"}
               </Button>
             </div>
           </form>
@@ -196,6 +226,7 @@ const SignupPage: React.FC = () => {
                 <Button
                   variant="outline"
                   className="w-full border-purple-300 text-purple-600 hover:bg-purple-50"
+                  disabled={isChecking}
                 >
                   Log in instead
                 </Button>
