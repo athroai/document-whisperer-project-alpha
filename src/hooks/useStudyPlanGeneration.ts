@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { verifyAuth } from '@/lib/supabase';
 import { SubjectPreference } from '@/contexts/onboarding/types';
 import { PreferredStudySlot } from '@/types/study';
-import { format, addDays, getDay } from 'date-fns';
+import { format, addDays, getDay, startOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 interface StudySession {
@@ -272,8 +272,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       }));
     }
     
-    const today = new Date();
-    let slotIndex = 0;
+    const today = startOfDay(new Date());
     let daysOut = 1; // Start planning from tomorrow
     
     // Create a queue of subjects to schedule, respecting their sessionsPerWeek
@@ -283,12 +282,19 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
     
     while (subjectsToSchedule.length > 0 && daysOut <= 21) { // Plan for 3 weeks maximum
       const dateToCheck = addDays(today, daysOut);
-      const dayOfWeek = getDay(dateToCheck) || 7; // Convert Sunday from 0 to 7
+      const dayOfWeekIndex = getDay(dateToCheck); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+      
+      // Convert to our 1-7 format where 1 = Monday, ..., 7 = Sunday
+      const dayOfWeek = dayOfWeekIndex === 0 ? 7 : dayOfWeekIndex;
+      
+      console.log(`Checking day ${daysOut}: ${format(dateToCheck, 'yyyy-MM-dd')} (day of week: ${dayOfWeek})`);
       
       // Find slots for this day
       const slotsForDay = slots.filter(slot => slot.day_of_week === dayOfWeek);
       
       if (slotsForDay.length > 0) {
+        console.log(`Found ${slotsForDay.length} slots for day ${dayOfWeek}`);
+        
         // Schedule as many subjects as we have slots for this day
         for (let i = 0; i < slotsForDay.length && subjectsToSchedule.length > 0; i++) {
           const slot = slotsForDay[i];
@@ -312,6 +318,8 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
               date: format(sessionDate, 'MMM d'),
               duration: slot.slot_duration_minutes
             });
+            
+            console.log(`Scheduled ${subject.subject} on ${format(sessionDate, 'EEEE, MMM d')} at ${format(sessionDate, 'h:mm a')}`);
           }
         }
       }

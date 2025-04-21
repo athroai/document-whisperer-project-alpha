@@ -48,6 +48,7 @@ const OnboardingPage: React.FC = () => {
 
       try {
         if (isRestarting) {
+          console.log('Restarting onboarding, skipping completion check');
           setInitialCheckDone(true);
           return;
         }
@@ -172,7 +173,6 @@ const OnboardingPage: React.FC = () => {
 
       setGenerationProgress(40);
 
-      // Get all study slots for this user
       let studySlotsData = [];
       try {
         const { data, error } = await supabase
@@ -215,13 +215,12 @@ const OnboardingPage: React.FC = () => {
       const calendarEvents = [];
       const today = new Date();
 
-      // Create calendar events for each individual study slot
       for (let slot of studySlotsData) {
         let slotDay = slot.day_of_week;
-        let nowDay = today.getDay() || 7; // Convert Sunday from 0 to 7
+        let nowDay = today.getDay() || 7;
         let daysUntil = slotDay - nowDay;
-        if (daysUntil < 0) daysUntil += 7;
-        
+        if (daysUntil <= 0) daysUntil += 7;
+
         let sessionDate = new Date(today);
         sessionDate.setDate(today.getDate() + daysUntil);
 
@@ -231,7 +230,6 @@ const OnboardingPage: React.FC = () => {
         let endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
 
-        // Assign subjects in rotation
         const subjIndex = calendarEvents.length % onboardingData.subjects.length;
         const subjectObj = onboardingData.subjects[subjIndex];
 
@@ -268,14 +266,12 @@ const OnboardingPage: React.FC = () => {
           console.log(`Successfully created ${data?.length || 0} calendar events`);
         } catch (insertError) {
           console.error('Error inserting calendar events:', insertError);
-          // Continue despite error
         }
       }
 
       setGenerationProgress(95);
 
       try {
-        // Mark onboarding as complete
         await supabase
           .from('onboarding_progress')
           .upsert({

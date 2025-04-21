@@ -2,17 +2,20 @@
 import React, { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DaySelector } from '@/components/onboarding/DaySelector';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Slider } from '@/components/ui/slider';
+import { format } from 'date-fns';
 
 export const SimpleScheduleSetup: React.FC = () => {
   const { updateOnboardingStep, updateStudySlots } = useOnboarding();
   const { toast } = useToast();
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri
   const [sessionDuration, setSessionDuration] = useState<string>('medium');
+  const [preferredStartHour, setPreferredStartHour] = useState<number>(16); // 4 PM default
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDayToggle = (dayIndex: number) => {
@@ -34,6 +37,13 @@ export const SimpleScheduleSetup: React.FC = () => {
 
   const handleBack = () => {
     updateOnboardingStep('subjects');
+  };
+
+  const getTimeLabel = (hour: number) => {
+    if (hour === 0) return '12 AM';
+    if (hour < 12) return `${hour} AM`;
+    if (hour === 12) return '12 PM';
+    return `${hour - 12} PM`;
   };
 
   const handleContinue = async () => {
@@ -58,7 +68,7 @@ export const SimpleScheduleSetup: React.FC = () => {
           dayOfWeek,
           slotCount: 1,
           slotDurationMinutes: durationMinutes,
-          preferredStartHour: 16 // 4 PM default
+          preferredStartHour // Use the selected start hour
         });
       }
       
@@ -89,6 +99,29 @@ export const SimpleScheduleSetup: React.FC = () => {
           selectedDays={selectedDays} 
           toggleDaySelection={handleDayToggle} 
         />
+      </div>
+      
+      <div className="space-y-4">
+        <Label className="text-base font-medium">What time would you like to study?</Label>
+        <div className="space-y-4">
+          <div className="flex items-center">
+            <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
+            <span className="font-medium">{getTimeLabel(preferredStartHour)}</span>
+          </div>
+          
+          <Slider
+            value={[preferredStartHour]}
+            min={8} // 8 AM
+            max={20} // 8 PM
+            step={1}
+            onValueChange={(values) => setPreferredStartHour(values[0])}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>8 AM</span>
+            <span>2 PM</span>
+            <span>8 PM</span>
+          </div>
+        </div>
       </div>
       
       <div className="space-y-4">

@@ -78,7 +78,7 @@ const CalendarPage: React.FC = () => {
   // If the URL has a restart=true parameter, immediately go to onboarding
   useEffect(() => {
     if (isRestartingOnboarding && !checkingOnboarding) {
-      navigate('/onboarding', { replace: true });
+      navigate('/onboarding?restart=true', { replace: true });
     }
   }, [isRestartingOnboarding, checkingOnboarding, navigate]);
 
