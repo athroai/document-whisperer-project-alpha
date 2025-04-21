@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAthro } from '@/contexts/AthroContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,8 +57,7 @@ const AthroChat = () => {
         console.error("Error fetching or creating session:", error);
         toast({
           title: "Error",
-          description: "Failed to load or create session.",
-          variant: "destructive"
+          description: "Failed to load or create session."
         });
       }
     };
@@ -83,8 +83,7 @@ const AthroChat = () => {
       console.error("Error creating new session:", error);
       toast({
         title: "Error",
-        description: "Failed to create new session.",
-        variant: "destructive"
+        description: "Failed to create new session."
       });
     }
   };
@@ -105,8 +104,7 @@ const AthroChat = () => {
       console.error("Error fetching messages:", error);
       toast({
         title: "Error",
-        description: "Failed to load messages.",
-        variant: "destructive"
+        description: "Failed to load messages."
       });
     } finally {
       setIsLoading(false);
@@ -163,8 +161,7 @@ const AthroChat = () => {
       console.error("Error sending message:", error);
       toast({
         title: "Error",
-        description: "Failed to send message.",
-        variant: "destructive"
+        description: "Failed to send message."
       });
       // Revert the message on failure
       setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
@@ -193,7 +190,7 @@ const AthroChat = () => {
     const storagePath = `documents/${userId}/${currentSessionId}/${file.name}`;
 
     try {
-      const { data: uploadData, error: uploadError } = await supabase
+      const { data: uploadData, error: uploadStorageError } = await supabase
         .storage
         .from('documents')
         .upload(storagePath, file, {
@@ -201,13 +198,13 @@ const AthroChat = () => {
           upsert: false
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadStorageError) throw uploadStorageError;
 
       if (!uploadData?.path) {
         throw new Error('File upload failed');
       }
       
-      const { data: document, error: uploadError } = await supabase
+      const { data: document, error: documentInsertError } = await supabase
         .from('documents')
         .insert({
           filename: file.name,
@@ -223,7 +220,7 @@ const AthroChat = () => {
         .select()
         .single();
 
-      if (uploadError) throw uploadError;
+      if (documentInsertError) throw documentInsertError;
       
       if (!document) {
         throw new Error('Failed to create document record');
@@ -295,7 +292,7 @@ const AthroChat = () => {
             <div key={message.id} className={`flex ${message.is_student ? 'justify-start' : 'justify-end'}`}>
               <div className="flex flex-col">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={`/images/characters/${activeCharacter?.image}`} alt={activeCharacter?.name} />
+                  <AvatarImage src={`/images/characters/${activeCharacter?.avatarUrl}`} alt={activeCharacter?.name} />
                   <AvatarFallback>{activeCharacter?.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="text-xs text-gray-500">{message.is_student ? 'You' : activeCharacter?.name}</div>
