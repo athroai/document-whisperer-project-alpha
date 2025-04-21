@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOnboardingCheck } from '@/hooks/useOnboardingCheck';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Calendar, Clock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const StudyPage: React.FC = () => {
@@ -26,25 +26,52 @@ const StudyPage: React.FC = () => {
         <p className="text-gray-600 mt-2">Manage your study sessions</p>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <BookOpen className="h-5 w-5 mr-2 text-purple-500" />
-            Start a Study Session
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p>Choose a subject to begin studying with your AI tutor.</p>
-          <div className="flex flex-wrap gap-3 mt-4">
-            <Button asChild className="bg-purple-600 hover:bg-purple-700">
-              <Link to="/calendar">View Study Calendar</Link>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Calendar className="h-5 w-5 mr-2 text-purple-500" />
+              Your Study Calendar
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p>View and manage your upcoming study sessions in the calendar.</p>
+            <Button asChild className="bg-purple-600 hover:bg-purple-700 w-full">
+              <Link to="/calendar">Open Calendar</Link>
             </Button>
-            <Button asChild variant="outline">
-              <Link to="/home">Back to Home</Link>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <BookOpen className="h-5 w-5 mr-2 text-purple-500" />
+              Study With Athro
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p>Start a study session with your AI tutor for personalized help.</p>
+            <Button asChild className="bg-purple-600 hover:bg-purple-700 w-full">
+              <Link to="/athro-chat">Start Studying</Link>
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Clock className="h-5 w-5 mr-2 text-purple-500" />
+              Pomodoro Timer
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p>Use the Pomodoro technique to manage your study time effectively.</p>
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/pomodoro">Open Timer</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -1,87 +1,55 @@
 
 import React from 'react';
-import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BookOpen, Clock, Brain, LineChart } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { motion } from 'framer-motion';
+import { useOnboarding } from '@/contexts/OnboardingContext';
+import { Sparkles } from 'lucide-react';
 
 export const WelcomeStep: React.FC = () => {
   const { updateOnboardingStep } = useOnboarding();
-  const { state } = useAuth();
-  const { user } = state;
-
-  const handleContinue = () => {
-    updateOnboardingStep('subjects');
-  };
-
-  const features = [
-    {
-      icon: BookOpen,
-      title: 'Personalized Learning',
-      description: 'Tailored study plans based on your subjects and confidence levels'
-    },
-    {
-      icon: Clock,
-      title: 'Smart Scheduling',
-      description: 'Study sessions that fit your schedule and optimize your learning'
-    },
-    {
-      icon: Brain,
-      title: 'AI Assistance',
-      description: 'Subject-specific mentors to help you tackle challenging topics'
-    },
-    {
-      icon: LineChart,
-      title: 'Progress Tracking',
-      description: 'Monitor your improvement and identify areas that need attention'
-    }
-  ];
-
+  
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-8"
-    >
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Welcome to AthroAI{user?.displayName ? `, ${user.displayName}` : ''}!
-        </h1>
-        <p className="text-lg text-muted-foreground mt-2">
-          Let's set up your personalized learning journey in just a few steps
+    <div className="space-y-6 text-center py-4">
+      <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+        <Sparkles className="w-8 h-8 text-purple-600" />
+      </div>
+      
+      <h2 className="text-2xl font-bold">Welcome to Your Study Assistant</h2>
+      
+      <div className="space-y-4 max-w-lg mx-auto">
+        <p className="text-gray-600">
+          We're going to help you create a personalized study calendar based on:
+        </p>
+        
+        <ul className="text-left space-y-2">
+          <li className="flex items-center">
+            <span className="w-6 h-6 rounded-full bg-green-100 text-green-800 flex items-center justify-center mr-2 text-sm">1</span>
+            <span>The subjects you're studying</span>
+          </li>
+          <li className="flex items-center">
+            <span className="w-6 h-6 rounded-full bg-green-100 text-green-800 flex items-center justify-center mr-2 text-sm">2</span>
+            <span>Your confidence level in each subject</span>
+          </li>
+          <li className="flex items-center">
+            <span className="w-6 h-6 rounded-full bg-green-100 text-green-800 flex items-center justify-center mr-2 text-sm">3</span>
+            <span>When you're available to study</span>
+          </li>
+          <li className="flex items-center">
+            <span className="w-6 h-6 rounded-full bg-green-100 text-green-800 flex items-center justify-center mr-2 text-sm">4</span>
+            <span>How you prefer to learn</span>
+          </li>
+        </ul>
+        
+        <p className="text-gray-600 pt-2">
+          This will only take a few minutes and will help us create the perfect study schedule for you.
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {features.map((feature, index) => (
-          <motion.div 
-            key={index}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: index * 0.1 + 0.2 }}
-            className="flex items-start space-x-4 p-4 border rounded-lg"
-          >
-            <div className="bg-primary/10 p-2 rounded-full">
-              <feature.icon className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-medium">{feature.title}</h3>
-              <p className="text-sm text-muted-foreground">{feature.description}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      
-      <div className="text-center pt-6">
-        <Button 
-          onClick={handleContinue} 
-          size="lg"
-          className="bg-purple-600 hover:bg-purple-700"
-        >
-          Let's Get Started <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-    </motion.div>
+      <Button 
+        onClick={() => updateOnboardingStep('subjects')} 
+        className="mt-6 bg-purple-600 hover:bg-purple-700"
+      >
+        Let's Get Started
+      </Button>
+    </div>
   );
 };

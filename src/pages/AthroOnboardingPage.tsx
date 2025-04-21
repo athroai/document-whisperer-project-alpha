@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { Progress } from '@/components/ui/progress';
@@ -7,15 +8,20 @@ import { verifyAuth } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { AuthVerification } from '@/components/onboarding/study-plan/AuthVerification';
 
-import { BasicSubjectSelection } from '@/components/onboarding/steps/BasicSubjectSelection';
-import { SimpleScheduleSetup } from '@/components/onboarding/steps/SimpleScheduleSetup';
-import { CreateInitialEvents } from '@/components/onboarding/steps/CreateInitialEvents';
+import { SubjectSelectionStep } from '@/components/onboarding/steps/SubjectSelectionStep';
+import { AvailabilitySelectionStep } from '@/components/onboarding/steps/AvailabilitySelectionStep';
+import { LearningStyleStep } from '@/components/onboarding/steps/LearningStyleStep';
+import { CalendarPreviewStep } from '@/components/onboarding/steps/CalendarPreviewStep';
+import { WelcomeStep } from '@/components/onboarding/steps/WelcomeStep';
 
 const steps = [
-  { id: 'subjects', component: BasicSubjectSelection, title: 'Select Subjects' },
-  { id: 'schedule', component: SimpleScheduleSetup, title: 'Set Schedule' },
-  { id: 'createEvents', component: CreateInitialEvents, title: 'Create Sessions' }
+  { id: 'welcome', component: WelcomeStep, title: 'Welcome' },
+  { id: 'subjects', component: SubjectSelectionStep, title: 'Select Subjects' },
+  { id: 'availability', component: AvailabilitySelectionStep, title: 'Set Schedule' },
+  { id: 'learning-style', component: LearningStyleStep, title: 'Learning Style' },
+  { id: 'calendar-preview', component: CalendarPreviewStep, title: 'Your Calendar' }
 ];
 
 const OnboardingContent: React.FC = () => {
@@ -31,7 +37,7 @@ const OnboardingContent: React.FC = () => {
     }
 
     if (!state.user) {
-      navigate('/login');
+      navigate('/login', { state: { from: '/athro-onboarding' } });
       return;
     }
 
@@ -55,6 +61,12 @@ const OnboardingContent: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
+      <AuthVerification 
+        isAuthenticated={!!state.user} 
+        isLoading={state.isLoading || isVerifying}
+        authVerified={authVerified} 
+      />
+      
       <div className="mb-8">
         <div className="flex justify-between mb-2">
           {steps.map((step, index) => (

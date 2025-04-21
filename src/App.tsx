@@ -11,6 +11,9 @@ import SettingsPage from './pages/SettingsPage';
 import OnboardingPage from './pages/OnboardingPage';
 import AthroOnboardingPage from './pages/AthroOnboardingPage';
 import WelcomePage from './pages/WelcomePage';
+import PomodoroPage from './pages/PomodoroPage';
+import AthroChat from './pages/AthroChat';
+import StudyPage from './pages/StudyPage';
 
 const App = () => {
   return (
@@ -24,6 +27,9 @@ const App = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/pomodoro" element={<PomodoroPage />} />
+        <Route path="/athro-chat" element={<AthroChat />} />
+        <Route path="/study" element={<StudyPage />} />
       </Routes>
       <Toaster />
     </>

@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Card } from '@/components/ui/card';
 import { SlotOption } from '@/types/study';
 
 interface SlotOptionSelectorProps {
@@ -15,28 +14,30 @@ export const SlotOptionSelector: React.FC<SlotOptionSelectorProps> = ({
   onSelectOption
 }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {slotOptions.map((option, index) => {
-        const IconComponent = option.icon;
+        const isSelected = selectedOption === index;
+        const Icon = option.icon;
         
         return (
-          <Card 
+          <div
             key={option.name}
-            className={`p-4 cursor-pointer transition-all ${
-              selectedOption === index ? 'border-2 border-purple-500' : ''
-            }`}
+            className={`
+              cursor-pointer border rounded-md p-4 transition-all
+              ${isSelected ? `border-2 border-purple-500 bg-purple-50` : 'hover:border-gray-300'}
+            `}
             onClick={() => onSelectOption(index)}
           >
-            <div className="flex flex-col items-center text-center">
-              <div className={`p-2 rounded-full ${option.color} text-white mb-2`}>
-                <IconComponent className="h-5 w-5" />
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">{option.name}</div>
+                <div className="text-sm text-gray-500 mt-1">{option.count} × {option.duration}min</div>
               </div>
-              <h4 className="font-medium">{option.name}</h4>
-              <p className="text-sm text-gray-500">
-                {option.count} x {option.duration} min sessions
-              </p>
+              <div className={`${option.color} p-2 rounded-md text-white`}>
+                <Icon className="h-4 w-4" />
+              </div>
             </div>
-          </Card>
+          </div>
         );
       })}
     </div>
