@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Calendar, Check } from 'lucide-react';
+import { RefreshCw, Calendar, ArrowRight } from 'lucide-react';
 
 interface CalendarToolbarProps {
   isLoading: boolean;
@@ -14,6 +14,17 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onRefresh,
   onRestartOnboarding
 }) => {
+  // Handle the restart onboarding click with confirmation
+  const handleRestartOnboarding = () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to restart onboarding? This will reset your study plan setup."
+    );
+    
+    if (confirmed) {
+      onRestartOnboarding();
+    }
+  };
+  
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
       <div>
@@ -26,7 +37,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
       <div className="flex space-x-2 mt-4 sm:mt-0">
         <Button 
           variant="outline" 
-          onClick={onRestartOnboarding}
+          onClick={handleRestartOnboarding}
           className="text-sm"
         >
           <Calendar className="mr-2 h-4 w-4" />

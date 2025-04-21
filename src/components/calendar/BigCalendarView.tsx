@@ -10,12 +10,12 @@ import {
 } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
-import CreateStudySession from './CreateStudySession';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import CalendarHeader from './CalendarHeader';
 import CalendarNavigation from './CalendarNavigation';
 import CalendarGrid from './CalendarGrid';
+import DayPlannerView from './DayPlannerView';
 
 interface BigCalendarViewProps {
   onRetryLoad?: () => void;
@@ -26,23 +26,22 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({
   onRetryLoad,
   showRefreshButton = true
 }) => {
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
   const { events, isLoading } = useCalendarEvents();
   
   const handleDateSelect = useCallback((date: Date) => {
     setSelectedDate(date);
-    setShowCreateDialog(true);
   }, []);
 
-  const handleCreateSuccess = useCallback(() => {
-    setShowCreateDialog(false);
+  const handleCloseDayPlanner = useCallback(() => {
+    setSelectedDate(null);
+    
     // If an onRetryLoad function was passed, call it to refresh events
     if (onRetryLoad) {
       setTimeout(() => {
         onRetryLoad();
-      }, 1000);
+      }, 500);
     }
   }, [onRetryLoad]);
 
@@ -67,7 +66,6 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({
 
   const handleAddSession = useCallback(() => {
     setSelectedDate(new Date());
-    setShowCreateDialog(true);
   }, []);
 
   if (isLoading) {
@@ -112,12 +110,15 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({
         <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">Other</Badge>
       </div>
 
-      <CreateStudySession
-        isOpen={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
-        initialDate={selectedDate || new Date()}
-        onSuccess={handleCreateSuccess}
-      />
+      {selectedDate && (
+        <DayPlannerView
+          selectedDate={selectedDate}
+          onClose={handleCloseDayPlanner}
+          events={events}
+          isLoading={isLoading}
+          onRefresh={onRetryLoad || (() => {})}
+        />
+      )}
     </div>
   );
 };

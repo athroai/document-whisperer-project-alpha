@@ -19,11 +19,12 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
   const isRestartingOnboarding = new URLSearchParams(location.search).get('restart') === 'true';
   
   useEffect(() => {
-    // If explicitly restarting onboarding, clear the local storage flag
+    // If explicitly restarting onboarding, always clear the flags to force a fresh check
     if (isRestartingOnboarding) {
-      console.log('Restarting onboarding, clearing local storage flag');
+      console.log('Restarting onboarding, clearing local storage flag and check state');
       localStorage.removeItem('onboarding_completed');
       hasChecked.current = false; // Reset check to force a re-check
+      hasRedirected.current = false; // Reset redirection flag to allow navigating again
     }
     
     // Only check once per component mount, unless explicitly restarting
@@ -146,6 +147,8 @@ export const useOnboardingCheck = (redirectOnNeeded = true) => {
   // Function to restart onboarding
   const restartOnboarding = () => {
     localStorage.removeItem('onboarding_completed');
+    hasChecked.current = false;
+    hasRedirected.current = false;
     navigate('/onboarding?restart=true', { replace: true });
   };
   
