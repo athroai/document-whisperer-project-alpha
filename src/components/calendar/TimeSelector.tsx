@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 interface TimeSelectorProps {
   date: string;
   startTime: string;
-  duration: number;  // Changed to number
+  duration: number;
   onDateChange: (value: string) => void;
   onStartTimeChange: (value: string) => void;
-  onDurationChange: (value: number) => void;  // Changed to number
+  onDurationChange: (value: number) => void;
 }
 
 const TimeSelector: React.FC<TimeSelectorProps> = ({
@@ -21,7 +21,16 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   onStartTimeChange,
   onDurationChange
 }) => {
-  const validHours = Array.from({ length: 9 }, (_, i) => i + 15); // 15-23 (3 PM - 11 PM)
+  // Generate time options from 3 PM to 11 PM (15-23)
+  const timeOptions = [];
+  for (let hour = 15; hour <= 23; hour++) {
+    const hourFormatted = hour.toString().padStart(2, '0');
+    const hourDisplay = hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
+    const halfHourDisplay = hour > 12 ? `${hour - 12}:30 PM` : `${hour}:30 AM`;
+    
+    timeOptions.push({ value: `${hourFormatted}:00`, label: hourDisplay });
+    timeOptions.push({ value: `${hourFormatted}:30`, label: halfHourDisplay });
+  }
 
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -44,19 +53,11 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
             <SelectValue placeholder="Select Time" />
           </SelectTrigger>
           <SelectContent>
-            {validHours.map(hour => {
-              const hourFormatted = hour.toString().padStart(2, '0');
-              return (
-                <React.Fragment key={`hour-${hour}`}>
-                  <SelectItem value={`${hourFormatted}:00`}>
-                    {hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`}
-                  </SelectItem>
-                  <SelectItem value={`${hourFormatted}:30`}>
-                    {hour > 12 ? `${hour - 12}:30 PM` : `${hour}:30 AM`}
-                  </SelectItem>
-                </React.Fragment>
-              );
-            })}
+            {timeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

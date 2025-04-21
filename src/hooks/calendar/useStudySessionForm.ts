@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useSessionCreation } from './useSessionCreation';
-import { format, addMinutes } from 'date-fns';
+import { format, addMinutes, startOfHour, setHours } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 interface FormState {
@@ -24,14 +24,15 @@ export const useStudySessionForm = (
   const { createCalendarSession } = useSessionCreation();
   const { toast } = useToast();
   
+  // Initialize with a reasonable default time (4 PM)
+  const defaultTime = setHours(startOfHour(initialDate), 16);
+  
   const [formState, setFormState] = useState<FormState>({
     title: '',
     subject: 'Mathematics',
     topic: '',
     date: format(initialDate, 'yyyy-MM-dd'),
-    startTime: format(initialDate.getHours() < 9 || initialDate.getHours() > 17 
-      ? new Date().setHours(15, 0, 0, 0) 
-      : initialDate, 'HH:mm'),
+    startTime: format(defaultTime, 'HH:mm'),
     duration: 60,
     isSubmitting: false
   });

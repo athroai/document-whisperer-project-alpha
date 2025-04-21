@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { parseISO } from 'date-fns';
+import { parseISO, startOfDay, isSameDay } from 'date-fns';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEvent } from '@/types/calendar';
 import DayPlannerHeader from './DayPlannerHeader';
 import DayPlannerEvents from './DayPlannerEvents';
+import StudySessionDialog from './StudySessionDialog';
 
 interface DayPlannerViewProps {
   selectedDate: Date;
@@ -26,15 +27,13 @@ const DayPlannerView = ({
   const { deleteEvent } = useCalendarEvents();
 
   useEffect(() => {
+    // Improved date filtering to ensure exact day matching
     const filteredEvents = events.filter(event => {
       try {
         const eventDate = parseISO(event.start_time);
-        return (
-          eventDate.getFullYear() === selectedDate.getFullYear() &&
-          eventDate.getMonth() === selectedDate.getMonth() &&
-          eventDate.getDate() === selectedDate.getDate()
-        );
+        return isSameDay(eventDate, selectedDate);
       } catch (err) {
+        console.error('Error parsing event date:', err, event);
         return false;
       }
     });
@@ -60,6 +59,11 @@ const DayPlannerView = ({
     setIsAddingEvent(true);
   };
 
+  const handleSessionSuccess = () => {
+    onRefresh();
+    setIsAddingEvent(false);
+  };
+
   const handleDeleteEvent = async (eventId: string) => {
     if (window.confirm('Are you sure you want to delete this study session?')) {
       await deleteEvent(eventId);
@@ -80,6 +84,15 @@ const DayPlannerView = ({
             onAddSession={handleAddSession}
           />
         </div>
+        
+        {isAddingEvent && (
+          <StudySessionDialog
+            open={isAddingEvent}
+            onOpenChange={(open) => setIsAddingEvent(open)}
+            selectedDate={selectedDate}
+            onSuccess={handleSessionSuccess}
+          />
+        )}
       </div>
     </div>
   );

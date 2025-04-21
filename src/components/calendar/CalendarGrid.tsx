@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { format, isSameMonth, isToday, parseISO } from 'date-fns';
+import { format, isSameMonth, isToday, parseISO, isSameDay } from 'date-fns';
 import { getEventColor } from '@/utils/calendarUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { formatGMTTime } from '@/utils/timeUtils';
@@ -21,12 +21,7 @@ const CalendarGrid = ({ days, currentMonth, events, onSelectDate }: CalendarGrid
         }
         
         const eventDate = parseISO(event.start_time);
-        
-        return (
-          eventDate.getFullYear() === day.getFullYear() &&
-          eventDate.getMonth() === day.getMonth() &&
-          eventDate.getDate() === day.getDate()
-        );
+        return isSameDay(eventDate, day);
       } catch (err) {
         return false;
       }
