@@ -4,9 +4,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Clock, Calendar } from 'lucide-react';
-import { isAfter, isBefore, parseISO, addMinutes, isWithinInterval, startOfToday } from 'date-fns';
+import { isAfter, isBefore, parseISO, addMinutes, isWithinInterval, startOfToday, areIntervalsOverlapping } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CalendarEvent } from '@/types/calendar';
 
 interface TimeSelectorProps {
   date: string;
@@ -18,6 +19,8 @@ interface TimeSelectorProps {
   existingTimes?: string[];
   errorMessage?: string | null;
   checkConflicts?: (date: string, time: string, duration: number) => boolean;
+  existingEvents?: CalendarEvent[];
+  currentEventId?: string;
 }
 
 const TimeSelector: React.FC<TimeSelectorProps> = ({
@@ -29,7 +32,9 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   onDurationChange,
   existingTimes = [],
   errorMessage = null,
-  checkConflicts
+  checkConflicts,
+  existingEvents = [],
+  currentEventId
 }) => {
   const [liveErrorMessage, setLiveErrorMessage] = useState<string | null>(errorMessage);
   
@@ -50,6 +55,35 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
     // Check for conflicts with existing sessions
     if (checkConflicts && checkConflicts(date, timeOption.value, duration)) {
       return { unavailable: true, reason: 'This time conflicts with another session' };
+    }
+
+    // Additional check for conflicts with existing events
+    if (existingEvents.length > 0) {
+      const selectedEndTime = addMinutes(selectedDateTime, duration);
+      
+      // Create a time range for the selected session
+      const selectedInterval = { start: selectedDateTime, end: selectedEndTime };
+      
+      // Check against all existing events
+      const conflictingEvent = existingEvents.find(event => {
+        // Skip checking against the current event being edited
+        if (currentEventId && event.id === currentEventId) {
+          return false;
+        }
+        
+        const eventStart = new Date(event.start_time);
+        const eventEnd = new Date(event.end_time);
+        
+        // Check if the intervals overlap
+        return areIntervalsOverlapping(
+          { start: eventStart, end: eventEnd },
+          selectedInterval
+        );
+      });
+      
+      if (conflictingEvent) {
+        return { unavailable: true, reason: `Conflicts with "${conflictingEvent.title}" session` };
+      }
     }
 
     return { unavailable: false, reason: '' };
@@ -90,10 +124,26 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   const handleDurationChange = (newDuration: number) => {
     const selectedTime = timeOptions.find(opt => opt.value === startTime);
     if (selectedTime) {
-      const { unavailable, reason } = isTimeUnavailable(selectedTime);
-      if (unavailable) {
-        setLiveErrorMessage(reason);
-        return;
+      const updatedDuration = parseInt(newDuration.toString(), 10);
+      const selectedDateTime = new Date(`${date}T${startTime}`);
+      const selectedEndTime = addMinutes(selectedDateTime, updatedDuration);
+      
+      // Check for conflicts with the new duration
+      if (existingEvents.length > 0) {
+        for (const event of existingEvents) {
+          if (currentEventId && event.id === currentEventId) continue;
+          
+          const eventStart = new Date(event.start_time);
+          const eventEnd = new Date(event.end_time);
+          
+          if (areIntervalsOverlapping(
+            { start: selectedDateTime, end: selectedEndTime },
+            { start: eventStart, end: eventEnd }
+          )) {
+            setLiveErrorMessage(`New duration would conflict with "${event.title}" session`);
+            return;
+          }
+        }
       }
     }
     
@@ -131,28 +181,31 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
             <Select
               value={startTime}
               onValueChange={handleTimeChange}
+              name="startTime"
             >
               <SelectTrigger id="time" className="w-full">
                 <SelectValue placeholder="Select Time" />
               </SelectTrigger>
-              <SelectContent position="popper" className="max-h-[300px]">
+              <SelectContent position="popper" className="max-h-[300px] z-50">
                 {timeOptions.map((option) => {
                   const { unavailable, reason } = isTimeUnavailable(option);
                   return (
                     <Tooltip key={option.value}>
                       <TooltipTrigger asChild>
-                        <SelectItem
-                          value={option.value}
-                          disabled={unavailable}
-                          className={cn(
-                            unavailable && "opacity-50 cursor-not-allowed bg-gray-100"
-                          )}
-                        >
-                          {option.label}
-                        </SelectItem>
+                        <div>
+                          <SelectItem
+                            value={option.value}
+                            disabled={unavailable}
+                            className={cn(
+                              unavailable && "opacity-50 cursor-not-allowed bg-gray-100"
+                            )}
+                          >
+                            {option.label}
+                          </SelectItem>
+                        </div>
                       </TooltipTrigger>
                       {unavailable && (
-                        <TooltipContent side="right">
+                        <TooltipContent side="right" className="z-50">
                           <p>{reason}</p>
                         </TooltipContent>
                       )}
@@ -169,11 +222,12 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
           <Select 
             value={duration.toString()} 
             onValueChange={(value) => handleDurationChange(parseInt(value, 10))}
+            name="duration"
           >
             <SelectTrigger id="duration">
               <SelectValue placeholder="Select Duration" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-50">
               <SelectItem value="15">15 minutes</SelectItem>
               <SelectItem value="30">30 minutes</SelectItem>
               <SelectItem value="45">45 minutes</SelectItem>

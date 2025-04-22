@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,11 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   eventToEdit,
   existingEvents = []
 }) => {
+  const { subjects } = useSubjects();
+  const { toast } = useToast();
+  const [timeError, setTimeError] = useState<string | null>(null);
+  
+  // Pass eventToEdit directly to the hook for initialization
   const {
     formState,
     setTitle,
@@ -38,51 +44,10 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     setStartTime,
     setDuration,
     handleSubmit: submitForm,
-    setEventId
-  } = useStudySessionForm(selectedDate, undefined, onSuccess);
+    resetForm
+  } = useStudySessionForm(selectedDate, undefined, onSuccess, eventToEdit);
 
-  const { subjects } = useSubjects();
-  const { toast } = useToast();
-  const [timeError, setTimeError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (eventToEdit) {
-      const startDate = parseISO(eventToEdit.start_time);
-      setTitle(eventToEdit.title || '');
-      setSubject(eventToEdit.subject || 'Mathematics');
-      setTopic(eventToEdit.topic || '');
-      setDate(format(startDate, 'yyyy-MM-dd'));
-      setStartTime(format(startDate, 'HH:mm'));
-      if (eventToEdit.id) {
-        setEventId(eventToEdit.id);
-      }
-      
-      const endDate = parseISO(eventToEdit.end_time);
-      const durationInMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
-      setDuration(durationInMinutes);
-    }
-  }, [eventToEdit, setTitle, setSubject, setTopic, setDate, setStartTime, setDuration, setEventId]);
-
-  const checkForTimeConflicts = (date: string, time: string, duration: number): boolean => {
-    const selectedDateTime = new Date(`${date}T${time}`);
-    const selectedEndDateTime = addMinutes(selectedDateTime, duration);
-
-    return existingEvents.some(event => {
-      if (eventToEdit && event.id === eventToEdit.id) {
-        return false;
-      }
-
-      const eventStart = new Date(event.start_time);
-      const eventEnd = new Date(event.end_time);
-
-      return (
-        (selectedDateTime >= eventStart && selectedDateTime < eventEnd) ||
-        (selectedEndDateTime > eventStart && selectedEndDateTime <= eventEnd) ||
-        (selectedDateTime <= eventStart && selectedEndDateTime >= eventEnd)
-      );
-    });
-  };
-
+  // Handle form submission
   const handleSubmit = async () => {
     try {
       if (!formState.startTime) {
@@ -108,6 +73,7 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
       
       if (result) {
         onOpenChange(false);
+        resetForm();
 
         toast({
           title: eventToEdit ? 'Study Session Updated' : 'Study Session Scheduled',
@@ -126,8 +92,35 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     }
   };
 
+  const checkForTimeConflicts = (date: string, time: string, duration: number): boolean => {
+    const selectedDateTime = new Date(`${date}T${time}`);
+    const selectedEndDateTime = addMinutes(selectedDateTime, duration);
+
+    return existingEvents.some(event => {
+      // Skip comparing with the event being edited
+      if (eventToEdit && event.id === eventToEdit.id) {
+        return false;
+      }
+
+      const eventStart = new Date(event.start_time);
+      const eventEnd = new Date(event.end_time);
+
+      // Check if the intervals overlap
+      return (
+        (selectedDateTime >= eventStart && selectedDateTime < eventEnd) ||
+        (selectedEndDateTime > eventStart && selectedEndDateTime <= eventEnd) ||
+        (selectedDateTime <= eventStart && selectedEndDateTime >= eventEnd)
+      );
+    });
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        resetForm();
+      }
+      onOpenChange(isOpen);
+    }}>
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-3">
           <DialogTitle className="text-2xl">
@@ -144,6 +137,7 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
               <Label htmlFor="title" className="text-sm font-medium">Session Title</Label>
               <Input
                 id="title"
+                name="title"
                 placeholder={`Study: ${formState.subject}${formState.topic ? ` - ${formState.topic}` : ''}`}
                 value={formState.title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -157,11 +151,12 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                 <Select
                   value={formState.subject}
                   onValueChange={setSubject}
+                  name="subject"
                 >
                   <SelectTrigger id="subject">
                     <SelectValue placeholder="Select Subject" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-50">
                     {subjects.map((subj) => (
                       <SelectItem key={subj} value={subj}>{subj}</SelectItem>
                     ))}
@@ -174,11 +169,12 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                 <Select
                   value={formState.topic}
                   onValueChange={setTopic}
+                  name="topic"
                 >
                   <SelectTrigger id="topic">
                     <SelectValue placeholder="Select Topic" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-50">
                     <SelectItem value="General Study">General Study</SelectItem>
                     {athroCharacters
                       .find(char => char.subject === formState.subject)
@@ -199,6 +195,9 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
               onDurationChange={setDuration}
               existingTimes={existingEvents?.map(e => format(new Date(e.start_time), 'HH:mm'))}
               checkConflicts={checkForTimeConflicts}
+              existingEvents={existingEvents}
+              currentEventId={formState.eventId}
+              errorMessage={timeError}
             />
           </div>
         </div>
@@ -206,7 +205,10 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         <DialogFooter className="pt-4 border-t space-x-2">
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              resetForm();
+              onOpenChange(false);
+            }}
             disabled={formState.isSubmitting}
           >
             Cancel

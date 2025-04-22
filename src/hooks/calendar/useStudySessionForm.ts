@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useSessionCreation } from './useSessionCreation';
 import { format, addMinutes, startOfDay } from 'date-fns';
@@ -19,14 +20,14 @@ interface FormState {
 export const useStudySessionForm = (
   initialDate: Date = new Date(),
   onClose?: () => void,
-  onSuccess?: (event: CalendarEvent) => void
+  onSuccess?: (event: CalendarEvent) => void,
+  eventToEdit?: CalendarEvent | null
 ) => {
   const { createEvent, updateEvent } = useCalendarEvents();
   const { createCalendarSession } = useSessionCreation();
   const { toast } = useToast();
   
   const dateToUse = startOfDay(initialDate);
-  
   const defaultStartTime = "16:00";
   
   const [formState, setFormState] = useState<FormState>({
@@ -39,7 +40,32 @@ export const useStudySessionForm = (
     isSubmitting: false,
     eventId: undefined
   });
+  
+  // Initialize form with event data when editing
+  useEffect(() => {
+    if (eventToEdit) {
+      try {
+        const startDate = new Date(eventToEdit.start_time);
+        const endDate = new Date(eventToEdit.end_time);
+        const durationInMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
+        
+        setFormState({
+          title: eventToEdit.title || '',
+          subject: eventToEdit.subject || 'Mathematics',
+          topic: eventToEdit.topic || '',
+          date: format(startDate, 'yyyy-MM-dd'),
+          startTime: format(startDate, 'HH:mm'),
+          duration: durationInMinutes,
+          isSubmitting: false,
+          eventId: eventToEdit.id
+        });
+      } catch (error) {
+        console.error("Error initializing form with event data:", error);
+      }
+    }
+  }, [eventToEdit]);
 
+  // Form field setters
   const setTitle = (title: string) => {
     setFormState(prev => ({ ...prev, title }));
   };
@@ -89,6 +115,12 @@ export const useStudySessionForm = (
           end_time: endDateTime.toISOString(),
           event_type: 'study_session'
         });
+        
+        if (resultEvent) {
+          console.log("Event updated successfully:", resultEvent);
+        } else {
+          console.error("Failed to update event");
+        }
       } else {
         console.log("Creating new calendar session");
         
@@ -113,21 +145,32 @@ export const useStudySessionForm = (
         }
       }
       
-      if (resultEvent) {
-        console.log("Event created/updated successfully:", resultEvent);
-        if (onSuccess) {
-          onSuccess(resultEvent);
-        }
-        return resultEvent;
+      if (resultEvent && onSuccess) {
+        console.log("Calling onSuccess with event:", resultEvent);
+        onSuccess(resultEvent);
       }
       
-      return undefined;
+      return resultEvent;
     } catch (error) {
       console.error('Error creating/updating study session:', error);
       throw error;
     } finally {
       setFormState(prev => ({ ...prev, isSubmitting: false }));
     }
+  };
+
+  // Reset form state
+  const resetForm = () => {
+    setFormState({
+      title: '',
+      subject: 'Mathematics',
+      topic: '',
+      date: format(dateToUse, 'yyyy-MM-dd'),
+      startTime: defaultStartTime,
+      duration: 60,
+      isSubmitting: false,
+      eventId: undefined
+    });
   };
 
   return {
@@ -139,6 +182,7 @@ export const useStudySessionForm = (
     setStartTime,
     setDuration,
     setEventId,
-    handleSubmit
+    handleSubmit,
+    resetForm
   };
 };
