@@ -1,6 +1,6 @@
-
 import React from 'react';
 import BigCalendarView from './BigCalendarView';
+import { CalendarEvent } from '@/types/calendar';
 
 interface CalendarContainerProps {
   events: CalendarEvent[];

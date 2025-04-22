@@ -1,9 +1,9 @@
-
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useOnboardingCheck } from '@/hooks/useOnboardingCheck';
+import ChoiceScreen from '@/components/onboarding/ChoiceScreen';
 
 const WelcomePage: React.FC = () => {
   const { state } = useAuth();
@@ -12,29 +12,20 @@ const WelcomePage: React.FC = () => {
   const hasRedirected = useRef(false);
   
   useEffect(() => {
-    // If user is logged in, check if they need onboarding
     if (state.user && !isLoading && !hasRedirected.current) {
       hasRedirected.current = true;
       
-      // Use setTimeout to prevent rapid state changes
-      setTimeout(() => {
-        if (needsOnboarding) {
-          navigate('/athro-onboarding', { replace: true });
-        } else {
-          navigate('/home', { replace: true });
-        }
-      }, 100);
+      // If user is logged in, show the choice screen instead of auto-redirecting
+      return;
     }
   }, [state.user, navigate, needsOnboarding, isLoading]);
   
-  const handleLogin = () => {
-    navigate('/login');
-  };
+  // If user is logged in, show choice screen
+  if (state.user) {
+    return <ChoiceScreen />;
+  }
   
-  const handleSignup = () => {
-    navigate('/signup');
-  };
-  
+  // If not logged in, show welcome page
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-purple-50 to-white p-4">
       <div className="text-center max-w-2xl">
@@ -45,14 +36,14 @@ const WelcomePage: React.FC = () => {
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button 
-            onClick={handleLogin} 
+            onClick={() => navigate('/login')} 
             className="bg-purple-600 hover:bg-purple-700 text-lg px-8 py-6"
             size="lg"
           >
             Login
           </Button>
           <Button 
-            onClick={handleSignup} 
+            onClick={() => navigate('/signup')} 
             variant="outline"
             className="border-purple-600 text-purple-700 hover:bg-purple-50 text-lg px-8 py-6"
             size="lg"
