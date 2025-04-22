@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { startOfMonth, endOfMonth, eachDayOfInterval, addMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,8 +49,10 @@ const BigCalendarView = ({
     setSelectedDate(new Date());
   }, []);
   
-  const { events, isLoading } = useCalendarEvents();
-  const { subjects } = useUserSubjects();
+  const { events, isLoading: eventsLoading } = useCalendarEvents();
+  const { subjects, isLoading: subjectsLoading } = useUserSubjects();
+
+  const isLoading = eventsLoading || subjectsLoading;
 
   if (isLoading) {
     return (
@@ -84,14 +87,14 @@ const BigCalendarView = ({
         </CardContent>
       </Card>
 
-      <SubjectBadges subjects={subjects} />
+      <SubjectBadges subjects={subjects} isLoading={subjectsLoading} />
 
       {selectedDate && (
         <DayPlannerView
           selectedDate={selectedDate}
           onClose={handleCloseDayPlanner}
           events={events}
-          isLoading={isLoading}
+          isLoading={eventsLoading}
           onRefresh={onRetryLoad || (() => {})}
         />
       )}

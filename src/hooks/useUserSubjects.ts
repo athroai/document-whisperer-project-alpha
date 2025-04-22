@@ -11,6 +11,7 @@ export interface UserSubject {
 export const useUserSubjects = () => {
   const [subjects, setSubjects] = useState<UserSubject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [noSubjectsFound, setNoSubjectsFound] = useState(false);
   const { state: authState } = useAuth();
 
   const fetchUserSubjects = async () => {
@@ -18,6 +19,9 @@ export const useUserSubjects = () => {
 
     try {
       setIsLoading(true);
+      setNoSubjectsFound(false);
+      
+      console.log("Fetching user subjects for user ID:", authState.user.id);
       
       // First try to get subjects from student_subject_preferences
       const { data: prefData, error: prefError } = await supabase
@@ -30,6 +34,7 @@ export const useUserSubjects = () => {
       }
       
       if (prefData && prefData.length > 0) {
+        console.log("Found subjects in student_subject_preferences:", prefData.length);
         // Convert numeric confidence_level to low/medium/high
         const mappedSubjects = prefData.map(subj => ({
           subject: subj.subject,
@@ -37,35 +42,44 @@ export const useUserSubjects = () => {
         }));
         
         setSubjects(mappedSubjects);
-      } else {
-        // As a fallback, fetch from student_subjects if it exists
-        const { data: subjData, error: subjError } = await supabase
-          .from('student_subjects')
-          .select('subject_name, help_level')
-          .eq('student_id', authState.user.id);
-          
-        if (subjError) {
-          console.error('Error fetching student subjects:', subjError);
-        }
-        
-        if (subjData && subjData.length > 0) {
-          const mappedSubjects = subjData.map(subj => ({
-            subject: subj.subject_name,
-            confidence_level: mapHelpLevel(subj.help_level)
-          }));
-          
-          setSubjects(mappedSubjects);
-        } else {
-          // If no subjects found, provide default subjects
-          setSubjects([
-            { subject: 'Mathematics', confidence_level: 'medium' },
-            { subject: 'English', confidence_level: 'medium' },
-            { subject: 'Science', confidence_level: 'medium' }
-          ]);
-          
-          console.log('No subjects found, using default subjects');
-        }
+        setIsLoading(false);
+        return;
       }
+      
+      // If no subjects found in preferences, try student_subjects
+      console.log("No subjects found in preferences, checking student_subjects");
+      const { data: subjData, error: subjError } = await supabase
+        .from('student_subjects')
+        .select('subject_name, help_level')
+        .eq('student_id', authState.user.id);
+        
+      if (subjError) {
+        console.error('Error fetching student subjects:', subjError);
+      }
+      
+      if (subjData && subjData.length > 0) {
+        console.log("Found subjects in student_subjects:", subjData.length);
+        const mappedSubjects = subjData.map(subj => ({
+          subject: subj.subject_name,
+          confidence_level: mapHelpLevel(subj.help_level)
+        }));
+        
+        setSubjects(mappedSubjects);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Only if no subjects found in both tables, set flag and provide defaults
+      console.log("No subjects found in either table, using defaults");
+      setNoSubjectsFound(true);
+      
+      // Only set default subjects if none were found
+      setSubjects([
+        { subject: 'Mathematics', confidence_level: 'medium' },
+        { subject: 'English', confidence_level: 'medium' },
+        { subject: 'Science', confidence_level: 'medium' }
+      ]);
+      
     } catch (error) {
       console.error('Error in fetchUserSubjects:', error);
     } finally {
@@ -103,5 +117,10 @@ export const useUserSubjects = () => {
     fetchUserSubjects();
   }, [authState.user?.id]);
 
-  return { subjects, isLoading, refetch: fetchUserSubjects };
+  return { 
+    subjects, 
+    isLoading, 
+    noSubjectsFound, 
+    refetch: fetchUserSubjects 
+  };
 };

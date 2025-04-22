@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { fetchDatabaseEvents } from '@/services/calendar/calendarEventService';
 import { CalendarEvent } from '@/types/calendar';
@@ -14,7 +15,7 @@ export const useEventFetching = (
   const fetchInProgress = useRef(false);
   const subscriptionActive = useRef(false);
   const fetchAttempted = useRef(false);
-  const { subjects } = useUserSubjects();
+  const { subjects, noSubjectsFound } = useUserSubjects();
   const realtimeUpdateDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const lastFetchTime = useRef<number>(0);
   
@@ -57,12 +58,20 @@ export const useEventFetching = (
         console.log(`Fetching database events for user: ${authenticatedId}`);
         const dbEvents = await fetchDatabaseEvents(authenticatedId);
         
-        // Filter events to only include user's selected subjects if subjects exist
+        // Filter events based on user subjects only if we have subjects and they're not defaults
         let filteredEvents = dbEvents;
-        if (subjects && subjects.length > 0) {
+        
+        if (subjects && subjects.length > 0 && !noSubjectsFound) {
+          console.log('Filtering events by user subjects:', 
+            subjects.map(s => s.subject).join(', '));
+          
           filteredEvents = dbEvents.filter(event => 
             !event.subject || subjects.some(s => s.subject === event.subject)
           );
+          
+          console.log(`Filtered from ${dbEvents.length} to ${filteredEvents.length} events matching user subjects`);
+        } else {
+          console.log('Skipping event filtering - using all events');
         }
         
         // Include local-only events
@@ -70,7 +79,7 @@ export const useEventFetching = (
         
         const combinedEvents = [...filteredEvents, ...localOnlyEvents];
         
-        console.log(`Fetched ${dbEvents.length} events, filtered to ${filteredEvents.length} events matching user subjects`);
+        console.log(`Final event count: ${combinedEvents.length} events`);
         setEvents(combinedEvents);
         setIsLoading(false);
         fetchAttempted.current = true;
@@ -92,7 +101,7 @@ export const useEventFetching = (
         fetchInProgress.current = false;
       }, 1000);
     }
-  }, [userId, setEvents, setIsLoading, localEvents, subjects]);
+  }, [userId, setEvents, setIsLoading, localEvents, subjects, noSubjectsFound]);
 
   useEffect(() => {
     if (!userId || subscriptionActive.current) return;

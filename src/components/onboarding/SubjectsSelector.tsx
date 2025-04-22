@@ -1,15 +1,18 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
-import { Check, Plus } from 'lucide-react';
+import { Check, Loader2, Plus } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfidenceLabel } from '@/types/confidence';
+import { useToast } from '@/hooks/use-toast';
 
 export const SubjectsSelector: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject, updateOnboardingStep } = useOnboarding();
-  const { subjects, isLoading } = useSubjects();
+  const { subjects, isLoading, usingDefaultSubjects } = useSubjects();
+  const { toast } = useToast();
+  const [initialized, setInitialized] = useState(false);
 
   const confidenceOptions: ConfidenceLabel[] = ['low', 'medium', 'high'];
 
@@ -32,16 +35,45 @@ export const SubjectsSelector: React.FC = () => {
   const handleContinue = () => {
     if (selectedSubjects.length > 0) {
       updateOnboardingStep('availability');
+    } else {
+      toast({
+        title: "Select subjects",
+        description: "Please select at least one subject before continuing",
+        variant: "destructive"
+      });
     }
   };
 
+  useEffect(() => {
+    if (usingDefaultSubjects && !initialized && !isLoading) {
+      toast({
+        title: "Default subjects loaded",
+        description: "Select the subjects you're studying for GCSE",
+      });
+      setInitialized(true);
+    }
+  }, [usingDefaultSubjects, isLoading, initialized, toast]);
+
   if (isLoading) {
-    return <div className="text-center py-4">Loading subjects...</div>;
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <span className="ml-2 text-lg">Loading subjects...</span>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
       <p className="mb-4">Select the subjects you want to study and rate your confidence level:</p>
+      
+      {usingDefaultSubjects && (
+        <div className="bg-amber-50 border border-amber-200 p-3 rounded-md mb-4">
+          <p className="text-amber-700 text-sm">
+            We're showing all available subjects. Please select the ones you're studying for GCSE.
+          </p>
+        </div>
+      )}
       
       <div className="space-y-3">
         {subjects.map((subject) => {
