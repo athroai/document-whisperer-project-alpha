@@ -36,7 +36,8 @@ const StudySessionDialog = ({
     setDate,
     setStartTime,
     setDuration,
-    handleSubmit: submitForm
+    handleSubmit: submitForm,
+    setEventId
   } = useStudySessionForm(selectedDate);
 
   const { subjects, isLoading } = useSubjects();
@@ -54,8 +55,13 @@ const StudySessionDialog = ({
       setDate(format(startDate, 'yyyy-MM-dd'));
       setStartTime(format(startDate, 'HH:mm'));
       setDuration(durationInMinutes);
+      
+      // Set the event ID if we're editing
+      if (eventToEdit.id) {
+        setEventId(eventToEdit.id);
+      }
     }
-  }, [eventToEdit, setTitle, setSubject, setTopic, setDate, setStartTime, setDuration]);
+  }, [eventToEdit, setTitle, setSubject, setTopic, setDate, setStartTime, setDuration, setEventId]);
 
   const getTopicsForSubject = (subj: string) => {
     const character = athroCharacters.find(char => char.subject.toLowerCase() === subj.toLowerCase());
@@ -77,7 +83,8 @@ const StudySessionDialog = ({
         return;
       }
 
-      await submitForm(eventToEdit?.id);
+      // Just call submitForm without arguments - the eventId is already set in the form state
+      await submitForm();
 
       if (onSuccess) onSuccess();
       onOpenChange(false);
