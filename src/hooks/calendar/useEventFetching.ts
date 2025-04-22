@@ -1,8 +1,8 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { fetchDatabaseEvents } from '@/services/calendar/calendarEventService';
+
+import { useEffect, useCallback, useRef } from 'react';
+import { fetchDatabaseEvents } from '@/services/calendarEventService';
 import { CalendarEvent } from '@/types/calendar';
 import { supabase } from '@/lib/supabase';
-import { useUserSubjects } from '@/hooks/useUserSubjects';
 
 export const useEventFetching = (
   userId: string | undefined,
@@ -14,17 +14,20 @@ export const useEventFetching = (
   const fetchInProgress = useRef(false);
   const subscriptionActive = useRef(false);
   const fetchAttempted = useRef(false);
-  const { subjects, noSubjectsFound } = useUserSubjects();
   const realtimeUpdateDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  // Track the last fetch time to prevent excessive refreshes
   const lastFetchTime = useRef<number>(0);
   
+  // Fetch events from the database and local storage with rate limiting
   const fetchEvents = useCallback(async (): Promise<CalendarEvent[]> => {
+    // Prevent multiple concurrent fetches and implement rate limiting
     const now = Date.now();
     if (fetchInProgress.current) {
       console.log('Fetch already in progress, skipping');
       return [];
     }
     
+    // Rate limiting: only allow fetch every 2 seconds
     if ((now - lastFetchTime.current) < 2000 && fetchAttempted.current) {
       console.log('Fetch attempted too recently, skipping');
       return [];
@@ -35,19 +38,29 @@ export const useEventFetching = (
       setIsLoading(true);
       lastFetchTime.current = now;
       
+      // Verify authentication or get authenticated user ID
       let authenticatedId = userId;
       if (!authenticatedId) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           authenticatedId = session?.user?.id;
+          console.log('Using authenticated user ID:', authenticatedId);
         } catch (err) {
           console.error('Auth verification failed:', err);
         }
       }
 
+      // If still no authenticated ID, use local events only
       if (!authenticatedId) {
         console.log('No authenticated user ID found, using only local events');
-        setEvents(localEvents);
+        
+        if (localEvents.length > 0) {
+          console.log(`Loading ${localEvents.length} local events`);
+          setEvents(localEvents);
+        } else {
+          setEvents([]);
+        }
+        
         setIsLoading(false);
         fetchAttempted.current = true;
         return localEvents;
@@ -56,62 +69,26 @@ export const useEventFetching = (
       try {
         console.log(`Fetching database events for user: ${authenticatedId}`);
         const dbEvents = await fetchDatabaseEvents(authenticatedId);
-        console.log(`Fetched ${dbEvents.length} events from database`);
         
-        // Log the raw events to check what subjects they have
-        dbEvents.forEach((event, i) => {
-          console.log(`Event ${i + 1}: title=${event.title}, subject=${event.subject || 'none'}`);
-        });
+        // Combine with local events, ensuring no duplicates
+        const localOnlyEvents = localEvents.filter(e => e.local_only);
+        const combinedEvents = [...dbEvents, ...localOnlyEvents];
         
-        // Check user subjects to debug filtering
-        if (subjects && subjects.length > 0) {
-          console.log('User subjects available for filtering:', 
-            subjects.map(s => s.subject).join(', '));
-          
-          const subjectNames = subjects.map(s => s.subject);
-          console.log(`Found ${subjectNames.length} subject names for filtering`);
-          
-          // No filtering if we have no subjects
-          if (subjectNames.length === 0) {
-            setEvents(dbEvents);
-            setIsLoading(false);
-            fetchAttempted.current = true;
-            return dbEvents;
-          }
-          
-          // Otherwise filter events to match user subjects
-          const filteredEvents = dbEvents.filter(event => 
-            // Include events with no subject or matching user's subjects
-            !event.subject || subjectNames.includes(event.subject)
-          );
-          
-          console.log(`Filtered events by subject: ${dbEvents.length} → ${filteredEvents.length}`);
-          
-          // Include local-only events
-          const localOnlyEvents = localEvents.filter(e => e.local_only);
-          
-          const combinedEvents = [...filteredEvents, ...localOnlyEvents];
-          
-          console.log(`Final event count: ${combinedEvents.length} events`);
-          setEvents(combinedEvents);
-        } else {
-          console.log('No user subjects available, showing all events');
-          
-          // Include local-only events
-          const localOnlyEvents = localEvents.filter(e => e.local_only);
-          
-          const combinedEvents = [...dbEvents, ...localOnlyEvents];
-          
-          console.log(`Final event count: ${combinedEvents.length} events`);
-          setEvents(combinedEvents);
-        }
-        
+        console.log(`Fetched ${dbEvents.length} database events and ${localOnlyEvents.length} local-only events`);
+        setEvents(combinedEvents);
         setIsLoading(false);
         fetchAttempted.current = true;
-        return dbEvents;
+        return combinedEvents;
       } catch (fetchError) {
         console.error('Error fetching database events:', fetchError);
-        setEvents(localEvents);
+        
+        // Fall back to local events if database fetch fails
+        if (localEvents.length > 0) {
+          setEvents(localEvents);
+        } else {
+          setEvents([]);
+        }
+        
         setIsLoading(false);
         fetchAttempted.current = true;
         return localEvents;
@@ -122,12 +99,14 @@ export const useEventFetching = (
       fetchAttempted.current = true;
       return [];
     } finally {
+      // Give a small delay before allowing next fetch
       setTimeout(() => {
         fetchInProgress.current = false;
       }, 1000);
     }
-  }, [userId, setEvents, setIsLoading, localEvents, subjects]);
+  }, [userId, setEvents, setIsLoading, localEvents]);
 
+  // Set up real-time subscription for calendar events - with improved debouncing
   useEffect(() => {
     if (!userId || subscriptionActive.current) return;
     
@@ -145,15 +124,19 @@ export const useEventFetching = (
           (payload) => {
             console.log('Received real-time update for calendar_events:', payload);
             
+            // Only fetch if we've completed at least one initial fetch
             if (fetchAttempted.current) {
+              // Clear any existing debounce timer
               if (realtimeUpdateDebounceTimer.current) {
                 clearTimeout(realtimeUpdateDebounceTimer.current);
               }
               
+              // Debounce for 5 seconds to prevent multiple rapid refreshes
               realtimeUpdateDebounceTimer.current = setTimeout(async () => {
                 try {
                   if (!fetchInProgress.current) {
                     const now = Date.now();
+                    // Only refresh if it's been at least 3 seconds since the last fetch
                     if ((now - lastFetchTime.current) >= 3000) {
                       await fetchEvents();
                       setLastRefreshedAt(new Date());
@@ -165,13 +148,14 @@ export const useEventFetching = (
                 } catch (error) {
                   console.error('Error refreshing events after real-time update:', error);
                 }
-              }, 5000);
+              }, 5000); // Increased debounce time to 5 seconds
             }
           }
         )
         .subscribe();
     };
     
+    // Only setup subscription if userId exists
     if (userId) {
       setupSubscription();
     }

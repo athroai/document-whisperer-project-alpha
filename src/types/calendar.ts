@@ -1,3 +1,4 @@
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -41,10 +42,4 @@ export interface UserTimePreference {
   max_sessions_per_day: number;
   min_gap_between_sessions: number; // minutes
   avoided_days?: number[]; // 0-6: Sunday-Saturday
-}
-
-export interface ColorStyle {
-  bg: string;
-  text: string;
-  color: string;
 }

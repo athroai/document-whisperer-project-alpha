@@ -1,3 +1,4 @@
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -16,10 +17,4 @@ export interface CalendarDay {
   isCurrentMonth: boolean;
   isToday: boolean;
   events: CalendarEvent[];
-}
-
-export interface ColorStyle {
-  bg: string;
-  text: string;
-  color: string;
 }

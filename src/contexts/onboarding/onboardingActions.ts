@@ -22,54 +22,10 @@ export const createOnboardingActions = (
       }
       return [...prev, { subject, confidence }];
     });
-
-    // Also update in database immediately if user is logged in
-    if (userId) {
-      try {
-        console.log(`Immediately saving subject ${subject} with confidence ${confidence} to database`);
-        supabase
-          .from('student_subject_preferences')
-          .upsert({
-            student_id: userId,
-            subject: subject,
-            confidence_level: confidence
-          })
-          .then(({ error }) => {
-            if (error) {
-              console.error('Error saving subject to database:', error);
-            } else {
-              console.log(`Successfully saved subject ${subject} to database`);
-            }
-          });
-      } catch (err) {
-        console.error('Error in immediate subject save:', err);
-      }
-    }
   },
 
   removeSubject: (subject: string) => {
     setSelectedSubjects(prev => prev.filter(s => s.subject !== subject));
-    
-    // Also remove from database if user is logged in
-    if (userId) {
-      try {
-        console.log(`Immediately removing subject ${subject} from database`);
-        supabase
-          .from('student_subject_preferences')
-          .delete()
-          .eq('student_id', userId)
-          .eq('subject', subject)
-          .then(({ error }) => {
-            if (error) {
-              console.error('Error removing subject from database:', error);
-            } else {
-              console.log(`Successfully removed subject ${subject} from database`);
-            }
-          });
-      } catch (err) {
-        console.error('Error in immediate subject removal:', err);
-      }
-    }
   },
 
   updateAvailability: (newAvailability: Availability[]) => {
@@ -131,13 +87,9 @@ export const createOnboardingActions = (
         return prev;
       });
       
-      // Log the subjects we're about to save
-      console.log("Saving the following subjects during onboarding completion:", 
-        subjectPrefs.map(p => `${p.subject} (${p.confidence})`).join(', '));
-      
       // Create an array of promises for subject preferences
       const subjectPromises = subjectPrefs.map(subject => 
-        supabase.from('student_subject_preferences').upsert({
+        supabase.from('student_subject_preferences').insert({
           student_id: userId,
           subject: subject.subject,
           confidence_level: subject.confidence,
@@ -181,18 +133,7 @@ export const createOnboardingActions = (
 
       // Execute all subject preference updates in parallel
       if (subjectPromises.length > 0) {
-        console.log(`Saving ${subjectPromises.length} subject preferences...`);
-        const results = await Promise.allSettled(subjectPromises);
-        
-        // Log success/failure for each subject
-        results.forEach((result, index) => {
-          const subject = subjectPrefs[index].subject;
-          if (result.status === 'fulfilled') {
-            console.log(`Successfully saved subject: ${subject}`);
-          } else {
-            console.error(`Failed to save subject ${subject}:`, result.reason);
-          }
-        });
+        await Promise.all(subjectPromises);
       }
       
       setCurrentStep('completed');

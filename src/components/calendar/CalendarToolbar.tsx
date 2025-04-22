@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CalendarPlus, RefreshCw, Trash2, Loader2 } from 'lucide-react';
+import { CalendarPlus, RefreshCw, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -27,14 +27,9 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onRestartOnboarding
 }) => {
   const { toast } = useToast();
-  const [clearingCalendar, setClearingCalendar] = useState(false);
-  const [showFirstConfirmation, setShowFirstConfirmation] = useState(false);
-  const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
 
   const handleClearCalendar = async () => {
     try {
-      setClearingCalendar(true);
-      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
         toast({
@@ -42,47 +37,44 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           description: "You must be logged in to clear your calendar",
           variant: "destructive"
         });
-        setClearingCalendar(false);
-        setShowFinalConfirmation(false);
         return;
       }
 
-      // Call the Edge Function to handle clearing the calendar
-      const { data, error } = await supabase.functions.invoke('clear-calendar', {
-        body: {
-          user_id: session.user.id,
-          preserve_completed: true
-        }
+      // First, delete any records in study_plan_sessions that reference calendar events for this user
+      const { error: studyPlanError } = await supabase.rpc('delete_study_plan_sessions_for_user', {
+        user_id_param: session.user.id
       });
-      
-      if (error) {
-        console.error('Error calling clear-calendar function:', error);
-        throw new Error(error.message || 'Failed to clear calendar');
+
+      if (studyPlanError) {
+        console.error('Error clearing study plan sessions:', studyPlanError);
+        // Continue with deletion even if this fails (the function might not exist yet)
+        
+        // Alternative approach: try a direct deletion if the RPC doesn't exist
+        const { error: directDeleteError } = await supabase
+          .from('study_plan_sessions')
+          .delete()
+          .eq('user_id', session.user.id);
+          
+        if (directDeleteError) {
+          console.warn('Could not directly delete study plan sessions:', directDeleteError);
+          // Still continue to try to delete events that don't have foreign key constraints
+        }
       }
-      
-      const deletedCount = data?.deleted_count || 0;
-      const preservedCount = data?.preserved_count || 0;
-      
-      let description = `${deletedCount} study sessions have been removed from your calendar.`;
-      
-      if (preservedCount > 0) {
-        description += ` ${preservedCount} sessions linked to completed study sessions were preserved.`;
-      }
+
+      // Now delete the calendar events
+      const { error } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('user_id', session.user.id);
+
+      if (error) throw error;
 
       toast({
         title: "Calendar Cleared",
-        description
+        description: "All study sessions have been removed from your calendar"
       });
 
-      // Close the confirmation dialogs
-      setShowFirstConfirmation(false);
-      setShowFinalConfirmation(false);
-
-      // Allow the user to see the success message before refreshing
-      setTimeout(() => {
-        onRefresh();
-        setClearingCalendar(false);
-      }, 500);
+      onRefresh();
     } catch (error) {
       console.error('Error clearing calendar:', error);
       toast({
@@ -90,9 +82,6 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         description: "Failed to clear calendar. Please try again.",
         variant: "destructive"
       });
-      setClearingCalendar(false);
-      setShowFirstConfirmation(false);
-      setShowFinalConfirmation(false);
     }
   };
 
@@ -103,28 +92,20 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           variant="outline"
           size="sm"
           onClick={onRefresh}
-          disabled={isLoading || clearingCalendar}
+          disabled={isLoading}
         >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4 mr-1" />
-          )}
+          <RefreshCw className="h-4 w-4 mr-1" />
           Refresh Calendar
         </Button>
 
-        <AlertDialog open={showFirstConfirmation} onOpenChange={setShowFirstConfirmation}>
+        <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
               variant="destructive"
               size="sm"
-              disabled={isLoading || clearingCalendar}
+              disabled={isLoading}
             >
-              {clearingCalendar ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4 mr-1" />
-              )}
+              <Trash2 className="h-4 w-4 mr-1" />
               Clear Calendar
             </Button>
           </AlertDialogTrigger>
@@ -132,51 +113,33 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action will permanently delete study sessions from your calendar. 
-                Sessions linked to completed study activities will be preserved.
+                This action will permanently delete all study sessions from your calendar. 
                 This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setShowFirstConfirmation(false)}>Cancel</AlertDialogCancel>
-              <AlertDialog open={showFinalConfirmation} onOpenChange={setShowFinalConfirmation}>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" onClick={() => setShowFinalConfirmation(true)}>
-                    Yes, clear my calendar
+                  <Button variant="destructive">
+                    Yes, clear everything
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Final confirmation</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you really sure you want to delete your study sessions?
-                      Completed study sessions will remain in your history.
-                      You will need to rebuild your remaining study schedule.
+                      Are you really sure you want to delete all your study sessions? 
+                      You will need to rebuild your study schedule from scratch.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        setShowFinalConfirmation(false);
-                        setShowFirstConfirmation(false);
-                      }}
-                    >
-                      No, keep my schedule
-                    </Button>
+                    <AlertDialogCancel>No, keep my schedule</AlertDialogCancel>
                     <Button 
                       variant="destructive"
                       onClick={handleClearCalendar}
-                      disabled={clearingCalendar}
                     >
-                      {clearingCalendar ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          Clearing...
-                        </>
-                      ) : (
-                        "Yes, I'm sure"
-                      )}
+                      Yes, I'm sure
                     </Button>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -191,7 +154,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           variant="secondary"
           size="sm"
           onClick={onRestartOnboarding}
-          disabled={isLoading || clearingCalendar}
+          disabled={isLoading}
         >
           <CalendarPlus className="h-4 w-4 mr-1" />
           Restart Onboarding

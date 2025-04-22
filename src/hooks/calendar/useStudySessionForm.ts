@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useSessionCreation } from './useSessionCreation';
 import { format, addMinutes, startOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarEvent } from '@/types/calendar';
 
 interface FormState {
   title: string;
@@ -19,14 +18,14 @@ interface FormState {
 export const useStudySessionForm = (
   initialDate: Date = new Date(),
   onClose?: () => void,
-  onSuccess?: (event: CalendarEvent) => void,
-  eventToEdit?: CalendarEvent | null
+  onSuccess?: (event: any) => void
 ) => {
   const { createEvent, updateEvent } = useCalendarEvents();
   const { createCalendarSession } = useSessionCreation();
   const { toast } = useToast();
   
   const dateToUse = startOfDay(initialDate);
+  
   const defaultStartTime = "16:00";
   
   const [formState, setFormState] = useState<FormState>({
@@ -39,29 +38,6 @@ export const useStudySessionForm = (
     isSubmitting: false,
     eventId: undefined
   });
-  
-  useEffect(() => {
-    if (eventToEdit) {
-      try {
-        const startDate = new Date(eventToEdit.start_time);
-        const endDate = new Date(eventToEdit.end_time);
-        const durationInMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
-        
-        setFormState({
-          title: eventToEdit.title || '',
-          subject: eventToEdit.subject || 'Mathematics',
-          topic: eventToEdit.topic || '',
-          date: format(startDate, 'yyyy-MM-dd'),
-          startTime: format(startDate, 'HH:mm'),
-          duration: durationInMinutes,
-          isSubmitting: false,
-          eventId: eventToEdit.id
-        });
-      } catch (error) {
-        console.error("Error initializing form with event data:", error);
-      }
-    }
-  }, [eventToEdit]);
 
   const setTitle = (title: string) => {
     setFormState(prev => ({ ...prev, title }));
@@ -91,7 +67,7 @@ export const useStudySessionForm = (
     setFormState(prev => ({ ...prev, eventId }));
   };
 
-  const handleSubmit = async (): Promise<CalendarEvent | undefined> => {
+  const handleSubmit = async () => {
     try {
       setFormState(prev => ({ ...prev, isSubmitting: true }));
       
@@ -99,16 +75,11 @@ export const useStudySessionForm = (
       const startDateTime = new Date(dateStr);
       const endDateTime = addMinutes(startDateTime, formState.duration);
       
-      const defaultTitle = `${formState.subject} Study Session`;
-      const sessionTitle = formState.title || defaultTitle;
-      
-      let resultEvent: CalendarEvent | undefined;
-      
       if (formState.eventId) {
         console.log("Updating calendar event:", formState.eventId);
         
-        resultEvent = await updateEvent(formState.eventId, {
-          title: sessionTitle,
+        const updatedEvent = await updateEvent(formState.eventId, {
+          title: formState.title || `${formState.subject} Study Session`,
           subject: formState.subject,
           topic: formState.topic,
           start_time: startDateTime.toISOString(),
@@ -116,60 +87,78 @@ export const useStudySessionForm = (
           event_type: 'study_session'
         });
         
-        if (resultEvent) {
-          console.log("Event updated successfully:", resultEvent);
+        if (updatedEvent && onSuccess) {
+          console.log("Event updated successfully:", updatedEvent);
+          onSuccess(updatedEvent);
         } else {
-          console.error("Failed to update event");
+          toast({
+            title: "Warning",
+            description: "Event may not have been updated correctly. Please check your calendar.",
+            variant: "destructive"
+          });
         }
-      } else {
-        console.log("Creating new calendar session");
         
-        resultEvent = await createCalendarSession({
-          title: sessionTitle,
+        if (onClose) onClose();
+        return;
+      }
+      
+      console.log("Creating calendar session with:", {
+        title: formState.title || `${formState.subject} Study Session`,
+        subject: formState.subject,
+        topic: formState.topic,
+        startTime: startDateTime,
+        endTime: endDateTime,
+        dateString: dateStr
+      });
+      
+      const newEvent = await createCalendarSession({
+        title: formState.title || `${formState.subject} Study Session`,
+        subject: formState.subject,
+        topic: formState.topic,
+        startTime: startDateTime,
+        endTime: endDateTime
+      });
+      
+      if (!newEvent) {
+        console.log("Session creation failed, falling back to legacy method");
+        
+        const fallbackEvent = await createEvent({
+          title: formState.title || `${formState.subject} Study Session`,
           subject: formState.subject,
           topic: formState.topic,
-          startTime: startDateTime,
-          endTime: endDateTime
-        });
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          event_type: 'study_session'
+        }, true);
         
-        if (!resultEvent) {
-          console.log("Session creation failed, falling back to legacy method");
-          resultEvent = await createEvent({
-            title: sessionTitle,
-            subject: formState.subject,
-            topic: formState.topic,
-            start_time: startDateTime.toISOString(),
-            end_time: endDateTime.toISOString(),
-            event_type: 'study_session'
-          }, true);
+        if (fallbackEvent && onSuccess) {
+          onSuccess(fallbackEvent);
+        } else {
+          toast({
+            title: "Warning",
+            description: "Session may not have been saved correctly. Please check your calendar.",
+            variant: "destructive"
+          });
         }
+      } else if (onSuccess) {
+        console.log("Session created successfully:", newEvent);
+        onSuccess(newEvent);
       }
       
-      if (resultEvent && onSuccess) {
-        console.log("Calling onSuccess with event:", resultEvent);
-        onSuccess(resultEvent);
+      if (onClose) {
+        onClose();
       }
-      
-      return resultEvent;
     } catch (error) {
       console.error('Error creating/updating study session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save study session. Please try again.",
+        variant: "destructive"
+      });
       throw error;
     } finally {
       setFormState(prev => ({ ...prev, isSubmitting: false }));
     }
-  };
-
-  const resetForm = () => {
-    setFormState({
-      title: '',
-      subject: 'Mathematics',
-      topic: '',
-      date: format(dateToUse, 'yyyy-MM-dd'),
-      startTime: defaultStartTime,
-      duration: 60,
-      isSubmitting: false,
-      eventId: undefined
-    });
   };
 
   return {
@@ -181,7 +170,6 @@ export const useStudySessionForm = (
     setStartTime,
     setDuration,
     setEventId,
-    handleSubmit,
-    resetForm
+    handleSubmit
   };
 };

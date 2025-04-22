@@ -121,16 +121,12 @@ export const getAthroById = (id: string) => {
 };
 
 export const getAthroBySubject = (subject: string) => {
-  // Direct match first
   let character = athroCharacters.find(char => 
     char.subject.toLowerCase() === subject.toLowerCase()
   );
   
   if (!character) {
-    // Handle specific science subjects
-    if (['Biology', 'Chemistry', 'Physics'].includes(subject)) {
-      character = athroCharacters.find(char => char.id === 'science');
-    } else if (subject.toLowerCase().includes('religious')) {
+    if (subject.toLowerCase().includes('religious')) {
       character = athroCharacters.find(char => char.id === 'religious-education');
     } else if (subject.toLowerCase().includes('language') || 
                ['french', 'german', 'spanish'].includes(subject.toLowerCase())) {

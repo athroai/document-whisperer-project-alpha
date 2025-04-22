@@ -1,21 +1,15 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2, Plus } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfidenceLabel } from '@/types/confidence';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
 
 export const SubjectsSelector: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject, updateOnboardingStep } = useOnboarding();
-  const { subjects, isLoading, usingDefaultSubjects, allSubjects } = useSubjects();
-  const { toast } = useToast();
-  const [initialized, setInitialized] = useState(false);
-  const { state: authState } = useAuth();
+  const { subjects, isLoading } = useSubjects();
 
   const confidenceOptions: ConfidenceLabel[] = ['low', 'medium', 'high'];
 
@@ -23,118 +17,34 @@ export const SubjectsSelector: React.FC = () => {
     return selectedSubjects.some(s => s.subject === subject);
   };
 
-  const handleSubjectToggle = async (subject: string) => {
+  const handleSubjectToggle = (subject: string) => {
     if (isSubjectSelected(subject)) {
       removeSubject(subject);
-      // Also remove from database if user is authenticated
-      if (authState.user?.id) {
-        try {
-          console.log(`Removing subject ${subject} from database`);
-          await supabase
-            .from('student_subject_preferences')
-            .delete()
-            .eq('student_id', authState.user.id)
-            .eq('subject', subject);
-          console.log(`Successfully removed subject ${subject} from database`);
-        } catch (err) {
-          console.error('Error removing subject from database:', err);
-        }
-      }
     } else {
       selectSubject(subject, "medium" as ConfidenceLabel);
-      // Also add to database if user is authenticated
-      if (authState.user?.id) {
-        try {
-          console.log(`Adding subject ${subject} to database with confidence medium`);
-          await supabase
-            .from('student_subject_preferences')
-            .upsert({
-              student_id: authState.user.id,
-              subject: subject,
-              confidence_level: "medium"
-            });
-          console.log(`Successfully added subject ${subject} to database`);
-        } catch (err) {
-          console.error('Error adding subject to database:', err);
-        }
-      }
     }
   };
 
-  const handleConfidenceChange = async (subject: string, confidence: ConfidenceLabel) => {
+  const handleConfidenceChange = (subject: string, confidence: ConfidenceLabel) => {
     selectSubject(subject, confidence);
-    
-    // Update in database if user is authenticated
-    if (authState.user?.id) {
-      try {
-        console.log(`Updating subject ${subject} confidence to ${confidence}`);
-        const { error } = await supabase
-          .from('student_subject_preferences')
-          .upsert({
-            student_id: authState.user.id,
-            subject: subject,
-            confidence_level: confidence
-          });
-          
-        if (error) {
-          console.error('Error updating subject confidence in database:', error);
-        } else {
-          console.log(`Successfully updated subject ${subject} confidence to ${confidence}`);
-        }
-      } catch (err) {
-        console.error('Error updating subject confidence:', err);
-      }
-    }
   };
 
   const handleContinue = () => {
     if (selectedSubjects.length > 0) {
       updateOnboardingStep('availability');
-    } else {
-      toast({
-        title: "Select subjects",
-        description: "Please select at least one subject before continuing",
-        variant: "destructive"
-      });
     }
   };
 
-  useEffect(() => {
-    if (usingDefaultSubjects && !initialized && !isLoading) {
-      toast({
-        title: "Subject selection",
-        description: "Select the subjects you're studying for GCSE",
-      });
-      setInitialized(true);
-    }
-  }, [usingDefaultSubjects, isLoading, initialized, toast]);
-
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-        <span className="ml-2 text-lg">Loading subjects...</span>
-      </div>
-    );
+    return <div className="text-center py-4">Loading subjects...</div>;
   }
-
-  // Use the full list of subjects from the useSubjects hook
-  const displaySubjects = allSubjects;
 
   return (
     <div className="space-y-4">
       <p className="mb-4">Select the subjects you want to study and rate your confidence level:</p>
       
-      {usingDefaultSubjects && (
-        <div className="bg-amber-50 border border-amber-200 p-3 rounded-md mb-4">
-          <p className="text-amber-700 text-sm">
-            We're showing all available subjects. Please select the ones you're studying for GCSE.
-          </p>
-        </div>
-      )}
-      
       <div className="space-y-3">
-        {displaySubjects.map((subject) => {
+        {subjects.map((subject) => {
           const isSelected = isSubjectSelected(subject);
           const subjectData = selectedSubjects.find(s => s.subject === subject);
           const currentConfidence = subjectData?.confidence || "medium";

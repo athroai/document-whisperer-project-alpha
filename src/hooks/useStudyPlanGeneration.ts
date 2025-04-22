@@ -89,7 +89,6 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
         sessionsPerWeek: getSessionsForConfidence(subject.confidence)
       }));
       
-      console.log("Creating study plan with subjects:", subjectDistribution.map(s => s.subject));
       setStudyPlan(subjectDistribution);
       setGenerationProgress(40);
       
@@ -124,26 +123,22 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       
       setGenerationProgress(75);
       
-      // Create calendar events for the sessions with explicit subject information
+      // Create calendar events for the sessions
       const calendarEventsData = sessions.map(session => ({
         title: `${session.subject} Study Session`,
         description: JSON.stringify({
           subject: session.subject,
-          topic: session.topic || '',
+          topic: session.topic,
           isPomodoro: true,
           pomodoroWorkMinutes: 25,
           pomodoroBreakMinutes: 5
         }),
-        subject: session.subject,  // Add explicit subject field
         start_time: session.startTime.toISOString(),
         end_time: session.endTime.toISOString(),
         event_type: 'study_session',
         user_id: userId,
         student_id: userId
       }));
-      
-      console.log("Creating calendar events with subjects:", 
-                 calendarEventsData.map(e => e.subject).join(", "));
       
       const { data: createdEvents, error: eventsError } = await supabase
         .from('calendar_events')
@@ -277,12 +272,9 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
     const today = startOfDay(new Date());
     let daysOut = 1;
     
-    // Create a flattened list of subjects to schedule based on sessionsPerWeek
     const subjectsToSchedule = subjectDistribution.flatMap(subj => 
-      Array(subj.sessionsPerWeek).fill({...subj})
+      Array(subj.sessionsPerWeek).fill(subj)
     );
-    
-    console.log("Subjects to schedule:", subjectsToSchedule.map(s => s.subject));
     
     while (subjectsToSchedule.length > 0 && daysOut <= 21) {
       const dateToCheck = addDays(today, daysOut);
@@ -297,9 +289,9 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
         
         for (let i = 0; i < slotsForDay.length && subjectsToSchedule.length > 0; i++) {
           const slot = slotsForDay[i];
-          const subjectInfo = subjectsToSchedule.shift();
+          const subject = subjectsToSchedule.shift();
           
-          if (subjectInfo) {
+          if (subject) {
             const startHour = slot.preferred_start_hour || 16;
             const sessionDate = new Date(dateToCheck);
             sessionDate.setHours(startHour, 0, 0, 0);
@@ -307,10 +299,8 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
             const endDate = new Date(sessionDate);
             endDate.setMinutes(sessionDate.getMinutes() + slot.slot_duration_minutes);
             
-            const sessionSubject = subjectInfo.subject;
-            
             result.push({
-              subject: sessionSubject,
+              subject: subject.subject,
               startTime: sessionDate,
               endTime: endDate,
               formattedStart: format(sessionDate, 'EEEE, h:mm a'),
@@ -320,26 +310,12 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
               duration: slot.slot_duration_minutes
             });
             
-            console.log(`Scheduled ${sessionSubject} on ${format(sessionDate, 'EEEE, MMM d')} at ${format(sessionDate, 'h:mm a')}`);
+            console.log(`Scheduled ${subject.subject} on ${format(sessionDate, 'EEEE, MMM d')} at ${format(sessionDate, 'h:mm a')}`);
           }
         }
       }
       
       daysOut++;
-    }
-    
-    // If we still have subjects to schedule but ran out of days, loop through again
-    if (subjectsToSchedule.length > 0) {
-      console.log(`Still have ${subjectsToSchedule.length} subjects to schedule, looping again`);
-      const additionalSessions = generateStudySessions(
-        subjectsToSchedule.map(s => ({
-          subject: s.subject,
-          confidence: s.confidence,
-          sessionsPerWeek: 1
-        })),
-        slots
-      );
-      result.push(...additionalSessions);
     }
     
     return result.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
