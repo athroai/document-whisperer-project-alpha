@@ -30,10 +30,10 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   eventToEdit,
   existingEvents = []
 }) => {
-  const { subjects, isLoading: subjectsLoading } = useUserSubjects();
+  const { subjects: userSubjects, isLoading: subjectsLoading } = useUserSubjects();
   const { toast } = useToast();
   const [timeError, setTimeError] = useState<string | null>(null);
-  
+
   const {
     formState,
     setTitle,
@@ -49,12 +49,27 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
 
   useEffect(() => {
-    if (subjects && subjects.length > 0) {
-      setAvailableSubjects(subjects.map(s => s.subject));
+    if (userSubjects && userSubjects.length > 0) {
+      setAvailableSubjects(userSubjects.map(s => s.subject));
+      if (eventToEdit?.subject && !userSubjects.some(s => s.subject === eventToEdit.subject)) {
+        setAvailableSubjects((prev) => prev.includes(eventToEdit.subject) ? prev : [...prev, eventToEdit.subject]);
+      }
     } else {
       setAvailableSubjects(GCSE_SUBJECTS);
     }
-  }, [subjects]);
+  }, [userSubjects, eventToEdit]);
+
+  useEffect(() => {
+    if (eventToEdit?.subject && !availableSubjects.includes(eventToEdit.subject)) {
+      setAvailableSubjects(prev => [...prev, eventToEdit.subject]);
+    }
+  }, [eventToEdit, availableSubjects]);
+
+  useEffect(() => {
+    if (!formState.subject && availableSubjects.length > 0) {
+      setSubject(availableSubjects[0]);
+    }
+  }, [availableSubjects, formState.subject, setSubject]);
 
   const handleSubmit = async () => {
     try {
@@ -66,7 +81,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         });
         return;
       }
-
       if (checkForTimeConflicts(formState.date, formState.startTime, formState.duration)) {
         setTimeError("This time slot overlaps with an existing session. Please choose another time.");
         toast({
@@ -76,13 +90,10 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         });
         return;
       }
-
       const result = await submitForm();
-      
       if (result) {
         onOpenChange(false);
         resetForm();
-
         toast({
           title: eventToEdit ? 'Study Session Updated' : 'Study Session Scheduled',
           description: eventToEdit ?
@@ -136,7 +147,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
             {eventToEdit ? 'Modify your study session details' : 'Create a new study session'}
           </DialogDescription>
         </DialogHeader>
-        
         <div className="space-y-6 py-6">
           <div className="grid gap-6">
             <div className="space-y-2">
@@ -150,7 +160,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                 className="w-full"
               />
             </div>
-            
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="subject" className="text-sm font-medium">Subject</Label>
@@ -175,7 +184,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                   <p className="text-xs text-amber-500 mt-1">No subjects found. Please set up your subjects in settings.</p>
                 )}
               </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="topic" className="text-sm font-medium">Topic (Optional)</Label>
                 <Select
@@ -197,7 +205,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                 </Select>
               </div>
             </div>
-            
             <TimeSelector
               date={formState.date}
               startTime={formState.startTime}
@@ -213,7 +220,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
             />
           </div>
         </div>
-        
         <DialogFooter className="pt-4 border-t space-x-2">
           <Button
             variant="outline"
