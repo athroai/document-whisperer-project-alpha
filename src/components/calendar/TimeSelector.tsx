@@ -4,6 +4,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Clock, Calendar } from 'lucide-react';
+import { isAfter, isBefore, parseISO, addMinutes, isWithinInterval, startOfToday } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TimeSelectorProps {
   date: string;
@@ -34,6 +37,24 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
     setLiveErrorMessage(errorMessage);
   }, [errorMessage]);
 
+  const isTimeUnavailable = (timeOption: { value: string; label: string }) => {
+    // Convert selected date and time to a Date object
+    const selectedDateTime = new Date(`${date}T${timeOption.value}`);
+    const now = new Date();
+    
+    // Check if time is in the past
+    if (isBefore(selectedDateTime, now)) {
+      return { unavailable: true, reason: 'This time has already passed' };
+    }
+
+    // Check for conflicts with existing sessions
+    if (checkConflicts && checkConflicts(date, timeOption.value, duration)) {
+      return { unavailable: true, reason: 'This time conflicts with another session' };
+    }
+
+    return { unavailable: false, reason: '' };
+  };
+
   const generateTimeOptions = () => {
     const options = [];
     // Generate times from 7 AM (07:00) to 10 PM (22:00) with half-hour intervals
@@ -53,29 +74,31 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   const timeOptions = generateTimeOptions();
 
   const handleTimeChange = (newTime: string) => {
-    onStartTimeChange(newTime);
-    
-    if (checkConflicts && newTime) {
-      const hasConflict = checkConflicts(date, newTime, duration);
-      if (hasConflict) {
-        setLiveErrorMessage("This time slot overlaps with an existing session");
-      } else {
-        setLiveErrorMessage(null);
+    const timeOption = timeOptions.find(opt => opt.value === newTime);
+    if (timeOption) {
+      const { unavailable, reason } = isTimeUnavailable(timeOption);
+      if (unavailable) {
+        setLiveErrorMessage(reason);
+        return;
       }
     }
+    
+    onStartTimeChange(newTime);
+    setLiveErrorMessage(null);
   };
 
   const handleDurationChange = (newDuration: number) => {
-    onDurationChange(newDuration);
-    
-    if (checkConflicts && startTime) {
-      const hasConflict = checkConflicts(date, startTime, newDuration);
-      if (hasConflict) {
-        setLiveErrorMessage("This duration causes an overlap with an existing session");
-      } else {
-        setLiveErrorMessage(null);
+    const selectedTime = timeOptions.find(opt => opt.value === startTime);
+    if (selectedTime) {
+      const { unavailable, reason } = isTimeUnavailable(selectedTime);
+      if (unavailable) {
+        setLiveErrorMessage(reason);
+        return;
       }
     }
+    
+    onDurationChange(newDuration);
+    setLiveErrorMessage(null);
   };
 
   return (
@@ -89,6 +112,7 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
           id="date" 
           type="date" 
           value={date}
+          min={startOfToday().toISOString().split('T')[0]}
           onChange={(e) => {
             onDateChange(e.target.value);
             setLiveErrorMessage(null);
@@ -103,24 +127,41 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
             <Clock className="h-4 w-4" />
             Start Time
           </Label>
-          <Select
-            value={startTime}
-            onValueChange={handleTimeChange}
-          >
-            <SelectTrigger id="time" className="w-full">
-              <SelectValue placeholder="Select Time" />
-            </SelectTrigger>
-            <SelectContent position="popper" className="max-h-[300px]">
-              {timeOptions.map((option) => (
-                <SelectItem 
-                  key={option.value} 
-                  value={option.value}
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <TooltipProvider>
+            <Select
+              value={startTime}
+              onValueChange={handleTimeChange}
+            >
+              <SelectTrigger id="time" className="w-full">
+                <SelectValue placeholder="Select Time" />
+              </SelectTrigger>
+              <SelectContent position="popper" className="max-h-[300px]">
+                {timeOptions.map((option) => {
+                  const { unavailable, reason } = isTimeUnavailable(option);
+                  return (
+                    <Tooltip key={option.value}>
+                      <TooltipTrigger asChild>
+                        <SelectItem
+                          value={option.value}
+                          disabled={unavailable}
+                          className={cn(
+                            unavailable && "opacity-50 cursor-not-allowed bg-gray-100"
+                          )}
+                        >
+                          {option.label}
+                        </SelectItem>
+                      </TooltipTrigger>
+                      {unavailable && (
+                        <TooltipContent side="right">
+                          <p>{reason}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </TooltipProvider>
         </div>
         
         <div className="space-y-2">

@@ -64,24 +64,23 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   }, [eventToEdit, setTitle, setSubject, setTopic, setDate, setStartTime, setDuration, setEventId]);
 
   const checkForTimeConflicts = (date: string, time: string, duration: number): boolean => {
-    const eventsToCheck = eventToEdit 
-      ? existingEvents.filter(e => e.id !== eventToEdit.id) 
-      : existingEvents;
+    const selectedDateTime = new Date(`${date}T${time}`);
+    const selectedEndDateTime = addMinutes(selectedDateTime, duration);
 
-    const selectedStartDateTime = new Date(`${date}T${time}`);
-    const selectedEndDateTime = addMinutes(selectedStartDateTime, duration);
+    return existingEvents.some(event => {
+      if (eventToEdit && event.id === eventToEdit.id) {
+        return false;
+      }
 
-    const hasConflicts = eventsToCheck.some(event => {
-      const eventStartDateTime = new Date(event.start_time);
-      const eventEndDateTime = new Date(event.end_time);
-      
-      return areIntervalsOverlapping(
-        { start: selectedStartDateTime, end: selectedEndDateTime },
-        { start: eventStartDateTime, end: eventEndDateTime }
+      const eventStart = new Date(event.start_time);
+      const eventEnd = new Date(event.end_time);
+
+      return (
+        (selectedDateTime >= eventStart && selectedDateTime < eventEnd) ||
+        (selectedEndDateTime > eventStart && selectedEndDateTime <= eventEnd) ||
+        (selectedDateTime <= eventStart && selectedEndDateTime >= eventEnd)
       );
     });
-
-    return hasConflicts;
   };
 
   const handleSubmit = async () => {
@@ -196,16 +195,9 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
               startTime={formState.startTime}
               duration={formState.duration}
               onDateChange={setDate}
-              onStartTimeChange={(time) => {
-                setStartTime(time);
-                setTimeError(null);
-              }}
-              onDurationChange={(duration) => {
-                setDuration(duration);
-                setTimeError(null);
-              }}
+              onStartTimeChange={setStartTime}
+              onDurationChange={setDuration}
               existingTimes={existingEvents?.map(e => format(new Date(e.start_time), 'HH:mm'))}
-              errorMessage={timeError}
               checkConflicts={checkForTimeConflicts}
             />
           </div>
