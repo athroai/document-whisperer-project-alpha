@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, Trash2 } from 'lucide-react';
+import { Clock, Trash2, Pencil, Play } from 'lucide-react';
 import { CalendarEvent } from '@/types/calendar';
 import { getEventColor } from '@/utils/calendarUtils';
 import { formatGMTTime } from '@/utils/timeUtils';
@@ -10,20 +10,16 @@ import { formatGMTTime } from '@/utils/timeUtils';
 interface DayPlannerEventProps {
   event: CalendarEvent;
   onDelete: (eventId: string) => void;
-  provided: any;
+  onEdit: (event: CalendarEvent) => void;
+  onLaunch: (event: CalendarEvent) => void;
 }
 
-const DayPlannerEvent = ({ event, onDelete, provided }: DayPlannerEventProps) => {
+const DayPlannerEvent = ({ event, onDelete, onEdit, onLaunch }: DayPlannerEventProps) => {
   const colorStyle = getEventColor(event.subject || '');
 
   return (
-    <div
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
-      className="group"
-    >
-      <Card className="cursor-move border-l-4 hover:shadow-md transition-shadow duration-200"
+    <div className="group">
+      <Card className="border-l-4 transition-shadow duration-200 hover:shadow-md"
         style={{ borderLeftColor: colorStyle.color }}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start">
@@ -40,14 +36,32 @@ const DayPlannerEvent = ({ event, onDelete, provided }: DayPlannerEventProps) =>
                 </div>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onDelete(event.id)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
+            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onEdit(event)}
+                className="h-8 w-8"
+              >
+                <Pencil className="h-4 w-4 text-gray-500" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onLaunch(event)}
+                className="h-8 w-8"
+              >
+                <Play className="h-4 w-4 text-green-500" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDelete(event.id)}
+                className="h-8 w-8"
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

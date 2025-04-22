@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { parseISO, startOfDay, isSameDay } from 'date-fns';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -6,6 +5,7 @@ import { CalendarEvent } from '@/types/calendar';
 import DayPlannerHeader from './DayPlannerHeader';
 import DayPlannerEvents from './DayPlannerEvents';
 import StudySessionDialog from './StudySessionDialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface DayPlannerViewProps {
   selectedDate: Date;
@@ -25,6 +25,7 @@ const DayPlannerView = ({
   const [dayEvents, setDayEvents] = useState<CalendarEvent[]>([]);
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const { deleteEvent } = useCalendarEvents();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Normalize selectedDate to start of day to ensure proper comparison
@@ -54,16 +55,6 @@ const DayPlannerView = ({
     setDayEvents(filteredEvents);
   }, [selectedDate, events]);
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-    
-    const items = Array.from(dayEvents);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    
-    setDayEvents(items);
-  };
-
   const handleAddSession = () => {
     setIsAddingEvent(true);
   };
@@ -80,6 +71,24 @@ const DayPlannerView = ({
     }
   };
 
+  const handleEditSession = (event: CalendarEvent) => {
+    // For now, just show a toast that this feature is coming soon
+    // This will be implemented when you're ready to add the edit functionality
+    toast({
+      title: "Coming Soon",
+      description: "Edit functionality will be available soon!"
+    });
+  };
+
+  const handleLaunchSession = (event: CalendarEvent) => {
+    // For now, just show a toast that this feature is coming soon
+    // This will be implemented when you're ready to add the launch functionality
+    toast({
+      title: "Coming Soon",
+      description: "Launch functionality will be available soon!"
+    });
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-gray-900/80 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
@@ -89,8 +98,9 @@ const DayPlannerView = ({
             events={dayEvents}
             isLoading={isLoading}
             onDelete={handleDeleteEvent}
-            onDragEnd={handleDragEnd}
             onAddSession={handleAddSession}
+            onEditSession={handleEditSession}
+            onLaunchSession={handleLaunchSession}
           />
         </div>
         
