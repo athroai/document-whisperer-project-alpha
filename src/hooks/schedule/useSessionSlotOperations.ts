@@ -33,15 +33,18 @@ export const useSessionSlotOperations = () => {
         const endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
 
+        // Ensure we have a subject defined
+        const subjectName = slot.subject || 'General';
+
         try {
-          console.log(`Creating event for day ${dayIndex} (${nextDate.toDateString()}) at ${startTime.toTimeString()}`);
+          console.log(`Creating event for day ${dayIndex} (${nextDate.toDateString()}) at ${startTime.toTimeString()} for subject ${subjectName}`);
           
           // Create calendar event with the subject name
           const event = await createEvent({
-            title: `${slot.subject || 'Study'} Session`,
+            title: `${subjectName} Study Session`,
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
-            subject: slot.subject || 'General',
+            subject: subjectName,
             event_type: 'study_session'
           }, useLocalFallback);
 
@@ -76,6 +79,9 @@ export const useSessionSlotOperations = () => {
       }
       
       if (slots.length === 0) return true;
+      
+      console.log("Saving study slots with subjects to database:", 
+                 slots.map(s => `${s.day_of_week}: ${s.subject || 'No subject'}`));
 
       // Create a new array without the subject field since it's not in the database schema yet
       const slotsToInsert = slots.map(({ id, subject, ...slot }) => ({

@@ -101,6 +101,20 @@ export function useStudyScheduleCore() {
           
         if (data && data.length > 0) {
           subjects = data.map(item => item.subject);
+          console.log("Found user subjects for schedule:", subjects);
+        } else {
+          console.log("No subjects found in student_subject_preferences, checking onboarding context");
+          
+          // Try to get subjects from onboarding context
+          try {
+            const { selectedSubjects } = useOnboarding();
+            if (selectedSubjects && selectedSubjects.length > 0) {
+              subjects = selectedSubjects.map(s => s.subject);
+              console.log("Using subjects from onboarding context:", subjects);
+            }
+          } catch (err) {
+            console.error("Error getting subjects from onboarding context:", err);
+          }
         }
       } catch (err) {
         console.error('Error fetching subjects:', err);
@@ -108,8 +122,11 @@ export function useStudyScheduleCore() {
       
       // If no subjects found, use default subjects
       if (subjects.length === 0) {
+        console.warn("No subjects found, falling back to default subjects");
         subjects = availableSubjects;
       }
+
+      console.log("Creating study slots with subjects:", subjects);
 
       // Convert day preferences to study slots and assign subjects in rotation
       selectedDays.forEach(dayOfWeek => {
@@ -118,6 +135,9 @@ export function useStudyScheduleCore() {
           dayPreference.sessionTimes.forEach((session, i) => {
             // Assign a subject in rotation
             const subjectIndex = newSlots.length % subjects.length;
+            const subjectForSlot = subjects[subjectIndex];
+            
+            console.log(`Assigning subject ${subjectForSlot} to slot on day ${dayOfWeek}`);
             
             newSlots.push({
               id: getSessionId(dayOfWeek, i),
@@ -126,13 +146,13 @@ export function useStudyScheduleCore() {
               slot_count: 1,
               slot_duration_minutes: session.durationMinutes,
               preferred_start_hour: session.startHour,
-              subject: subjects[subjectIndex] // Assign subject
+              subject: subjectForSlot // Assign subject
             });
           });
         }
       });
 
-      console.log("Created study slots with subjects:", newSlots);
+      console.log("Created study slots with subjects:", newSlots.map(s => `${s.day_of_week}: ${s.subject}`));
       setStudySlots(newSlots);
 
       const userId = authState.user?.id;
@@ -146,7 +166,8 @@ export function useStudyScheduleCore() {
       
       // Create calendar events for the sessions
       const events = await createCalendarEvents(newSlots, true);
-      console.log(`Created ${events.length} calendar events`);
+      console.log(`Created ${events.length} calendar events with subjects:`, 
+                 events.map(e => e.subject || 'Unknown'));
 
       try {
         // Update onboarding progress

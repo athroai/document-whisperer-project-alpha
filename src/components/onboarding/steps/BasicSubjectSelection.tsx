@@ -49,13 +49,13 @@ export const BasicSubjectSelection: React.FC = () => {
         // Also add to database if user is authenticated
         if (authState.user?.id) {
           try {
-            console.log(`Adding subject ${subject} to database with confidence medium`);
+            console.log(`Adding subject ${subject} to database with confidence medium (5)`);
             const { error } = await supabase
               .from('student_subject_preferences')
               .upsert({
                 student_id: authState.user.id,
                 subject: subject,
-                confidence_level: 5 // Use numeric value for database
+                confidence_level: 5 // Use numeric value for database (medium = 5)
               });
               
             if (error) {
@@ -87,8 +87,57 @@ export const BasicSubjectSelection: React.FC = () => {
         description: "Please select the GCSE subjects you're studying",
       });
       setInitialized(true);
+
+      // If user is authenticated, fetch existing subjects
+      if (authState.user?.id) {
+        const fetchUserSubjects = async () => {
+          try {
+            const { data, error } = await supabase
+              .from('student_subject_preferences')
+              .select('subject, confidence_level')
+              .eq('student_id', authState.user!.id);
+              
+            if (error) {
+              throw error;
+            }
+            
+            console.log("Fetched user subjects:", data);
+            
+            // Clear current selections first to avoid duplicates
+            selectedSubjects.forEach(s => removeSubject(s.subject));
+            
+            // Add fetched subjects to context
+            if (data && data.length > 0) {
+              data.forEach(subj => {
+                const confidenceLevel = mapConfidenceLevel(subj.confidence_level);
+                selectSubject(subj.subject, confidenceLevel);
+              });
+            }
+          } catch (err) {
+            console.error("Error fetching user subjects:", err);
+          }
+        };
+        
+        fetchUserSubjects();
+      }
     }
-  }, [initialized, toast]);
+  }, [initialized, toast, authState.user?.id]);
+
+  // Helper function to map numeric confidence level to string
+  const mapConfidenceLevel = (level: number | string): "low" | "medium" | "high" => {
+    if (typeof level === 'number') {
+      if (level <= 3) return 'low';
+      if (level <= 7) return 'medium';
+      return 'high';
+    }
+    
+    // If it's already a string, validate and return
+    if (level === 'low' || level === 'medium' || level === 'high') {
+      return level as 'low' | 'medium' | 'high';
+    }
+    
+    return 'medium';
+  };
 
   if (!displaySubjects || displaySubjects.length === 0) {
     return (

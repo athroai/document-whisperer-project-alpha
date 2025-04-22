@@ -25,6 +25,7 @@ export const createDatabaseEvent = async (
     return existingEvent as CalendarEvent;
   }
   
+  // Ensure subject is included in the description JSON
   const eventDescription = JSON.stringify({
     subject: eventData.subject || '',
     topic: eventData.topic || '',
@@ -40,10 +41,12 @@ export const createDatabaseEvent = async (
     student_id: userId,
     event_type: eventData.event_type || 'study_session',
     start_time: eventData.start_time,
-    end_time: eventData.end_time
+    end_time: eventData.end_time,
+    subject: eventData.subject // Explicitly save subject as a column
   };
 
   console.log('Inserting calendar event with description:', eventDescription);
+  console.log('Event subject being stored:', eventData.subject);
 
   try {
     const { data, error } = await supabase
@@ -63,12 +66,23 @@ export const createDatabaseEvent = async (
     }
 
     console.log('Successfully created calendar event:', data);
+    
+    // Parse the description to get the subject if not present in data
+    let subject = data.subject;
+    if (!subject && data.description) {
+      try {
+        const descObj = JSON.parse(data.description);
+        subject = descObj.subject || '';
+      } catch (e) {
+        console.error('Error parsing event description:', e);
+      }
+    }
 
     return {
       id: data.id,
       title: data.title,
       description: data.description,
-      subject: eventData.subject || '',
+      subject: subject || eventData.subject || '',
       topic: eventData.topic || '',
       start_time: data.start_time,
       end_time: data.end_time,

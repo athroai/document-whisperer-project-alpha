@@ -32,7 +32,8 @@ export const useSubjects = () => {
   const { 
     subjects: userSubjects, 
     isLoading: isLoadingUserSubjects,
-    noSubjectsFound
+    noSubjectsFound,
+    refetch
   } = useUserSubjects();
   
   // Try to access onboarding context if available
@@ -45,12 +46,18 @@ export const useSubjects = () => {
     console.log("Onboarding context not available in this component");
   }
   
+  // Force a refetch on mount to ensure we have the latest data
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+  
   useEffect(() => {
     if (!isLoadingUserSubjects) {
       if (userSubjects && userSubjects.length > 0) {
         console.log("Setting subjects from user subjects:", userSubjects.map(s => s.subject));
         setSubjects(userSubjects.map(s => s.subject));
         setUsingDefaultSubjects(false);
+        
         // Clear any cache of default subjects if we have real user subjects
         localStorage.removeItem('default_subjects_used');
       } else if (onboardingSubjects && onboardingSubjects.length > 0) {
@@ -61,6 +68,7 @@ export const useSubjects = () => {
         localStorage.removeItem('default_subjects_used');
       } else {
         console.log("No subjects found in database or onboarding");
+        // We're setting empty array here instead of default subjects
         setSubjects([]);
         setUsingDefaultSubjects(true);
       }
