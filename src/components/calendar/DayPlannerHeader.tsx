@@ -92,14 +92,14 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
                 .in('calendar_event_id', eventIdsToDelete);
                 
               // Delete the calendar events
-              const { data: deletedEvents, error } = await supabase
+              const { data, error } = await supabase
                 .from('calendar_events')
                 .delete()
                 .in('id', eventIdsToDelete);
                 
               if (error) throw error;
               
-              const deletedCount = deletedEvents?.length || 0;
+              const deletedCount = data?.length || 0;
               
               let description = `${deletedCount} study sessions for ${format(selectedDate, 'MMMM d, yyyy')} have been removed`;
               

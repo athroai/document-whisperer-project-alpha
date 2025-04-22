@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { CalendarPlus, RefreshCw, Trash2 } from 'lucide-react';
+import { CalendarPlus, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -27,9 +27,12 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onRestartOnboarding
 }) => {
   const { toast } = useToast();
+  const [clearingCalendar, setClearingCalendar] = useState(false);
 
   const handleClearCalendar = async () => {
     try {
+      setClearingCalendar(true);
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
         toast({
@@ -37,6 +40,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           description: "You must be logged in to clear your calendar",
           variant: "destructive"
         });
+        setClearingCalendar(false);
         return;
       }
 
@@ -48,7 +52,10 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error calling clear-calendar function:', error);
+        throw new Error(error.message || 'Failed to clear calendar');
+      }
       
       const deletedCount = data?.deleted_count || 0;
       const preservedCount = data?.preserved_count || 0;
@@ -64,7 +71,11 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         description
       });
 
-      onRefresh();
+      // Allow the user to see the success message before refreshing
+      setTimeout(() => {
+        onRefresh();
+        setClearingCalendar(false);
+      }, 500);
     } catch (error) {
       console.error('Error clearing calendar:', error);
       toast({
@@ -72,6 +83,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         description: "Failed to clear calendar. Please try again.",
         variant: "destructive"
       });
+      setClearingCalendar(false);
     }
   };
 
@@ -82,9 +94,13 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           variant="outline"
           size="sm"
           onClick={onRefresh}
-          disabled={isLoading}
+          disabled={isLoading || clearingCalendar}
         >
-          <RefreshCw className="h-4 w-4 mr-1" />
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-1" />
+          )}
           Refresh Calendar
         </Button>
 
@@ -93,9 +109,13 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             <Button
               variant="destructive"
               size="sm"
-              disabled={isLoading}
+              disabled={isLoading || clearingCalendar}
             >
-              <Trash2 className="h-4 w-4 mr-1" />
+              {clearingCalendar ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-1" />
+              )}
               Clear Calendar
             </Button>
           </AlertDialogTrigger>
@@ -130,8 +150,16 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
                     <Button 
                       variant="destructive"
                       onClick={handleClearCalendar}
+                      disabled={clearingCalendar}
                     >
-                      Yes, I'm sure
+                      {clearingCalendar ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          Clearing...
+                        </>
+                      ) : (
+                        "Yes, I'm sure"
+                      )}
                     </Button>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -146,7 +174,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           variant="secondary"
           size="sm"
           onClick={onRestartOnboarding}
-          disabled={isLoading}
+          disabled={isLoading || clearingCalendar}
         >
           <CalendarPlus className="h-4 w-4 mr-1" />
           Restart Onboarding

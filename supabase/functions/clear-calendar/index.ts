@@ -38,13 +38,31 @@ serve(async (req) => {
       );
     }
 
-    // Step 1: Get all calendar event IDs for this user
+    // Step 1: Verify the user exists
+    console.log(`Verifying user ${user_id}`);
+    const { data: userProfile, error: userError } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('id', user_id)
+      .single();
+      
+    if (userError) {
+      console.error('Error verifying user:', userError);
+      return new Response(
+        JSON.stringify({ error: 'User verification failed' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
+    }
+    
+    // Step 2: Get all calendar event IDs for this user
+    console.log(`Getting calendar events for user ${user_id}`);
     const { data: calendarEvents, error: calendarError } = await supabaseClient
       .from('calendar_events')
       .select('id')
       .eq('user_id', user_id);
       
     if (calendarError) {
+      console.error('Error getting calendar events:', calendarError);
       throw calendarError;
     }
 
@@ -56,11 +74,12 @@ serve(async (req) => {
     let preservedCount = 0;
     
     if (eventIds.length > 0) {
-      // Step 2: If preserving completed study sessions, get sessions to exclude
+      // Step 3: If preserving completed study sessions, get sessions to exclude
       let excludeEventIds: string[] = [];
       
       if (preserve_completed) {
         // Find any calendar events that have associated completed study sessions
+        console.log(`Checking for completed study sessions`);
         const { data: completedSessions, error: sessionsError } = await supabaseClient
           .from('study_sessions')
           .select('id')
@@ -77,6 +96,7 @@ serve(async (req) => {
           
           // Find calendar events linked to completed study sessions
           // This assumes there's a source_session_id column in calendar_events that links to study_sessions
+          console.log(`Finding calendar events linked to completed sessions`);
           const { data: linkedEvents, error: linkedError } = await supabaseClient
             .from('calendar_events')
             .select('id')
@@ -97,7 +117,8 @@ serve(async (req) => {
       console.log(`Will delete ${eventIdsToDelete.length} calendar events`);
       
       if (eventIdsToDelete.length > 0) {
-        // Step 3: Delete study plan sessions that reference these calendar events
+        // Step 4: Delete study plan sessions that reference these calendar events
+        console.log(`Deleting study plan sessions for ${eventIdsToDelete.length} events`);
         const { error: deleteStudyPlanError } = await supabaseClient
           .from('study_plan_sessions')
           .delete()
@@ -108,18 +129,32 @@ serve(async (req) => {
           // Continue anyway - some sessions might not have study plan entries
         }
         
-        // Step 4: Delete the calendar events
-        const { data: deletedEvents, error: deleteError } = await supabaseClient
-          .from('calendar_events')
-          .delete()
-          .in('id', eventIdsToDelete)
-          .select();
+        // Step 5: Delete the calendar events
+        console.log(`Deleting ${eventIdsToDelete.length} calendar events`);
+        
+        // Delete events in batches to avoid potential issues with large deletions
+        const batchSize = 50;
+        let totalDeleted = 0;
+        
+        for (let i = 0; i < eventIdsToDelete.length; i += batchSize) {
+          const batch = eventIdsToDelete.slice(i, i + batchSize);
+          console.log(`Processing batch ${i / batchSize + 1}, size: ${batch.length}`);
           
-        if (deleteError) {
-          throw deleteError;
+          const { data: deletedBatch, error: deleteError } = await supabaseClient
+            .from('calendar_events')
+            .delete()
+            .in('id', batch)
+            .select();
+            
+          if (deleteError) {
+            console.error(`Error deleting batch ${i / batchSize + 1}:`, deleteError);
+            throw deleteError;
+          }
+          
+          totalDeleted += deletedBatch?.length || 0;
         }
         
-        deletedCount = deletedEvents?.length || 0;
+        deletedCount = totalDeleted;
         console.log(`Successfully deleted ${deletedCount} calendar events`);
       } else {
         console.log('No calendar events to delete after applying preservation rules');
@@ -137,7 +172,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'An unknown error occurred' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
