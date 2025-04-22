@@ -7,12 +7,15 @@ import { useSubjects } from '@/hooks/useSubjects';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfidenceLabel } from '@/types/confidence';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const SubjectsSelector: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject, updateOnboardingStep } = useOnboarding();
-  const { subjects, isLoading, usingDefaultSubjects } = useSubjects();
+  const { subjects, isLoading, usingDefaultSubjects, allSubjects } = useSubjects();
   const { toast } = useToast();
   const [initialized, setInitialized] = useState(false);
+  const { state: authState } = useAuth();
 
   const confidenceOptions: ConfidenceLabel[] = ['low', 'medium', 'high'];
 
@@ -20,16 +23,61 @@ export const SubjectsSelector: React.FC = () => {
     return selectedSubjects.some(s => s.subject === subject);
   };
 
-  const handleSubjectToggle = (subject: string) => {
+  const handleSubjectToggle = async (subject: string) => {
     if (isSubjectSelected(subject)) {
       removeSubject(subject);
+      // Also remove from database if user is authenticated
+      if (authState.user?.id) {
+        try {
+          await supabase
+            .from('student_subject_preferences')
+            .delete()
+            .eq('student_id', authState.user.id)
+            .eq('subject', subject);
+        } catch (err) {
+          console.error('Error removing subject from database:', err);
+        }
+      }
     } else {
       selectSubject(subject, "medium" as ConfidenceLabel);
+      // Also add to database if user is authenticated
+      if (authState.user?.id) {
+        try {
+          await supabase
+            .from('student_subject_preferences')
+            .insert({
+              student_id: authState.user.id,
+              subject: subject,
+              confidence_level: "medium"
+            });
+        } catch (err) {
+          console.error('Error adding subject to database:', err);
+        }
+      }
     }
   };
 
-  const handleConfidenceChange = (subject: string, confidence: ConfidenceLabel) => {
+  const handleConfidenceChange = async (subject: string, confidence: ConfidenceLabel) => {
     selectSubject(subject, confidence);
+    
+    // Update in database if user is authenticated
+    if (authState.user?.id) {
+      try {
+        const { error } = await supabase
+          .from('student_subject_preferences')
+          .upsert({
+            student_id: authState.user.id,
+            subject: subject,
+            confidence_level: confidence
+          });
+          
+        if (error) {
+          console.error('Error updating subject confidence in database:', error);
+        }
+      } catch (err) {
+        console.error('Error updating subject confidence:', err);
+      }
+    }
   };
 
   const handleContinue = () => {
@@ -47,7 +95,7 @@ export const SubjectsSelector: React.FC = () => {
   useEffect(() => {
     if (usingDefaultSubjects && !initialized && !isLoading) {
       toast({
-        title: "Default subjects loaded",
+        title: "Subject selection",
         description: "Select the subjects you're studying for GCSE",
       });
       setInitialized(true);
@@ -63,6 +111,9 @@ export const SubjectsSelector: React.FC = () => {
     );
   }
 
+  // Use the full list of subjects from the useSubjects hook
+  const displaySubjects = allSubjects;
+
   return (
     <div className="space-y-4">
       <p className="mb-4">Select the subjects you want to study and rate your confidence level:</p>
@@ -76,7 +127,7 @@ export const SubjectsSelector: React.FC = () => {
       )}
       
       <div className="space-y-3">
-        {subjects.map((subject) => {
+        {displaySubjects.map((subject) => {
           const isSelected = isSubjectSelected(subject);
           const subjectData = selectedSubjects.find(s => s.subject === subject);
           const currentConfidence = subjectData?.confidence || "medium";

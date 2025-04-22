@@ -69,16 +69,12 @@ export const useUserSubjects = () => {
         return;
       }
       
-      // Only if no subjects found in both tables, set flag and provide defaults
-      console.log("No subjects found in either table, using defaults");
+      // Only if no subjects found in both tables, set flag
+      console.log("No subjects found in either table, marking noSubjectsFound as true");
       setNoSubjectsFound(true);
       
-      // Only set default subjects if none were found
-      setSubjects([
-        { subject: 'Mathematics', confidence_level: 'medium' },
-        { subject: 'English', confidence_level: 'medium' },
-        { subject: 'Science', confidence_level: 'medium' }
-      ]);
+      // Don't set default subjects here, let the consuming components decide
+      setSubjects([]);
       
     } catch (error) {
       console.error('Error in fetchUserSubjects:', error);

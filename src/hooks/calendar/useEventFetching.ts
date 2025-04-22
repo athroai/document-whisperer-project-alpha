@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 import { fetchDatabaseEvents } from '@/services/calendar/calendarEventService';
 import { CalendarEvent } from '@/types/calendar';
@@ -58,20 +57,27 @@ export const useEventFetching = (
         console.log(`Fetching database events for user: ${authenticatedId}`);
         const dbEvents = await fetchDatabaseEvents(authenticatedId);
         
-        // Filter events based on user subjects only if we have subjects and they're not defaults
+        // Filter events based on user subjects if we have actual selected subjects
         let filteredEvents = dbEvents;
         
-        if (subjects && subjects.length > 0 && !noSubjectsFound) {
+        if (subjects && subjects.length > 0) {
           console.log('Filtering events by user subjects:', 
             subjects.map(s => s.subject).join(', '));
           
-          filteredEvents = dbEvents.filter(event => 
-            !event.subject || subjects.some(s => s.subject === event.subject)
-          );
+          const subjectNames = subjects.map(s => s.subject);
           
-          console.log(`Filtered from ${dbEvents.length} to ${filteredEvents.length} events matching user subjects`);
+          if (subjectNames.length > 0) {
+            filteredEvents = dbEvents.filter(event => 
+              // Pass events with no subject or matching subjects
+              !event.subject || subjectNames.includes(event.subject)
+            );
+            
+            console.log(`Filtered from ${dbEvents.length} to ${filteredEvents.length} events matching user subjects`);
+          } else {
+            console.log('No subject names extracted, using all events');
+          }
         } else {
-          console.log('Skipping event filtering - using all events');
+          console.log('No user subjects available, showing all events');
         }
         
         // Include local-only events
@@ -101,7 +107,7 @@ export const useEventFetching = (
         fetchInProgress.current = false;
       }, 1000);
     }
-  }, [userId, setEvents, setIsLoading, localEvents, subjects, noSubjectsFound]);
+  }, [userId, setEvents, setIsLoading, localEvents, subjects]);
 
   useEffect(() => {
     if (!userId || subscriptionActive.current) return;

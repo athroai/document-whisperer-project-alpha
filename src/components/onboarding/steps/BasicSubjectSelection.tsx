@@ -5,40 +5,64 @@ import { Button } from '@/components/ui/button';
 import { Check, Loader2 } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const BasicSubjectSelection: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject } = useOnboarding();
-  const { subjects, isLoading, usingDefaultSubjects } = useSubjects();
+  const { subjects, isLoading, usingDefaultSubjects, allSubjects } = useSubjects();
   const { toast } = useToast();
   const [initialized, setInitialized] = useState(false);
+  const { state: authState } = useAuth();
 
   const isSubjectSelected = (subject: string) => {
     return selectedSubjects.some(s => s.subject === subject);
   };
 
-  const handleSubjectToggle = (subject: string) => {
+  const handleSubjectToggle = async (subject: string) => {
     if (isSubjectSelected(subject)) {
       removeSubject(subject);
+      // Also remove from database if user is authenticated
+      if (authState.user?.id) {
+        try {
+          await supabase
+            .from('student_subject_preferences')
+            .delete()
+            .eq('student_id', authState.user.id)
+            .eq('subject', subject);
+          console.log(`Removed subject ${subject} from database`);
+        } catch (err) {
+          console.error('Error removing subject from database:', err);
+        }
+      }
     } else {
       selectSubject(subject, "medium");
+      // Also add to database if user is authenticated
+      if (authState.user?.id) {
+        try {
+          await supabase
+            .from('student_subject_preferences')
+            .insert({
+              student_id: authState.user.id,
+              subject: subject,
+              confidence_level: "medium"
+            });
+          console.log(`Added subject ${subject} to database`);
+        } catch (err) {
+          console.error('Error adding subject to database:', err);
+        }
+      }
     }
   };
 
-  // Default subjects if none are loaded
-  const defaultSubjects = [
-    'Mathematics', 'English', 'Science', 
-    'History', 'Geography', 'Computer Science',
-    'Art', 'Music', 'Physical Education'
-  ];
-  
-  // Use subjects from the hook if available, otherwise use defaults
-  const displaySubjects = subjects.length > 0 ? subjects : defaultSubjects;
+  // The subjects to display - use a combination of all available subjects
+  const displaySubjects = allSubjects;
 
   useEffect(() => {
     if (usingDefaultSubjects && !initialized && !isLoading) {
       toast({
-        title: "Default subjects loaded",
-        description: "We're showing default subjects as we couldn't find your selections",
+        title: "Subject selection",
+        description: "Please select the GCSE subjects you're studying",
       });
       setInitialized(true);
     }
@@ -57,7 +81,7 @@ export const BasicSubjectSelection: React.FC = () => {
     <div className="space-y-4">
       {usingDefaultSubjects && (
         <p className="text-sm text-amber-500 mb-4">
-          Using default subjects. Select the ones you're studying.
+          Select the subjects you're studying for GCSE.
         </p>
       )}
       <div className="grid grid-cols-2 gap-2">

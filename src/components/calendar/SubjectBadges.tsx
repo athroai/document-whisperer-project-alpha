@@ -26,6 +26,9 @@ const SubjectBadges: React.FC<SubjectBadgesProps> = ({ subjects, isLoading = fal
         <Badge variant="outline" className="bg-gray-100 text-gray-500">
           No subjects selected
         </Badge>
+        <Badge variant="outline" className="bg-blue-50 text-blue-700">
+          Visit settings to add subjects
+        </Badge>
       </div>
     );
   }

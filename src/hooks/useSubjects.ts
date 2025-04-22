@@ -1,27 +1,49 @@
 
 import { useState, useEffect } from 'react';
 import { useUserSubjects } from './useUserSubjects';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
-const DEFAULT_SUBJECTS = [
+export const GCSE_SUBJECTS = [
   'Mathematics', 
-  'English', 
-  'Science', 
+  'English Language', 
+  'English Literature',
+  'Biology', 
+  'Chemistry', 
+  'Physics',
+  'Combined Science',
   'History', 
   'Geography',
   'Computer Science',
-  'Art',
+  'French',
+  'Spanish',
+  'German',
+  'Religious Studies',
+  'Art & Design',
   'Music',
-  'Physical Education'
+  'Drama',
+  'Physical Education',
+  'Business Studies'
 ];
 
 export const useSubjects = () => {
   const [subjects, setSubjects] = useState<string[]>([]);
   const [usingDefaultSubjects, setUsingDefaultSubjects] = useState(false);
+  
   const { 
     subjects: userSubjects, 
     isLoading: isLoadingUserSubjects,
     noSubjectsFound
   } = useUserSubjects();
+  
+  // Try to access onboarding context if available
+  let onboardingSubjects: any[] = [];
+  try {
+    const { selectedSubjects } = useOnboarding();
+    onboardingSubjects = selectedSubjects;
+  } catch (e) {
+    // Onboarding context not available, which is fine
+    console.log("Onboarding context not available in this component");
+  }
   
   useEffect(() => {
     if (!isLoadingUserSubjects) {
@@ -29,17 +51,23 @@ export const useSubjects = () => {
         console.log("Setting subjects from user subjects:", userSubjects.map(s => s.subject));
         setSubjects(userSubjects.map(s => s.subject));
         setUsingDefaultSubjects(false);
+      } else if (onboardingSubjects && onboardingSubjects.length > 0) {
+        // If no database subjects but onboarding subjects exist, use those
+        console.log("Setting subjects from onboarding:", onboardingSubjects.map(s => s.subject));
+        setSubjects(onboardingSubjects.map(s => s.subject));
+        setUsingDefaultSubjects(false);
       } else if (noSubjectsFound) {
         console.log("No user subjects found, using default subjects");
-        setSubjects(DEFAULT_SUBJECTS);
+        setSubjects(GCSE_SUBJECTS.slice(0, 5)); // Just use first 5 default subjects
         setUsingDefaultSubjects(true);
       }
     }
-  }, [userSubjects, isLoadingUserSubjects, noSubjectsFound]);
+  }, [userSubjects, isLoadingUserSubjects, noSubjectsFound, onboardingSubjects]);
   
   return { 
     subjects, 
     isLoading: isLoadingUserSubjects,
-    usingDefaultSubjects
+    usingDefaultSubjects,
+    allSubjects: GCSE_SUBJECTS
   };
 };
