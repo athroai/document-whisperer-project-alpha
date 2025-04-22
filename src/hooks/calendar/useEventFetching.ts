@@ -1,7 +1,8 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { fetchDatabaseEvents } from '@/services/calendar/calendarEventService';
 import { CalendarEvent } from '@/types/calendar';
 import { supabase } from '@/lib/supabase';
+import { useUserSubjects } from '@/hooks/useUserSubjects';
 
 export const useEventFetching = (
   userId: string | undefined,
@@ -13,6 +14,7 @@ export const useEventFetching = (
   const fetchInProgress = useRef(false);
   const subscriptionActive = useRef(false);
   const fetchAttempted = useRef(false);
+  const { subjects } = useUserSubjects();
   const realtimeUpdateDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const lastFetchTime = useRef<number>(0);
   
@@ -38,7 +40,6 @@ export const useEventFetching = (
         try {
           const { data: { session } } = await supabase.auth.getSession();
           authenticatedId = session?.user?.id;
-          console.log('Using authenticated user ID:', authenticatedId);
         } catch (err) {
           console.error('Auth verification failed:', err);
         }
@@ -46,43 +47,44 @@ export const useEventFetching = (
 
       if (!authenticatedId) {
         console.log('No authenticated user ID found, using only local events');
-        
-        if (localEvents.length > 0) {
-          console.log(`Loading ${localEvents.length} local events`);
-          setEvents(localEvents);
-        } else {
-          setEvents([]);
-        }
-        
+        const filteredLocalEvents = localEvents.filter(event => 
+          subjects.find(s => s.subject === event.subject)
+        );
+        setEvents(filteredLocalEvents);
         setIsLoading(false);
         fetchAttempted.current = true;
-        return localEvents;
+        return filteredLocalEvents;
       }
       
       try {
         console.log(`Fetching database events for user: ${authenticatedId}`);
         const dbEvents = await fetchDatabaseEvents(authenticatedId);
         
-        const localOnlyEvents = localEvents.filter(e => e.local_only);
-        const combinedEvents = [...dbEvents, ...localOnlyEvents];
+        // Filter events to only include user's selected subjects
+        const filteredEvents = dbEvents.filter(event => 
+          subjects.find(s => s.subject === event.subject)
+        );
         
-        console.log(`Fetched ${dbEvents.length} database events and ${localOnlyEvents.length} local-only events`);
+        const localOnlyEvents = localEvents.filter(e => 
+          e.local_only && subjects.find(s => s.subject === e.subject)
+        );
+        
+        const combinedEvents = [...filteredEvents, ...localOnlyEvents];
+        
+        console.log(`Fetched and filtered to ${combinedEvents.length} events matching user subjects`);
         setEvents(combinedEvents);
         setIsLoading(false);
         fetchAttempted.current = true;
         return combinedEvents;
       } catch (fetchError) {
         console.error('Error fetching database events:', fetchError);
-        
-        if (localEvents.length > 0) {
-          setEvents(localEvents);
-        } else {
-          setEvents([]);
-        }
-        
+        const filteredLocalEvents = localEvents.filter(event => 
+          subjects.find(s => s.subject === event.subject)
+        );
+        setEvents(filteredLocalEvents);
         setIsLoading(false);
         fetchAttempted.current = true;
-        return localEvents;
+        return filteredLocalEvents;
       }
     } catch (error) {
       console.error('Error in fetchEvents:', error);
@@ -94,7 +96,7 @@ export const useEventFetching = (
         fetchInProgress.current = false;
       }, 1000);
     }
-  }, [userId, setEvents, setIsLoading, localEvents]);
+  }, [userId, setEvents, setIsLoading, localEvents, subjects]);
 
   useEffect(() => {
     if (!userId || subscriptionActive.current) return;

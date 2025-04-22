@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { 
   startOfMonth, 
@@ -12,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUserSubjects } from '@/hooks/useUserSubjects';
 import CalendarHeader from './CalendarHeader';
 import CalendarNavigation from './CalendarNavigation';
 import CalendarGrid from './CalendarGrid';
@@ -28,7 +28,6 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
-  const { events, isLoading } = useCalendarEvents();
   
   const handleDateSelect = useCallback((date: Date) => {
     setSelectedDate(date);
@@ -67,6 +66,9 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({
   const handleAddSession = useCallback(() => {
     setSelectedDate(new Date());
   }, []);
+  
+  const { events, isLoading } = useCalendarEvents();
+  const { subjects } = useUserSubjects();
 
   if (isLoading) {
     return (
@@ -102,12 +104,17 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({
       </Card>
 
       <div className="flex flex-wrap gap-2 mt-4">
-        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Mathematics</Badge>
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Science</Badge>
-        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">English</Badge>
-        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">History</Badge>
-        <Badge className="bg-teal-100 text-teal-800 hover:bg-teal-200">Geography</Badge>
-        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">Other</Badge>
+        {subjects.map(subj => {
+          const colorStyle = getEventColor(subj.subject);
+          return (
+            <Badge 
+              key={subj.subject}
+              className={`${colorStyle.bg} ${colorStyle.text} hover:${colorStyle.bg}`}
+            >
+              {subj.subject}
+            </Badge>
+          );
+        })}
       </div>
 
       {selectedDate && (
