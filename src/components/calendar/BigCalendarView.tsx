@@ -1,21 +1,15 @@
+
 import React, { useState, useCallback } from 'react';
-import { 
-  startOfMonth, 
-  endOfMonth, 
-  eachDayOfInterval, 
-  addMonths, 
-  startOfWeek, 
-  endOfWeek 
-} from 'date-fns';
+import { startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserSubjects } from '@/hooks/useUserSubjects';
 import CalendarHeader from './CalendarHeader';
 import CalendarNavigation from './CalendarNavigation';
 import CalendarGrid from './CalendarGrid';
 import DayPlannerView from './DayPlannerView';
+import SubjectBadges from './SubjectBadges';
 
 interface BigCalendarViewProps {
   onRetryLoad?: () => void;
@@ -35,22 +29,10 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({
 
   const handleCloseDayPlanner = useCallback(() => {
     setSelectedDate(null);
-    
-    // If an onRetryLoad function was passed, call it to refresh events
     if (onRetryLoad) {
-      setTimeout(() => {
-        onRetryLoad();
-      }, 500);
+      setTimeout(onRetryLoad, 500);
     }
   }, [onRetryLoad]);
-
-  const previousMonth = useCallback(() => {
-    setCurrentMonth(prevMonth => addMonths(prevMonth, -1));
-  }, []);
-
-  const nextMonth = useCallback(() => {
-    setCurrentMonth(prevMonth => addMonths(prevMonth, 1));
-  }, []);
 
   // Get all days from the start of the first week to the end of the last week of the month
   const monthStart = startOfMonth(currentMonth);
@@ -90,8 +72,8 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({
         <CardContent className="p-4">
           <CalendarNavigation
             currentMonth={currentMonth}
-            onPreviousMonth={previousMonth}
-            onNextMonth={nextMonth}
+            onPreviousMonth={() => setCurrentMonth(prev => addMonths(prev, -1))}
+            onNextMonth={() => setCurrentMonth(prev => addMonths(prev, 1))}
           />
           
           <CalendarGrid
@@ -103,19 +85,7 @@ const BigCalendarView: React.FC<BigCalendarViewProps> = ({
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap gap-2 mt-4">
-        {subjects.map(subj => {
-          const colorStyle = getEventColor(subj.subject);
-          return (
-            <Badge 
-              key={subj.subject}
-              className={`${colorStyle.bg} ${colorStyle.text} hover:${colorStyle.bg}`}
-            >
-              {subj.subject}
-            </Badge>
-          );
-        })}
-      </div>
+      <SubjectBadges subjects={subjects} />
 
       {selectedDate && (
         <DayPlannerView
