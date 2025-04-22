@@ -12,6 +12,7 @@ interface TimeSelectorProps {
   onStartTimeChange: (value: string) => void;
   onDurationChange: (value: number) => void;
   existingTimes?: string[];
+  errorMessage?: string | null;
 }
 
 const TimeSelector: React.FC<TimeSelectorProps> = ({
@@ -21,7 +22,8 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   onDateChange,
   onStartTimeChange,
   onDurationChange,
-  existingTimes = []
+  existingTimes = [],
+  errorMessage = null
 }) => {
   // Generate time options from 7 AM to 10 PM with half-hour intervals
   const generateTimeOptions = () => {
@@ -74,6 +76,9 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
             ))}
           </SelectContent>
         </Select>
+        {errorMessage && (
+          <p className="text-sm text-red-500 mt-1">{errorMessage}</p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="duration">Duration</Label>

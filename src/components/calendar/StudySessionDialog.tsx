@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { useSubjects } from '@/hooks/useSubjects';
 import { useStudySessionForm } from '@/hooks/calendar/useStudySessionForm';
 import TimeSelector from './TimeSelector';
 import { CalendarEvent } from '@/types/calendar';
-import { parseISO, format } from 'date-fns';
+import { parseISO, format, isBefore } from 'date-fns';
 
 interface StudySessionDialogProps {
   open: boolean;
@@ -44,6 +44,7 @@ const StudySessionDialog = ({
 
   const { subjects } = useSubjects();
   const { toast } = useToast();
+  const [timeError, setTimeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (eventToEdit) {
@@ -64,6 +65,35 @@ const StudySessionDialog = ({
     }
   }, [eventToEdit, setTitle, setSubject, setTopic, setDate, setStartTime, setDuration, setEventId]);
 
+  const validateTimeOrder = (date: string, time: string): boolean => {
+    // If editing an event, don't check against itself
+    const eventsToCheck = eventToEdit 
+      ? existingEvents.filter(e => e.id !== eventToEdit.id) 
+      : existingEvents;
+
+    // Selected date and time
+    const selectedDateTime = new Date(`${date}T${time}`);
+
+    // Check if selected time is after existing sessions on the same day
+    const sameDay = eventsToCheck.filter(event => {
+      const eventDate = format(new Date(event.start_time), 'yyyy-MM-dd');
+      return eventDate === date;
+    });
+
+    // Sort sessions by time
+    const sortedSessions = [...sameDay].sort((a, b) => 
+      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+    );
+
+    // If no sessions or all sessions are before this one, it's valid
+    const hasConflicts = sortedSessions.some(session => {
+      const sessionDateTime = new Date(session.start_time);
+      return isBefore(selectedDateTime, sessionDateTime);
+    });
+
+    return !hasConflicts;
+  };
+
   const handleSubmit = async () => {
     try {
       if (!formState.startTime) {
@@ -75,10 +105,25 @@ const StudySessionDialog = ({
         return;
       }
 
+      // Validate that the selected time comes after existing sessions for the day
+      if (!validateTimeOrder(formState.date, formState.startTime)) {
+        setTimeError("New sessions must be scheduled after existing sessions for the day");
+        toast({
+          title: "Invalid Time Selection",
+          description: "New sessions must be scheduled after existing sessions for the day",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const result = await submitForm();
+      
+      // The TypeScript error was here - checking void for truthiness
+      // Now we directly call onSuccess if it exists
       if (result && onSuccess) {
         onSuccess(result);
       }
+      
       onOpenChange(false);
 
       toast({
@@ -147,7 +192,7 @@ const StudySessionDialog = ({
                   <SelectValue placeholder="Select Topic" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">General Study</SelectItem>
+                  <SelectItem key="general-study" value="General Study">General Study</SelectItem>
                   {athroCharacters
                     .find(char => char.subject === formState.subject)
                     ?.topics.map((topic) => (
@@ -162,9 +207,13 @@ const StudySessionDialog = ({
               startTime={formState.startTime}
               duration={formState.duration}
               onDateChange={setDate}
-              onStartTimeChange={setStartTime}
+              onStartTimeChange={(time) => {
+                setStartTime(time);
+                setTimeError(null); // Clear error when time changes
+              }}
               onDurationChange={setDuration}
               existingTimes={existingEvents?.map(e => format(new Date(e.start_time), 'HH:mm'))}
+              errorMessage={timeError}
             />
           </div>
         </div>
