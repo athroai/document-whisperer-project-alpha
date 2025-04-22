@@ -118,8 +118,7 @@ const StudySessionDialog = ({
 
       const result = await submitForm();
       
-      // The TypeScript error was here - checking void for truthiness
-      // Now we directly call onSuccess if it exists
+      // Fixed: Only call onSuccess if result exists and onSuccess is defined
       if (result && onSuccess) {
         onSuccess(result);
       }

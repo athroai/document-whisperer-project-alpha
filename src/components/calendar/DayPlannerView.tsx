@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { parseISO, startOfDay, isSameDay } from 'date-fns';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -28,6 +29,7 @@ const DayPlannerView = ({
   const { deleteEvent } = useCalendarEvents();
   const { toast } = useToast();
 
+  // Update the day events when the parent events array changes
   useEffect(() => {
     const normalizedSelectedDate = startOfDay(selectedDate);
     
@@ -56,8 +58,22 @@ const DayPlannerView = ({
     setIsAddingEvent(true);
   };
 
-  const handleSessionSuccess = () => {
+  const handleSessionSuccess = (newEvent: CalendarEvent) => {
+    // Immediately add the new event to the day's events list
+    setDayEvents(prevEvents => {
+      // Create a new array with the new event
+      const updatedEvents = [...prevEvents, newEvent];
+      
+      // Sort the events by start time
+      return updatedEvents.sort((a, b) => 
+        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      );
+    });
+    
+    // Also refresh the parent's events list
     onRefresh();
+    
+    // Close the dialog
     setIsAddingEvent(false);
     setEditingEvent(null);
   };
@@ -65,6 +81,11 @@ const DayPlannerView = ({
   const handleDeleteEvent = async (eventId: string) => {
     if (window.confirm('Are you sure you want to delete this study session?')) {
       await deleteEvent(eventId);
+      
+      // Remove the event from the local state immediately
+      setDayEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+      
+      // Also refresh the parent's events list
       onRefresh();
     }
   };
@@ -107,6 +128,7 @@ const DayPlannerView = ({
             selectedDate={selectedDate}
             onSuccess={handleSessionSuccess}
             eventToEdit={editingEvent}
+            existingEvents={events} // Pass all events for time validation
           />
         )}
       </div>

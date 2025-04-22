@@ -1,8 +1,10 @@
+
 import { useState } from 'react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useSessionCreation } from './useSessionCreation';
 import { format, addMinutes, startOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { CalendarEvent } from '@/types/calendar';
 
 interface FormState {
   title: string;
@@ -18,7 +20,7 @@ interface FormState {
 export const useStudySessionForm = (
   initialDate: Date = new Date(),
   onClose?: () => void,
-  onSuccess?: (event: any) => void
+  onSuccess?: (event: CalendarEvent) => void
 ) => {
   const { createEvent, updateEvent } = useCalendarEvents();
   const { createCalendarSession } = useSessionCreation();
@@ -67,7 +69,7 @@ export const useStudySessionForm = (
     setFormState(prev => ({ ...prev, eventId }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<CalendarEvent | undefined> => {
     try {
       setFormState(prev => ({ ...prev, isSubmitting: true }));
       
@@ -87,9 +89,9 @@ export const useStudySessionForm = (
           event_type: 'study_session'
         });
         
-        if (updatedEvent && onSuccess) {
+        if (updatedEvent) {
           console.log("Event updated successfully:", updatedEvent);
-          onSuccess(updatedEvent);
+          return updatedEvent;
         } else {
           toast({
             title: "Warning",
@@ -111,6 +113,7 @@ export const useStudySessionForm = (
         dateString: dateStr
       });
       
+      // Try to create with the specialized service first
       const newEvent = await createCalendarSession({
         title: formState.title || `${formState.subject} Study Session`,
         subject: formState.subject,
@@ -122,6 +125,7 @@ export const useStudySessionForm = (
       if (!newEvent) {
         console.log("Session creation failed, falling back to legacy method");
         
+        // Fall back to the direct create method
         const fallbackEvent = await createEvent({
           title: formState.title || `${formState.subject} Study Session`,
           subject: formState.subject,
@@ -131,8 +135,9 @@ export const useStudySessionForm = (
           event_type: 'study_session'
         }, true);
         
-        if (fallbackEvent && onSuccess) {
-          onSuccess(fallbackEvent);
+        if (fallbackEvent) {
+          console.log("Session created successfully (fallback):", fallbackEvent);
+          return fallbackEvent;
         } else {
           toast({
             title: "Warning",
@@ -140,14 +145,16 @@ export const useStudySessionForm = (
             variant: "destructive"
           });
         }
-      } else if (onSuccess) {
+      } else {
         console.log("Session created successfully:", newEvent);
-        onSuccess(newEvent);
+        return newEvent;
       }
       
       if (onClose) {
         onClose();
       }
+      
+      return undefined;
     } catch (error) {
       console.error('Error creating/updating study session:', error);
       toast({
