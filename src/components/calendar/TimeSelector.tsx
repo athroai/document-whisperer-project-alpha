@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +13,7 @@ interface TimeSelectorProps {
   onDurationChange: (value: number) => void;
   existingTimes?: string[];
   errorMessage?: string | null;
+  checkConflicts?: (date: string, time: string, duration: number) => boolean;
 }
 
 const TimeSelector: React.FC<TimeSelectorProps> = ({
@@ -23,8 +24,16 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   onStartTimeChange,
   onDurationChange,
   existingTimes = [],
-  errorMessage = null
+  errorMessage = null,
+  checkConflicts
 }) => {
+  const [liveErrorMessage, setLiveErrorMessage] = useState<string | null>(errorMessage);
+  
+  // Update local error state when prop changes
+  useEffect(() => {
+    setLiveErrorMessage(errorMessage);
+  }, [errorMessage]);
+
   // Generate time options from 7 AM to 10 PM with half-hour intervals
   const generateTimeOptions = () => {
     const options = [];
@@ -44,6 +53,34 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   
   const timeOptions = generateTimeOptions();
 
+  const handleTimeChange = (newTime: string) => {
+    onStartTimeChange(newTime);
+    
+    // Check for conflicts if the function is provided
+    if (checkConflicts && newTime) {
+      const hasConflict = checkConflicts(date, newTime, duration);
+      if (hasConflict) {
+        setLiveErrorMessage("This time slot overlaps with an existing session");
+      } else {
+        setLiveErrorMessage(null);
+      }
+    }
+  };
+
+  const handleDurationChange = (newDuration: number) => {
+    onDurationChange(newDuration);
+    
+    // Check for conflicts if the function is provided
+    if (checkConflicts && startTime) {
+      const hasConflict = checkConflicts(date, startTime, newDuration);
+      if (hasConflict) {
+        setLiveErrorMessage("This duration causes an overlap with an existing session");
+      } else {
+        setLiveErrorMessage(null);
+      }
+    }
+  };
+
   return (
     <div className="grid gap-4">
       <div className="space-y-2">
@@ -52,7 +89,10 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
           id="date" 
           type="date" 
           value={date}
-          onChange={(e) => onDateChange(e.target.value)}
+          onChange={(e) => {
+            onDateChange(e.target.value);
+            setLiveErrorMessage(null);
+          }}
           className="w-full"
         />
       </div>
@@ -60,7 +100,7 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
         <Label htmlFor="time">Start Time (7 AM - 10 PM)</Label>
         <Select
           value={startTime}
-          onValueChange={onStartTimeChange}
+          onValueChange={handleTimeChange}
         >
           <SelectTrigger id="time" className="w-full">
             <SelectValue placeholder="Select Time" />
@@ -76,15 +116,15 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
             ))}
           </SelectContent>
         </Select>
-        {errorMessage && (
-          <p className="text-sm text-red-500 mt-1">{errorMessage}</p>
+        {liveErrorMessage && (
+          <p className="text-sm text-red-500 mt-1">{liveErrorMessage}</p>
         )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="duration">Duration</Label>
         <Select 
           value={duration.toString()} 
-          onValueChange={(value) => onDurationChange(parseInt(value, 10))}
+          onValueChange={(value) => handleDurationChange(parseInt(value, 10))}
         >
           <SelectTrigger id="duration" className="w-full">
             <SelectValue placeholder="Select Duration" />

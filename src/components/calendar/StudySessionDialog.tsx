@@ -11,7 +11,7 @@ import { useSubjects } from '@/hooks/useSubjects';
 import { useStudySessionForm } from '@/hooks/calendar/useStudySessionForm';
 import TimeSelector from './TimeSelector';
 import { CalendarEvent } from '@/types/calendar';
-import { parseISO, format, isBefore } from 'date-fns';
+import { parseISO, format, isBefore, addMinutes, areIntervalsOverlapping } from 'date-fns';
 
 interface StudySessionDialogProps {
   open: boolean;
@@ -40,7 +40,7 @@ const StudySessionDialog = ({
     setDuration,
     handleSubmit: submitForm,
     setEventId
-  } = useStudySessionForm(selectedDate);
+  } = useStudySessionForm(selectedDate, undefined, onSuccess);
 
   const { subjects } = useSubjects();
   const { toast } = useToast();
@@ -65,33 +65,29 @@ const StudySessionDialog = ({
     }
   }, [eventToEdit, setTitle, setSubject, setTopic, setDate, setStartTime, setDuration, setEventId]);
 
-  const validateTimeOrder = (date: string, time: string): boolean => {
+  const checkForTimeConflicts = (date: string, time: string, duration: number): boolean => {
     // If editing an event, don't check against itself
     const eventsToCheck = eventToEdit 
       ? existingEvents.filter(e => e.id !== eventToEdit.id) 
       : existingEvents;
 
-    // Selected date and time
-    const selectedDateTime = new Date(`${date}T${time}`);
+    // Selected date and time for new session
+    const selectedStartDateTime = new Date(`${date}T${time}`);
+    const selectedEndDateTime = addMinutes(selectedStartDateTime, duration);
 
-    // Check if selected time is after existing sessions on the same day
-    const sameDay = eventsToCheck.filter(event => {
-      const eventDate = format(new Date(event.start_time), 'yyyy-MM-dd');
-      return eventDate === date;
+    // Check if selected time overlaps with any existing sessions
+    const hasConflicts = eventsToCheck.some(event => {
+      const eventStartDateTime = new Date(event.start_time);
+      const eventEndDateTime = new Date(event.end_time);
+      
+      // Check if the intervals overlap
+      return areIntervalsOverlapping(
+        { start: selectedStartDateTime, end: selectedEndDateTime },
+        { start: eventStartDateTime, end: eventEndDateTime }
+      );
     });
 
-    // Sort sessions by time
-    const sortedSessions = [...sameDay].sort((a, b) => 
-      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-    );
-
-    // If no sessions or all sessions are before this one, it's valid
-    const hasConflicts = sortedSessions.some(session => {
-      const sessionDateTime = new Date(session.start_time);
-      return isBefore(selectedDateTime, sessionDateTime);
-    });
-
-    return !hasConflicts;
+    return hasConflicts;
   };
 
   const handleSubmit = async () => {
@@ -105,12 +101,12 @@ const StudySessionDialog = ({
         return;
       }
 
-      // Validate that the selected time comes after existing sessions for the day
-      if (!validateTimeOrder(formState.date, formState.startTime)) {
-        setTimeError("New sessions must be scheduled after existing sessions for the day");
+      // Check for time conflicts with existing sessions
+      if (checkForTimeConflicts(formState.date, formState.startTime, formState.duration)) {
+        setTimeError("This time slot overlaps with an existing session. Please choose another time.");
         toast({
-          title: "Invalid Time Selection",
-          description: "New sessions must be scheduled after existing sessions for the day",
+          title: "Time Conflict",
+          description: "This time slot overlaps with an existing session. Please choose another time.",
           variant: "destructive",
         });
         return;
@@ -118,19 +114,17 @@ const StudySessionDialog = ({
 
       const result = await submitForm();
       
-      // Fixed: Only call onSuccess if result exists and onSuccess is defined
-      if (result && onSuccess) {
-        onSuccess(result);
-      }
-      
-      onOpenChange(false);
+      // Only call onSuccess if result exists
+      if (result) {
+        onOpenChange(false);
 
-      toast({
-        title: eventToEdit ? 'Study Session Updated' : 'Study Session Scheduled',
-        description: eventToEdit ?
-          'Your study session has been updated.' :
-          'Your study session has been added to your calendar.',
-      });
+        toast({
+          title: eventToEdit ? 'Study Session Updated' : 'Study Session Scheduled',
+          description: eventToEdit ?
+            'Your study session has been updated.' :
+            'Your study session has been added to your calendar.',
+        });
+      }
     } catch (error) {
       console.error('Error with study session:', error);
       toast({
@@ -210,9 +204,13 @@ const StudySessionDialog = ({
                 setStartTime(time);
                 setTimeError(null); // Clear error when time changes
               }}
-              onDurationChange={setDuration}
+              onDurationChange={(duration) => {
+                setDuration(duration);
+                setTimeError(null); // Also clear error when duration changes
+              }}
               existingTimes={existingEvents?.map(e => format(new Date(e.start_time), 'HH:mm'))}
               errorMessage={timeError}
+              checkConflicts={(date, time, duration) => checkForTimeConflicts(date, time, duration)}
             />
           </div>
         </div>
