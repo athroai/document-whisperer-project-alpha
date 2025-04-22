@@ -11,6 +11,7 @@ interface TimeSelectorProps {
   onDateChange: (value: string) => void;
   onStartTimeChange: (value: string) => void;
   onDurationChange: (value: number) => void;
+  existingTimes?: string[];
 }
 
 const TimeSelector: React.FC<TimeSelectorProps> = ({
@@ -19,21 +20,22 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   duration,
   onDateChange,
   onStartTimeChange,
-  onDurationChange
+  onDurationChange,
+  existingTimes = []
 }) => {
-  // Generate time options with correct formatting for 24-hour display
+  // Generate time options from 7 AM to 10 PM with half-hour intervals
   const generateTimeOptions = () => {
     const options = [];
-    // Generate times from 9 AM (09:00) to 9 PM (21:00) with half-hour intervals
-    for (let hour = 9; hour <= 21; hour++) {
+    // Generate times from 7 AM (07:00) to 10 PM (22:00) with half-hour intervals
+    for (let hour = 7; hour <= 22; hour++) {
       const hourFormatted = hour.toString().padStart(2, '0');
-      
-      // Format for display (12-hour format)
       const hourDisplay = hour > 12 ? `${hour - 12}:00 ${hour >= 12 ? 'PM' : 'AM'}` : `${hour}:00 AM`;
       const halfHourDisplay = hour > 12 ? `${hour - 12}:30 ${hour >= 12 ? 'PM' : 'AM'}` : `${hour}:30 AM`;
       
       options.push({ value: `${hourFormatted}:00`, label: hourDisplay });
-      options.push({ value: `${hourFormatted}:30`, label: halfHourDisplay });
+      if (hour < 22) { // Don't add :30 for 10 PM
+        options.push({ value: `${hourFormatted}:30`, label: halfHourDisplay });
+      }
     }
     return options;
   };
@@ -41,7 +43,7 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   const timeOptions = generateTimeOptions();
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid gap-4">
       <div className="space-y-2">
         <Label htmlFor="date">Date</Label>
         <Input 
@@ -49,33 +51,37 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
           type="date" 
           value={date}
           onChange={(e) => onDateChange(e.target.value)}
+          className="w-full"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="time">Start Time (9 AM - 9 PM)</Label>
+        <Label htmlFor="time">Start Time (7 AM - 10 PM)</Label>
         <Select
           value={startTime}
           onValueChange={onStartTimeChange}
         >
-          <SelectTrigger id="time">
+          <SelectTrigger id="time" className="w-full">
             <SelectValue placeholder="Select Time" />
           </SelectTrigger>
           <SelectContent>
             {timeOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem 
+                key={option.value} 
+                value={option.value}
+              >
                 {option.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-2 col-span-2">
-        <Label htmlFor="duration">Duration (minutes)</Label>
+      <div className="space-y-2">
+        <Label htmlFor="duration">Duration</Label>
         <Select 
           value={duration.toString()} 
           onValueChange={(value) => onDurationChange(parseInt(value, 10))}
         >
-          <SelectTrigger id="duration">
+          <SelectTrigger id="duration" className="w-full">
             <SelectValue placeholder="Select Duration" />
           </SelectTrigger>
           <SelectContent>
