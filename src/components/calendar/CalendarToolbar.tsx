@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CalendarPlus, RefreshCw, Trash2, Loader2 } from 'lucide-react';
@@ -11,31 +12,24 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { useToast } from '@/hooks/use-toast';
-import { useWeeklyPlanning } from '@/hooks/useWeeklyPlanning';
-import { WeeklyPlanningDialog } from './WeeklyPlanningDialog';
 import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 interface CalendarToolbarProps {
   isLoading: boolean;
   onRefresh: () => void;
+  onRestartOnboarding?: () => void;
 }
 
 const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   isLoading,
   onRefresh,
+  onRestartOnboarding
 }) => {
   const { toast } = useToast();
   const [clearingCalendar, setClearingCalendar] = useState(false);
   const [showFirstConfirmation, setShowFirstConfirmation] = useState(false);
   const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
-  
-  const {
-    isDialogOpen,
-    setIsDialogOpen,
-    isPlanningWeek,
-    handlePlanWeek
-  } = useWeeklyPlanning(onRefresh);
 
   const handleClearCalendar = async () => {
     try {
@@ -53,6 +47,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         return;
       }
 
+      // Call the Edge Function to handle clearing the calendar
       const { data, error } = await supabase.functions.invoke('clear-calendar', {
         body: {
           user_id: session.user.id,
@@ -79,9 +74,11 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         description
       });
 
+      // Close the confirmation dialogs
       setShowFirstConfirmation(false);
       setShowFinalConfirmation(false);
 
+      // Allow the user to see the success message before refreshing
       setTimeout(() => {
         onRefresh();
         setClearingCalendar(false);
@@ -106,7 +103,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           variant="outline"
           size="sm"
           onClick={onRefresh}
-          disabled={isLoading || clearingCalendar || isPlanningWeek}
+          disabled={isLoading || clearingCalendar}
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -121,7 +118,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             <Button
               variant="destructive"
               size="sm"
-              disabled={isLoading || clearingCalendar || isPlanningWeek}
+              disabled={isLoading || clearingCalendar}
             >
               {clearingCalendar ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -189,26 +186,17 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         </AlertDialog>
       </div>
 
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={() => setIsDialogOpen(true)}
-        disabled={isLoading || clearingCalendar || isPlanningWeek}
-      >
-        {isPlanningWeek ? (
-          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-        ) : (
+      {onRestartOnboarding && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onRestartOnboarding}
+          disabled={isLoading || clearingCalendar}
+        >
           <CalendarPlus className="h-4 w-4 mr-1" />
-        )}
-        Plan My Week
-      </Button>
-
-      <WeeklyPlanningDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onConfirm={handlePlanWeek}
-        isLoading={isPlanningWeek}
-      />
+          Restart Onboarding
+        </Button>
+      )}
     </div>
   );
 };
