@@ -6,7 +6,7 @@ export const useSubjects = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   useEffect(() => {
-    // Load available GCSE subjects
+    // Load available GCSE subjects with separated science subjects
     const gcseSubjects = [
       'Mathematics',
       'English Language',
@@ -14,7 +14,6 @@ export const useSubjects = () => {
       'Biology',
       'Chemistry',
       'Physics',
-      'Combined Science',
       'Computer Science',
       'History',
       'Geography',

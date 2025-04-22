@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useSessionCreation } from './useSessionCreation';
@@ -41,7 +40,6 @@ export const useStudySessionForm = (
     eventId: undefined
   });
   
-  // Initialize form with event data when editing
   useEffect(() => {
     if (eventToEdit) {
       try {
@@ -65,7 +63,6 @@ export const useStudySessionForm = (
     }
   }, [eventToEdit]);
 
-  // Form field setters
   const setTitle = (title: string) => {
     setFormState(prev => ({ ...prev, title }));
   };
@@ -102,13 +99,16 @@ export const useStudySessionForm = (
       const startDateTime = new Date(dateStr);
       const endDateTime = addMinutes(startDateTime, formState.duration);
       
+      const defaultTitle = `${formState.subject} Study Session`;
+      const sessionTitle = formState.title || defaultTitle;
+      
       let resultEvent: CalendarEvent | undefined;
       
       if (formState.eventId) {
         console.log("Updating calendar event:", formState.eventId);
         
         resultEvent = await updateEvent(formState.eventId, {
-          title: formState.title || `${formState.subject} Study Session`,
+          title: sessionTitle,
           subject: formState.subject,
           topic: formState.topic,
           start_time: startDateTime.toISOString(),
@@ -125,7 +125,7 @@ export const useStudySessionForm = (
         console.log("Creating new calendar session");
         
         resultEvent = await createCalendarSession({
-          title: formState.title || `${formState.subject} Study Session`,
+          title: sessionTitle,
           subject: formState.subject,
           topic: formState.topic,
           startTime: startDateTime,
@@ -135,7 +135,7 @@ export const useStudySessionForm = (
         if (!resultEvent) {
           console.log("Session creation failed, falling back to legacy method");
           resultEvent = await createEvent({
-            title: formState.title || `${formState.subject} Study Session`,
+            title: sessionTitle,
             subject: formState.subject,
             topic: formState.topic,
             start_time: startDateTime.toISOString(),
@@ -159,7 +159,6 @@ export const useStudySessionForm = (
     }
   };
 
-  // Reset form state
   const resetForm = () => {
     setFormState({
       title: '',
