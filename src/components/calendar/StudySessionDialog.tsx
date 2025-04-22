@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   eventToEdit,
   existingEvents = []
 }) => {
-  const { subjects: userSubjects, isLoading: subjectsLoading } = useUserSubjects();
+  const { subjects: userSubjects, isLoading: subjectsLoading, refetch: refetchSubjects } = useUserSubjects();
   const { toast } = useToast();
   const [timeError, setTimeError] = useState<string | null>(null);
 
@@ -48,25 +49,33 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
 
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
 
+  // Fetch subjects when component mounts
   useEffect(() => {
+    refetchSubjects();
+  }, [refetchSubjects]);
+
+  useEffect(() => {
+    console.log("Setting available subjects. User subjects:", userSubjects);
     if (userSubjects && userSubjects.length > 0) {
-      setAvailableSubjects(userSubjects.map(s => s.subject));
-      if (eventToEdit?.subject && !userSubjects.some(s => s.subject === eventToEdit.subject)) {
-        setAvailableSubjects((prev) => prev.includes(eventToEdit.subject) ? prev : [...prev, eventToEdit.subject]);
+      const subjects = userSubjects.map(s => s.subject);
+      console.log("User has subjects:", subjects);
+      setAvailableSubjects(subjects);
+      
+      // Include the event's subject if it's not in the user's subjects
+      if (eventToEdit?.subject && !subjects.includes(eventToEdit.subject)) {
+        console.log(`Adding event subject to availableSubjects: ${eventToEdit.subject}`);
+        setAvailableSubjects(prev => [...prev, eventToEdit.subject]);
       }
     } else {
+      console.log("No user subjects found, using GCSE_SUBJECTS");
       setAvailableSubjects(GCSE_SUBJECTS);
     }
   }, [userSubjects, eventToEdit]);
 
-  useEffect(() => {
-    if (eventToEdit?.subject && !availableSubjects.includes(eventToEdit.subject)) {
-      setAvailableSubjects(prev => [...prev, eventToEdit.subject]);
-    }
-  }, [eventToEdit, availableSubjects]);
-
+  // Set a default subject if none is selected and subjects are available
   useEffect(() => {
     if (!formState.subject && availableSubjects.length > 0) {
+      console.log(`Setting default subject to: ${availableSubjects[0]}`);
       setSubject(availableSubjects[0]);
     }
   }, [availableSubjects, formState.subject, setSubject]);
@@ -90,7 +99,10 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         });
         return;
       }
+      
+      console.log("Submitting form with subject:", formState.subject);
       const result = await submitForm();
+      
       if (result) {
         onOpenChange(false);
         resetForm();
@@ -165,7 +177,10 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                 <Label htmlFor="subject" className="text-sm font-medium">Subject</Label>
                 <Select
                   value={formState.subject}
-                  onValueChange={setSubject}
+                  onValueChange={(value) => {
+                    console.log(`Selected subject: ${value}`);
+                    setSubject(value);
+                  }}
                   name="subject"
                 >
                   <SelectTrigger id="subject">

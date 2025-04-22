@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export const BasicSubjectSelection: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject } = useOnboarding();
-  const { subjects, isLoading, usingDefaultSubjects, allSubjects } = useSubjects();
+  const { allSubjects } = useSubjects();
   const { toast } = useToast();
   const [initialized, setInitialized] = useState(false);
   const { state: authState } = useAuth();
@@ -55,7 +55,7 @@ export const BasicSubjectSelection: React.FC = () => {
               .upsert({
                 student_id: authState.user.id,
                 subject: subject,
-                confidence_level: "medium"
+                confidence_level: 5 // Use numeric value for database
               });
               
             if (error) {
@@ -77,20 +77,20 @@ export const BasicSubjectSelection: React.FC = () => {
     }
   };
 
-  // The subjects to display - use a combination of all available subjects
+  // The subjects to display - use all available subjects
   const displaySubjects = allSubjects;
 
   useEffect(() => {
-    if (usingDefaultSubjects && !initialized && !isLoading) {
+    if (!initialized) {
       toast({
         title: "Subject selection",
         description: "Please select the GCSE subjects you're studying",
       });
       setInitialized(true);
     }
-  }, [usingDefaultSubjects, isLoading, initialized, toast]);
+  }, [initialized, toast]);
 
-  if (isLoading) {
+  if (!displaySubjects || displaySubjects.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -101,11 +101,6 @@ export const BasicSubjectSelection: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {usingDefaultSubjects && (
-        <p className="text-sm text-amber-500 mb-4">
-          Select the subjects you're studying for GCSE.
-        </p>
-      )}
       <div className="grid grid-cols-2 gap-2">
         {displaySubjects.map((subject) => {
           const isSelected = isSubjectSelected(subject);

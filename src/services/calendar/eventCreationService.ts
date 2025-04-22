@@ -18,6 +18,7 @@ export const createDatabaseEvent = async (
   }
 
   console.log(`Creating calendar event for user ${userId}:`, eventData);
+  console.log(`Subject being saved: ${eventData.subject}`);
   
   const existingEvent = await checkForExistingEvents(userId, eventData.start_time, eventData.end_time);
   if (existingEvent) {
@@ -42,7 +43,7 @@ export const createDatabaseEvent = async (
     end_time: eventData.end_time
   };
 
-  console.log('Inserting calendar event:', eventInsert);
+  console.log('Inserting calendar event with description:', eventDescription);
 
   try {
     const { data, error } = await supabase
