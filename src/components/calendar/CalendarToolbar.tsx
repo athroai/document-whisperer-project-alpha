@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CalendarPlus, RefreshCw, Trash2 } from 'lucide-react';
@@ -39,6 +40,28 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         return;
       }
 
+      // First, delete any records in study_plan_sessions that reference calendar events for this user
+      const { error: studyPlanError } = await supabase.rpc('delete_study_plan_sessions_for_user', {
+        user_id_param: session.user.id
+      });
+
+      if (studyPlanError) {
+        console.error('Error clearing study plan sessions:', studyPlanError);
+        // Continue with deletion even if this fails (the function might not exist yet)
+        
+        // Alternative approach: try a direct deletion if the RPC doesn't exist
+        const { error: directDeleteError } = await supabase
+          .from('study_plan_sessions')
+          .delete()
+          .eq('user_id', session.user.id);
+          
+        if (directDeleteError) {
+          console.warn('Could not directly delete study plan sessions:', directDeleteError);
+          // Still continue to try to delete events that don't have foreign key constraints
+        }
+      }
+
+      // Now delete the calendar events
       const { error } = await supabase
         .from('calendar_events')
         .delete()

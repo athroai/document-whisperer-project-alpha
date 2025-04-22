@@ -40,6 +40,40 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
       const dayStart = startOfDay(selectedDate).toISOString();
       const dayEnd = endOfDay(selectedDate).toISOString();
 
+      // First, get the IDs of calendar events for this day
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('calendar_events')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .gte('start_time', dayStart)
+        .lte('end_time', dayEnd);
+
+      if (eventsError) {
+        console.error('Error fetching events:', eventsError);
+        throw eventsError;
+      }
+
+      const eventIds = eventsData?.map(event => event.id) || [];
+      
+      if (eventIds.length > 0) {
+        // Delete related study plan sessions if they exist
+        try {
+          const { error: studyPlanError } = await supabase
+            .from('study_plan_sessions')
+            .delete()
+            .in('calendar_event_id', eventIds);
+            
+          if (studyPlanError) {
+            console.warn('Error clearing study plan sessions for day:', studyPlanError);
+            // Continue anyway - some sessions might not have study plan entries
+          }
+        } catch (spError) {
+          console.warn('Failed to delete study plan sessions:', spError);
+          // Continue anyway
+        }
+      }
+
+      // Now delete the calendar events
       const { error } = await supabase
         .from('calendar_events')
         .delete()
