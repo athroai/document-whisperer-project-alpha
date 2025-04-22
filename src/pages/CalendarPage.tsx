@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -181,7 +180,6 @@ const CalendarPage: React.FC = () => {
         <CalendarToolbar 
           isLoading={isLoading} 
           onRefresh={handleRetryLoad} 
-          onRestartOnboarding={handleRestartOnboarding} 
         />
         
         {(isLoading && isInitialLoad) ? (

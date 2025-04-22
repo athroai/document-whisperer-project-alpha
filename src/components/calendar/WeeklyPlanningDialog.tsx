@@ -1,12 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { StudyPreferences } from '@/components/onboarding/core/StudyPreferences';
 import { SubjectSelector } from '@/components/onboarding/core/SubjectSelector';
@@ -26,13 +25,17 @@ export const WeeklyPlanningDialog: React.FC<WeeklyPlanningDialogProps> = ({
   onConfirm,
   isLoading
 }) => {
-  const [preferences, setPreferences] = React.useState({
+  const [preferences, setPreferences] = useState({
     focusMode: 'pomodoro' as const,
     preferredTime: 'morning' as const,
     reviewFrequency: 'daily' as const
   });
 
-  const [subjects, setSubjects] = React.useState<{ subject: string; confidence: 'low' | 'medium' | 'high' }[]>([]);
+  const [subjects, setSubjects] = useState<{ subject: string; confidence: 'low' | 'medium' | 'high' }[]>([]);
+
+  const handleUpdatePreferences = (newPrefs: typeof preferences) => {
+    setPreferences(newPrefs);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,7 +60,7 @@ export const WeeklyPlanningDialog: React.FC<WeeklyPlanningDialogProps> = ({
             <h3 className="text-lg font-semibold mb-4">Study Preferences</h3>
             <StudyPreferences
               preferences={preferences}
-              updatePreferences={setPreferences}
+              updatePreferences={handleUpdatePreferences}
             />
           </div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CalendarPlus, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import {
@@ -14,6 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useWeeklyPlanning } from '@/hooks/useWeeklyPlanning';
 import { WeeklyPlanningDialog } from './WeeklyPlanningDialog';
+import { supabase } from '@/lib/supabase';
 
 interface CalendarToolbarProps {
   isLoading: boolean;
@@ -52,7 +53,6 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         return;
       }
 
-      // Call the Edge Function to handle clearing the calendar
       const { data, error } = await supabase.functions.invoke('clear-calendar', {
         body: {
           user_id: session.user.id,
@@ -79,11 +79,9 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         description
       });
 
-      // Close the confirmation dialogs
       setShowFirstConfirmation(false);
       setShowFinalConfirmation(false);
 
-      // Allow the user to see the success message before refreshing
       setTimeout(() => {
         onRefresh();
         setClearingCalendar(false);
