@@ -1,6 +1,5 @@
-
 import React, { useState, useCallback } from 'react';
-import { startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
+import { startOfMonth, endOfMonth, eachDayOfInterval, addMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,10 +15,10 @@ interface BigCalendarViewProps {
   showRefreshButton?: boolean;
 }
 
-const BigCalendarView: React.FC<BigCalendarViewProps> = ({ 
+const BigCalendarView = ({ 
   onRetryLoad,
   showRefreshButton = true
-}) => {
+}: BigCalendarViewProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
   
