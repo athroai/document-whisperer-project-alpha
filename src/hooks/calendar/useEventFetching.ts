@@ -1,6 +1,5 @@
-
 import { useEffect, useCallback, useRef } from 'react';
-import { fetchDatabaseEvents } from '@/services/calendarEventService';
+import { fetchDatabaseEvents } from '@/services/calendar/calendarEventService';
 import { CalendarEvent } from '@/types/calendar';
 import { supabase } from '@/lib/supabase';
 
@@ -15,19 +14,15 @@ export const useEventFetching = (
   const subscriptionActive = useRef(false);
   const fetchAttempted = useRef(false);
   const realtimeUpdateDebounceTimer = useRef<NodeJS.Timeout | null>(null);
-  // Track the last fetch time to prevent excessive refreshes
   const lastFetchTime = useRef<number>(0);
   
-  // Fetch events from the database and local storage with rate limiting
   const fetchEvents = useCallback(async (): Promise<CalendarEvent[]> => {
-    // Prevent multiple concurrent fetches and implement rate limiting
     const now = Date.now();
     if (fetchInProgress.current) {
       console.log('Fetch already in progress, skipping');
       return [];
     }
     
-    // Rate limiting: only allow fetch every 2 seconds
     if ((now - lastFetchTime.current) < 2000 && fetchAttempted.current) {
       console.log('Fetch attempted too recently, skipping');
       return [];
@@ -38,7 +33,6 @@ export const useEventFetching = (
       setIsLoading(true);
       lastFetchTime.current = now;
       
-      // Verify authentication or get authenticated user ID
       let authenticatedId = userId;
       if (!authenticatedId) {
         try {
@@ -50,7 +44,6 @@ export const useEventFetching = (
         }
       }
 
-      // If still no authenticated ID, use local events only
       if (!authenticatedId) {
         console.log('No authenticated user ID found, using only local events');
         
@@ -70,7 +63,6 @@ export const useEventFetching = (
         console.log(`Fetching database events for user: ${authenticatedId}`);
         const dbEvents = await fetchDatabaseEvents(authenticatedId);
         
-        // Combine with local events, ensuring no duplicates
         const localOnlyEvents = localEvents.filter(e => e.local_only);
         const combinedEvents = [...dbEvents, ...localOnlyEvents];
         
@@ -82,7 +74,6 @@ export const useEventFetching = (
       } catch (fetchError) {
         console.error('Error fetching database events:', fetchError);
         
-        // Fall back to local events if database fetch fails
         if (localEvents.length > 0) {
           setEvents(localEvents);
         } else {
@@ -99,14 +90,12 @@ export const useEventFetching = (
       fetchAttempted.current = true;
       return [];
     } finally {
-      // Give a small delay before allowing next fetch
       setTimeout(() => {
         fetchInProgress.current = false;
       }, 1000);
     }
   }, [userId, setEvents, setIsLoading, localEvents]);
 
-  // Set up real-time subscription for calendar events - with improved debouncing
   useEffect(() => {
     if (!userId || subscriptionActive.current) return;
     
@@ -124,19 +113,15 @@ export const useEventFetching = (
           (payload) => {
             console.log('Received real-time update for calendar_events:', payload);
             
-            // Only fetch if we've completed at least one initial fetch
             if (fetchAttempted.current) {
-              // Clear any existing debounce timer
               if (realtimeUpdateDebounceTimer.current) {
                 clearTimeout(realtimeUpdateDebounceTimer.current);
               }
               
-              // Debounce for 5 seconds to prevent multiple rapid refreshes
               realtimeUpdateDebounceTimer.current = setTimeout(async () => {
                 try {
                   if (!fetchInProgress.current) {
                     const now = Date.now();
-                    // Only refresh if it's been at least 3 seconds since the last fetch
                     if ((now - lastFetchTime.current) >= 3000) {
                       await fetchEvents();
                       setLastRefreshedAt(new Date());
@@ -148,14 +133,13 @@ export const useEventFetching = (
                 } catch (error) {
                   console.error('Error refreshing events after real-time update:', error);
                 }
-              }, 5000); // Increased debounce time to 5 seconds
+              }, 5000);
             }
           }
         )
         .subscribe();
     };
     
-    // Only setup subscription if userId exists
     if (userId) {
       setupSubscription();
     }
