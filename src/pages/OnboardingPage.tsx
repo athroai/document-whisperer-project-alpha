@@ -31,6 +31,12 @@ const OnboardingPage: React.FC = () => {
       days: [1, 2, 3, 4, 5] as number[],
       sessionsPerDay: 2,
       sessionDuration: 45,
+    },
+    // Add default preferences to prevent the error
+    preferences: {
+      focusMode: 'pomodoro' as 'pomodoro' | 'continuous',
+      preferredTime: 'afternoon' as 'morning' | 'afternoon' | 'evening',
+      reviewFrequency: 'daily' as 'daily' | 'weekly',
     }
   });
 

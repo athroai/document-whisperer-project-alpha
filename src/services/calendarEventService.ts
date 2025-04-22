@@ -58,12 +58,15 @@ export const fetchDatabaseEvents = async (userId: string | null): Promise<Calend
       const key = `${event.start_time}-${event.end_time}`;
       
       // Always prefer events with specific titles over generic "Study Session" events
-      if (!uniqueEvents.has(key) || (event.title !== 'Study Session' && uniqueEvents.get(key).title === 'Study Session')) {
+      if (!uniqueEvents.has(key) || 
+          (event.title !== 'Study Session' && uniqueEvents.get(key).title === 'Study Session')) {
         uniqueEvents.set(key, event);
       }
       
       // If both events have subjects, prefer the one with more specific information
-      if (uniqueEvents.has(key) && event.title !== 'Study Session' && uniqueEvents.get(key).title !== 'Study Session') {
+      if (uniqueEvents.has(key) && 
+          event.title !== 'Study Session' && 
+          uniqueEvents.get(key).title !== 'Study Session') {
         const existingEvent = uniqueEvents.get(key);
         let existingSubject = '';
         let newSubject = '';
@@ -140,6 +143,64 @@ export const createDatabaseEvent = async (
   }
 
   console.log(`Creating calendar event for user ${userId}:`, eventData);
+  
+  // First check if there's already an event with the same time
+  try {
+    const { data: existingEvents } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('start_time', eventData.start_time)
+      .eq('end_time', eventData.end_time);
+      
+    // If there's already an event with a specific subject at this time, don't create another one
+    if (existingEvents && existingEvents.length > 0) {
+      const hasSpecificSubject = existingEvents.some(event => {
+        try {
+          if (event.description) {
+            const data = JSON.parse(event.description);
+            return !!data.subject && event.title !== 'Study Session';
+          }
+          return false;
+        } catch (e) {
+          return false;
+        }
+      });
+      
+      if (hasSpecificSubject) {
+        console.log('Skipping event creation - already exists with subject for this time slot');
+        
+        // Return the existing event as if it was created
+        const existingEvent = existingEvents.find(event => event.title !== 'Study Session') || existingEvents[0];
+        let subject = '';
+        let topic = '';
+        
+        try {
+          if (existingEvent.description) {
+            const parsed = JSON.parse(existingEvent.description);
+            subject = parsed.subject || '';
+            topic = parsed.topic || '';
+          }
+        } catch (e) {}
+        
+        return {
+          id: existingEvent.id,
+          title: existingEvent.title,
+          description: existingEvent.description,
+          subject,
+          topic,
+          start_time: existingEvent.start_time,
+          end_time: existingEvent.end_time,
+          event_type: existingEvent.event_type || 'study_session',
+          user_id: existingEvent.user_id,
+          student_id: existingEvent.student_id
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('Error checking for existing events:', error);
+    // Continue with event creation anyway
+  }
   
   const eventDescription = JSON.stringify({
     subject: eventData.subject || '',
