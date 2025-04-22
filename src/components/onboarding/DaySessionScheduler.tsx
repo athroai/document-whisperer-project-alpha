@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, BookOpen } from 'lucide-react';
 
 interface SessionTime {
   startHour: number;
@@ -60,10 +60,19 @@ export const DaySessionScheduler: React.FC<DaySessionSchedulerProps> = ({
     { value: 120, label: '2 hours' },
   ];
 
+  // Count total sessions across all days
+  const totalSessions = dayPreferences.reduce((count, day) => count + day.sessionTimes.length, 0);
+
   return (
     <div className="space-y-6 mt-6">
-      <Label className="text-lg font-medium">Set Your Study Sessions</Label>
-      <p className="text-muted-foreground">For each day you've selected, add one or more study sessions with specific times and durations.</p>
+      <div className="flex justify-between items-center">
+        <Label className="text-lg font-medium">Set Your Study Sessions</Label>
+        <div className="text-sm text-muted-foreground">
+          Total sessions: <span className="font-medium">{totalSessions}</span>
+        </div>
+      </div>
+      
+      <p className="text-muted-foreground">For each day you've selected, add one or more study sessions with specific times and durations. We'll automatically assign subjects to these sessions in your study plan.</p>
       
       {selectedDays.length === 0 && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
@@ -77,14 +86,17 @@ export const DaySessionScheduler: React.FC<DaySessionSchedulerProps> = ({
         
         return (
           <Card key={dayIndex} className="p-4">
-            <h3 className="font-medium mb-4">{getDayName(dayIndex)}</h3>
+            <h3 className="font-medium mb-4 flex items-center">
+              <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+              {getDayName(dayIndex)}
+            </h3>
             
             {sessionTimes.length === 0 ? (
               <p className="text-sm text-muted-foreground mb-2">No sessions added yet.</p>
             ) : (
               <div className="space-y-4">
                 {sessionTimes.map((session, sessionIndex) => (
-                  <div key={sessionIndex} className="flex items-center gap-3 flex-wrap">
+                  <div key={sessionIndex} className="flex items-center gap-3 flex-wrap p-2 bg-gray-50 rounded-md">
                     <div className="flex-1 min-w-[140px]">
                       <Label htmlFor={`time-${dayIndex}-${sessionIndex}`} className="text-xs mb-1 block">Start time</Label>
                       <Select 
@@ -150,6 +162,14 @@ export const DaySessionScheduler: React.FC<DaySessionSchedulerProps> = ({
           </Card>
         );
       })}
+      
+      <div className="mt-6 bg-blue-50 p-4 rounded-md border border-blue-100">
+        <h4 className="font-medium text-blue-800 mb-2">What happens next?</h4>
+        <p className="text-sm text-blue-700">
+          We'll automatically assign your chosen subjects to these time slots in your calendar, 
+          creating a balanced study schedule. You can always modify these sessions later.
+        </p>
+      </div>
     </div>
   );
 };

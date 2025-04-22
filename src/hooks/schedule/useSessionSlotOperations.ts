@@ -36,11 +36,12 @@ export const useSessionSlotOperations = () => {
         try {
           console.log(`Creating event for day ${dayIndex} (${nextDate.toDateString()}) at ${startTime.toTimeString()}`);
           
+          // Only create events with titles from the custom slots, not generic "Study Session" events
           const event = await createEvent({
-            title: "Study Session",
+            title: `${slot.subject || 'Subject'} Study Session`, // Include subject name
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
-            subject: "General",
+            subject: slot.subject || 'General',
             event_type: 'study_session'
           }, useLocalFallback);
 
@@ -81,7 +82,8 @@ export const useSessionSlotOperations = () => {
         day_of_week: slot.day_of_week,
         slot_count: slot.slot_count,
         slot_duration_minutes: slot.slot_duration_minutes,
-        preferred_start_hour: slot.preferred_start_hour
+        preferred_start_hour: slot.preferred_start_hour,
+        subject: slot.subject // Include subject when saving to database
       }));
 
       const { data, error } = await supabase

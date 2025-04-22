@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SubjectSelector } from '@/components/onboarding/core/SubjectSelector';
 import { AvailabilitySettings } from '@/components/onboarding/core/AvailabilitySettings';
-import { StudyPreferences } from '@/components/onboarding/core/StudyPreferences';
 import { PlanGenerator } from '@/components/onboarding/core/PlanGenerator';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +11,8 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
-type OnboardingStep = 'subjects' | 'availability' | 'preferences' | 'generate';
+// Modified step types to remove 'preferences'
+type OnboardingStep = 'subjects' | 'availability' | 'generate';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,11 +31,6 @@ const OnboardingPage: React.FC = () => {
       days: [1, 2, 3, 4, 5] as number[],
       sessionsPerDay: 2,
       sessionDuration: 45,
-    },
-    preferences: {
-      focusMode: 'pomodoro' as 'pomodoro' | 'continuous',
-      preferredTime: 'afternoon' as 'morning' | 'afternoon' | 'evening',
-      reviewFrequency: 'weekly' as 'daily' | 'weekly',
     }
   });
 
@@ -100,9 +96,7 @@ const OnboardingPage: React.FC = () => {
         setCurrentStep('availability');
         break;
       case 'availability':
-        setCurrentStep('preferences');
-        break;
-      case 'preferences':
+        // Skip preferences step and go straight to generate
         setCurrentStep('generate');
         break;
       default:
@@ -115,11 +109,8 @@ const OnboardingPage: React.FC = () => {
       case 'availability':
         setCurrentStep('subjects');
         break;
-      case 'preferences':
-        setCurrentStep('availability');
-        break;
       case 'generate':
-        setCurrentStep('preferences');
+        setCurrentStep('availability');
         break;
       default:
         break;
@@ -137,13 +128,6 @@ const OnboardingPage: React.FC = () => {
     setOnboardingData(prev => ({
       ...prev,
       availability
-    }));
-  }
-
-  function updatePreferences(preferences: typeof onboardingData.preferences) {
-    setOnboardingData(prev => ({
-      ...prev,
-      preferences
     }));
   }
 
@@ -237,7 +221,7 @@ const OnboardingPage: React.FC = () => {
           title: `${subjectObj.subject} Study Session`,
           description: JSON.stringify({
             subject: subjectObj.subject,
-            isPomodoro: onboardingData.preferences.focusMode === 'pomodoro',
+            isPomodoro: true,
             pomodoroWorkMinutes: 25,
             pomodoroBreakMinutes: 5
           }),
@@ -323,17 +307,7 @@ const OnboardingPage: React.FC = () => {
         );
       case 'availability':
         return (
-          <AvailabilitySettings
-            availability={onboardingData.availability}
-            updateAvailability={updateAvailability}
-          />
-        );
-      case 'preferences':
-        return (
-          <StudyPreferences
-            preferences={onboardingData.preferences}
-            updatePreferences={updatePreferences}
-          />
+          <AvailabilitySettings />
         );
       case 'generate':
         return (
@@ -355,7 +329,6 @@ const OnboardingPage: React.FC = () => {
     switch (currentStep) {
       case 'subjects': return 25;
       case 'availability': return 50;
-      case 'preferences': return 75;
       case 'generate': return generationComplete ? 100 : 90;
       default: return 0;
     }
@@ -379,7 +352,6 @@ const OnboardingPage: React.FC = () => {
           <div className="flex justify-between mb-2 text-sm">
             <span className={currentStep === 'subjects' ? 'font-bold text-purple-700' : ''}>Subjects</span>
             <span className={currentStep === 'availability' ? 'font-bold text-purple-700' : ''}>Schedule</span>
-            <span className={currentStep === 'preferences' ? 'font-bold text-purple-700' : ''}>Preferences</span>
             <span className={currentStep === 'generate' ? 'font-bold text-purple-700' : ''}>Create Plan</span>
           </div>
           <Progress value={getProgressPercentage()} className="h-2" />

@@ -48,6 +48,12 @@ export function useStudyScheduleCore() {
     setSessionsPerDay(newCount);
   };
 
+  // Get available subjects from the database
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([
+    'Mathematics', 'English', 'Science', 'History', 'Geography', 'Languages',
+    'Computer Science', 'Art', 'Music', 'Physical Education'
+  ]);
+
   const getSessionId = (day: number, sessIdx: number) => `session-${day}-${sessIdx}-${Date.now()}`;
 
   const handleContinue = async () => {
@@ -84,25 +90,49 @@ export function useStudyScheduleCore() {
 
     try {
       const newSlots: PreferredStudySlot[] = [];
+      
+      // Try to get student subjects
+      let subjects: string[] = [];
+      try {
+        const { data } = await supabase
+          .from('student_subject_preferences')
+          .select('subject')
+          .eq('student_id', authState.user?.id || '');
+          
+        if (data && data.length > 0) {
+          subjects = data.map(item => item.subject);
+        }
+      } catch (err) {
+        console.error('Error fetching subjects:', err);
+      }
+      
+      // If no subjects found, use default subjects
+      if (subjects.length === 0) {
+        subjects = availableSubjects;
+      }
 
-      // Convert day preferences to study slots
+      // Convert day preferences to study slots and assign subjects in rotation
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
         if (dayPreference) {
           dayPreference.sessionTimes.forEach((session, i) => {
+            // Assign a subject in rotation
+            const subjectIndex = newSlots.length % subjects.length;
+            
             newSlots.push({
               id: getSessionId(dayOfWeek, i),
               user_id: authState.user?.id || 'temp-user-id',
               day_of_week: dayOfWeek,
               slot_count: 1,
               slot_duration_minutes: session.durationMinutes,
-              preferred_start_hour: session.startHour
+              preferred_start_hour: session.startHour,
+              subject: subjects[subjectIndex] // Assign subject
             });
           });
         }
       });
 
-      console.log("Created study slots:", newSlots);
+      console.log("Created study slots with subjects:", newSlots);
       setStudySlots(newSlots);
 
       const userId = authState.user?.id;
@@ -152,6 +182,9 @@ export function useStudyScheduleCore() {
       } catch (progressError) {
         console.error('Error handling onboarding progress:', progressError);
       }
+
+      // Save slots to localStorage for backup
+      localStorage.setItem('athro_study_slots', JSON.stringify(newSlots));
 
       // Move to the next step in the onboarding flow
       updateOnboardingStep('calendar');

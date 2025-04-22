@@ -51,7 +51,22 @@ export const fetchDatabaseEvents = async (userId: string | null): Promise<Calend
     const allEvents = [...userEvents, ...studentEvents];
     console.log(`Total events fetched: ${allEvents.length}`);
 
-    return allEvents.map(event => {
+    // Remove any duplicate "Study Session" events that have the same time
+    const uniqueEvents = new Map();
+    
+    allEvents.forEach(event => {
+      const key = `${event.start_time}-${event.end_time}`;
+      
+      // If we have a duplicate time slot, prefer events with specific subjects
+      if (!uniqueEvents.has(key) || (event.title !== 'Study Session' && uniqueEvents.get(key).title === 'Study Session')) {
+        uniqueEvents.set(key, event);
+      }
+    });
+    
+    const dedupedEvents = Array.from(uniqueEvents.values());
+    console.log(`After deduplication: ${dedupedEvents.length} events`);
+
+    return dedupedEvents.map(event => {
       let subject = '';
       let topic = '';
       
