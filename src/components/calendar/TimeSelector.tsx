@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Clock, Calendar } from 'lucide-react';
 
 interface TimeSelectorProps {
   date: string;
@@ -29,12 +30,10 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
 }) => {
   const [liveErrorMessage, setLiveErrorMessage] = useState<string | null>(errorMessage);
   
-  // Update local error state when prop changes
   useEffect(() => {
     setLiveErrorMessage(errorMessage);
   }, [errorMessage]);
 
-  // Generate time options from 7 AM to 10 PM with half-hour intervals
   const generateTimeOptions = () => {
     const options = [];
     // Generate times from 7 AM (07:00) to 10 PM (22:00) with half-hour intervals
@@ -56,7 +55,6 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   const handleTimeChange = (newTime: string) => {
     onStartTimeChange(newTime);
     
-    // Check for conflicts if the function is provided
     if (checkConflicts && newTime) {
       const hasConflict = checkConflicts(date, newTime, duration);
       if (hasConflict) {
@@ -70,7 +68,6 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   const handleDurationChange = (newDuration: number) => {
     onDurationChange(newDuration);
     
-    // Check for conflicts if the function is provided
     if (checkConflicts && startTime) {
       const hasConflict = checkConflicts(date, startTime, newDuration);
       if (hasConflict) {
@@ -82,9 +79,12 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   };
 
   return (
-    <div className="grid gap-4">
+    <div className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="date">Date</Label>
+        <Label htmlFor="date" className="text-sm font-medium flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Date
+        </Label>
         <Input 
           id="date" 
           type="date" 
@@ -96,48 +96,58 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
           className="w-full"
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="time">Start Time (7 AM - 10 PM)</Label>
-        <Select
-          value={startTime}
-          onValueChange={handleTimeChange}
-        >
-          <SelectTrigger id="time" className="w-full">
-            <SelectValue placeholder="Select Time" />
-          </SelectTrigger>
-          <SelectContent>
-            {timeOptions.map((option) => (
-              <SelectItem 
-                key={option.value} 
-                value={option.value}
-              >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {liveErrorMessage && (
-          <p className="text-sm text-red-500 mt-1">{liveErrorMessage}</p>
-        )}
+      
+      <div className="grid gap-6 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="time" className="text-sm font-medium flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Start Time
+          </Label>
+          <Select
+            value={startTime}
+            onValueChange={handleTimeChange}
+          >
+            <SelectTrigger id="time" className="w-full">
+              <SelectValue placeholder="Select Time" />
+            </SelectTrigger>
+            <SelectContent position="popper" className="max-h-[300px]">
+              {timeOptions.map((option) => (
+                <SelectItem 
+                  key={option.value} 
+                  value={option.value}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="duration" className="text-sm font-medium">Duration</Label>
+          <Select 
+            value={duration.toString()} 
+            onValueChange={(value) => handleDurationChange(parseInt(value, 10))}
+          >
+            <SelectTrigger id="duration">
+              <SelectValue placeholder="Select Duration" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="15">15 minutes</SelectItem>
+              <SelectItem value="30">30 minutes</SelectItem>
+              <SelectItem value="45">45 minutes</SelectItem>
+              <SelectItem value="60">60 minutes</SelectItem>
+              <SelectItem value="90">90 minutes</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="duration">Duration</Label>
-        <Select 
-          value={duration.toString()} 
-          onValueChange={(value) => handleDurationChange(parseInt(value, 10))}
-        >
-          <SelectTrigger id="duration" className="w-full">
-            <SelectValue placeholder="Select Duration" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="15">15 minutes</SelectItem>
-            <SelectItem value="30">30 minutes</SelectItem>
-            <SelectItem value="45">45 minutes</SelectItem>
-            <SelectItem value="60">60 minutes</SelectItem>
-            <SelectItem value="90">90 minutes</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      
+      {liveErrorMessage && (
+        <p className="text-sm text-red-500 bg-red-50 p-2 rounded border border-red-200 mt-2">
+          {liveErrorMessage}
+        </p>
+      )}
     </div>
   );
 };

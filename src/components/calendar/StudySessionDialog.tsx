@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import { useSubjects } from '@/hooks/useSubjects';
 import { useStudySessionForm } from '@/hooks/calendar/useStudySessionForm';
 import TimeSelector from './TimeSelector';
 import { CalendarEvent } from '@/types/calendar';
-import { parseISO, format, isBefore, addMinutes, areIntervalsOverlapping } from 'date-fns';
+import { parseISO, format, addMinutes } from 'date-fns';
 
 interface StudySessionDialogProps {
   open: boolean;
@@ -22,14 +21,14 @@ interface StudySessionDialogProps {
   existingEvents?: CalendarEvent[];
 }
 
-const StudySessionDialog = ({
+const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   open,
   onOpenChange,
   selectedDate,
   onSuccess,
   eventToEdit,
   existingEvents = []
-}: StudySessionDialogProps) => {
+}) => {
   const {
     formState,
     setTitle,
@@ -58,7 +57,6 @@ const StudySessionDialog = ({
         setEventId(eventToEdit.id);
       }
       
-      // Calculate duration from start and end time
       const endDate = parseISO(eventToEdit.end_time);
       const durationInMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
       setDuration(durationInMinutes);
@@ -66,21 +64,17 @@ const StudySessionDialog = ({
   }, [eventToEdit, setTitle, setSubject, setTopic, setDate, setStartTime, setDuration, setEventId]);
 
   const checkForTimeConflicts = (date: string, time: string, duration: number): boolean => {
-    // If editing an event, don't check against itself
     const eventsToCheck = eventToEdit 
       ? existingEvents.filter(e => e.id !== eventToEdit.id) 
       : existingEvents;
 
-    // Selected date and time for new session
     const selectedStartDateTime = new Date(`${date}T${time}`);
     const selectedEndDateTime = addMinutes(selectedStartDateTime, duration);
 
-    // Check if selected time overlaps with any existing sessions
     const hasConflicts = eventsToCheck.some(event => {
       const eventStartDateTime = new Date(event.start_time);
       const eventEndDateTime = new Date(event.end_time);
       
-      // Check if the intervals overlap
       return areIntervalsOverlapping(
         { start: selectedStartDateTime, end: selectedEndDateTime },
         { start: eventStartDateTime, end: eventEndDateTime }
@@ -101,7 +95,6 @@ const StudySessionDialog = ({
         return;
       }
 
-      // Check for time conflicts with existing sessions
       if (checkForTimeConflicts(formState.date, formState.startTime, formState.duration)) {
         setTimeError("This time slot overlaps with an existing session. Please choose another time.");
         toast({
@@ -114,7 +107,6 @@ const StudySessionDialog = ({
 
       const result = await submitForm();
       
-      // Only call onSuccess if result exists
       if (result) {
         onOpenChange(false);
 
@@ -137,62 +129,66 @@ const StudySessionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{eventToEdit ? 'Edit Study Session' : 'Schedule Study Session'}</DialogTitle>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-2xl">
+            {eventToEdit ? 'Edit Study Session' : 'Schedule Study Session'}
+          </DialogTitle>
           <DialogDescription>
             {eventToEdit ? 'Modify your study session details' : 'Create a new study session'}
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-6 py-4">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title">Session Title (Optional)</Label>
+        <div className="space-y-6 py-6">
+          <div className="grid gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-sm font-medium">Session Title</Label>
               <Input
                 id="title"
                 placeholder={`Study: ${formState.subject}${formState.topic ? ` - ${formState.topic}` : ''}`}
                 value={formState.title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1.5"
+                className="w-full"
               />
             </div>
             
-            <div>
-              <Label htmlFor="subject">Subject</Label>
-              <Select
-                value={formState.subject}
-                onValueChange={setSubject}
-              >
-                <SelectTrigger id="subject" className="mt-1.5">
-                  <SelectValue placeholder="Select Subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subj) => (
-                    <SelectItem key={subj} value={subj}>{subj}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="topic">Topic (Optional)</Label>
-              <Select
-                value={formState.topic}
-                onValueChange={setTopic}
-              >
-                <SelectTrigger id="topic" className="mt-1.5">
-                  <SelectValue placeholder="Select Topic" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem key="general-study" value="General Study">General Study</SelectItem>
-                  {athroCharacters
-                    .find(char => char.subject === formState.subject)
-                    ?.topics.map((topic) => (
-                      <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="subject" className="text-sm font-medium">Subject</Label>
+                <Select
+                  value={formState.subject}
+                  onValueChange={setSubject}
+                >
+                  <SelectTrigger id="subject">
+                    <SelectValue placeholder="Select Subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subj) => (
+                      <SelectItem key={subj} value={subj}>{subj}</SelectItem>
                     ))}
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="topic" className="text-sm font-medium">Topic (Optional)</Label>
+                <Select
+                  value={formState.topic}
+                  onValueChange={setTopic}
+                >
+                  <SelectTrigger id="topic">
+                    <SelectValue placeholder="Select Topic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="General Study">General Study</SelectItem>
+                    {athroCharacters
+                      .find(char => char.subject === formState.subject)
+                      ?.topics.map((topic) => (
+                        <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             <TimeSelector
@@ -202,23 +198,29 @@ const StudySessionDialog = ({
               onDateChange={setDate}
               onStartTimeChange={(time) => {
                 setStartTime(time);
-                setTimeError(null); // Clear error when time changes
+                setTimeError(null);
               }}
               onDurationChange={(duration) => {
                 setDuration(duration);
-                setTimeError(null); // Also clear error when duration changes
+                setTimeError(null);
               }}
               existingTimes={existingEvents?.map(e => format(new Date(e.start_time), 'HH:mm'))}
               errorMessage={timeError}
-              checkConflicts={(date, time, duration) => checkForTimeConflicts(date, time, duration)}
+              checkConflicts={checkForTimeConflicts}
             />
           </div>
         </div>
         
-        <DialogFooter className="mt-6">
+        <DialogFooter className="pt-4 border-t space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={formState.isSubmitting}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleSubmit}
-            className="w-full sm:w-auto"
             disabled={formState.isSubmitting}
           >
             {formState.isSubmitting 
