@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -58,7 +57,7 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
         throw eventsError;
       }
 
-      const eventIds = eventsData?.map(event => event.id) || [];
+      const eventIds = (eventsData || []).map(event => event.id);
       let preservedCount = 0;
       
       if (eventIds.length > 0) {
