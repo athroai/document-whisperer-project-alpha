@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CalendarPlus, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import {
@@ -11,9 +11,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { useStudySchedule } from '@/hooks/useStudySchedule';
+import { useWeeklyPlanning } from '@/hooks/useWeeklyPlanning';
+import { WeeklyPlanningDialog } from './WeeklyPlanningDialog';
 
 interface CalendarToolbarProps {
   isLoading: boolean;
@@ -28,62 +28,13 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   const [clearingCalendar, setClearingCalendar] = useState(false);
   const [showFirstConfirmation, setShowFirstConfirmation] = useState(false);
   const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
-  const [planningWeek, setPlanningWeek] = useState(false);
-  const { generateStudyPlan } = useStudySchedule();
-
-  const handlePlanWeek = async () => {
-    try {
-      setPlanningWeek(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user?.id) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to plan your week",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Fetch study slots and subject preferences
-      const { data: studySlots } = await supabase
-        .from('preferred_study_slots')
-        .select('*')
-        .eq('user_id', session.user.id);
-
-      const { data: subjects } = await supabase
-        .from('student_subject_preferences')
-        .select('*')
-        .eq('student_id', session.user.id);
-
-      if (!studySlots?.length || !subjects?.length) {
-        toast({
-          title: "Missing Study Preferences",
-          description: "Please complete your study preferences first",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      await generateStudyPlan(studySlots, subjects);
-      
-      toast({
-        title: "Success",
-        description: "Your week has been planned! Pull to refresh the calendar to see your new sessions.",
-      });
-      
-      onRefresh();
-    } catch (error: any) {
-      console.error('Error planning week:', error);
-      toast({
-        title: "Error",
-        description: "Failed to plan your week. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setPlanningWeek(false);
-    }
-  };
+  
+  const {
+    isDialogOpen,
+    setIsDialogOpen,
+    isPlanningWeek,
+    handlePlanWeek
+  } = useWeeklyPlanning(onRefresh);
 
   const handleClearCalendar = async () => {
     try {
@@ -157,7 +108,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           variant="outline"
           size="sm"
           onClick={onRefresh}
-          disabled={isLoading || clearingCalendar || planningWeek}
+          disabled={isLoading || clearingCalendar || isPlanningWeek}
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -172,7 +123,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             <Button
               variant="destructive"
               size="sm"
-              disabled={isLoading || clearingCalendar || planningWeek}
+              disabled={isLoading || clearingCalendar || isPlanningWeek}
             >
               {clearingCalendar ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -243,16 +194,23 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
       <Button
         variant="secondary"
         size="sm"
-        onClick={handlePlanWeek}
-        disabled={isLoading || clearingCalendar || planningWeek}
+        onClick={() => setIsDialogOpen(true)}
+        disabled={isLoading || clearingCalendar || isPlanningWeek}
       >
-        {planningWeek ? (
+        {isPlanningWeek ? (
           <Loader2 className="h-4 w-4 mr-1 animate-spin" />
         ) : (
           <CalendarPlus className="h-4 w-4 mr-1" />
         )}
         Plan My Week
       </Button>
+
+      <WeeklyPlanningDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={handlePlanWeek}
+        isLoading={isPlanningWeek}
+      />
     </div>
   );
 };
