@@ -104,6 +104,7 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
                 
               if (error) throw error;
               
+              // Add null check before accessing data.length
               const deletedCount = data?.length || 0;
               
               let description = `${deletedCount} study sessions for ${format(selectedDate, 'MMMM d, yyyy')} have been removed`;
