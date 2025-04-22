@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CalendarPlus, RefreshCw, Trash2, Loader2 } from 'lucide-react';
@@ -14,22 +13,77 @@ import {
 } from "@/components/ui/alert-dialog"
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { useStudySchedule } from '@/hooks/useStudySchedule';
 
 interface CalendarToolbarProps {
   isLoading: boolean;
   onRefresh: () => void;
-  onRestartOnboarding?: () => void;
 }
 
 const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   isLoading,
   onRefresh,
-  onRestartOnboarding
 }) => {
   const { toast } = useToast();
   const [clearingCalendar, setClearingCalendar] = useState(false);
   const [showFirstConfirmation, setShowFirstConfirmation] = useState(false);
   const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
+  const [planningWeek, setPlanningWeek] = useState(false);
+  const { generateStudyPlan } = useStudySchedule();
+
+  const handlePlanWeek = async () => {
+    try {
+      setPlanningWeek(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user?.id) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to plan your week",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Fetch study slots and subject preferences
+      const { data: studySlots } = await supabase
+        .from('preferred_study_slots')
+        .select('*')
+        .eq('user_id', session.user.id);
+
+      const { data: subjects } = await supabase
+        .from('student_subject_preferences')
+        .select('*')
+        .eq('student_id', session.user.id);
+
+      if (!studySlots?.length || !subjects?.length) {
+        toast({
+          title: "Missing Study Preferences",
+          description: "Please complete your study preferences first",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      await generateStudyPlan(studySlots, subjects);
+      
+      toast({
+        title: "Success",
+        description: "Your week has been planned! Pull to refresh the calendar to see your new sessions.",
+      });
+      
+      onRefresh();
+    } catch (error: any) {
+      console.error('Error planning week:', error);
+      toast({
+        title: "Error",
+        description: "Failed to plan your week. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setPlanningWeek(false);
+    }
+  };
 
   const handleClearCalendar = async () => {
     try {
@@ -103,7 +157,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           variant="outline"
           size="sm"
           onClick={onRefresh}
-          disabled={isLoading || clearingCalendar}
+          disabled={isLoading || clearingCalendar || planningWeek}
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -118,7 +172,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             <Button
               variant="destructive"
               size="sm"
-              disabled={isLoading || clearingCalendar}
+              disabled={isLoading || clearingCalendar || planningWeek}
             >
               {clearingCalendar ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -186,17 +240,19 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         </AlertDialog>
       </div>
 
-      {onRestartOnboarding && (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onRestartOnboarding}
-          disabled={isLoading || clearingCalendar}
-        >
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={handlePlanWeek}
+        disabled={isLoading || clearingCalendar || planningWeek}
+      >
+        {planningWeek ? (
+          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+        ) : (
           <CalendarPlus className="h-4 w-4 mr-1" />
-          Restart Onboarding
-        </Button>
-      )}
+        )}
+        Plan My Week
+      </Button>
     </div>
   );
 };
