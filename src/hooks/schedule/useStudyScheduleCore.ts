@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { useDayPreferences, DayPreference } from './useDayPreferences';
+import { useDayPreferences } from './useDayPreferences';
 import { useSessionSlotOperations } from './useSessionSlotOperations';
 import { supabase } from '@/lib/supabase';
 
@@ -48,12 +47,6 @@ export function useStudyScheduleCore() {
     setSessionsPerDay(newCount);
   };
 
-  // Get available subjects from the database
-  const [availableSubjects, setAvailableSubjects] = useState<string[]>([
-    'Mathematics', 'English', 'Science', 'History', 'Geography', 'Languages',
-    'Computer Science', 'Art', 'Music', 'Physical Education'
-  ]);
-
   const getSessionId = (day: number, sessIdx: number) => `session-${day}-${sessIdx}-${Date.now()}`;
 
   const handleContinue = async () => {
@@ -69,11 +62,10 @@ export function useStudyScheduleCore() {
       return;
     }
 
-    // Validate that each selected day has at least one session
     for (const dayIndex of selectedDays) {
       const dayPref = dayPreferences.find(p => p.dayIndex === dayIndex);
       if (!dayPref || dayPref.sessionTimes.length === 0) {
-        const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
+        const dayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayIndex - 1];
         setError(
           `Please add at least one study session for ${dayName}`
         );
@@ -90,49 +82,23 @@ export function useStudyScheduleCore() {
 
     try {
       const newSlots: PreferredStudySlot[] = [];
-      
-      // Try to get student subjects
-      let subjects: string[] = [];
-      try {
-        const { data } = await supabase
-          .from('student_subject_preferences')
-          .select('subject')
-          .eq('student_id', authState.user?.id || '');
-          
-        if (data && data.length > 0) {
-          subjects = data.map(item => item.subject);
-        }
-      } catch (err) {
-        console.error('Error fetching subjects:', err);
-      }
-      
-      // If no subjects found, use default subjects
-      if (subjects.length === 0) {
-        subjects = availableSubjects;
-      }
 
-      // Convert day preferences to study slots and assign subjects in rotation
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);
         if (dayPreference) {
           dayPreference.sessionTimes.forEach((session, i) => {
-            // Assign a subject in rotation
-            const subjectIndex = newSlots.length % subjects.length;
-            
             newSlots.push({
               id: getSessionId(dayOfWeek, i),
               user_id: authState.user?.id || 'temp-user-id',
               day_of_week: dayOfWeek,
               slot_count: 1,
               slot_duration_minutes: session.durationMinutes,
-              preferred_start_hour: session.startHour,
-              subject: subjects[subjectIndex] // Assign subject
+              preferred_start_hour: session.startHour
             });
           });
         }
       });
 
-      console.log("Created study slots with subjects:", newSlots);
       setStudySlots(newSlots);
 
       const userId = authState.user?.id;
@@ -140,16 +106,10 @@ export function useStudyScheduleCore() {
       if (!userId) {
         throw new Error('Authentication required to save study schedule');
       }
-      
-      // Save the study slots to the database
       await saveStudySlotsToDatabase(userId, newSlots);
-      
-      // Create calendar events for the sessions
       const events = await createCalendarEvents(newSlots, true);
-      console.log(`Created ${events.length} calendar events`);
 
       try {
-        // Update onboarding progress
         const { data, error: fetchError } = await supabase
           .from('onboarding_progress')
           .select('*')
@@ -183,10 +143,6 @@ export function useStudyScheduleCore() {
         console.error('Error handling onboarding progress:', progressError);
       }
 
-      // Save slots to localStorage for backup
-      localStorage.setItem('athro_study_slots', JSON.stringify(newSlots));
-
-      // Move to the next step in the onboarding flow
       updateOnboardingStep('calendar');
 
       toast({

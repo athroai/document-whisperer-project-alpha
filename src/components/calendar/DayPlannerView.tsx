@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { parseISO, startOfDay, isSameDay } from 'date-fns';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEvent } from '@/types/calendar';
-import { useToast } from '@/hooks/use-toast';
 import DayPlannerHeader from './DayPlannerHeader';
 import DayPlannerEvents from './DayPlannerEvents';
 import StudySessionDialog from './StudySessionDialog';
@@ -24,19 +24,20 @@ const DayPlannerView = ({
 }: DayPlannerViewProps) => {
   const [dayEvents, setDayEvents] = useState<CalendarEvent[]>([]);
   const [isAddingEvent, setIsAddingEvent] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const { deleteEvent } = useCalendarEvents();
-  const { toast } = useToast();
 
   useEffect(() => {
+    // Normalize selectedDate to start of day to ensure proper comparison
     const normalizedSelectedDate = startOfDay(selectedDate);
     
+    // Filter events that match the selected day
     const filteredEvents = events.filter(event => {
       try {
         if (!event.start_time) {
           return false;
         }
         
+        // Parse event date and normalize to start of day
         const eventDate = startOfDay(parseISO(event.start_time));
         return isSameDay(eventDate, normalizedSelectedDate);
       } catch (err) {
@@ -45,12 +46,23 @@ const DayPlannerView = ({
       }
     });
     
+    // Sort events by start time
     filteredEvents.sort((a, b) => 
       new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
     );
     
     setDayEvents(filteredEvents);
   }, [selectedDate, events]);
+
+  const handleDragEnd = (result: any) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(dayEvents);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    setDayEvents(items);
+  };
 
   const handleAddSession = () => {
     setIsAddingEvent(true);
@@ -59,7 +71,6 @@ const DayPlannerView = ({
   const handleSessionSuccess = () => {
     onRefresh();
     setIsAddingEvent(false);
-    setEditingEvent(null);
   };
 
   const handleDeleteEvent = async (eventId: string) => {
@@ -67,17 +78,6 @@ const DayPlannerView = ({
       await deleteEvent(eventId);
       onRefresh();
     }
-  };
-
-  const handleEditSession = (event: CalendarEvent) => {
-    setEditingEvent(event);
-  };
-
-  const handleLaunchSession = (event: CalendarEvent) => {
-    toast({
-      title: "Coming Soon",
-      description: "Launch functionality will be available soon!"
-    });
   };
 
   return (
@@ -89,24 +89,17 @@ const DayPlannerView = ({
             events={dayEvents}
             isLoading={isLoading}
             onDelete={handleDeleteEvent}
+            onDragEnd={handleDragEnd}
             onAddSession={handleAddSession}
-            onEditSession={handleEditSession}
-            onLaunchSession={handleLaunchSession}
           />
         </div>
         
-        {(isAddingEvent || editingEvent) && (
+        {isAddingEvent && (
           <StudySessionDialog
-            open={isAddingEvent || !!editingEvent}
-            onOpenChange={(open) => {
-              if (!open) {
-                setIsAddingEvent(false);
-                setEditingEvent(null);
-              }
-            }}
+            open={isAddingEvent}
+            onOpenChange={(open) => setIsAddingEvent(open)}
             selectedDate={selectedDate}
             onSuccess={handleSessionSuccess}
-            eventToEdit={editingEvent}
           />
         )}
       </div>

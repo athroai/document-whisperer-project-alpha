@@ -83,9 +83,6 @@ const OnboardingContent: React.FC = () => {
       />
       
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-center text-purple-800 mb-4">Timekeeper's Zone</h1>
-        <p className="text-center text-gray-600 mb-8">Let's create your perfect study schedule</p>
-        
         <div className="flex justify-between mb-2">
           {steps.map((step, index) => (
             <div 

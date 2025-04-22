@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 export const SimpleScheduleSetup: React.FC = () => {
   const { updateOnboardingStep, updateStudySlots } = useOnboarding();
   const { toast } = useToast();
-  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // Default to Mon-Fri
+  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri
   const [sessionDuration, setSessionDuration] = useState<string>('medium');
   const [preferredStartHour, setPreferredStartHour] = useState<number>(16); // 4 PM default
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,12 +22,7 @@ export const SimpleScheduleSetup: React.FC = () => {
     setSelectedDays(prev => 
       prev.includes(dayIndex) 
         ? prev.filter(d => d !== dayIndex) 
-        : [...prev, dayIndex].sort((a, b) => {
-            // Sort Sunday (0) at the end of the array
-            if (a === 0) return 1;
-            if (b === 0) return -1;
-            return a - b;
-          })
+        : [...prev, dayIndex].sort()
     );
   };
 

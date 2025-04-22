@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useSessionCreation } from './useSessionCreation';
@@ -12,7 +13,6 @@ interface FormState {
   startTime: string;
   duration: number;
   isSubmitting: boolean;
-  eventId?: string;
 }
 
 export const useStudySessionForm = (
@@ -20,12 +20,14 @@ export const useStudySessionForm = (
   onClose?: () => void,
   onSuccess?: (event: any) => void
 ) => {
-  const { createEvent, updateEvent } = useCalendarEvents();
+  const { createEvent } = useCalendarEvents();
   const { createCalendarSession } = useSessionCreation();
   const { toast } = useToast();
   
+  // Ensure we're working with the start of day to avoid time issues
   const dateToUse = startOfDay(initialDate);
   
+  // Initialize with a reasonable default time (4 PM)
   const defaultStartTime = "16:00";
   
   const [formState, setFormState] = useState<FormState>({
@@ -35,8 +37,7 @@ export const useStudySessionForm = (
     date: format(dateToUse, 'yyyy-MM-dd'),
     startTime: defaultStartTime,
     duration: 60,
-    isSubmitting: false,
-    eventId: undefined
+    isSubmitting: false
   });
 
   const setTitle = (title: string) => {
@@ -62,45 +63,15 @@ export const useStudySessionForm = (
   const setDuration = (duration: number) => {
     setFormState(prev => ({ ...prev, duration }));
   };
-  
-  const setEventId = (eventId: string) => {
-    setFormState(prev => ({ ...prev, eventId }));
-  };
 
   const handleSubmit = async () => {
     try {
       setFormState(prev => ({ ...prev, isSubmitting: true }));
       
+      // Create a proper Date object combining the date and time
       const dateStr = `${formState.date}T${formState.startTime}`;
       const startDateTime = new Date(dateStr);
       const endDateTime = addMinutes(startDateTime, formState.duration);
-      
-      if (formState.eventId) {
-        console.log("Updating calendar event:", formState.eventId);
-        
-        const updatedEvent = await updateEvent(formState.eventId, {
-          title: formState.title || `${formState.subject} Study Session`,
-          subject: formState.subject,
-          topic: formState.topic,
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString(),
-          event_type: 'study_session'
-        });
-        
-        if (updatedEvent && onSuccess) {
-          console.log("Event updated successfully:", updatedEvent);
-          onSuccess(updatedEvent);
-        } else {
-          toast({
-            title: "Warning",
-            description: "Event may not have been updated correctly. Please check your calendar.",
-            variant: "destructive"
-          });
-        }
-        
-        if (onClose) onClose();
-        return;
-      }
       
       console.log("Creating calendar session with:", {
         title: formState.title || `${formState.subject} Study Session`,
@@ -111,6 +82,7 @@ export const useStudySessionForm = (
         dateString: dateStr
       });
       
+      // Try the new session creation method
       const newEvent = await createCalendarSession({
         title: formState.title || `${formState.subject} Study Session`,
         subject: formState.subject,
@@ -119,6 +91,7 @@ export const useStudySessionForm = (
         endTime: endDateTime
       });
       
+      // If the new method fails, fall back to the old method
       if (!newEvent) {
         console.log("Session creation failed, falling back to legacy method");
         
@@ -149,10 +122,10 @@ export const useStudySessionForm = (
         onClose();
       }
     } catch (error) {
-      console.error('Error creating/updating study session:', error);
+      console.error('Error creating study session:', error);
       toast({
         title: "Error",
-        description: "Failed to save study session. Please try again.",
+        description: "Failed to create study session. Please try again.",
         variant: "destructive"
       });
       throw error;
@@ -169,7 +142,6 @@ export const useStudySessionForm = (
     setDate,
     setStartTime,
     setDuration,
-    setEventId,
     handleSubmit
   };
 };

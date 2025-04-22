@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SubjectSelector } from '@/components/onboarding/core/SubjectSelector';
 import { AvailabilitySettings } from '@/components/onboarding/core/AvailabilitySettings';
+import { StudyPreferences } from '@/components/onboarding/core/StudyPreferences';
 import { PlanGenerator } from '@/components/onboarding/core/PlanGenerator';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -11,8 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Modified step types to remove 'preferences'
-type OnboardingStep = 'subjects' | 'availability' | 'generate';
+type OnboardingStep = 'subjects' | 'availability' | 'preferences' | 'generate';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,11 +31,10 @@ const OnboardingPage: React.FC = () => {
       sessionsPerDay: 2,
       sessionDuration: 45,
     },
-    // Add default preferences to prevent the error
     preferences: {
       focusMode: 'pomodoro' as 'pomodoro' | 'continuous',
       preferredTime: 'afternoon' as 'morning' | 'afternoon' | 'evening',
-      reviewFrequency: 'daily' as 'daily' | 'weekly',
+      reviewFrequency: 'weekly' as 'daily' | 'weekly',
     }
   });
 
@@ -102,7 +100,9 @@ const OnboardingPage: React.FC = () => {
         setCurrentStep('availability');
         break;
       case 'availability':
-        // Skip preferences step and go straight to generate
+        setCurrentStep('preferences');
+        break;
+      case 'preferences':
         setCurrentStep('generate');
         break;
       default:
@@ -115,8 +115,11 @@ const OnboardingPage: React.FC = () => {
       case 'availability':
         setCurrentStep('subjects');
         break;
-      case 'generate':
+      case 'preferences':
         setCurrentStep('availability');
+        break;
+      case 'generate':
+        setCurrentStep('preferences');
         break;
       default:
         break;
@@ -134,6 +137,13 @@ const OnboardingPage: React.FC = () => {
     setOnboardingData(prev => ({
       ...prev,
       availability
+    }));
+  }
+
+  function updatePreferences(preferences: typeof onboardingData.preferences) {
+    setOnboardingData(prev => ({
+      ...prev,
+      preferences
     }));
   }
 
@@ -165,36 +175,27 @@ const OnboardingPage: React.FC = () => {
 
       let studySlotsData = [];
       try {
-        // First try to get study slots with subjects from local storage
-        if (localStorage.getItem('athro_study_slots_with_subjects')) {
-          studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots_with_subjects') || '[]');
-        } else {
-          // Fall back to database and regular local storage
-          const { data, error } = await supabase
-            .from('preferred_study_slots')
-            .select('*')
-            .eq('user_id', authState.user.id);
-            
-          if (error) {
-            throw error;
-          }
+        const { data, error } = await supabase
+          .from('preferred_study_slots')
+          .select('*')
+          .eq('user_id', authState.user.id);
           
-          if (data && data.length > 0) {
-            studySlotsData = data;
-            console.log(`Found ${data.length} saved study slots`);
-          } else {
-            console.log('No study slots found in database, checking local storage');
-            if (localStorage.getItem('athro_study_slots')) {
-              studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
-            }
+        if (error) {
+          throw error;
+        }
+        
+        if (data && data.length > 0) {
+          studySlotsData = data;
+          console.log(`Found ${data.length} saved study slots`);
+        } else {
+          console.log('No study slots found in database, checking local storage');
+          if (localStorage.getItem('athro_study_slots')) {
+            studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
           }
         }
       } catch (err) {
         console.error('Error fetching study slots:', err);
-        // Try local storage as fallback
-        if (localStorage.getItem('athro_study_slots_with_subjects')) {
-          studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots_with_subjects') || '[]');
-        } else if (localStorage.getItem('athro_study_slots')) {
+        if (localStorage.getItem('athro_study_slots')) {
           studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
         }
       }
@@ -229,19 +230,14 @@ const OnboardingPage: React.FC = () => {
         let endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
 
-        // If the slot has a subject, use it; otherwise assign one
-        let subjectName = slot.subject;
-        if (!subjectName && onboardingData.subjects.length > 0) {
-          const subjIndex = calendarEvents.length % onboardingData.subjects.length;
-          const subjectObj = onboardingData.subjects[subjIndex];
-          subjectName = subjectObj.subject;
-        }
+        const subjIndex = calendarEvents.length % onboardingData.subjects.length;
+        const subjectObj = onboardingData.subjects[subjIndex];
 
         calendarEvents.push({
-          title: `${subjectName || 'Study'} Session`,
+          title: `${subjectObj.subject} Study Session`,
           description: JSON.stringify({
-            subject: subjectName,
-            isPomodoro: true,
+            subject: subjectObj.subject,
+            isPomodoro: onboardingData.preferences.focusMode === 'pomodoro',
             pomodoroWorkMinutes: 25,
             pomodoroBreakMinutes: 5
           }),
@@ -327,7 +323,17 @@ const OnboardingPage: React.FC = () => {
         );
       case 'availability':
         return (
-          <AvailabilitySettings />
+          <AvailabilitySettings
+            availability={onboardingData.availability}
+            updateAvailability={updateAvailability}
+          />
+        );
+      case 'preferences':
+        return (
+          <StudyPreferences
+            preferences={onboardingData.preferences}
+            updatePreferences={updatePreferences}
+          />
         );
       case 'generate':
         return (
@@ -349,6 +355,7 @@ const OnboardingPage: React.FC = () => {
     switch (currentStep) {
       case 'subjects': return 25;
       case 'availability': return 50;
+      case 'preferences': return 75;
       case 'generate': return generationComplete ? 100 : 90;
       default: return 0;
     }
@@ -372,6 +379,7 @@ const OnboardingPage: React.FC = () => {
           <div className="flex justify-between mb-2 text-sm">
             <span className={currentStep === 'subjects' ? 'font-bold text-purple-700' : ''}>Subjects</span>
             <span className={currentStep === 'availability' ? 'font-bold text-purple-700' : ''}>Schedule</span>
+            <span className={currentStep === 'preferences' ? 'font-bold text-purple-700' : ''}>Preferences</span>
             <span className={currentStep === 'generate' ? 'font-bold text-purple-700' : ''}>Create Plan</span>
           </div>
           <Progress value={getProgressPercentage()} className="h-2" />

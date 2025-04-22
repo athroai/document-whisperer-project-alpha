@@ -1,9 +1,10 @@
 
 import React from 'react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { CalendarEvent } from '@/types/calendar';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CalendarEvent } from '@/types/calendar';
 import DayPlannerEvent from './DayPlannerEvent';
 import DayPlannerEmpty from './DayPlannerEmpty';
 
@@ -11,18 +12,16 @@ interface DayPlannerEventsProps {
   events: CalendarEvent[];
   isLoading: boolean;
   onDelete: (eventId: string) => void;
+  onDragEnd: (result: any) => void;
   onAddSession: () => void;
-  onEditSession: (event: CalendarEvent) => void;
-  onLaunchSession: (event: CalendarEvent) => void;
 }
 
 const DayPlannerEvents = ({
   events,
   isLoading,
   onDelete,
+  onDragEnd,
   onAddSession,
-  onEditSession,
-  onLaunchSession
 }: DayPlannerEventsProps) => {
   if (isLoading) {
     return (
@@ -47,17 +46,30 @@ const DayPlannerEvents = ({
         </Button>
       </div>
 
-      <div className="space-y-3">
-        {events.map((event) => (
-          <DayPlannerEvent
-            key={event.id}
-            event={event}
-            onDelete={onDelete}
-            onEdit={onEditSession}
-            onLaunch={onLaunchSession}
-          />
-        ))}
-      </div>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="dayEvents">
+          {(provided) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="space-y-3"
+            >
+              {events.map((event, index) => (
+                <Draggable key={event.id} draggableId={event.id} index={index}>
+                  {(providedDrag) => (
+                    <DayPlannerEvent
+                      event={event}
+                      onDelete={onDelete}
+                      provided={providedDrag}
+                    />
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     </>
   );
 };
