@@ -1,12 +1,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-interface SessionTime {
+export interface SessionTime {
   startHour: number;
   durationMinutes: number;
 }
 
-interface DayPreference {
+export interface DayPreference {
   dayIndex: number;
   sessionTimes: SessionTime[];
 }

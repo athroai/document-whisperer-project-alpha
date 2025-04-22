@@ -11,11 +11,10 @@ export const useSessionSlotOperations = () => {
     try {
       const events = [];
       const today = new Date();
-      const weekStartDate = today.getDate() - today.getDay() + 1; // Monday
-
+      
       for (const slot of slots) {
         // Correctly handle the day of week to match JavaScript's Sunday=0 convention
-        let dayIndex = slot.day_of_week;
+        const dayIndex = slot.day_of_week;
         
         // Calculate days until next occurrence of this day
         const currentDayIndex = today.getDay(); // 0 = Sunday, ..., 6 = Saturday
@@ -35,6 +34,8 @@ export const useSessionSlotOperations = () => {
         endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
 
         try {
+          console.log(`Creating event for day ${dayIndex} (${nextDate.toDateString()}) at ${startTime.toTimeString()}`);
+          
           const event = await createEvent({
             title: "Study Session",
             start_time: startTime.toISOString(),
@@ -63,7 +64,16 @@ export const useSessionSlotOperations = () => {
     }
 
     try {
-      await supabase.from('preferred_study_slots').delete().eq('user_id', userId);
+      // First delete any existing slots
+      const { error: deleteError } = await supabase
+        .from('preferred_study_slots')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (deleteError) {
+        console.error("Error deleting existing study slots:", deleteError);
+      }
+      
       if (slots.length === 0) return true;
 
       const slotsToInsert = slots.map(({ id, ...slot }) => ({
@@ -80,8 +90,11 @@ export const useSessionSlotOperations = () => {
         .select();
 
       if (error) throw new Error(`Database error: ${error.message}`);
+      
+      console.log(`Saved ${data?.length || 0} study slots to database`);
       return true;
     } catch (error) {
+      console.error("Error saving study slots:", error);
       throw error;
     }
   };

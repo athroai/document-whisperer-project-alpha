@@ -4,10 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface OnboardingCheckOptions {
-  redirectOnNeeded?: boolean;
-}
-
 export const useOnboardingCheck = (redirectOnNeeded = true) => {
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
