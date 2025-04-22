@@ -34,7 +34,7 @@ export const useUserSubjects = () => {
       }
       
       if (prefData && prefData.length > 0) {
-        console.log("Found subjects in student_subject_preferences:", prefData.length);
+        console.log("Found subjects in student_subject_preferences:", prefData);
         // Convert numeric confidence_level to low/medium/high
         const mappedSubjects = prefData.map(subj => ({
           subject: subj.subject,
@@ -58,7 +58,7 @@ export const useUserSubjects = () => {
       }
       
       if (subjData && subjData.length > 0) {
-        console.log("Found subjects in student_subjects:", subjData.length);
+        console.log("Found subjects in student_subjects:", subjData);
         const mappedSubjects = subjData.map(subj => ({
           subject: subj.subject_name,
           confidence_level: mapHelpLevel(subj.help_level)
@@ -72,8 +72,6 @@ export const useUserSubjects = () => {
       // Only if no subjects found in both tables, set flag
       console.log("No subjects found in either table, marking noSubjectsFound as true");
       setNoSubjectsFound(true);
-      
-      // Don't set default subjects here, let the consuming components decide
       setSubjects([]);
       
     } catch (error) {
@@ -93,7 +91,7 @@ export const useUserSubjects = () => {
     
     // If it's already a string, validate and return
     if (level === 'low' || level === 'medium' || level === 'high') {
-      return level;
+      return level as 'low' | 'medium' | 'high';
     }
     
     return 'medium';

@@ -25,12 +25,13 @@ export const BasicSubjectSelection: React.FC = () => {
       // Also remove from database if user is authenticated
       if (authState.user?.id) {
         try {
+          console.log(`Removing subject ${subject} from database`);
           await supabase
             .from('student_subject_preferences')
             .delete()
             .eq('student_id', authState.user.id)
             .eq('subject', subject);
-          console.log(`Removed subject ${subject} from database`);
+          console.log(`Successfully removed subject ${subject} from database`);
         } catch (err) {
           console.error('Error removing subject from database:', err);
         }
@@ -40,14 +41,15 @@ export const BasicSubjectSelection: React.FC = () => {
       // Also add to database if user is authenticated
       if (authState.user?.id) {
         try {
+          console.log(`Adding subject ${subject} to database`);
           await supabase
             .from('student_subject_preferences')
-            .insert({
+            .upsert({
               student_id: authState.user.id,
               subject: subject,
               confidence_level: "medium"
             });
-          console.log(`Added subject ${subject} to database`);
+          console.log(`Successfully added subject ${subject} to database`);
         } catch (err) {
           console.error('Error adding subject to database:', err);
         }

@@ -58,7 +58,12 @@ export const useSubjects = () => {
         setUsingDefaultSubjects(false);
       } else if (noSubjectsFound) {
         console.log("No user subjects found, using default subjects");
-        setSubjects(GCSE_SUBJECTS.slice(0, 5)); // Just use first 5 default subjects
+        // Don't set any default subjects if we're still in onboarding
+        if (window.location.pathname.includes('onboarding')) {
+          setSubjects([]);
+        } else {
+          setSubjects(GCSE_SUBJECTS.slice(0, 5)); // Just use first 5 default subjects
+        }
         setUsingDefaultSubjects(true);
       }
     }

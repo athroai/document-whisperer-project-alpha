@@ -29,11 +29,13 @@ export const SubjectsSelector: React.FC = () => {
       // Also remove from database if user is authenticated
       if (authState.user?.id) {
         try {
+          console.log(`Removing subject ${subject} from database`);
           await supabase
             .from('student_subject_preferences')
             .delete()
             .eq('student_id', authState.user.id)
             .eq('subject', subject);
+          console.log(`Successfully removed subject ${subject} from database`);
         } catch (err) {
           console.error('Error removing subject from database:', err);
         }
@@ -43,13 +45,15 @@ export const SubjectsSelector: React.FC = () => {
       // Also add to database if user is authenticated
       if (authState.user?.id) {
         try {
+          console.log(`Adding subject ${subject} to database with confidence medium`);
           await supabase
             .from('student_subject_preferences')
-            .insert({
+            .upsert({
               student_id: authState.user.id,
               subject: subject,
               confidence_level: "medium"
             });
+          console.log(`Successfully added subject ${subject} to database`);
         } catch (err) {
           console.error('Error adding subject to database:', err);
         }
@@ -63,6 +67,7 @@ export const SubjectsSelector: React.FC = () => {
     // Update in database if user is authenticated
     if (authState.user?.id) {
       try {
+        console.log(`Updating subject ${subject} confidence to ${confidence}`);
         const { error } = await supabase
           .from('student_subject_preferences')
           .upsert({
@@ -73,6 +78,8 @@ export const SubjectsSelector: React.FC = () => {
           
         if (error) {
           console.error('Error updating subject confidence in database:', error);
+        } else {
+          console.log(`Successfully updated subject ${subject} confidence to ${confidence}`);
         }
       } catch (err) {
         console.error('Error updating subject confidence:', err);

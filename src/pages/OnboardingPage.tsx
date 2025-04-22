@@ -11,7 +11,6 @@ import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScheduleChoiceStep } from '@/components/onboarding/steps/ScheduleChoiceStep';
 
-// Modified step types to remove 'preferences'
 type OnboardingStep = 'subjects' | 'schedule-choice' | 'availability' | 'generate';
 
 const OnboardingPage: React.FC = () => {
@@ -32,7 +31,6 @@ const OnboardingPage: React.FC = () => {
       sessionsPerDay: 2,
       sessionDuration: 45,
     },
-    // Add default preferences to prevent the error
     preferences: {
       focusMode: 'pomodoro' as 'pomodoro' | 'continuous',
       preferredTime: 'afternoon' as 'morning' | 'afternoon' | 'evening',
@@ -157,6 +155,19 @@ const OnboardingPage: React.FC = () => {
 
     try {
       setGenerationProgress(20);
+      
+      console.log("Selected subjects before saving:", onboardingData.subjects);
+      
+      if (onboardingData.subjects.length === 0) {
+        toast({
+          title: "No subjects selected",
+          description: "You must select at least one subject before generating a plan.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       const subjectPromises = onboardingData.subjects.map(subject =>
         supabase.from('student_subject_preferences').upsert({
           student_id: authState.user!.id,
@@ -164,7 +175,18 @@ const OnboardingPage: React.FC = () => {
           confidence_level: subject.confidence
         })
       );
-      await Promise.all(subjectPromises);
+      
+      console.log(`Saving ${subjectPromises.length} subjects to the database...`);
+      
+      const results = await Promise.allSettled(subjectPromises);
+      results.forEach((result, index) => {
+        const subject = onboardingData.subjects[index].subject;
+        if (result.status === 'fulfilled') {
+          console.log(`Successfully saved subject: ${subject}`);
+        } else {
+          console.error(`Failed to save subject ${subject}:`, result.reason);
+        }
+      });
 
       setGenerationProgress(40);
 
@@ -219,6 +241,20 @@ const OnboardingPage: React.FC = () => {
       const calendarEvents = [];
       const today = new Date();
 
+      // Use the user selected subjects from onboardingData when creating events
+      const userSubjects = onboardingData.subjects.map(s => s.subject);
+      console.log("Using these subjects for calendar events:", userSubjects);
+      
+      if (userSubjects.length === 0) {
+        toast({
+          title: "No subjects selected",
+          description: "You must select at least one subject before generating a plan.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       for (let slot of studySlotsData) {
         let slotDay = slot.day_of_week;
         let nowDay = today.getDay() || 7;
@@ -234,12 +270,11 @@ const OnboardingPage: React.FC = () => {
         let endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
 
-        // If the slot has a subject, use it; otherwise assign one
+        // If the slot has a subject, use it; otherwise assign one from user's selected subjects
         let subjectName = slot.subject;
-        if (!subjectName && onboardingData.subjects.length > 0) {
-          const subjIndex = calendarEvents.length % onboardingData.subjects.length;
-          const subjectObj = onboardingData.subjects[subjIndex];
-          subjectName = subjectObj.subject;
+        if (!subjectName && userSubjects.length > 0) {
+          const subjIndex = calendarEvents.length % userSubjects.length;
+          subjectName = userSubjects[subjIndex];
         }
 
         calendarEvents.push({
@@ -259,6 +294,9 @@ const OnboardingPage: React.FC = () => {
       }
 
       setGenerationProgress(80);
+      
+      console.log(`Creating ${calendarEvents.length} calendar events with subjects:`, 
+        calendarEvents.map(e => e.title).join(', '));
 
       if (calendarEvents.length > 0) {
         try {
