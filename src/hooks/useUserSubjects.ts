@@ -15,7 +15,11 @@ export const useUserSubjects = () => {
   const { state: authState } = useAuth();
 
   const fetchUserSubjects = async () => {
-    if (!authState.user?.id) return;
+    if (!authState.user?.id) {
+      setIsLoading(false);
+      setNoSubjectsFound(true);
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -23,7 +27,7 @@ export const useUserSubjects = () => {
       
       console.log("Fetching user subjects for user ID:", authState.user.id);
       
-      // First try to get subjects from student_subject_preferences
+      // First try to get subjects from student_subject_preferences (prioritize this)
       const { data: prefData, error: prefError } = await supabase
         .from('student_subject_preferences')
         .select('subject, confidence_level')
@@ -43,6 +47,7 @@ export const useUserSubjects = () => {
         
         setSubjects(mappedSubjects);
         setIsLoading(false);
+        setNoSubjectsFound(false);
         return;
       }
       
@@ -66,6 +71,7 @@ export const useUserSubjects = () => {
         
         setSubjects(mappedSubjects);
         setIsLoading(false);
+        setNoSubjectsFound(false);
         return;
       }
       
@@ -76,6 +82,7 @@ export const useUserSubjects = () => {
       
     } catch (error) {
       console.error('Error in fetchUserSubjects:', error);
+      setNoSubjectsFound(true);
     } finally {
       setIsLoading(false);
     }

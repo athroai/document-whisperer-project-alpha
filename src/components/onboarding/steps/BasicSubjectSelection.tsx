@@ -14,46 +14,66 @@ export const BasicSubjectSelection: React.FC = () => {
   const { toast } = useToast();
   const [initialized, setInitialized] = useState(false);
   const { state: authState } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
 
   const isSubjectSelected = (subject: string) => {
     return selectedSubjects.some(s => s.subject === subject);
   };
 
   const handleSubjectToggle = async (subject: string) => {
-    if (isSubjectSelected(subject)) {
-      removeSubject(subject);
-      // Also remove from database if user is authenticated
-      if (authState.user?.id) {
-        try {
-          console.log(`Removing subject ${subject} from database`);
-          await supabase
-            .from('student_subject_preferences')
-            .delete()
-            .eq('student_id', authState.user.id)
-            .eq('subject', subject);
-          console.log(`Successfully removed subject ${subject} from database`);
-        } catch (err) {
-          console.error('Error removing subject from database:', err);
-        }
-      }
-    } else {
-      selectSubject(subject, "medium");
-      // Also add to database if user is authenticated
-      if (authState.user?.id) {
-        try {
-          console.log(`Adding subject ${subject} to database`);
-          await supabase
-            .from('student_subject_preferences')
-            .upsert({
-              student_id: authState.user.id,
-              subject: subject,
-              confidence_level: "medium"
+    setIsSaving(true);
+    try {
+      if (isSubjectSelected(subject)) {
+        removeSubject(subject);
+        // Also remove from database if user is authenticated
+        if (authState.user?.id) {
+          try {
+            console.log(`Removing subject ${subject} from database`);
+            await supabase
+              .from('student_subject_preferences')
+              .delete()
+              .eq('student_id', authState.user.id)
+              .eq('subject', subject);
+            console.log(`Successfully removed subject ${subject} from database`);
+          } catch (err) {
+            console.error('Error removing subject from database:', err);
+            toast({
+              title: "Error",
+              description: "Failed to remove subject. Please try again.",
+              variant: "destructive"
             });
-          console.log(`Successfully added subject ${subject} to database`);
-        } catch (err) {
-          console.error('Error adding subject to database:', err);
+          }
+        }
+      } else {
+        selectSubject(subject, "medium");
+        // Also add to database if user is authenticated
+        if (authState.user?.id) {
+          try {
+            console.log(`Adding subject ${subject} to database with confidence medium`);
+            const { error } = await supabase
+              .from('student_subject_preferences')
+              .upsert({
+                student_id: authState.user.id,
+                subject: subject,
+                confidence_level: "medium"
+              });
+              
+            if (error) {
+              throw error;
+            }
+            console.log(`Successfully added subject ${subject} to database`);
+          } catch (err) {
+            console.error('Error adding subject to database:', err);
+            toast({
+              title: "Error",
+              description: "Failed to save subject. Please try again.",
+              variant: "destructive"
+            });
+          }
         }
       }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -95,6 +115,7 @@ export const BasicSubjectSelection: React.FC = () => {
               variant={isSelected ? "default" : "outline"}
               className={`justify-start ${isSelected ? "bg-primary" : ""}`}
               onClick={() => handleSubjectToggle(subject)}
+              disabled={isSaving}
             >
               {isSelected && <Check className="mr-2 h-4 w-4" />}
               {subject}

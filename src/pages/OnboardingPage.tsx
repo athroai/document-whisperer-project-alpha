@@ -179,14 +179,26 @@ const OnboardingPage: React.FC = () => {
       console.log(`Saving ${subjectPromises.length} subjects to the database...`);
       
       const results = await Promise.allSettled(subjectPromises);
+      let savedSubjects = 0;
       results.forEach((result, index) => {
         const subject = onboardingData.subjects[index].subject;
         if (result.status === 'fulfilled') {
           console.log(`Successfully saved subject: ${subject}`);
+          savedSubjects++;
         } else {
           console.error(`Failed to save subject ${subject}:`, result.reason);
         }
       });
+      
+      if (savedSubjects === 0) {
+        toast({
+          title: "Error saving subjects",
+          description: "Could not save your subject preferences. Please try again.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
       setGenerationProgress(40);
 

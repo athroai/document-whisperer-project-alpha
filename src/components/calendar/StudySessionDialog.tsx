@@ -11,6 +11,7 @@ import { useStudySessionForm } from '@/hooks/calendar/useStudySessionForm';
 import TimeSelector from './TimeSelector';
 import { CalendarEvent } from '@/types/calendar';
 import { parseISO, format, addMinutes } from 'date-fns';
+import { GCSE_SUBJECTS } from '@/hooks/useSubjects';
 
 interface StudySessionDialogProps {
   open: boolean;
@@ -29,7 +30,7 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   eventToEdit,
   existingEvents = []
 }) => {
-  const { subjects } = useUserSubjects();
+  const { subjects, isLoading: subjectsLoading } = useUserSubjects();
   const { toast } = useToast();
   const [timeError, setTimeError] = useState<string | null>(null);
   
@@ -44,6 +45,16 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     handleSubmit: submitForm,
     resetForm
   } = useStudySessionForm(selectedDate, undefined, onSuccess, eventToEdit);
+
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (subjects && subjects.length > 0) {
+      setAvailableSubjects(subjects.map(s => s.subject));
+    } else {
+      setAvailableSubjects(GCSE_SUBJECTS);
+    }
+  }, [subjects]);
 
   const handleSubmit = async () => {
     try {
@@ -152,13 +163,17 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                     <SelectValue placeholder="Select Subject" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
-                    {subjects.map((subj) => (
-                      <SelectItem key={subj.subject} value={subj.subject}>
-                        {subj.subject}
+                    {availableSubjects.map((subject) => (
+                      <SelectItem key={subject} value={subject}>
+                        {subject}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {subjectsLoading && <p className="text-xs text-muted-foreground mt-1">Loading subjects...</p>}
+                {!subjectsLoading && availableSubjects.length === 0 && (
+                  <p className="text-xs text-amber-500 mt-1">No subjects found. Please set up your subjects in settings.</p>
+                )}
               </div>
               
               <div className="space-y-2">

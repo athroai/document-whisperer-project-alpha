@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 import { fetchDatabaseEvents } from '@/services/calendar/calendarEventService';
 import { CalendarEvent } from '@/types/calendar';
@@ -57,40 +56,59 @@ export const useEventFetching = (
       try {
         console.log(`Fetching database events for user: ${authenticatedId}`);
         const dbEvents = await fetchDatabaseEvents(authenticatedId);
+        console.log(`Fetched ${dbEvents.length} events from database`);
         
-        // Filter events based on user subjects if we have actual selected subjects
-        let filteredEvents = dbEvents;
+        // Log the raw events to check what subjects they have
+        dbEvents.forEach((event, i) => {
+          console.log(`Event ${i + 1}: title=${event.title}, subject=${event.subject || 'none'}`);
+        });
         
+        // Check user subjects to debug filtering
         if (subjects && subjects.length > 0) {
-          console.log('Filtering events by user subjects:', 
+          console.log('User subjects available for filtering:', 
             subjects.map(s => s.subject).join(', '));
           
           const subjectNames = subjects.map(s => s.subject);
+          console.log(`Found ${subjectNames.length} subject names for filtering`);
           
-          if (subjectNames.length > 0) {
-            filteredEvents = dbEvents.filter(event => 
-              // Pass events with no subject or matching subjects
-              !event.subject || subjectNames.includes(event.subject)
-            );
-            
-            console.log(`Filtered from ${dbEvents.length} to ${filteredEvents.length} events matching user subjects`);
-          } else {
-            console.log('No subject names extracted, using all events');
+          // No filtering if we have no subjects
+          if (subjectNames.length === 0) {
+            setEvents(dbEvents);
+            setIsLoading(false);
+            fetchAttempted.current = true;
+            return dbEvents;
           }
+          
+          // Otherwise filter events to match user subjects
+          const filteredEvents = dbEvents.filter(event => 
+            // Include events with no subject or matching user's subjects
+            !event.subject || subjectNames.includes(event.subject)
+          );
+          
+          console.log(`Filtered events by subject: ${dbEvents.length} → ${filteredEvents.length}`);
+          
+          // Include local-only events
+          const localOnlyEvents = localEvents.filter(e => e.local_only);
+          
+          const combinedEvents = [...filteredEvents, ...localOnlyEvents];
+          
+          console.log(`Final event count: ${combinedEvents.length} events`);
+          setEvents(combinedEvents);
         } else {
           console.log('No user subjects available, showing all events');
+          
+          // Include local-only events
+          const localOnlyEvents = localEvents.filter(e => e.local_only);
+          
+          const combinedEvents = [...dbEvents, ...localOnlyEvents];
+          
+          console.log(`Final event count: ${combinedEvents.length} events`);
+          setEvents(combinedEvents);
         }
         
-        // Include local-only events
-        const localOnlyEvents = localEvents.filter(e => e.local_only);
-        
-        const combinedEvents = [...filteredEvents, ...localOnlyEvents];
-        
-        console.log(`Final event count: ${combinedEvents.length} events`);
-        setEvents(combinedEvents);
         setIsLoading(false);
         fetchAttempted.current = true;
-        return combinedEvents;
+        return dbEvents;
       } catch (fetchError) {
         console.error('Error fetching database events:', fetchError);
         setEvents(localEvents);
