@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -20,13 +21,13 @@ interface StudySessionDialogProps {
   eventToEdit?: CalendarEvent | null;
 }
 
-const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
+const StudySessionDialog = ({
   open,
   onOpenChange,
   selectedDate,
   onSuccess,
   eventToEdit
-}) => {
+}: StudySessionDialogProps) => {
   const {
     formState,
     setTitle,
@@ -35,10 +36,9 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     setDate,
     setStartTime,
     setDuration,
-    handleSubmit: submitForm,
-    setFormState
+    handleSubmit: submitForm
   } = useStudySessionForm(selectedDate);
-  
+
   const { subjects, isLoading } = useSubjects();
   const { toast } = useToast();
 
@@ -47,24 +47,21 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
       const startDate = parseISO(eventToEdit.start_time);
       const endDate = parseISO(eventToEdit.end_time);
       const durationInMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
-      
-      setFormState(prev => ({
-        ...prev,
-        title: eventToEdit.title || '',
-        subject: eventToEdit.subject || 'Mathematics',
-        topic: eventToEdit.topic || '',
-        date: format(startDate, 'yyyy-MM-dd'),
-        startTime: format(startDate, 'HH:mm'),
-        duration: durationInMinutes
-      }));
+
+      setTitle(eventToEdit.title || '');
+      setSubject(eventToEdit.subject || 'Mathematics');
+      setTopic(eventToEdit.topic || '');
+      setDate(format(startDate, 'yyyy-MM-dd'));
+      setStartTime(format(startDate, 'HH:mm'));
+      setDuration(durationInMinutes);
     }
-  }, [eventToEdit, setFormState]);
-  
+  }, [eventToEdit, setTitle, setSubject, setTopic, setDate, setStartTime, setDuration]);
+
   const getTopicsForSubject = (subj: string) => {
     const character = athroCharacters.find(char => char.subject.toLowerCase() === subj.toLowerCase());
     return character ? character.topics : [];
   };
-  
+
   const currentTopics = getTopicsForSubject(formState.subject);
   const availableSubjects = subjects.length > 0 ? subjects : athroCharacters.map(char => char.subject);
 
@@ -79,19 +76,19 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         });
         return;
       }
-      
+
       await submitForm(eventToEdit?.id);
-      
+
       if (onSuccess) onSuccess();
       onOpenChange(false);
-      
+
       toast({
         title: eventToEdit ? 'Study Session Updated' : 'Study Session Scheduled',
-        description: eventToEdit ? 
+        description: eventToEdit ?
           'Your study session has been updated.' :
           'Your study session has been added to your calendar.',
       });
-      
+
     } catch (error) {
       console.error('Error with study session:', error);
       toast({
@@ -114,8 +111,8 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="title">Session Title (Optional)</Label>
-            <Input 
-              id="title" 
+            <Input
+              id="title"
               placeholder={`Study: ${formState.subject}${formState.topic ? ` - ${formState.topic}` : ''}`}
               value={formState.title}
               onChange={(e) => setTitle(e.target.value)}
@@ -123,8 +120,8 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
-            <Select 
-              value={formState.subject} 
+            <Select
+              value={formState.subject}
               onValueChange={setSubject}
             >
               <SelectTrigger id="subject">
@@ -147,8 +144,8 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="topic">Topic (Optional)</Label>
-            <Select 
-              value={formState.topic} 
+            <Select
+              value={formState.topic}
               onValueChange={setTopic}
             >
               <SelectTrigger id="topic">
@@ -162,7 +159,7 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
               </SelectContent>
             </Select>
           </div>
-          <TimeSelector 
+          <TimeSelector
             date={formState.date}
             startTime={formState.startTime}
             duration={formState.duration}
@@ -175,8 +172,8 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={formState.isSubmitting}
           >
             {formState.isSubmitting ? 'Saving...' : (eventToEdit ? 'Update Session' : 'Schedule Session')}

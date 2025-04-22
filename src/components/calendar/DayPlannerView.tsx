@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { parseISO, startOfDay, isSameDay } from 'date-fns';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEvent } from '@/types/calendar';
+import { useToast } from '@/hooks/use-toast';
 import DayPlannerHeader from './DayPlannerHeader';
 import DayPlannerEvents from './DayPlannerEvents';
 import StudySessionDialog from './StudySessionDialog';
@@ -25,6 +26,7 @@ const DayPlannerView = ({
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const { deleteEvent } = useCalendarEvents();
+  const { toast } = useToast();
 
   useEffect(() => {
     const normalizedSelectedDate = startOfDay(selectedDate);
