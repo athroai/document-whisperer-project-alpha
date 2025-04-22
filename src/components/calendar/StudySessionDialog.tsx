@@ -11,13 +11,13 @@ import { useSubjects } from '@/hooks/useSubjects';
 import { useStudySessionForm } from '@/hooks/calendar/useStudySessionForm';
 import TimeSelector from './TimeSelector';
 import { CalendarEvent } from '@/types/calendar';
-import { parseISO, format, isBefore } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 
 interface StudySessionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate?: Date;
-  onSuccess?: () => void;
+  onSuccess?: (event: CalendarEvent) => void;
   eventToEdit?: CalendarEvent | null;
   existingEvents?: CalendarEvent[];
 }
@@ -42,7 +42,7 @@ const StudySessionDialog = ({
     setEventId
   } = useStudySessionForm(selectedDate);
 
-  const { subjects, isLoading } = useSubjects();
+  const { subjects } = useSubjects();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -53,34 +53,16 @@ const StudySessionDialog = ({
       setTopic(eventToEdit.topic || '');
       setDate(format(startDate, 'yyyy-MM-dd'));
       setStartTime(format(startDate, 'HH:mm'));
-      setDuration(eventToEdit.duration_minutes || 60);
       if (eventToEdit.id) {
         setEventId(eventToEdit.id);
       }
+      
+      // Calculate duration from start and end time
+      const endDate = parseISO(eventToEdit.end_time);
+      const durationInMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
+      setDuration(durationInMinutes);
     }
   }, [eventToEdit, setTitle, setSubject, setTopic, setDate, setStartTime, setDuration, setEventId]);
-
-  const validateTimeOrder = (selectedTime: string) => {
-    const currentDate = `${formState.date}T${selectedTime}`;
-    const selectedDateTime = new Date(currentDate);
-    
-    // Filter events for the same day
-    const sameDay = existingEvents?.filter(event => {
-      const eventDate = new Date(event.start_time);
-      return format(eventDate, 'yyyy-MM-dd') === formState.date;
-    });
-
-    // If editing, exclude the current event from comparison
-    const otherEvents = sameDay.filter(event => event.id !== eventToEdit?.id);
-    
-    // Check if the selected time is after all previous events
-    const hasPreviousEventAfter = otherEvents.some(event => {
-      const eventTime = new Date(event.start_time);
-      return isBefore(selectedDateTime, eventTime);
-    });
-
-    return !hasPreviousEventAfter;
-  };
 
   const handleSubmit = async () => {
     try {
@@ -93,18 +75,10 @@ const StudySessionDialog = ({
         return;
       }
 
-      // Validate time order
-      if (!validateTimeOrder(formState.startTime)) {
-        toast({
-          title: "Invalid Time",
-          description: "New sessions must be scheduled after existing sessions for this day",
-          variant: "destructive",
-        });
-        return;
+      const result = await submitForm();
+      if (result && onSuccess) {
+        onSuccess(result);
       }
-
-      await submitForm();
-      if (onSuccess) onSuccess();
       onOpenChange(false);
 
       toast({
@@ -132,6 +106,7 @@ const StudySessionDialog = ({
             {eventToEdit ? 'Modify your study session details' : 'Create a new study session'}
           </DialogDescription>
         </DialogHeader>
+        
         <div className="space-y-6 py-4">
           <div className="space-y-4">
             <div>
@@ -144,6 +119,7 @@ const StudySessionDialog = ({
                 className="mt-1.5"
               />
             </div>
+            
             <div>
               <Label htmlFor="subject">Subject</Label>
               <Select
@@ -160,6 +136,7 @@ const StudySessionDialog = ({
                 </SelectContent>
               </Select>
             </div>
+            
             <div>
               <Label htmlFor="topic">Topic (Optional)</Label>
               <Select
@@ -179,6 +156,7 @@ const StudySessionDialog = ({
                 </SelectContent>
               </Select>
             </div>
+            
             <TimeSelector
               date={formState.date}
               startTime={formState.startTime}
@@ -190,6 +168,7 @@ const StudySessionDialog = ({
             />
           </div>
         </div>
+        
         <DialogFooter className="mt-6">
           <Button
             onClick={handleSubmit}
