@@ -94,12 +94,21 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
     // Generate times from 7 AM (07:00) to 10 PM (22:00) with half-hour intervals
     for (let hour = 7; hour <= 22; hour++) {
       const hourFormatted = hour.toString().padStart(2, '0');
-      const hourDisplay = hour > 12 ? `${hour - 12}:00 ${hour >= 12 ? 'PM' : 'AM'}` : `${hour}:00 AM`;
-      const halfHourDisplay = hour > 12 ? `${hour - 12}:30 ${hour >= 12 ? 'PM' : 'AM'}` : `${hour}:30 AM`;
+      const displayHour = hour > 12 ? hour - 12 : hour;
+      const amPm = hour >= 12 ? 'PM' : 'AM';
+      const displayTime = `${displayHour}:00 ${amPm}`;
+      const displayHalfTime = `${displayHour}:30 ${amPm}`;
       
-      options.push({ value: `${hourFormatted}:00`, label: hourDisplay });
+      options.push({ 
+        value: `${hourFormatted}:00`, 
+        label: displayTime 
+      });
+      
       if (hour < 22) { // Don't add :30 for 10 PM
-        options.push({ value: `${hourFormatted}:30`, label: halfHourDisplay });
+        options.push({ 
+          value: `${hourFormatted}:30`, 
+          label: displayHalfTime 
+        });
       }
     }
     return options;
