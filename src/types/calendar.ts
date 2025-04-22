@@ -13,6 +13,7 @@ export interface CalendarEvent {
   local_only?: boolean;
   suggested?: boolean;
   timezone?: string;
+  status?: string;
   recurrence?: {
     pattern: 'daily' | 'weekly' | 'monthly';
     interval: number;

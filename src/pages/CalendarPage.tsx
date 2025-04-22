@@ -31,6 +31,7 @@ const CalendarPage: React.FC = () => {
   const calendarMountedRef = useRef(true);
   const manualRefreshInProgress = useRef(false);
   const lastRefreshTime = useRef<number>(0);
+  const isRestartingOnboarding = searchParams.get('restart') === 'true';
 
   const fromSetup = searchParams.get('fromSetup') === 'true';
   const shouldRefresh = searchParams.get('refresh') === 'true';
