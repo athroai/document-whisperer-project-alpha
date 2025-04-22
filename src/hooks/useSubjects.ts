@@ -1,38 +1,16 @@
 
 import { useState, useEffect } from 'react';
+import { useUserSubjects } from './useUserSubjects';
 
 export const useSubjects = () => {
   const [subjects, setSubjects] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { subjects: userSubjects, isLoading: isLoadingUserSubjects } = useUserSubjects();
   
   useEffect(() => {
-    // Load available GCSE subjects with separated science subjects
-    const gcseSubjects = [
-      'Mathematics',
-      'English Language',
-      'English Literature',
-      'Biology',
-      'Chemistry',
-      'Physics',
-      'Computer Science',
-      'History',
-      'Geography',
-      'French',
-      'Spanish',
-      'German',
-      'Religious Studies',
-      'Art & Design',
-      'Music',
-      'Physical Education',
-      'Business Studies',
-      'Economics',
-      'Sociology',
-      'Psychology'
-    ];
-    
-    setSubjects(gcseSubjects);
-    setIsLoading(false);
-  }, []);
+    if (!isLoadingUserSubjects) {
+      setSubjects(userSubjects.map(s => s.subject));
+    }
+  }, [userSubjects, isLoadingUserSubjects]);
   
-  return { subjects, isLoading };
+  return { subjects, isLoading: isLoadingUserSubjects };
 };

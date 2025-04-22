@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,7 @@ import { isAfter, isBefore, parseISO, addMinutes, isWithinInterval, startOfToday
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CalendarEvent } from '@/types/calendar';
+import { TIME_RANGE } from './time/TimeRange';
 
 interface TimeSelectorProps {
   date: string;
@@ -43,30 +43,23 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   }, [errorMessage]);
 
   const isTimeUnavailable = (timeOption: { value: string; label: string }) => {
-    // Convert selected date and time to a Date object
     const selectedDateTime = new Date(`${date}T${timeOption.value}`);
     const now = new Date();
     
-    // Check if time is in the past
     if (isBefore(selectedDateTime, now)) {
       return { unavailable: true, reason: 'This time has already passed' };
     }
 
-    // Check for conflicts with existing sessions
     if (checkConflicts && checkConflicts(date, timeOption.value, duration)) {
       return { unavailable: true, reason: 'This time conflicts with another session' };
     }
 
-    // Additional check for conflicts with existing events
     if (existingEvents.length > 0) {
       const selectedEndTime = addMinutes(selectedDateTime, duration);
       
-      // Create a time range for the selected session
       const selectedInterval = { start: selectedDateTime, end: selectedEndTime };
       
-      // Check against all existing events
       const conflictingEvent = existingEvents.find(event => {
-        // Skip checking against the current event being edited
         if (currentEventId && event.id === currentEventId) {
           return false;
         }
@@ -74,7 +67,6 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
         const eventStart = new Date(event.start_time);
         const eventEnd = new Date(event.end_time);
         
-        // Check if the intervals overlap
         return areIntervalsOverlapping(
           { start: eventStart, end: eventEnd },
           selectedInterval
@@ -91,20 +83,23 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
 
   const generateTimeOptions = () => {
     const options = [];
-    // Generate times from 7 AM (07:00) to 10 PM (22:00) with half-hour intervals
-    for (let hour = 7; hour <= 22; hour++) {
+    for (let hour = TIME_RANGE.START_HOUR; hour <= TIME_RANGE.END_HOUR; hour++) {
       const hourFormatted = hour.toString().padStart(2, '0');
-      const displayHour = hour > 12 ? hour - 12 : hour;
+      const displayHour = TIME_RANGE.FORMAT_24H ? hour : (hour > 12 ? hour - 12 : hour);
       const amPm = hour >= 12 ? 'PM' : 'AM';
-      const displayTime = `${displayHour}:00 ${amPm}`;
-      const displayHalfTime = `${displayHour}:30 ${amPm}`;
+      const displayTime = TIME_RANGE.FORMAT_24H ? 
+        `${hourFormatted}:00` : 
+        `${displayHour}:00 ${amPm}`;
+      const displayHalfTime = TIME_RANGE.FORMAT_24H ? 
+        `${hourFormatted}:30` : 
+        `${displayHour}:30 ${amPm}`;
       
       options.push({ 
         value: `${hourFormatted}:00`, 
         label: displayTime 
       });
       
-      if (hour < 22) { // Don't add :30 for 10 PM
+      if (hour < TIME_RANGE.END_HOUR) {
         options.push({ 
           value: `${hourFormatted}:30`, 
           label: displayHalfTime 
@@ -137,7 +132,6 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
       const selectedDateTime = new Date(`${date}T${startTime}`);
       const selectedEndTime = addMinutes(selectedDateTime, updatedDuration);
       
-      // Check for conflicts with the new duration
       if (existingEvents.length > 0) {
         for (const event of existingEvents) {
           if (currentEventId && event.id === currentEventId) continue;

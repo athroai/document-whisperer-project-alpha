@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { athroCharacters } from '@/config/athrosConfig';
-import { useSubjects } from '@/hooks/useSubjects';
+import { useUserSubjects } from '@/hooks/useUserSubjects';
 import { useStudySessionForm } from '@/hooks/calendar/useStudySessionForm';
 import TimeSelector from './TimeSelector';
 import { CalendarEvent } from '@/types/calendar';
@@ -30,11 +29,10 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   eventToEdit,
   existingEvents = []
 }) => {
-  const { subjects } = useSubjects();
+  const { subjects } = useUserSubjects();
   const { toast } = useToast();
   const [timeError, setTimeError] = useState<string | null>(null);
   
-  // Pass eventToEdit directly to the hook for initialization
   const {
     formState,
     setTitle,
@@ -47,7 +45,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     resetForm
   } = useStudySessionForm(selectedDate, undefined, onSuccess, eventToEdit);
 
-  // Handle form submission
   const handleSubmit = async () => {
     try {
       if (!formState.startTime) {
@@ -97,7 +94,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     const selectedEndDateTime = addMinutes(selectedDateTime, duration);
 
     return existingEvents.some(event => {
-      // Skip comparing with the event being edited
       if (eventToEdit && event.id === eventToEdit.id) {
         return false;
       }
@@ -105,7 +101,6 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
       const eventStart = new Date(event.start_time);
       const eventEnd = new Date(event.end_time);
 
-      // Check if the intervals overlap
       return (
         (selectedDateTime >= eventStart && selectedDateTime < eventEnd) ||
         (selectedEndDateTime > eventStart && selectedEndDateTime <= eventEnd) ||
@@ -158,7 +153,9 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
                   </SelectTrigger>
                   <SelectContent className="z-50">
                     {subjects.map((subj) => (
-                      <SelectItem key={subj} value={subj}>{subj}</SelectItem>
+                      <SelectItem key={subj.subject} value={subj.subject}>
+                        {subj.subject}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
