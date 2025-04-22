@@ -17,18 +17,85 @@ export const useUserSubjects = () => {
     if (!authState.user?.id) return;
 
     try {
-      const { data, error } = await supabase
+      setIsLoading(true);
+      
+      // First try to get subjects from student_subject_preferences
+      const { data: prefData, error: prefError } = await supabase
         .from('student_subject_preferences')
         .select('subject, confidence_level')
         .eq('student_id', authState.user.id);
 
-      if (error) throw error;
-
-      setSubjects(data || []);
+      if (prefError) {
+        console.error('Error fetching user subject preferences:', prefError);
+      }
+      
+      if (prefData && prefData.length > 0) {
+        // Convert numeric confidence_level to low/medium/high
+        const mappedSubjects = prefData.map(subj => ({
+          subject: subj.subject,
+          confidence_level: mapConfidenceLevel(subj.confidence_level)
+        }));
+        
+        setSubjects(mappedSubjects);
+      } else {
+        // As a fallback, fetch from student_subjects if it exists
+        const { data: subjData, error: subjError } = await supabase
+          .from('student_subjects')
+          .select('subject_name, help_level')
+          .eq('student_id', authState.user.id);
+          
+        if (subjError) {
+          console.error('Error fetching student subjects:', subjError);
+        }
+        
+        if (subjData && subjData.length > 0) {
+          const mappedSubjects = subjData.map(subj => ({
+            subject: subj.subject_name,
+            confidence_level: mapHelpLevel(subj.help_level)
+          }));
+          
+          setSubjects(mappedSubjects);
+        } else {
+          // If no subjects found, provide default subjects
+          setSubjects([
+            { subject: 'Mathematics', confidence_level: 'medium' },
+            { subject: 'English', confidence_level: 'medium' },
+            { subject: 'Science', confidence_level: 'medium' }
+          ]);
+          
+          console.log('No subjects found, using default subjects');
+        }
+      }
     } catch (error) {
-      console.error('Error fetching user subjects:', error);
+      console.error('Error in fetchUserSubjects:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Helper function to map numeric confidence level to string
+  const mapConfidenceLevel = (level: number | string): 'low' | 'medium' | 'high' => {
+    if (typeof level === 'number') {
+      if (level <= 3) return 'low';
+      if (level <= 7) return 'medium';
+      return 'high';
+    }
+    
+    // If it's already a string, validate and return
+    if (level === 'low' || level === 'medium' || level === 'high') {
+      return level;
+    }
+    
+    return 'medium';
+  };
+  
+  // Helper function to map help level to confidence level
+  const mapHelpLevel = (helpLevel: string): 'low' | 'medium' | 'high' => {
+    switch (helpLevel) {
+      case 'high': return 'low';
+      case 'medium': return 'medium';
+      case 'low': return 'high';
+      default: return 'medium';
     }
   };
 

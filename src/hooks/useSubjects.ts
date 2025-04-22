@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useUserSubjects } from './useUserSubjects';
 
@@ -8,7 +7,11 @@ export const useSubjects = () => {
   
   useEffect(() => {
     if (!isLoadingUserSubjects) {
-      setSubjects(userSubjects.map(s => s.subject));
+      if (userSubjects && userSubjects.length > 0) {
+        setSubjects(userSubjects.map(s => s.subject));
+      } else {
+        setSubjects(['Mathematics', 'English', 'Science']);
+      }
     }
   }, [userSubjects, isLoadingUserSubjects]);
   

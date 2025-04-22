@@ -21,6 +21,10 @@ export const BasicSubjectSelection: React.FC = () => {
     }
   };
 
+  // Default subjects if none are loaded
+  const defaultSubjects = ['Mathematics', 'English', 'Science', 'History', 'Geography'];
+  const displaySubjects = subjects.length > 0 ? subjects : defaultSubjects;
+
   if (isLoading) {
     return <div>Loading subjects...</div>;
   }
@@ -28,7 +32,7 @@ export const BasicSubjectSelection: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2">
-        {subjects.map((subject) => {
+        {displaySubjects.map((subject) => {
           const isSelected = isSubjectSelected(subject);
           return (
             <Button

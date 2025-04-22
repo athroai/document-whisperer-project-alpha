@@ -47,44 +47,40 @@ export const useEventFetching = (
 
       if (!authenticatedId) {
         console.log('No authenticated user ID found, using only local events');
-        const filteredLocalEvents = localEvents.filter(event => 
-          subjects.find(s => s.subject === event.subject)
-        );
-        setEvents(filteredLocalEvents);
+        setEvents(localEvents);
         setIsLoading(false);
         fetchAttempted.current = true;
-        return filteredLocalEvents;
+        return localEvents;
       }
       
       try {
         console.log(`Fetching database events for user: ${authenticatedId}`);
         const dbEvents = await fetchDatabaseEvents(authenticatedId);
         
-        // Filter events to only include user's selected subjects
-        const filteredEvents = dbEvents.filter(event => 
-          subjects.find(s => s.subject === event.subject)
-        );
+        // Filter events to only include user's selected subjects if subjects exist
+        let filteredEvents = dbEvents;
+        if (subjects && subjects.length > 0) {
+          filteredEvents = dbEvents.filter(event => 
+            !event.subject || subjects.some(s => s.subject === event.subject)
+          );
+        }
         
-        const localOnlyEvents = localEvents.filter(e => 
-          e.local_only && subjects.find(s => s.subject === e.subject)
-        );
+        // Include local-only events
+        const localOnlyEvents = localEvents.filter(e => e.local_only);
         
         const combinedEvents = [...filteredEvents, ...localOnlyEvents];
         
-        console.log(`Fetched and filtered to ${combinedEvents.length} events matching user subjects`);
+        console.log(`Fetched ${dbEvents.length} events, filtered to ${filteredEvents.length} events matching user subjects`);
         setEvents(combinedEvents);
         setIsLoading(false);
         fetchAttempted.current = true;
         return combinedEvents;
       } catch (fetchError) {
         console.error('Error fetching database events:', fetchError);
-        const filteredLocalEvents = localEvents.filter(event => 
-          subjects.find(s => s.subject === event.subject)
-        );
-        setEvents(filteredLocalEvents);
+        setEvents(localEvents);
         setIsLoading(false);
         fetchAttempted.current = true;
-        return filteredLocalEvents;
+        return localEvents;
       }
     } catch (error) {
       console.error('Error in fetchEvents:', error);
