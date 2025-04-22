@@ -15,7 +15,7 @@ const CalendarAuthCheck: React.FC<CalendarAuthCheckProps> = ({ children, fromSet
   const { state: authState } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { needsOnboarding, checkingOnboarding } = useOnboardingCheck(false);
+  const { needsOnboarding, isLoading: checkingOnboarding } = useOnboardingCheck(false);
 
   React.useEffect(() => {
     if (!authState.isLoading && !authState.user) {
