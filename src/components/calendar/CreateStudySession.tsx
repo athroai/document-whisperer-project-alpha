@@ -26,7 +26,7 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
   initialDate = new Date(),
   onSuccess
 }) => {
-  const { subjects } = useSubjects();
+  const { subjects } = useSubjects(); // <-- Always gets the user's subjects from onboarding/study plan
   const { state: authState } = useAuth();
   const { toast } = useToast();
   const {
@@ -40,7 +40,6 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
     handleSubmit
   } = useStudySessionForm(initialDate, onClose, onSuccess);
 
-  // Check for authentication
   if (!authState.user) {
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -62,9 +61,7 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
   const onSubmit = async () => {
     try {
       await handleSubmit();
-      if (onSuccess && formState) {
-        // onSuccess will be called inside handleSubmit
-      }
+      // onSuccess will be called within handleSubmit if provided
     } catch (error) {
       console.error('Failed to create study session:', error);
       toast({
@@ -76,28 +73,22 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        onClose();
-      }
-    }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { onClose(); } }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Schedule a Study Session</DialogTitle>
         </DialogHeader>
-
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="title" className="text-right">Title</Label>
             <Input
               id="title"
               value={formState.title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={e => setTitle(e.target.value)}
               className="col-span-3"
               placeholder="My Study Session"
             />
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="subject" className="text-right">Subject</Label>
             <Select value={formState.subject} onValueChange={setSubject}>
@@ -111,18 +102,16 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
               </SelectContent>
             </Select>
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="topic" className="text-right">Topic (optional)</Label>
             <Input
               id="topic"
               value={formState.topic}
-              onChange={(e) => setTopic(e.target.value)}
+              onChange={e => setTopic(e.target.value)}
               className="col-span-3"
               placeholder="Optional topic"
             />
           </div>
-
           <div className="col-span-4">
             <TimeSelector
               date={formState.date}
@@ -134,7 +123,6 @@ const CreateStudySession: React.FC<CreateStudySessionProps> = ({
             />
           </div>
         </div>
-
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={onSubmit} disabled={formState.isSubmitting}>

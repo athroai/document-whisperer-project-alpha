@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalCalendarEvents } from './calendar/useLocalCalendarEvents';
@@ -36,7 +37,6 @@ export const useCalendarEvents = () => {
     localEvents
   );
 
-  // Create a stabilized fetchEvents function with cooldown protection
   const fetchEvents = useCallback(async () => {
     if (fetchCooldown.current) {
       console.log('Fetch in cooldown period, returning cached events');
@@ -90,27 +90,19 @@ export const useCalendarEvents = () => {
     };
   }, [userId, fetchEvents, setLastRefreshedAt]);
 
-  // New: clear all but completed events
+  // Clear all but completed events
   const clearAllEventsExceptCompleted = useCallback(async () => {
     setIsLoading(true);
     try {
-      // "completed" definition: status === 'completed' (we will allow user to redefine this later)
-      // For now, filter and keep only events that are marked completed (if they have such a status)
       const nonCompleted = events.filter(
-        (event: any) =>
-          !event.status || event.status !== 'completed'
+        (event: any) => !event.status || event.status !== 'completed'
       );
       const completed = events.filter(
-        (event: any) =>
-          event.status && event.status === 'completed'
+        (event: any) => event.status && event.status === 'completed'
       );
       // Remove from backend/local only non-completed events
       for (const event of nonCompleted) {
-        // For calendar_events source, only delete those with event_type === 'study_session'
-        if (
-          !event.status ||
-          event.status !== 'completed'
-        ) {
+        if (!event.status || event.status !== 'completed') {
           await deleteEvent(event.id);
         }
       }
@@ -129,7 +121,28 @@ export const useCalendarEvents = () => {
       setIsLoading(false);
     }
   }, [events, setEvents, setIsLoading, toast, deleteEvent]);
-  
+
+  // New: mark event as complete/incomplete (update status)
+  const markEventComplete = useCallback(
+    async (eventId: string, completed: boolean) => {
+      const event = events.find(e => e.id === eventId);
+      if (!event) return;
+      await updateEvent(eventId, { status: completed ? 'completed' : undefined });
+      setEvents((prev) =>
+        prev.map(ev =>
+          ev.id === eventId ? { ...ev, status: completed ? 'completed' : undefined } : ev
+        )
+      );
+      toast({
+        title: completed ? "Session Marked as Complete" : "Session Marked as Incomplete",
+        description: completed
+          ? "Nice job! This study session has been marked as completed."
+          : "Session is set as incomplete again."
+      });
+    },
+    [events, updateEvent, setEvents, toast]
+  );
+
   return {
     events,
     isLoading,
@@ -139,6 +152,7 @@ export const useCalendarEvents = () => {
     updateEvent,
     deleteEvent,
     lastRefreshedAt,
-    clearAllEventsExceptCompleted
+    clearAllEventsExceptCompleted,
+    markEventComplete
   };
 };

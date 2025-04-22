@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { CalendarEvent } from '@/types/calendar';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -12,7 +11,9 @@ interface DayPlannerEventsProps {
   events: CalendarEvent[];
   isLoading: boolean;
   onDelete: (eventId: string) => void;
-  onDragEnd: (result: any) => void;
+  onEdit: (event: CalendarEvent) => void;
+  onLaunch: (event: CalendarEvent) => void;
+  onMarkComplete: (event: CalendarEvent, completed: boolean) => void;
   onAddSession: () => void;
 }
 
@@ -20,9 +21,12 @@ const DayPlannerEvents = ({
   events,
   isLoading,
   onDelete,
-  onDragEnd,
+  onEdit,
+  onLaunch,
+  onMarkComplete,
   onAddSession,
 }: DayPlannerEventsProps) => {
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -45,31 +49,18 @@ const DayPlannerEvents = ({
           <Plus className="mr-1 h-4 w-4" /> Add Session
         </Button>
       </div>
-
-      <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="dayEvents">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="space-y-3"
-            >
-              {events.map((event, index) => (
-                <Draggable key={event.id} draggableId={event.id} index={index}>
-                  {(providedDrag) => (
-                    <DayPlannerEvent
-                      event={event}
-                      onDelete={onDelete}
-                      provided={providedDrag}
-                    />
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+      <div className="space-y-3">
+        {events.map(event => (
+          <DayPlannerEvent
+            key={event.id}
+            event={event}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onLaunch={onLaunch}
+            onMarkComplete={onMarkComplete}
+          />
+        ))}
+      </div>
     </>
   );
 };
