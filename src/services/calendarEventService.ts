@@ -57,9 +57,35 @@ export const fetchDatabaseEvents = async (userId: string | null): Promise<Calend
     allEvents.forEach(event => {
       const key = `${event.start_time}-${event.end_time}`;
       
-      // If we have a duplicate time slot, prefer events with specific subjects
+      // Always prefer events with specific titles over generic "Study Session" events
       if (!uniqueEvents.has(key) || (event.title !== 'Study Session' && uniqueEvents.get(key).title === 'Study Session')) {
         uniqueEvents.set(key, event);
+      }
+      
+      // If both events have subjects, prefer the one with more specific information
+      if (uniqueEvents.has(key) && event.title !== 'Study Session' && uniqueEvents.get(key).title !== 'Study Session') {
+        const existingEvent = uniqueEvents.get(key);
+        let existingSubject = '';
+        let newSubject = '';
+        
+        try {
+          if (existingEvent.description) {
+            const existingData = JSON.parse(existingEvent.description);
+            existingSubject = existingData.subject || '';
+          }
+          
+          if (event.description) {
+            const newData = JSON.parse(event.description);
+            newSubject = newData.subject || '';
+          }
+          
+          // If the new event has a subject and the existing one doesn't, use the new one
+          if (newSubject && !existingSubject) {
+            uniqueEvents.set(key, event);
+          }
+        } catch (e) {
+          console.error('Error parsing event descriptions:', e);
+        }
       }
     });
     

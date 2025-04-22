@@ -1,23 +1,21 @@
-// Import the correct Availability type
+
 import React, { useState } from 'react';
 import { Availability } from '@/types/study';
 
 // Fix the component to use the updated Availability type with startHour and endHour
 const AvailabilitySelector = ({ onSave }: { onSave: (availabilities: Availability[]) => void }) => {
   const [availabilities, setAvailabilities] = useState<Availability[]>([
-    { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', startHour: 9, endHour: 17 },
-    { dayOfWeek: 2, startTime: '09:00', endTime: '17:00', startHour: 9, endHour: 17 },
-    { dayOfWeek: 3, startTime: '09:00', endTime: '17:00', startHour: 9, endHour: 17 },
-    { dayOfWeek: 4, startTime: '09:00', endTime: '17:00', startHour: 9, endHour: 17 },
-    { dayOfWeek: 5, startTime: '09:00', endTime: '17:00', startHour: 9, endHour: 17 },
+    { dayOfWeek: 1, startHour: 9, endHour: 17 },
+    { dayOfWeek: 2, startHour: 9, endHour: 17 },
+    { dayOfWeek: 3, startHour: 9, endHour: 17 },
+    { dayOfWeek: 4, startHour: 9, endHour: 17 },
+    { dayOfWeek: 5, startHour: 9, endHour: 17 },
   ]);
 
-  const handleAvailabilityChange = (dayOfWeek: number, startTime: string, endTime: string) => {
+  const handleAvailabilityChange = (dayOfWeek: number, startHour: number, endHour: number) => {
     const updatedAvailabilities = availabilities.map(availability => {
       if (availability.dayOfWeek === dayOfWeek) {
-        const startHour = parseInt(startTime.split(':')[0], 10);
-        const endHour = parseInt(endTime.split(':')[0], 10);
-        return { ...availability, startTime, endTime, startHour, endHour };
+        return { ...availability, startHour, endHour };
       }
       return availability;
     });
@@ -37,14 +35,20 @@ const AvailabilitySelector = ({ onSave }: { onSave: (availabilities: Availabilit
           <label>Start Time:</label>
           <input
             type="time"
-            value={availability.startTime}
-            onChange={e => handleAvailabilityChange(availability.dayOfWeek, e.target.value, availability.endTime)}
+            value={`${String(availability.startHour).padStart(2, '0')}:00`}
+            onChange={e => {
+              const hours = parseInt(e.target.value.split(':')[0], 10);
+              handleAvailabilityChange(availability.dayOfWeek, hours, availability.endHour);
+            }}
           />
           <label>End Time:</label>
           <input
             type="time"
-            value={availability.endTime}
-            onChange={e => handleAvailabilityChange(availability.dayOfWeek, availability.startTime, e.target.value)}
+            value={`${String(availability.endHour).padStart(2, '0')}:00`}
+            onChange={e => {
+              const hours = parseInt(e.target.value.split(':')[0], 10);
+              handleAvailabilityChange(availability.dayOfWeek, availability.startHour, hours);
+            }}
           />
         </div>
       ))}

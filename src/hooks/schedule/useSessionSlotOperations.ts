@@ -36,9 +36,9 @@ export const useSessionSlotOperations = () => {
         try {
           console.log(`Creating event for day ${dayIndex} (${nextDate.toDateString()}) at ${startTime.toTimeString()}`);
           
-          // Only create events with titles from the custom slots, not generic "Study Session" events
+          // Create calendar event with the subject name
           const event = await createEvent({
-            title: `${slot.subject || 'Subject'} Study Session`, // Include subject name
+            title: `${slot.subject || 'Study'} Session`,
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
             subject: slot.subject || 'General',
@@ -77,13 +77,13 @@ export const useSessionSlotOperations = () => {
       
       if (slots.length === 0) return true;
 
-      const slotsToInsert = slots.map(({ id, ...slot }) => ({
+      // Create a new array without the subject field since it's not in the database schema yet
+      const slotsToInsert = slots.map(({ id, subject, ...slot }) => ({
         user_id: userId,
         day_of_week: slot.day_of_week,
         slot_count: slot.slot_count,
         slot_duration_minutes: slot.slot_duration_minutes,
-        preferred_start_hour: slot.preferred_start_hour,
-        subject: slot.subject // Include subject when saving to database
+        preferred_start_hour: slot.preferred_start_hour
       }));
 
       const { data, error } = await supabase
@@ -94,6 +94,14 @@ export const useSessionSlotOperations = () => {
       if (error) throw new Error(`Database error: ${error.message}`);
       
       console.log(`Saved ${data?.length || 0} study slots to database`);
+      
+      // Since we can't store the subject in the database yet, let's store the full data including subjects in local storage
+      const slotsWithSubjects = slots.map(slot => ({
+        ...slot,
+        user_id: userId
+      }));
+      localStorage.setItem('athro_study_slots_with_subjects', JSON.stringify(slotsWithSubjects));
+      
       return true;
     } catch (error) {
       console.error("Error saving study slots:", error);

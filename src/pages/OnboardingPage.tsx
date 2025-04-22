@@ -159,27 +159,36 @@ const OnboardingPage: React.FC = () => {
 
       let studySlotsData = [];
       try {
-        const { data, error } = await supabase
-          .from('preferred_study_slots')
-          .select('*')
-          .eq('user_id', authState.user.id);
-          
-        if (error) {
-          throw error;
-        }
-        
-        if (data && data.length > 0) {
-          studySlotsData = data;
-          console.log(`Found ${data.length} saved study slots`);
+        // First try to get study slots with subjects from local storage
+        if (localStorage.getItem('athro_study_slots_with_subjects')) {
+          studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots_with_subjects') || '[]');
         } else {
-          console.log('No study slots found in database, checking local storage');
-          if (localStorage.getItem('athro_study_slots')) {
-            studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
+          // Fall back to database and regular local storage
+          const { data, error } = await supabase
+            .from('preferred_study_slots')
+            .select('*')
+            .eq('user_id', authState.user.id);
+            
+          if (error) {
+            throw error;
+          }
+          
+          if (data && data.length > 0) {
+            studySlotsData = data;
+            console.log(`Found ${data.length} saved study slots`);
+          } else {
+            console.log('No study slots found in database, checking local storage');
+            if (localStorage.getItem('athro_study_slots')) {
+              studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
+            }
           }
         }
       } catch (err) {
         console.error('Error fetching study slots:', err);
-        if (localStorage.getItem('athro_study_slots')) {
+        // Try local storage as fallback
+        if (localStorage.getItem('athro_study_slots_with_subjects')) {
+          studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots_with_subjects') || '[]');
+        } else if (localStorage.getItem('athro_study_slots')) {
           studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
         }
       }
@@ -214,13 +223,18 @@ const OnboardingPage: React.FC = () => {
         let endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
 
-        const subjIndex = calendarEvents.length % onboardingData.subjects.length;
-        const subjectObj = onboardingData.subjects[subjIndex];
+        // If the slot has a subject, use it; otherwise assign one
+        let subjectName = slot.subject;
+        if (!subjectName && onboardingData.subjects.length > 0) {
+          const subjIndex = calendarEvents.length % onboardingData.subjects.length;
+          const subjectObj = onboardingData.subjects[subjIndex];
+          subjectName = subjectObj.subject;
+        }
 
         calendarEvents.push({
-          title: `${subjectObj.subject} Study Session`,
+          title: `${subjectName || 'Study'} Session`,
           description: JSON.stringify({
-            subject: subjectObj.subject,
+            subject: subjectName,
             isPomodoro: true,
             pomodoroWorkMinutes: 25,
             pomodoroBreakMinutes: 5
