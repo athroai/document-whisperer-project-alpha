@@ -5,13 +5,43 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export const ScheduleChoiceStep: React.FC = () => {
   const navigate = useNavigate();
   const { updateOnboardingStep } = useOnboarding();
+  const { state: authState } = useAuth();
+  const { toast } = useToast();
 
-  const handleChoice = (choice: 'manual' | 'guided') => {
+  const handleChoice = async (choice: 'manual' | 'guided') => {
     if (choice === 'manual') {
+      if (authState.user) {
+        try {
+          // Mark onboarding as completed in the database
+          await supabase
+            .from('onboarding_progress')
+            .upsert({
+              student_id: authState.user.id,
+              current_step: 'completed',
+              has_completed_subjects: true,
+              has_completed_availability: true,
+              has_generated_plan: true,
+              completed_at: new Date().toISOString()
+            });
+          
+          // Set local storage flag to indicate onboarding is completed
+          localStorage.setItem('onboarding_completed', 'true');
+          
+          toast({
+            title: "Onboarding Completed",
+            description: "You can now set up your own study schedule."
+          });
+        } catch (error) {
+          console.error('Error completing onboarding:', error);
+        }
+      }
       // Navigate to calendar for manual setup
       navigate('/calendar?fromSetup=true');
     } else {

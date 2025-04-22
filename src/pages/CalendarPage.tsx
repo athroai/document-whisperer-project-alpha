@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
@@ -154,16 +153,16 @@ const CalendarPage: React.FC = () => {
     };
   }, [authState.user?.id, isInitialLoad, fetchEvents, toast, refreshTrigger, fromSetup, shouldRefresh]);
 
-  // Modified to manually check onboarding status and redirect if needed without OnboardingCheck's internal redirects
+  // Modified to manually check onboarding status and redirect if needed, but skip if fromSetup=true
   useEffect(() => {
-    if (!checkingOnboarding && needsOnboarding === true && authState.user && calendarMountedRef.current) {
+    if (!checkingOnboarding && needsOnboarding === true && authState.user && calendarMountedRef.current && !fromSetup) {
       toast({
         title: "Onboarding Required",
         description: "Please complete onboarding to set up your study plan."
       });
       navigate('/onboarding');
     }
-  }, [needsOnboarding, checkingOnboarding, navigate, authState.user, toast]);
+  }, [needsOnboarding, checkingOnboarding, navigate, authState.user, toast, fromSetup]);
 
   if (authState.isLoading || checkingOnboarding) {
     return (
@@ -192,7 +191,7 @@ const CalendarPage: React.FC = () => {
           <CalendarContainer
             events={events}
             isLoading={isLoading}
-            needsOnboarding={!!needsOnboarding}
+            needsOnboarding={!!needsOnboarding && !fromSetup}
             refreshTrigger={refreshTrigger}
             onRetryLoad={handleRetryLoad}
           />

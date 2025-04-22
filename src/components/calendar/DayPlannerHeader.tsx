@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -96,14 +97,14 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
                 .in('calendar_event_id', eventIdsToDelete);
                 
               // Delete the calendar events
-              const { data, error } = await supabase
+              const { error } = await supabase
                 .from('calendar_events')
                 .delete()
                 .in('id', eventIdsToDelete);
                 
               if (error) throw error;
               
-              const deletedCount = data?.length || 0;
+              const deletedCount = eventIdsToDelete.length;
               
               let description = `${deletedCount} study sessions for ${format(selectedDate, 'MMMM d, yyyy')} have been removed`;
               
