@@ -54,39 +54,92 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
       }
 
       const eventIds = eventsData?.map(event => event.id) || [];
+      let preservedCount = 0;
       
       if (eventIds.length > 0) {
-        // Delete related study plan sessions if they exist
-        try {
-          const { error: studyPlanError } = await supabase
-            .from('study_plan_sessions')
-            .delete()
-            .in('calendar_event_id', eventIds);
+        // Check for events linked to completed study sessions
+        const { data: completedSessions, error: sessionsError } = await supabase
+          .from('study_sessions')
+          .select('id')
+          .eq('student_id', session.user.id)
+          .eq('status', 'completed')
+          .gte('start_time', dayStart)
+          .lte('end_time', dayEnd);
+          
+        if (sessionsError) {
+          console.warn('Error checking for completed sessions:', sessionsError);
+        } else {
+          const completedSessionIds = completedSessions?.map(session => session.id) || [];
+          
+          if (completedSessionIds.length > 0) {
+            // Find calendar events linked to completed study sessions
+            const { data: linkedEvents } = await supabase
+              .from('calendar_events')
+              .select('id')
+              .in('source_session_id', completedSessionIds);
+              
+            const excludeEventIds = linkedEvents?.map(event => event.id) || [];
+            preservedCount = excludeEventIds.length;
             
-          if (studyPlanError) {
-            console.warn('Error clearing study plan sessions for day:', studyPlanError);
-            // Continue anyway - some sessions might not have study plan entries
+            // Filter out events to preserve
+            const eventIdsToDelete = eventIds.filter(id => !excludeEventIds.includes(id));
+            
+            if (eventIdsToDelete.length > 0) {
+              // Delete study plan sessions that reference these events
+              await supabase
+                .from('study_plan_sessions')
+                .delete()
+                .in('calendar_event_id', eventIdsToDelete);
+                
+              // Delete the calendar events
+              const { data: deletedEvents, error } = await supabase
+                .from('calendar_events')
+                .delete()
+                .in('id', eventIdsToDelete);
+                
+              if (error) throw error;
+              
+              const deletedCount = deletedEvents?.length || 0;
+              
+              let description = `${deletedCount} study sessions for ${format(selectedDate, 'MMMM d, yyyy')} have been removed`;
+              
+              if (preservedCount > 0) {
+                description += `. ${preservedCount} sessions linked to completed study activities were preserved.`;
+              }
+              
+              toast({ title: "Day Cleared", description });
+            } else {
+              toast({ 
+                title: "No Sessions Removed", 
+                description: "All sessions for this day are linked to completed study activities and were preserved."
+              });
+            }
+          } else {
+            // No completed sessions, delete everything
+            await supabase
+              .from('study_plan_sessions')
+              .delete()
+              .in('calendar_event_id', eventIds);
+              
+            const { error } = await supabase
+              .from('calendar_events')
+              .delete()
+              .in('id', eventIds);
+              
+            if (error) throw error;
+            
+            toast({
+              title: "Day Cleared",
+              description: `All study sessions for ${format(selectedDate, 'MMMM d, yyyy')} have been removed`
+            });
           }
-        } catch (spError) {
-          console.warn('Failed to delete study plan sessions:', spError);
-          // Continue anyway
         }
+      } else {
+        toast({
+          title: "No Sessions Found",
+          description: `No study sessions found for ${format(selectedDate, 'MMMM d, yyyy')}`
+        });
       }
-
-      // Now delete the calendar events
-      const { error } = await supabase
-        .from('calendar_events')
-        .delete()
-        .eq('user_id', session.user.id)
-        .gte('start_time', dayStart)
-        .lte('end_time', dayEnd);
-
-      if (error) throw error;
-
-      toast({
-        title: "Day Cleared",
-        description: `All study sessions for ${format(selectedDate, 'MMMM d, yyyy')} have been removed`
-      });
 
       onClose();
     } catch (error) {
@@ -119,7 +172,8 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
             <AlertDialogHeader>
               <AlertDialogTitle>Clear all sessions for this day?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete all study sessions scheduled for {format(selectedDate, 'MMMM d, yyyy')}. 
+                This will delete study sessions scheduled for {format(selectedDate, 'MMMM d, yyyy')}.
+                Sessions linked to completed study activities will be preserved.
                 This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>

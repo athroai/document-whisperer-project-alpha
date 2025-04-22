@@ -40,38 +40,28 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         return;
       }
 
-      // First, delete any records in study_plan_sessions that reference calendar events for this user
-      const { error: studyPlanError } = await supabase.rpc('delete_study_plan_sessions_for_user', {
-        user_id_param: session.user.id
-      });
-
-      if (studyPlanError) {
-        console.error('Error clearing study plan sessions:', studyPlanError);
-        // Continue with deletion even if this fails (the function might not exist yet)
-        
-        // Alternative approach: try a direct deletion if the RPC doesn't exist
-        const { error: directDeleteError } = await supabase
-          .from('study_plan_sessions')
-          .delete()
-          .eq('user_id', session.user.id);
-          
-        if (directDeleteError) {
-          console.warn('Could not directly delete study plan sessions:', directDeleteError);
-          // Still continue to try to delete events that don't have foreign key constraints
+      // Call the Edge Function to handle clearing the calendar
+      const { data, error } = await supabase.functions.invoke('clear-calendar', {
+        body: {
+          user_id: session.user.id,
+          preserve_completed: true
         }
-      }
-
-      // Now delete the calendar events
-      const { error } = await supabase
-        .from('calendar_events')
-        .delete()
-        .eq('user_id', session.user.id);
-
+      });
+      
       if (error) throw error;
+      
+      const deletedCount = data?.deleted_count || 0;
+      const preservedCount = data?.preserved_count || 0;
+      
+      let description = `${deletedCount} study sessions have been removed from your calendar.`;
+      
+      if (preservedCount > 0) {
+        description += ` ${preservedCount} sessions linked to completed study sessions were preserved.`;
+      }
 
       toast({
         title: "Calendar Cleared",
-        description: "All study sessions have been removed from your calendar"
+        description
       });
 
       onRefresh();
@@ -113,7 +103,8 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action will permanently delete all study sessions from your calendar. 
+                This action will permanently delete study sessions from your calendar. 
+                Sessions linked to completed study activities will be preserved.
                 This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -122,15 +113,16 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive">
-                    Yes, clear everything
+                    Yes, clear my calendar
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Final confirmation</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you really sure you want to delete all your study sessions? 
-                      You will need to rebuild your study schedule from scratch.
+                      Are you really sure you want to delete your study sessions?
+                      Completed study sessions will remain in your history.
+                      You will need to rebuild your remaining study schedule.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
