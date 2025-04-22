@@ -5,7 +5,6 @@ import { CalendarEvent } from '@/types/calendar';
 import DayPlannerHeader from './DayPlannerHeader';
 import DayPlannerEvents from './DayPlannerEvents';
 import StudySessionDialog from './StudySessionDialog';
-import { useToast } from '@/hooks/use-toast';
 
 interface DayPlannerViewProps {
   selectedDate: Date;
@@ -24,21 +23,18 @@ const DayPlannerView = ({
 }: DayPlannerViewProps) => {
   const [dayEvents, setDayEvents] = useState<CalendarEvent[]>([]);
   const [isAddingEvent, setIsAddingEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const { deleteEvent } = useCalendarEvents();
-  const { toast } = useToast();
 
   useEffect(() => {
-    // Normalize selectedDate to start of day to ensure proper comparison
     const normalizedSelectedDate = startOfDay(selectedDate);
     
-    // Filter events that match the selected day
     const filteredEvents = events.filter(event => {
       try {
         if (!event.start_time) {
           return false;
         }
         
-        // Parse event date and normalize to start of day
         const eventDate = startOfDay(parseISO(event.start_time));
         return isSameDay(eventDate, normalizedSelectedDate);
       } catch (err) {
@@ -47,7 +43,6 @@ const DayPlannerView = ({
       }
     });
     
-    // Sort events by start time
     filteredEvents.sort((a, b) => 
       new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
     );
@@ -62,6 +57,7 @@ const DayPlannerView = ({
   const handleSessionSuccess = () => {
     onRefresh();
     setIsAddingEvent(false);
+    setEditingEvent(null);
   };
 
   const handleDeleteEvent = async (eventId: string) => {
@@ -72,17 +68,10 @@ const DayPlannerView = ({
   };
 
   const handleEditSession = (event: CalendarEvent) => {
-    // For now, just show a toast that this feature is coming soon
-    // This will be implemented when you're ready to add the edit functionality
-    toast({
-      title: "Coming Soon",
-      description: "Edit functionality will be available soon!"
-    });
+    setEditingEvent(event);
   };
 
   const handleLaunchSession = (event: CalendarEvent) => {
-    // For now, just show a toast that this feature is coming soon
-    // This will be implemented when you're ready to add the launch functionality
     toast({
       title: "Coming Soon",
       description: "Launch functionality will be available soon!"
@@ -104,12 +93,18 @@ const DayPlannerView = ({
           />
         </div>
         
-        {isAddingEvent && (
+        {(isAddingEvent || editingEvent) && (
           <StudySessionDialog
-            open={isAddingEvent}
-            onOpenChange={(open) => setIsAddingEvent(open)}
+            open={isAddingEvent || !!editingEvent}
+            onOpenChange={(open) => {
+              if (!open) {
+                setIsAddingEvent(false);
+                setEditingEvent(null);
+              }
+            }}
             selectedDate={selectedDate}
             onSuccess={handleSessionSuccess}
+            eventToEdit={editingEvent}
           />
         )}
       </div>

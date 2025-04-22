@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, Trash2, Pencil, Play } from 'lucide-react';
+import { Clock, Trash2 } from 'lucide-react';
 import { CalendarEvent } from '@/types/calendar';
 import { getEventColor } from '@/utils/calendarUtils';
 import { formatGMTTime } from '@/utils/timeUtils';
@@ -38,28 +38,28 @@ const DayPlannerEvent = ({ event, onDelete, onEdit, onLaunch }: DayPlannerEventP
             </div>
             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 onClick={() => onEdit(event)}
-                className="h-8 w-8"
+                className="text-purple-600 hover:text-purple-700"
               >
-                <Pencil className="h-4 w-4 text-gray-500" />
+                Edit
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 onClick={() => onLaunch(event)}
-                className="h-8 w-8"
+                className="text-green-600 hover:text-green-700"
               >
-                <Play className="h-4 w-4 text-green-500" />
+                Launch
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={() => onDelete(event.id)}
-                className="h-8 w-8"
+                className="text-red-500 hover:text-red-600"
               >
-                <Trash2 className="h-4 w-4 text-red-500" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>

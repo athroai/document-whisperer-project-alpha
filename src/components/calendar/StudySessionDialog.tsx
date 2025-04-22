@@ -1,29 +1,31 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
 import { athroCharacters } from '@/config/athrosConfig';
 import { useSubjects } from '@/hooks/useSubjects';
 import { useStudySessionForm } from '@/hooks/calendar/useStudySessionForm';
 import TimeSelector from './TimeSelector';
+import { CalendarEvent } from '@/types/calendar';
+import { parseISO, format } from 'date-fns';
 
 interface StudySessionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate?: Date;
   onSuccess?: () => void;
+  eventToEdit?: CalendarEvent | null;
 }
 
 const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
   open,
   onOpenChange,
   selectedDate,
-  onSuccess
+  onSuccess,
+  eventToEdit
 }) => {
   const {
     formState,
@@ -33,11 +35,30 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     setDate,
     setStartTime,
     setDuration,
-    handleSubmit: submitForm
+    handleSubmit: submitForm,
+    setFormState
   } = useStudySessionForm(selectedDate);
   
   const { subjects, isLoading } = useSubjects();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (eventToEdit) {
+      const startDate = parseISO(eventToEdit.start_time);
+      const endDate = parseISO(eventToEdit.end_time);
+      const durationInMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
+      
+      setFormState(prev => ({
+        ...prev,
+        title: eventToEdit.title || '',
+        subject: eventToEdit.subject || 'Mathematics',
+        topic: eventToEdit.topic || '',
+        date: format(startDate, 'yyyy-MM-dd'),
+        startTime: format(startDate, 'HH:mm'),
+        duration: durationInMinutes
+      }));
+    }
+  }, [eventToEdit, setFormState]);
   
   const getTopicsForSubject = (subj: string) => {
     const character = athroCharacters.find(char => char.subject.toLowerCase() === subj.toLowerCase());
@@ -59,21 +80,23 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
         return;
       }
       
-      await submitForm();
+      await submitForm(eventToEdit?.id);
       
       if (onSuccess) onSuccess();
       onOpenChange(false);
       
       toast({
-        title: 'Study Session Scheduled',
-        description: 'Your study session has been added to your calendar.',
+        title: eventToEdit ? 'Study Session Updated' : 'Study Session Scheduled',
+        description: eventToEdit ? 
+          'Your study session has been updated.' :
+          'Your study session has been added to your calendar.',
       });
       
     } catch (error) {
-      console.error('Error creating study session:', error);
+      console.error('Error with study session:', error);
       toast({
         title: 'Error',
-        description: 'There was a problem scheduling your study session.',
+        description: `There was a problem ${eventToEdit ? 'updating' : 'scheduling'} your study session.`,
         variant: 'destructive',
       });
     }
@@ -83,9 +106,9 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Schedule Study Session</DialogTitle>
+          <DialogTitle>{eventToEdit ? 'Edit Study Session' : 'Schedule Study Session'}</DialogTitle>
           <DialogDescription>
-            Create a new study session with your Athro mentor
+            {eventToEdit ? 'Modify your study session details' : 'Create a new study session with your Athro mentor'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -156,7 +179,7 @@ const StudySessionDialog: React.FC<StudySessionDialogProps> = ({
             onClick={handleSubmit} 
             disabled={formState.isSubmitting}
           >
-            {formState.isSubmitting ? 'Scheduling...' : 'Schedule Session'}
+            {formState.isSubmitting ? 'Saving...' : (eventToEdit ? 'Update Session' : 'Schedule Session')}
           </Button>
         </DialogFooter>
       </DialogContent>
