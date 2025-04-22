@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -24,9 +24,13 @@ interface DayPlannerHeaderProps {
 
 const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClose }) => {
   const { toast } = useToast();
+  const [isClearing, setIsClearing] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleClearDay = async () => {
     try {
+      setIsClearing(true);
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
         toast({
@@ -34,6 +38,7 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
           description: "You must be logged in to clear study sessions",
           variant: "destructive"
         });
+        setIsClearing(false);
         return;
       }
 
@@ -141,6 +146,7 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
         });
       }
 
+      setShowConfirmation(false);
       onClose();
     } catch (error) {
       console.error('Error clearing day:', error);
@@ -149,6 +155,8 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
         description: "Failed to clear study sessions. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -158,11 +166,12 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
         <h2 className="text-lg font-semibold">
           {format(selectedDate, 'MMMM d, yyyy')}
         </h2>
-        <AlertDialog>
+        <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
           <AlertDialogTrigger asChild>
             <Button
               variant="destructive"
               size="sm"
+              onClick={() => setShowConfirmation(true)}
             >
               <Trash2 className="h-4 w-4 mr-1" />
               Clear Day
@@ -178,12 +187,20 @@ const DayPlannerHeader: React.FC<DayPlannerHeaderProps> = ({ selectedDate, onClo
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setShowConfirmation(false)}>Cancel</AlertDialogCancel>
               <Button 
                 variant="destructive"
                 onClick={handleClearDay}
+                disabled={isClearing}
               >
-                Yes, clear this day
+                {isClearing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Clearing...
+                  </>
+                ) : (
+                  "Yes, clear this day"
+                )}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

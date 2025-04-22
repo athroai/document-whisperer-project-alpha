@@ -28,6 +28,8 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
 }) => {
   const { toast } = useToast();
   const [clearingCalendar, setClearingCalendar] = useState(false);
+  const [showFirstConfirmation, setShowFirstConfirmation] = useState(false);
+  const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
 
   const handleClearCalendar = async () => {
     try {
@@ -41,6 +43,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           variant: "destructive"
         });
         setClearingCalendar(false);
+        setShowFinalConfirmation(false);
         return;
       }
 
@@ -71,6 +74,10 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         description
       });
 
+      // Close the confirmation dialogs
+      setShowFirstConfirmation(false);
+      setShowFinalConfirmation(false);
+
       // Allow the user to see the success message before refreshing
       setTimeout(() => {
         onRefresh();
@@ -84,6 +91,8 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         variant: "destructive"
       });
       setClearingCalendar(false);
+      setShowFirstConfirmation(false);
+      setShowFinalConfirmation(false);
     }
   };
 
@@ -104,7 +113,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           Refresh Calendar
         </Button>
 
-        <AlertDialog>
+        <AlertDialog open={showFirstConfirmation} onOpenChange={setShowFirstConfirmation}>
           <AlertDialogTrigger asChild>
             <Button
               variant="destructive"
@@ -129,10 +138,10 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialog>
+              <AlertDialogCancel onClick={() => setShowFirstConfirmation(false)}>Cancel</AlertDialogCancel>
+              <AlertDialog open={showFinalConfirmation} onOpenChange={setShowFinalConfirmation}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
+                  <Button variant="destructive" onClick={() => setShowFinalConfirmation(true)}>
                     Yes, clear my calendar
                   </Button>
                 </AlertDialogTrigger>
@@ -146,7 +155,15 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>No, keep my schedule</AlertDialogCancel>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setShowFinalConfirmation(false);
+                        setShowFirstConfirmation(false);
+                      }}
+                    >
+                      No, keep my schedule
+                    </Button>
                     <Button 
                       variant="destructive"
                       onClick={handleClearCalendar}
