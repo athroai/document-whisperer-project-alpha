@@ -1,332 +1,176 @@
 
-import React, { useState } from 'react';
-import { DaySelector } from '@/components/onboarding/DaySelector';
-import { Label } from '@/components/ui/label';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Clock, AlertCircle, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useOnboarding } from '@/contexts/OnboardingContext';
-import { useUserSubjects } from '@/hooks/useUserSubjects';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useStudySchedule } from '@/hooks/useStudySchedule';
+import { ArrowLeft, ArrowRight, Clock } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { DayPreference } from '@/hooks/schedule/useDayPreferences';
 
 export const ScheduleSetupStep: React.FC = () => {
-  const { toast } = useToast();
-  const { selectedSubjects, updateOnboardingStep } = useOnboarding();
-  const { subjects: userSubjects, isLoading: userSubjectsLoading } = useUserSubjects();
-  const { state: authState } = useAuth();
-  
-  // State for scheduling
-  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // Default Mon-Fri
-  const [preferredStartHour, setPreferredStartHour] = useState<number>(16); // 4 PM default
-  const [sessionDuration, setSessionDuration] = useState<'short' | 'medium' | 'long'>('medium');
-  const [subjectsByDay, setSubjectsByDay] = useState<{[day: number]: string}>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Get available subjects from user data
-  const availableSubjects = userSubjects.length > 0 
-    ? userSubjects 
-    : selectedSubjects.length > 0 
-      ? selectedSubjects 
-      : [];
+  const {
+    selectedDays,
+    sessionsPerDay,
+    dayPreferences,
+    isSubmitting,
+    sessionOptions,
+    error,
+    handleDayToggle,
+    handleSessionTimeChange,
+    handleSessionDurationChange,
+    handleSessionsPerDayChange,
+    handleAddSession,
+    handleRemoveSession,
+    handleContinue
+  } = useStudySchedule();
 
-  const handleDayToggle = (dayIndex: number) => {
-    setSelectedDays(prev => 
-      prev.includes(dayIndex) 
-        ? prev.filter(d => d !== dayIndex) 
-        : [...prev, dayIndex].sort((a, b) => {
-            // Sort Sunday (0) at the end of the array
-            if (a === 0) return 1;
-            if (b === 0) return -1;
-            return a - b;
-          })
-    );
-  };
-
-  const getDurationMinutes = (duration: 'short' | 'medium' | 'long'): number => {
-    switch (duration) {
-      case 'short': return 25;
-      case 'medium': return 45;
-      case 'long': return 90;
-    }
-  };
-
-  const getTimeLabel = (hour: number): string => {
-    if (hour === 0) return '12 AM';
-    if (hour < 12) return `${hour} AM`;
-    if (hour === 12) return '12 PM';
-    return `${hour - 12} PM`;
-  };
-
-  const handleSubjectChange = (day: number, subject: string) => {
-    setSubjectsByDay(prev => ({
-      ...prev,
-      [day]: subject
-    }));
-  };
-
-  const getDayName = (dayIndex: number): string => {
-    return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
-  };
-
-  const getFirstAvailableSubject = (): string => {
-    if (availableSubjects.length > 0) {
-      if ('subject' in availableSubjects[0]) {
-        return availableSubjects[0].subject;
-      } 
-      // Handle case where availableSubjects might just be strings
-      return String(availableSubjects[0]);
-    }
-    return "";
-  };
-
-  const handleBack = () => {
-    updateOnboardingStep('subjects');
-  };
-
-  const handleContinue = async () => {
-    if (selectedDays.length === 0) {
-      toast({
-        title: "No Days Selected",
-        description: "Please select at least one day for your study schedule.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (availableSubjects.length === 0) {
-      toast({
-        title: "No Subjects Available",
-        description: "Please go back and select at least one subject.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const userId = authState.user?.id;
-      if (!userId) {
-        throw new Error("You must be logged in to save your schedule");
-      }
-
-      // First, delete existing study slots
-      await supabase
-        .from('preferred_study_slots')
-        .delete()
-        .eq('user_id', userId);
-
-      // Create study slots for each selected day
-      const slots = [];
-      const durationMinutes = getDurationMinutes(sessionDuration);
-
-      for (const day of selectedDays) {
-        // Get the subject for this day, or distribute subjects if not specifically set
-        let subjectForDay = subjectsByDay[day];
-        if (!subjectForDay) {
-          const subjectIndex = day % availableSubjects.length;
-          const subjectData = availableSubjects[subjectIndex];
-          subjectForDay = typeof subjectData === 'string' ? subjectData : subjectData.subject;
-        }
-
-        slots.push({
-          user_id: userId,
-          day_of_week: day,
-          slot_count: 1,
-          slot_duration_minutes: durationMinutes,
-          preferred_start_hour: preferredStartHour,
-          subject: subjectForDay
-        });
-      }
-
-      // Insert all slots
-      await supabase
-        .from('preferred_study_slots')
-        .insert(slots);
-
-      // Store in localStorage as backup
-      localStorage.setItem('athro_study_slots', JSON.stringify(slots));
-
-      // Move to next step
-      updateOnboardingStep('createEvents');
-      
-      toast({
-        title: "Schedule Saved",
-        description: `Your study schedule has been created for ${selectedDays.length} days.`,
-      });
-    } catch (error: any) {
-      console.error("Error saving schedule:", error);
-      setError(error.message || "Failed to save study schedule. Please try again.");
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save study schedule",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (userSubjectsLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading your subjects...</span>
-      </div>
-    );
-  }
-
-  if (availableSubjects.length === 0) {
-    return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertCircle className="h-4 w-4 mr-2" />
-        <AlertDescription className="flex flex-col gap-3">
-          <div>No subjects found. You need to select subjects before creating a schedule.</div>
-          <div className="flex gap-2 mt-2">
-            <Button size="sm" variant="default" onClick={() => updateOnboardingStep('subjects')}>
-              Go to Subject Selection
-            </Button>
-          </div>
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="mb-6">
         <h2 className="text-xl font-semibold">Set Your Study Schedule</h2>
         <p className="text-muted-foreground mt-1">
-          Choose when you'd like to study each week. We'll create sessions based on your availability.
+          Select which days you want to study and customize your study sessions.
         </p>
       </div>
 
       <div className="space-y-4">
-        <Label className="text-base">Which days will you study?</Label>
-        <DaySelector 
-          selectedDays={selectedDays} 
-          toggleDaySelection={handleDayToggle} 
-        />
-      </div>
-
-      <div className="space-y-4">
-        <Label className="text-base">What time would you like to study?</Label>
-        <div className="space-y-4">
-          <div className="flex items-center">
-            <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
-            <span className="font-medium">{getTimeLabel(preferredStartHour)}</span>
-          </div>
-          
-          <Slider
-            value={[preferredStartHour]}
-            min={8} // 8 AM
-            max={20} // 8 PM
-            step={1}
-            onValueChange={(values) => setPreferredStartHour(values[0])}
-          />
-          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>8 AM</span>
-            <span>2 PM</span>
-            <span>8 PM</span>
-          </div>
+        <h3 className="font-medium">Select Days</h3>
+        <div className="grid grid-cols-7 gap-2">
+          {dayNames.map((day, index) => (
+            <button
+              key={day}
+              className={`py-2 px-1 rounded-md text-center text-sm ${
+                selectedDays.includes(index)
+                  ? 'bg-purple-100 text-purple-700 border-2 border-purple-300'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
+              onClick={() => handleDayToggle(index)}
+            >
+              {day.slice(0, 3)}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="space-y-4">
-        <Label className="text-base">How long should each study session be?</Label>
-        <RadioGroup 
-          value={sessionDuration} 
-          onValueChange={(value) => setSessionDuration(value as 'short' | 'medium' | 'long')}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-        >
-          <div className="flex items-center space-x-2 border rounded-md p-4">
-            <RadioGroupItem value="short" id="short" />
-            <Label htmlFor="short" className="cursor-pointer flex-1">
-              <div className="font-medium">Short</div>
-              <div className="text-sm text-gray-500">25 minutes</div>
-            </Label>
-          </div>
-          
-          <div className="flex items-center space-x-2 border rounded-md p-4">
-            <RadioGroupItem value="medium" id="medium" />
-            <Label htmlFor="medium" className="cursor-pointer flex-1">
-              <div className="font-medium">Medium</div>
-              <div className="text-sm text-gray-500">45 minutes</div>
-            </Label>
-          </div>
-          
-          <div className="flex items-center space-x-2 border rounded-md p-4">
-            <RadioGroupItem value="long" id="long" />
-            <Label htmlFor="long" className="cursor-pointer flex-1">
-              <div className="font-medium">Long</div>
-              <div className="text-sm text-gray-500">90 minutes</div>
-            </Label>
-          </div>
-        </RadioGroup>
+        <h3 className="font-medium">Sessions Per Day</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {sessionOptions.map(opt => (
+            <button
+              key={opt.value}
+              className={`py-2 px-3 rounded-md text-center text-sm ${
+                sessionsPerDay === opt.value
+                  ? 'bg-purple-100 text-purple-700 border-2 border-purple-300'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
+              onClick={() => handleSessionsPerDayChange(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {selectedDays.length > 0 && (
-        <div className="space-y-4 border-t pt-4">
-          <Label className="text-base">Assign subjects to specific days (optional)</Label>
-          <p className="text-sm text-muted-foreground">
-            You can assign specific subjects to each day, or leave them blank to have subjects distributed automatically.
-          </p>
+        <div className="space-y-6 pt-4">
+          <h3 className="font-medium">Customize Sessions</h3>
           
-          <div className="space-y-3">
-            {selectedDays.map(day => (
-              <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <Label className="min-w-[100px] font-medium">{getDayName(day)}:</Label>
-                <Select
-                  value={subjectsByDay[day] || ''}
-                  onValueChange={(value) => handleSubjectChange(day, value)}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select a subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSubjects.map((subj, index) => {
-                      const subjectName = typeof subj === 'string' ? subj : subj.subject;
-                      return (
-                        <SelectItem key={`${subjectName}-${index}`} value={subjectName}>
-                          {subjectName}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+          {selectedDays.map(dayIndex => {
+            const dayPref = dayPreferences.find(p => p.dayIndex === dayIndex);
+            if (!dayPref) return null;
+            
+            return (
+              <div key={dayIndex} className="border rounded-md p-4">
+                <h4 className="font-semibold mb-3">{dayNames[dayIndex]}</h4>
+                <div className="space-y-4">
+                  {dayPref.sessionTimes.map((session, idx) => (
+                    <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center pb-3 border-b last:border-0">
+                      <div className="flex-1">
+                        <label className="text-sm text-gray-500 block mb-1">Start Time</label>
+                        <select
+                          value={session.startHour}
+                          onChange={e => handleSessionTimeChange(dayIndex, idx, parseInt(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 p-2"
+                        >
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <option key={i} value={i}>
+                              {i === 0 ? '12 AM' : i === 12 ? '12 PM' : i < 12 ? `${i} AM` : `${i - 12} PM`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <label className="text-sm text-gray-500 block mb-1">Duration</label>
+                        <select
+                          value={session.durationMinutes}
+                          onChange={e => handleSessionDurationChange(dayIndex, idx, parseInt(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 p-2"
+                        >
+                          <option value={15}>15 minutes</option>
+                          <option value={30}>30 minutes</option>
+                          <option value={45}>45 minutes</option>
+                          <option value={60}>1 hour</option>
+                          <option value={90}>1.5 hours</option>
+                          <option value={120}>2 hours</option>
+                        </select>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 self-end sm:self-center mt-2 sm:mt-0">
+                        {dayPref.sessionTimes.length > 1 && (
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8" 
+                            onClick={() => handleRemoveSession(dayIndex, idx)}
+                          >
+                            <span className="sr-only">Remove session</span>
+                            <span>-</span>
+                          </Button>
+                        )}
+                        
+                        {idx === dayPref.sessionTimes.length - 1 && (
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8" 
+                            onClick={() => handleAddSession(dayIndex)}
+                          >
+                            <span className="sr-only">Add session</span>
+                            <span>+</span>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
       {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4 mr-2" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <div className="bg-red-50 text-red-800 p-3 rounded-md border border-red-200">
+          {error}
+        </div>
       )}
 
-      <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={handleBack}>
+      <div className="flex justify-between pt-6">
+        <Button variant="outline" onClick={() => window.history.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
         
         <Button 
           onClick={handleContinue} 
-          disabled={selectedDays.length === 0 || isSubmitting}
+          disabled={isSubmitting || selectedDays.length === 0}
           className="bg-purple-600 hover:bg-purple-700"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+              <Clock className="mr-2 h-4 w-4 animate-spin" />
+              Creating Schedule...
             </>
           ) : (
             <>

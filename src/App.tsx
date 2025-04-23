@@ -19,6 +19,7 @@ import StudyPage from './pages/StudyPage';
 import AthroOnboardingPage from './pages/AthroOnboardingPage';
 import WelcomePage from './pages/WelcomePage';
 import Index from './pages/Index';
+import TimekeeperPage from './pages/TimekeeperPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 const App = () => {
@@ -57,6 +58,11 @@ const App = () => {
                 <Route path="/athro-onboarding" element={
                   <ProtectedRoute>
                     <AthroOnboardingPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/timekeeper" element={
+                  <ProtectedRoute>
+                    <TimekeeperPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/settings" element={

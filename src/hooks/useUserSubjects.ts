@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { GCSE_SUBJECTS } from './useSubjects';
+import { SubjectPreference } from '@/types/study';
 
 export interface UserSubject {
   subject: string;
-  confidence?: string | number;
+  confidence: string | number;
+  priority?: number;
 }
 
 export const useUserSubjects = () => {
@@ -15,89 +17,127 @@ export const useUserSubjects = () => {
   const { state: authState } = useAuth();
   const userId = authState.user?.id;
 
-  const fetchSubjects = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Try to get subjects from database if user is authenticated
-      if (userId) {
-        const { data, error } = await supabase
-          .from('student_subject_preferences')
-          .select('subject, confidence_level')
-          .eq('student_id', userId);
-        
-        if (error) {
-          console.error('Error fetching user subjects:', error);
-          throw error;
-        }
-        
-        if (data && data.length > 0) {
-          const formattedSubjects = data.map(row => ({
-            subject: row.subject,
-            confidence: row.confidence_level
-          }));
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        if (userId) {
+          const { data, error: fetchError } = await supabase
+            .from('student_subject_preferences')
+            .select('*')
+            .eq('student_id', userId);
           
-          console.log('Fetched user subjects from database:', formattedSubjects);
-          setSubjects(formattedSubjects);
-          return;
-        }
-      }
-      
-      // Try to get subjects from localStorage
-      const storedSubjects = localStorage.getItem('athro_selected_subjects');
-      if (storedSubjects) {
-        try {
-          const parsedSubjects = JSON.parse(storedSubjects);
-          if (Array.isArray(parsedSubjects) && parsedSubjects.length > 0) {
-            console.log('Using subjects from localStorage:', parsedSubjects);
-            setSubjects(parsedSubjects);
+          if (fetchError) {
+            throw fetchError;
+          }
+          
+          if (data && data.length > 0) {
+            const mappedSubjects = data.map(preference => ({
+              subject: preference.subject,
+              confidence: preference.confidence_level,
+              priority: preference.priority
+            }));
+            
+            setSubjects(mappedSubjects);
             return;
           }
-        } catch (e) {
-          console.error('Error parsing stored subjects:', e);
         }
-      }
-      
-      // Fallback to onboarding subjects in localStorage
-      const onboardingSubjects = localStorage.getItem('selected_subjects');
-      if (onboardingSubjects) {
-        try {
-          const parsedOnboardingSubjects = JSON.parse(onboardingSubjects);
-          if (Array.isArray(parsedOnboardingSubjects) && parsedOnboardingSubjects.length > 0) {
-            console.log('Using subjects from onboarding:', parsedOnboardingSubjects);
-            setSubjects(parsedOnboardingSubjects.map((subject: string) => ({ subject })));
-            return;
+        
+        // Try to get subjects from localStorage as fallback
+        const storedSubjects = localStorage.getItem('selected_subjects');
+        if (storedSubjects) {
+          try {
+            const parsedSubjects = JSON.parse(storedSubjects);
+            if (Array.isArray(parsedSubjects) && parsedSubjects.length > 0) {
+              setSubjects(parsedSubjects);
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing stored subjects:', e);
           }
-        } catch (e) {
-          console.error('Error parsing onboarding subjects:', e);
         }
+        
+        setSubjects([]);
+      } catch (err) {
+        console.error('Error fetching subjects:', err);
+        setError('Failed to load subjects');
+        setSubjects([]);
+      } finally {
+        setIsLoading(false);
       }
-      
-      // Final fallback - just use default subjects
-      setSubjects(GCSE_SUBJECTS.slice(0, 3).map(subject => ({ subject })));
-      
-    } catch (err) {
-      console.error('Error in useUserSubjects:', err);
-      setError('Failed to load user subjects');
-      setSubjects([]);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+    
+    fetchSubjects();
   }, [userId]);
 
-  useEffect(() => {
-    fetchSubjects();
-  }, [fetchSubjects]);
+  const addSubject = async (subject: string, confidence: string | number) => {
+    if (!userId) return false;
+    
+    try {
+      const newSubject = {
+        subject,
+        confidence,
+        priority: subjects.length + 1
+      };
+      
+      // Update local state
+      setSubjects(prev => [...prev, newSubject]);
+      
+      // Save to database
+      const { error } = await supabase
+        .from('student_subject_preferences')
+        .upsert({
+          student_id: userId,
+          subject,
+          confidence_level: confidence,
+          priority: subjects.length + 1
+        });
+        
+      if (error) {
+        console.error('Error saving subject:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error adding subject:', err);
+      return false;
+    }
+  };
 
-  const refetch = useCallback(() => {
-    return fetchSubjects();
-  }, [fetchSubjects]);
+  const removeSubject = async (subject: string) => {
+    if (!userId) return false;
+    
+    try {
+      // Update local state
+      setSubjects(prev => prev.filter(s => s.subject !== subject));
+      
+      // Remove from database
+      const { error } = await supabase
+        .from('student_subject_preferences')
+        .delete()
+        .eq('student_id', userId)
+        .eq('subject', subject);
+        
+      if (error) {
+        console.error('Error removing subject:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error removing subject:', err);
+      return false;
+    }
+  };
 
   return {
     subjects,
     isLoading,
     error,
-    refetch
+    addSubject,
+    removeSubject
   };
 };
