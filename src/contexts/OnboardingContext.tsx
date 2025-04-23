@@ -3,25 +3,47 @@ import React, { createContext, useContext } from 'react';
 import { useAuth } from './AuthContext';
 import { useOnboardingState } from './onboarding/useOnboardingState';
 import { createOnboardingActions } from './onboarding/onboardingActions';
-import { OnboardingContextType } from './onboarding/types';
+import { SubjectPreference, Availability, PreferredStudySlot } from '@/types/study';
+import { ConfidenceLabel } from '@/types/study';
+
+export interface OnboardingContextType {
+  currentStep: string;
+  selectedSubjects: SubjectPreference[];
+  availability: Availability[];
+  studySlots: PreferredStudySlot[];
+  learningPreferences: Record<string, any>;
+  selectSubject: (subject: string, confidence: ConfidenceLabel) => void;
+  removeSubject: (subject: string) => void;
+  updateAvailability: (availability: Availability[]) => void;
+  updateLearningPreferences: (preferences: Record<string, any>) => void;
+  completeOnboarding: () => Promise<void>;
+  updateOnboardingStep: (step: string) => Promise<void>;
+  updateStudySlots: (params: {
+    dayOfWeek: number,
+    slotCount: number,
+    slotDurationMinutes: number,
+    preferredStartHour: number,
+    subject: string  
+  }) => Promise<void>;
+  setStudySlots: (slots: PreferredStudySlot[]) => void;
+  setSelectedSubjects: (subjects: SubjectPreference[]) => void;
+}
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
 export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { state } = useAuth();
+  
+  // Use the imported onboarding state hook
   const {
-    currentStep,
-    setCurrentStep,
-    selectedSubjects,
-    setSelectedSubjects,
-    availability,
-    setAvailability,
-    studySlots,
-    setStudySlots,
-    learningPreferences,
-    setLearningPreferences,
+    currentStep, setCurrentStep,
+    selectedSubjects, setSelectedSubjects,
+    availability, setAvailability,
+    studySlots, setStudySlots,
+    learningPreferences, setLearningPreferences
   } = useOnboardingState(state.user?.id);
 
+  // Use the imported actions creator
   const actions = createOnboardingActions(
     state.user?.id,
     setSelectedSubjects,
@@ -39,7 +61,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       studySlots,
       learningPreferences,
       setStudySlots,
-      setSelectedSubjects, // Explicitly exposing the setSelectedSubjects function
+      setSelectedSubjects,
       ...actions
     }}>
       {children}
@@ -47,7 +69,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   );
 };
 
-export const useOnboarding = () => {
+export const useOnboarding = (): OnboardingContextType => {
   const context = useContext(OnboardingContext);
   if (!context) {
     throw new Error('useOnboarding must be used within an OnboardingProvider');

@@ -1,30 +1,48 @@
 
-export type ExamBoard = 'AQA' | 'WJEC' | 'EDEXCEL' | 'OCR' | 'SQA' | 'CCEA';
+/**
+ * Athro-related type definitions
+ */
+
+export type ExamBoard = 'AQA' | 'Edexcel' | 'OCR' | 'WJEC' | 'SQA';
 
 export interface AthroCharacter {
   id: string;
   name: string;
   subject: string;
-  tone: string;
-  shortDescription: string;
-  fullDescription: string;
-  avatarUrl: string;
-  supportsMathNotation?: boolean;
-  supportsSpecialCharacters?: boolean;
-  examBoards: ExamBoard[];
-  topics: string[];
-  supportedLanguages?: string[];
+  avatar_url: string;
+  short_description: string;
+  full_description?: string;
+  tone?: string;
+  exam_boards?: ExamBoard[];
+  topics?: string[];
+  supported_languages?: string[];
+  supports_math_notation?: boolean;
+  supports_special_characters?: boolean;
 }
 
-export interface AthroMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  senderId: string; // user id or athro id
+export interface AthroExplanation {
   content: string;
-  timestamp: string;
-  referencedResources?: string[]; // Add missing property
+  character: AthroCharacter;
+  confidence_level?: number;
+  topic?: string;
+  related_concepts?: string[];
 }
 
-// Add these missing types that are referenced in the code
-export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography' | 'Welsh' | 'Languages' | 'Religious Education';
-export type AthroLanguage = 'en' | 'cy' | 'fr' | 'es' | 'de';
+export interface AthroQuiz {
+  id: string;
+  subject: string;
+  topic?: string;
+  questions: AthroQuestion[];
+  difficulty_level?: 'easy' | 'medium' | 'hard';
+  time_limit_minutes?: number;
+}
+
+export interface AthroQuestion {
+  id: string;
+  text: string;
+  options?: string[];
+  correct_answer: string | number | boolean;
+  explanation?: string;
+  topic?: string;
+  difficulty_level?: 'easy' | 'medium' | 'hard';
+}

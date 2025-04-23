@@ -1,14 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
-import CalendarPage from '@/pages/CalendarPage';
-import OnboardingPage from '@/pages/OnboardingPage';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+
+// Providers
+import { AuthProvider } from '@/contexts/AuthContext';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { AthroProvider } from '@/contexts/AthroContext';
-import Navigation from '@/components/Navigation';
 
+// Components
+import Navigation from '@/components/Navigation';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Pages
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -20,9 +24,10 @@ import AthroOnboardingPage from './pages/AthroOnboardingPage';
 import WelcomePage from './pages/WelcomePage';
 import Index from './pages/Index';
 import TimekeeperPage from './pages/TimekeeperPage';
-import ProtectedRoute from './components/ProtectedRoute';
+import CalendarPage from '@/pages/CalendarPage';
+import OnboardingPage from '@/pages/OnboardingPage';
 
-const App = () => {
+const App: React.FC = () => {
   return (
     <AuthProvider>
       <AthroProvider>
@@ -31,13 +36,12 @@ const App = () => {
             <Navigation />
             <main className="flex-1">
               <Routes>
+                {/* Public routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/welcome" element={<WelcomePage />} />
-                <Route path="/dashboard" element={<Navigate to="/home" replace />} />
-                
-                {/* Auth routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+                <Route path="/dashboard" element={<Navigate to="/home" replace />} />
                 
                 {/* Protected routes */}
                 <Route path="/home" element={

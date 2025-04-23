@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { Check, Loader2, Plus } from 'lucide-react';
-import { GCSE_SUBJECTS } from '@/hooks/useSubjects';
 import { useToast } from '@/hooks/use-toast';
-import { ConfidenceLabel } from '@/types/confidence';
+import { GCSE_SUBJECTS } from '@/hooks/useSubjects';
+import { ConfidenceLabel } from '@/types/study';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 export const SubjectsSelector: React.FC = () => {
   const { selectedSubjects, selectSubject, removeSubject, updateOnboardingStep } = useOnboarding();

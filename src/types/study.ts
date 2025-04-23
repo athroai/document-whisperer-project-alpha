@@ -1,52 +1,85 @@
 
-export interface PreferredStudySlot {
-  id: string;
-  user_id: string;
-  day_of_week: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  slot_count: number;
-  slot_duration_minutes: number;
-  preferred_start_hour?: number;
-  subject?: string; // Added subject field
-}
+/**
+ * Study-related type definitions
+ */
 
-export interface DayPreference {
-  dayIndex: number;
-  sessionTimes: {
-    startHour: number;
-    durationMinutes: number;
-  }[];
-}
+// Confidence level definitions
+export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type ConfidenceLabel = 'low' | 'medium' | 'high';
 
+// Subject types
 export interface SubjectPreference {
   subject: string;
-  confidence: string | number;
+  confidence: ConfidenceLabel | ConfidenceLevel;
+  priority?: number;
 }
 
-export interface SlotOption {
-  name: string;
-  count: number;
-  duration: number;
-  color: string;
-  icon: React.ComponentType<any>;
-}
+export type UserSubject = SubjectPreference;
 
+// Study schedule types
 export interface Availability {
   dayOfWeek: number;
   startHour: number;
   endHour: number;
 }
 
-export interface StudySession {
+export interface PreferredStudySlot {
+  id: string;
+  user_id: string;
+  day_of_week: number;
+  slot_count: number;
+  slot_duration_minutes: number;
+  preferred_start_hour: number;
+  subject: string;
+  created_at: string;
+}
+
+export interface StudyPlanSession {
   id: string;
   subject: string;
   topic?: string;
-  startTime: Date | string;
-  endTime: Date | string;
-  notes?: string;
+  start_time: string;
+  end_time: string;
+  is_pomodoro?: boolean;
+  pomodoro_work_minutes?: number;
+  pomodoro_break_minutes?: number;
+}
+
+export interface StudyPlan {
+  id: string;
+  name: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  student_id: string;
+  is_active?: boolean;
+  sessions?: StudyPlanSession[];
+}
+
+// Calendar event types
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string; 
+  end_time: string;
+  event_type: 'study_session' | 'assignment' | 'exam' | 'other';
+  user_id?: string;
+  student_id?: string;
+}
+
+// Study session types
+export interface StudySession {
+  id?: string;
+  subject: string;
+  topic?: string;
+  start_time: string;
+  end_time?: string;
+  student_id?: string;
   confidence_before?: number;
   confidence_after?: number;
-  status?: string;
-  day?: string;
-  formattedStartTime?: string;
-  formattedEndTime?: string;
+  duration_minutes?: number;
+  status?: 'planned' | 'in_progress' | 'completed' | 'canceled';
+  notes?: string;
+  summary?: string;
 }

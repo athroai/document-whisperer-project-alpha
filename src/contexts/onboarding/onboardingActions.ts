@@ -1,7 +1,7 @@
+
 import { supabase } from '@/lib/supabase';
-import { SubjectPreference, Availability } from './types';
-import { PreferredStudySlot } from '@/types/study';
-import { ConfidenceLabel } from '@/types/confidence';
+import { SubjectPreference, Availability, PreferredStudySlot } from '@/types/study';
+import { ConfidenceLabel } from '@/types/study';
 
 export const createOnboardingActions = (
   userId: string | undefined,
@@ -25,7 +25,7 @@ export const createOnboardingActions = (
     // Also update in database immediately if user is logged in
     if (userId) {
       try {
-        console.log(`Immediately saving subject ${subject} with confidence ${confidence} to database`);
+        console.log(`Saving subject ${subject} with confidence ${confidence} to database`);
         supabase
           .from('student_subject_preferences')
           .upsert({
@@ -36,8 +36,6 @@ export const createOnboardingActions = (
           .then(({ error }) => {
             if (error) {
               console.error('Error saving subject to database:', error);
-            } else {
-              console.log(`Successfully saved subject ${subject} to database`);
             }
           });
       } catch (err) {
@@ -52,7 +50,7 @@ export const createOnboardingActions = (
     // Also remove from database if user is logged in
     if (userId) {
       try {
-        console.log(`Immediately removing subject ${subject} from database`);
+        console.log(`Removing subject ${subject} from database`);
         supabase
           .from('student_subject_preferences')
           .delete()
@@ -61,8 +59,6 @@ export const createOnboardingActions = (
           .then(({ error }) => {
             if (error) {
               console.error('Error removing subject from database:', error);
-            } else {
-              console.log(`Successfully removed subject ${subject} from database`);
             }
           });
       } catch (err) {
@@ -105,7 +101,7 @@ export const createOnboardingActions = (
     setStudySlots(prev => [...prev, newSlot]);
     
     try {
-      await supabase
+      const { data, error } = await supabase
         .from('preferred_study_slots')
         .insert({
           user_id: userId,
@@ -114,7 +110,19 @@ export const createOnboardingActions = (
           slot_duration_minutes: slotDurationMinutes,
           preferred_start_hour: preferredStartHour,
           subject
-        });
+        })
+        .select();
+      
+      if (error) {
+        console.error('Error in updateStudySlots:', error);
+      } else if (data && data.length > 0) {
+        // Replace the temporary slot with the real one from the database
+        setStudySlots(prev => 
+          prev.map(slot => 
+            slot.id === newSlot.id ? data[0] : slot
+          )
+        );
+      }
     } catch (error) {
       console.error('Error in updateStudySlots:', error);
     }
@@ -126,27 +134,6 @@ export const createOnboardingActions = (
     try {
       console.log("Completing onboarding for user:", userId);
       
-      // Get the current selected subjects
-      let subjectPrefs: SubjectPreference[] = [];
-      setSelectedSubjects(prev => {
-        subjectPrefs = [...prev];
-        return prev;
-      });
-      
-      // Log the subjects we're about to save
-      console.log("Saving the following subjects during onboarding completion:", 
-        subjectPrefs.map(p => `${p.subject} (${p.confidence})`).join(', '));
-      
-      // Create an array of promises for subject preferences
-      const subjectPromises = subjectPrefs.map(subject => 
-        supabase.from('student_subject_preferences').upsert({
-          student_id: userId,
-          subject: subject.subject,
-          confidence_level: subject.confidence,
-          priority: subject.priority
-        })
-      );
-
       // First check if there's an existing record
       const { data: existingProgress } = await supabase
         .from('onboarding_progress')
@@ -179,22 +166,6 @@ export const createOnboardingActions = (
             has_completed_diagnostic: true,
             completed_at: new Date().toISOString()
           });
-      }
-
-      // Execute all subject preference updates in parallel
-      if (subjectPromises.length > 0) {
-        console.log(`Saving ${subjectPromises.length} subject preferences...`);
-        const results = await Promise.allSettled(subjectPromises);
-        
-        // Log success/failure for each subject
-        results.forEach((result, index) => {
-          const subject = subjectPrefs[index].subject;
-          if (result.status === 'fulfilled') {
-            console.log(`Successfully saved subject: ${subject}`);
-          } else {
-            console.error(`Failed to save subject ${subject}:`, result.reason);
-          }
-        });
       }
       
       setCurrentStep('completed');
@@ -249,17 +220,11 @@ export const createOnboardingActions = (
       try {
         console.log('Updating selected subjects in database:', subjects);
         
-        // Remove existing subject preferences for the user
-        const deletePromise = supabase
-          .from('student_subject_preferences')
-          .delete()
-          .eq('student_id', userId);
-        
-        // Insert new subject preferences
-        const insertPromises = subjects.map(subject => 
+        // Build a batch of upsert operations
+        const upsertPromises = subjects.map(subject => 
           supabase
             .from('student_subject_preferences')
-            .insert({
+            .upsert({
               student_id: userId,
               subject: subject.subject,
               confidence_level: subject.confidence,
@@ -267,8 +232,8 @@ export const createOnboardingActions = (
             })
         );
 
-        // Execute delete and insert operations
-        Promise.all([deletePromise, ...insertPromises])
+        // Execute all upsert operations
+        Promise.all(upsertPromises)
           .then(results => {
             results.forEach((result, index) => {
               if (result.error) {

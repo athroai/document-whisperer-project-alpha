@@ -1,23 +1,28 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { SubjectPreference } from '@/types/study';
+import { UserSubject, ConfidenceLabel, ConfidenceLevel } from '@/types/study';
+import { mapLabelToConfidence } from '@/types/confidence';
 
-export interface UserSubject {
-  subject: string;
-  confidence: string | number;
-  priority?: number;
+export interface UseUserSubjectsReturn {
+  subjects: UserSubject[];
+  isLoading: boolean;
+  error: string | null;
+  addSubject: (subject: string, confidence: string | number) => Promise<boolean>;
+  removeSubject: (subject: string) => Promise<boolean>;
+  refetch: () => Promise<void>;
+  updateSubjectConfidence: (subject: string, confidence: ConfidenceLabel | ConfidenceLevel) => Promise<boolean>;
 }
 
-export const useUserSubjects = () => {
+export const useUserSubjects = (): UseUserSubjectsReturn => {
   const [subjects, setSubjects] = useState<UserSubject[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { state: authState } = useAuth();
   const userId = authState.user?.id;
 
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
@@ -66,19 +71,24 @@ export const useUserSubjects = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
   
   useEffect(() => {
     fetchSubjects();
-  }, [userId]);
+  }, [fetchSubjects]);
 
-  const addSubject = async (subject: string, confidence: string | number) => {
+  const addSubject = async (subject: string, confidence: string | number): Promise<boolean> => {
     if (!userId) return false;
     
     try {
-      const newSubject = {
+      // Normalize confidence value
+      const normalizedConfidence = typeof confidence === 'string' 
+        ? mapLabelToConfidence(confidence as ConfidenceLabel) 
+        : Number(confidence);
+      
+      const newSubject: UserSubject = {
         subject,
-        confidence,
+        confidence: normalizedConfidence,
         priority: subjects.length + 1
       };
       
@@ -91,7 +101,7 @@ export const useUserSubjects = () => {
         .upsert({
           student_id: userId,
           subject,
-          confidence_level: confidence,
+          confidence_level: normalizedConfidence,
           priority: subjects.length + 1
         });
         
@@ -107,7 +117,7 @@ export const useUserSubjects = () => {
     }
   };
 
-  const removeSubject = async (subject: string) => {
+  const removeSubject = async (subject: string): Promise<boolean> => {
     if (!userId) return false;
     
     try {
@@ -133,8 +143,45 @@ export const useUserSubjects = () => {
     }
   };
 
-  // Add the refetch function to manually trigger a refresh of subjects
-  const refetch = async () => {
+  const updateSubjectConfidence = async (subject: string, confidence: ConfidenceLabel | ConfidenceLevel): Promise<boolean> => {
+    if (!userId) return false;
+    
+    try {
+      // Normalize confidence value
+      const normalizedConfidence = typeof confidence === 'string' 
+        ? mapLabelToConfidence(confidence as ConfidenceLabel) 
+        : Number(confidence);
+      
+      // Update local state
+      setSubjects(prev => 
+        prev.map(s => 
+          s.subject === subject 
+            ? { ...s, confidence: normalizedConfidence } 
+            : s
+        )
+      );
+      
+      // Save to database
+      const { error } = await supabase
+        .from('student_subject_preferences')
+        .update({ confidence_level: normalizedConfidence })
+        .eq('student_id', userId)
+        .eq('subject', subject);
+        
+      if (error) {
+        console.error('Error updating subject confidence:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error updating subject confidence:', err);
+      return false;
+    }
+  };
+
+  // Explicitly define refetch as a function to refresh subjects
+  const refetch = async (): Promise<void> => {
     await fetchSubjects();
   };
 
@@ -144,6 +191,7 @@ export const useUserSubjects = () => {
     error,
     addSubject,
     removeSubject,
-    refetch // Export the new refetch function
+    refetch,
+    updateSubjectConfidence
   };
 };
