@@ -30,7 +30,8 @@ export interface OnboardingContextType {
     dayOfWeek: number,
     slotCount: number,
     slotDurationMinutes: number,
-    preferredStartHour: number
+    preferredStartHour: number,
+    subject: string  // Added subject parameter
   }) => Promise<void>;
   setStudySlots: (slots: PreferredStudySlot[]) => void;
   setSelectedSubjects: (subjects: SubjectPreference[]) => void;

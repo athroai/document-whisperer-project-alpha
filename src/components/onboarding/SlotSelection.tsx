@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar, Clock } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { toast } from '@/hooks/use-toast';
-import { SubjectSelector } from '../core/SubjectSelector';
+import { SubjectSelector } from '@/components/onboarding/core/SubjectSelector';
 import { ConfidenceLabel } from '@/types/confidence';
 
 export const SlotSelection: React.FC = () => {
