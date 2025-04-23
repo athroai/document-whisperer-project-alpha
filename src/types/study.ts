@@ -21,3 +21,32 @@ export interface SubjectPreference {
   subject: string;
   confidence: string | number;
 }
+
+export interface SlotOption {
+  name: string;
+  count: number;
+  duration: number;
+  color: string;
+  icon: React.ComponentType<any>;
+}
+
+export interface Availability {
+  dayOfWeek: number;
+  startHour: number;
+  endHour: number;
+}
+
+export interface StudySession {
+  id: string;
+  subject: string;
+  topic?: string;
+  startTime: Date | string;
+  endTime: Date | string;
+  notes?: string;
+  confidence_before?: number;
+  confidence_after?: number;
+  status?: string;
+  day?: string;
+  formattedStartTime?: string;
+  formattedEndTime?: string;
+}
