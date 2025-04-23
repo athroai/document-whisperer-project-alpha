@@ -1,10 +1,9 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { GCSE_SUBJECTS } from './useSubjects';
 
-interface UserSubject {
+export interface UserSubject {
   subject: string;
   confidence?: string | number;
 }

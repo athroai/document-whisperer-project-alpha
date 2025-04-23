@@ -14,7 +14,7 @@ export const useEventFetching = (
   const fetchInProgress = useRef(false);
   const subscriptionActive = useRef(false);
   const fetchAttempted = useRef(false);
-  const { subjects, noSubjectsFound } = useUserSubjects();
+  const { subjects } = useUserSubjects();
   const realtimeUpdateDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const lastFetchTime = useRef<number>(0);
   

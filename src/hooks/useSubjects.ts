@@ -24,6 +24,15 @@ export const GCSE_SUBJECTS = [
   'Welsh'
 ];
 
+// Common subjects for use in components that don't need the full list
+export const COMMON_SUBJECTS = [
+  'Mathematics',
+  'English Language',
+  'Science',
+  'History',
+  'Geography'
+];
+
 export const useSubjects = () => {
   const [subjects, setSubjects] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
