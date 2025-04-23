@@ -52,8 +52,8 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       });
       return;
     }
-    
-    if (subjects.length === 0) {
+
+    if (!subjects || subjects.length === 0) {
       setError("Please select at least one subject");
       toast({
         title: "No Subjects Selected",
@@ -62,7 +62,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       });
       return;
     }
-    
+
     if (!studySlots || studySlots.length === 0) {
       setError("Please set up your study schedule first");
       toast({
@@ -72,36 +72,32 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       });
       return;
     }
-    
+
     setIsGenerating(true);
     setGenerationProgress(10);
     setError(null);
-    
+
     try {
-      // First, clean up any existing study plan
       await cleanupExistingPlan(userId);
       setGenerationProgress(25);
-      
-      // Create the study plan distribution based on confidence
+
       const subjectDistribution = subjects.map(subject => ({
         subject: subject.subject,
         confidence: subject.confidence,
         sessionsPerWeek: getSessionsForConfidence(subject.confidence)
       }));
-      
+
       console.log("Creating study plan with subjects:", subjectDistribution.map(s => s.subject));
       setStudyPlan(subjectDistribution);
       setGenerationProgress(40);
-      
-      // Generate the study sessions
+
       const sessions = generateStudySessions(subjectDistribution, studySlots);
       setGenerationProgress(60);
-      
+
       if (sessions.length === 0) {
         throw new Error("No study sessions could be generated");
       }
-      
-      // Create the study plan in the database
+
       const planData = {
         student_id: userId,
         name: 'Personalized Study Plan',
@@ -110,7 +106,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
         end_date: addDays(new Date(), 30).toISOString().split('T')[0],
         is_active: true
       };
-      
+
       const { data: plan, error: planError } = await supabase
         .from('study_plans')
         .insert(planData)
@@ -121,10 +117,9 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
         console.error("Error creating study plan:", planError);
         throw new Error("Failed to create study plan in database. Please try again later.");
       }
-      
+
       setGenerationProgress(75);
-      
-      // Create calendar events for the sessions with explicit subject information
+
       const calendarEventsData = sessions.map(session => ({
         title: `${session.subject} Study Session`,
         description: JSON.stringify({
@@ -134,17 +129,17 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
           pomodoroWorkMinutes: 25,
           pomodoroBreakMinutes: 5
         }),
-        subject: session.subject,  // Add explicit subject field
+        subject: session.subject,
         start_time: session.startTime.toISOString(),
         end_time: session.endTime.toISOString(),
         event_type: 'study_session',
         user_id: userId,
         student_id: userId
       }));
-      
+
       console.log("Creating calendar events with subjects:", 
                  calendarEventsData.map(e => e.subject).join(", "));
-      
+
       const { data: createdEvents, error: eventsError } = await supabase
         .from('calendar_events')
         .insert(calendarEventsData)
@@ -154,10 +149,9 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
         console.error("Error creating calendar events:", eventsError);
         throw new Error("Failed to create calendar events. Please try again later.");
       }
-      
+
       setGenerationProgress(90);
-      
-      // Link the calendar events to the study plan
+
       if (createdEvents && createdEvents.length > 0 && plan) {
         const studyPlanSessions = createdEvents.map((event, i) => ({
           plan_id: plan.id,
@@ -170,21 +164,20 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
           pomodoro_work_minutes: 25,
           pomodoro_break_minutes: 5
         }));
-        
+
         const { error: sessionsError } = await supabase
           .from('study_plan_sessions')
           .insert(studyPlanSessions);
           
         if (sessionsError) {
           console.error("Error creating study plan sessions:", sessionsError);
-          // Non-critical error, just log it and continue
         }
       }
-      
+
       setCalendarEvents(createdEvents || []);
       setGenerationProgress(100);
       setIsGenerationComplete(true);
-      
+
       toast({
         title: "Success",
         description: "Your study plan has been generated successfully!",
@@ -192,7 +185,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
     } catch (err: any) {
       console.error("Error generating study plan:", err);
       setError(err instanceof Error ? err.message : "An error occurred while generating your study plan");
-      
+
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Failed to generate study plan",
@@ -202,7 +195,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       setIsGenerating(false);
     }
   };
-  
+
   const cleanupExistingPlan = async (userId: string) => {
     try {
       const { data: existingPlans } = await supabase
@@ -247,7 +240,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       // Continue anyway, we'll create a new plan
     }
   };
-  
+
   const getSessionsForConfidence = (confidence: string) => {
     switch (confidence) {
       case 'low': return 5;
@@ -256,7 +249,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       default: return 3;
     }
   };
-  
+
   const generateStudySessions = (
     subjectDistribution: { subject: string; confidence: string; sessionsPerWeek: number }[],
     slots: PreferredStudySlot[]
@@ -277,7 +270,6 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
     const today = startOfDay(new Date());
     let daysOut = 1;
     
-    // Create a flattened list of subjects to schedule based on sessionsPerWeek
     const subjectsToSchedule = subjectDistribution.flatMap(subj => 
       Array(subj.sessionsPerWeek).fill({...subj})
     );
@@ -328,7 +320,6 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
       daysOut++;
     }
     
-    // If we still have subjects to schedule but ran out of days, loop through again
     if (subjectsToSchedule.length > 0) {
       console.log(`Still have ${subjectsToSchedule.length} subjects to schedule, looping again`);
       const additionalSessions = generateStudySessions(
@@ -344,7 +335,7 @@ export const useStudyPlanGeneration = (userId: string | undefined, subjects: Sub
     
     return result.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   };
-  
+
   return {
     isGenerating,
     isGenerationComplete,
