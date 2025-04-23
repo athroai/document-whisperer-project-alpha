@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { SubjectPreference, Availability } from './types';
 import { PreferredStudySlot } from '@/types/study';
@@ -235,6 +234,50 @@ export const createOnboardingActions = (
         }
       } catch (error) {
         console.error('Error in updateOnboardingStep:', error);
+      }
+    }
+  },
+
+  setSelectedSubjects: (subjects: SubjectPreference[]) => {
+    setSelectedSubjects(subjects);
+    
+    // Also update in database if user is logged in
+    if (userId) {
+      try {
+        console.log('Updating selected subjects in database:', subjects);
+        
+        // Remove existing subject preferences for the user
+        const deletePromise = supabase
+          .from('student_subject_preferences')
+          .delete()
+          .eq('student_id', userId);
+        
+        // Insert new subject preferences
+        const insertPromises = subjects.map(subject => 
+          supabase
+            .from('student_subject_preferences')
+            .insert({
+              student_id: userId,
+              subject: subject.subject,
+              confidence_level: subject.confidence,
+              priority: subject.priority
+            })
+        );
+
+        // Execute delete and insert operations
+        Promise.all([deletePromise, ...insertPromises])
+          .then(results => {
+            results.forEach((result, index) => {
+              if (result.error) {
+                console.error(`Error in subject preference operation ${index}:`, result.error);
+              }
+            });
+          })
+          .catch(error => {
+            console.error('Error updating subject preferences:', error);
+          });
+      } catch (err) {
+        console.error('Error in setSelectedSubjects:', err);
       }
     }
   },
