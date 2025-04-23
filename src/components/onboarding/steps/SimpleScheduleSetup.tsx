@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -106,7 +105,7 @@ export const SimpleScheduleSetup: React.FC = () => {
           slotCount: 1,
           slotDurationMinutes: durationMinutes,
           preferredStartHour, // Use the selected start hour
-          subject: selectedSubject // Add the selected subject
+          subject: selectedSubject // Ensure subject is always passed
         });
       }
       
