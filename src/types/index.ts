@@ -11,6 +11,9 @@ export interface AuthUser {
   email: string;
   displayName?: string;
   role?: UserRole;
+  schoolId?: string;
+  licenseExempt?: boolean;
+  examBoard?: string;
 }
 
 // General UI types

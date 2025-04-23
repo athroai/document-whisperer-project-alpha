@@ -3,9 +3,10 @@
  * Study-related type definitions
  */
 
-// Confidence level definitions
-export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
-export type ConfidenceLabel = 'low' | 'medium' | 'high';
+// Import necessary types
+import { ConfidenceLevel, ConfidenceLabel } from './confidence';
+
+// Confidence level definitions previously defined in confidence.ts
 
 // Subject types
 export interface SubjectPreference {
@@ -82,4 +83,13 @@ export interface StudySession {
   status?: 'planned' | 'in_progress' | 'completed' | 'canceled';
   notes?: string;
   summary?: string;
+}
+
+// Slot option type
+export interface SlotOption {
+  name: string;
+  count: number;
+  duration: number;
+  color: string;
+  icon: React.ComponentType<any>;
 }

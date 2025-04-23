@@ -1,10 +1,10 @@
 
-export type ConfidenceLabel = "Very Unconfident" | "Unconfident" | "Neutral" | "Confident" | "Very Confident";
+import { ConfidenceLabel, ConfidenceLevel } from './confidence';
+
+export { ConfidenceLabel, ConfidenceLevel };
 
 export const confidenceOptions: ConfidenceLabel[] = [
-  "Very Unconfident",
-  "Unconfident", 
-  "Neutral", 
-  "Confident", 
-  "Very Confident"
+  "low",
+  "medium", 
+  "high"
 ];

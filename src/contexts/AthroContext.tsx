@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AthroCharacter, AthroMessage } from '@/types/athro';
 import { useAthroCharacters } from '@/hooks/useAthroCharacters';
 import { athroCharacters as defaultCharacters } from '@/config/athrosConfig';
+import { standardizeAthroCharacters } from '@/utils/athroHelpers';
 
 interface StudentProgressType {
   [subject: string]: {
@@ -24,7 +24,6 @@ interface AthroContextType {
   isLoading: boolean;
   getCharacterById: (id: string) => AthroCharacter | null;
   getCharacterBySubject: (subject: string) => AthroCharacter | null;
-  // Add these missing properties to fix the build errors
   activeCharacter: AthroCharacter | null;
   setActiveCharacter: (character: AthroCharacter | null) => void;
   messages: AthroMessage[];
@@ -42,7 +41,6 @@ const AthroContext = createContext<AthroContextType>({
   isLoading: true,
   getCharacterById: () => null,
   getCharacterBySubject: () => null,
-  // Add matching default values for new properties
   activeCharacter: null,
   setActiveCharacter: () => {},
   messages: [],
@@ -56,11 +54,7 @@ const AthroContext = createContext<AthroContextType>({
 export const useAthro = () => useContext(AthroContext);
 
 export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Convert default characters to ensure they match the AthroCharacter type
-  const convertedDefaultChars = defaultCharacters.map(char => ({
-    ...char,
-    examBoards: char.examBoards as unknown as AthroCharacter['examBoards']
-  }));
+  const convertedDefaultChars = standardizeAthroCharacters(defaultCharacters);
 
   const { characters: fetchedCharacters, isLoading } = useAthroCharacters();
   const [characters, setCharacters] = useState<AthroCharacter[]>(convertedDefaultChars);
@@ -69,7 +63,6 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [messages, setMessages] = useState<AthroMessage[]>([]);
   const [isTyping, setIsTyping] = useState<boolean>(false);
 
-  // Sample student progress data
   const [studentProgress, setStudentProgress] = useState<StudentProgressType>({
     Mathematics: {
       confidenceScores: {
@@ -98,11 +91,10 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     if (fetchedCharacters.length > 0 && !isLoading) {
-      setCharacters(fetchedCharacters);
+      setCharacters(standardizeAthroCharacters(fetchedCharacters));
       
-      // If no character is selected, set the first one as default
       if (!selectedCharacter) {
-        setSelectedCharacter(fetchedCharacters[0]);
+        setSelectedCharacter(standardizeAthroCharacters(fetchedCharacters)[0]);
       }
     }
   }, [fetchedCharacters, isLoading, selectedCharacter]);
@@ -119,7 +111,6 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const sendMessage = (message: string) => {
     if (!activeCharacter) return;
     
-    // Add user message to the list
     const newMessage: AthroMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -130,10 +121,8 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     setMessages(prev => [...prev, newMessage]);
     
-    // Simulate typing indicator
     setIsTyping(true);
     
-    // Simulate AI response (this would typically be an API call)
     setTimeout(() => {
       const responseMessage: AthroMessage = {
         id: `athro-${Date.now()}`,
@@ -166,7 +155,6 @@ export const AthroProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isLoading,
         getCharacterById,
         getCharacterBySubject,
-        // Include the new properties in the provider value
         activeCharacter,
         setActiveCharacter,
         messages,

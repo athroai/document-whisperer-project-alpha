@@ -3,7 +3,8 @@
  * Confidence level mapping and utilities
  */
 
-import { ConfidenceLabel, ConfidenceLevel } from './study';
+export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type ConfidenceLabel = 'low' | 'medium' | 'high';
 
 export const CONFIDENCE_LEVELS: Record<ConfidenceLabel, ConfidenceLevel[]> = {
   'low': [1, 2, 3],

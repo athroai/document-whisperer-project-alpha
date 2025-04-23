@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -309,12 +308,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           id: data.user.id,
           email: data.user.email || '',
           displayName: data.user.email.split('@')[0],
-          role
+          role: role as UserRole
         } : null
       });
       
       if (data.user) {
-        // Create a profile for the new user
         await setAuthProfile({
           id: data.user.id,
           email: data.user.email || '',

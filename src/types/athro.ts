@@ -20,6 +20,15 @@ export interface AthroCharacter {
   supports_special_characters?: boolean;
 }
 
+export interface AthroMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  senderId: string;
+  content: string;
+  timestamp: string;
+  referencedResources?: any[];
+}
+
 export interface AthroExplanation {
   content: string;
   character: AthroCharacter;
@@ -46,3 +55,7 @@ export interface AthroQuestion {
   topic?: string;
   difficulty_level?: 'easy' | 'medium' | 'hard';
 }
+
+export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography';
+
+export type AthroLanguage = 'English' | 'Welsh' | 'Spanish' | 'French' | 'German';

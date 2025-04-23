@@ -2,12 +2,16 @@
 import { ExamBoard } from './athro';
 
 export interface Profile {
-  full_name: string;
-  avatar_url: string;
-  website: string;
-  examBoard: ExamBoard;
-  study_subjects: string[];
-  preferred_language: string;
+  id: string;
+  email: string;
+  name?: string;
+  role: string;
+  exam_board?: ExamBoard;
+  preferred_language?: string;
+  confidence_scores?: Record<string, number>;
+  school_id?: string;
+  welsh_eligible?: boolean;
+  created_at?: string;
 }
 
 export interface AuthState {
