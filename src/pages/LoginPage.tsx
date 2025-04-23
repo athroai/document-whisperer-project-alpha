@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+  const [loginError, setLoginError] = useState('');
   const { login, state } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,6 +36,7 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError('');
     
     if (!email || !password) {
       toast({
@@ -61,6 +63,7 @@ const LoginPage: React.FC = () => {
       }, 500);
     } catch (error: any) {
       console.error('Login error:', error);
+      setLoginError(error?.message || "Please check your credentials and try again");
       toast({
         title: "Login failed",
         description: error?.message || "Please check your credentials and try again",
@@ -177,9 +180,9 @@ const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          {state.error && (
+          {loginError && (
             <div className="mt-4 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
-              {state.error}
+              {loginError}
             </div>
           )}
 

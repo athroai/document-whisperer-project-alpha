@@ -6,8 +6,6 @@
 // Import necessary types
 import { ConfidenceLevel, ConfidenceLabel } from './confidence';
 
-// Confidence level definitions previously defined in confidence.ts
-
 // Subject types
 export interface SubjectPreference {
   subject: string;
@@ -32,7 +30,7 @@ export interface PreferredStudySlot {
   slot_duration_minutes: number;
   preferred_start_hour: number;
   subject: string;
-  created_at: string;
+  created_at?: string; // Make optional to fix errors
 }
 
 export interface StudyPlanSession {
@@ -67,6 +65,8 @@ export interface CalendarEvent {
   event_type: 'study_session' | 'assignment' | 'exam' | 'other';
   user_id?: string;
   student_id?: string;
+  subject?: string;
+  topic?: string;
 }
 
 // Study session types
@@ -93,3 +93,6 @@ export interface SlotOption {
   color: string;
   icon: React.ComponentType<any>;
 }
+
+// Re-export confidence types
+export { ConfidenceLevel, ConfidenceLabel };

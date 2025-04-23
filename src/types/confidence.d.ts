@@ -1,9 +1,7 @@
 
-import { ConfidenceLabel, ConfidenceLevel } from './confidence';
+export type { ConfidenceLabel, ConfidenceLevel } from './confidence';
 
-export { ConfidenceLabel, ConfidenceLevel };
-
-export const confidenceOptions: ConfidenceLabel[] = [
+export const confidenceOptions: ('low' | 'medium' | 'high')[] = [
   "low",
   "medium", 
   "high"

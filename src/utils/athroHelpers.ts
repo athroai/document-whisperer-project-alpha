@@ -32,3 +32,27 @@ export function standardizeAthroCharacters(characters: any[]): AthroCharacter[] 
   if (!characters || !Array.isArray(characters)) return [];
   return characters.map(standardizeAthroCharacter);
 }
+
+/**
+ * Helper function to provide backward compatibility for components using camelCase properties
+ */
+export function getAthroCharacterProperty(character: AthroCharacter, key: string): any {
+  switch (key) {
+    case 'avatarUrl':
+      return character.avatar_url;
+    case 'shortDescription':
+      return character.short_description;
+    case 'fullDescription':
+      return character.full_description;
+    case 'examBoards':
+      return character.exam_boards;
+    case 'supportedLanguages':
+      return character.supported_languages;
+    case 'supportsMathNotation':
+      return character.supports_math_notation;
+    case 'supportsSpecialCharacters':
+      return character.supports_special_characters;
+    default:
+      return character[key];
+  }
+}

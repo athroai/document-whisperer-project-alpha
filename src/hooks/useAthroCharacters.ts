@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { AthroCharacter, ExamBoard } from '@/types/athro';
+import { standardizeAthroCharacter } from '@/utils/athroHelpers';
 
 export const useAthroCharacters = () => {
   const [characters, setCharacters] = useState<AthroCharacter[]>([]);
@@ -26,14 +27,14 @@ export const useAthroCharacters = () => {
         setCharacters((data || []).map((char: any) => {
           // Ensure examBoards are properly typed as ExamBoard[]
           const examBoards: ExamBoard[] = (char.examBoards || []).map((eb: string) => {
-            if (eb === 'Edexcel') return 'EDEXCEL';
+            if (eb === 'Edexcel') return 'Edexcel' as ExamBoard;
             return eb.toUpperCase() as ExamBoard;
           });
           
-          return {
+          return standardizeAthroCharacter({
             ...char,
             examBoards
-          };
+          });
         }));
       } catch (err) {
         console.error('Error fetching Athro characters:', err);
@@ -41,7 +42,7 @@ export const useAthroCharacters = () => {
         
         // Use fallback characters if there's an error
         setCharacters([
-          {
+          standardizeAthroCharacter({
             id: 'maths',
             name: 'AthroMaths',
             subject: 'Mathematics',
@@ -54,8 +55,8 @@ export const useAthroCharacters = () => {
             supportedLanguages: ['en'],
             examBoards: ['AQA', 'EDEXCEL'] as ExamBoard[],
             topics: ['Algebra', 'Geometry', 'Statistics', 'Number']
-          },
-          {
+          }),
+          standardizeAthroCharacter({
             id: 'science',
             name: 'AthroScience',
             subject: 'Science',
@@ -68,8 +69,8 @@ export const useAthroCharacters = () => {
             supportedLanguages: ['en'],
             examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
             topics: ['Biology', 'Chemistry', 'Physics']
-          },
-          {
+          }),
+          standardizeAthroCharacter({
             id: 'english',
             name: 'AthroEnglish',
             subject: 'English',
@@ -82,7 +83,7 @@ export const useAthroCharacters = () => {
             supportedLanguages: ['en'],
             examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
             topics: ['Language', 'Literature', 'Poetry', 'Shakespeare']
-          }
+          })
         ]);
       } finally {
         setIsLoading(false);

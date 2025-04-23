@@ -12,6 +12,7 @@ export interface Profile {
   school_id?: string;
   welsh_eligible?: boolean;
   created_at?: string;
+  full_name?: string;
 }
 
 export interface AuthState {

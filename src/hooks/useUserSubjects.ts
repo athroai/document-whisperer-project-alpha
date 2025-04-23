@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserSubject } from '@/types/study';
+import { SubjectPreference } from '@/types/study';
 
-export { UserSubject };
+export type UserSubject = SubjectPreference;
 
 export function useUserSubjects() {
   const { state } = useAuth();
@@ -40,5 +41,30 @@ export function useUserSubjects() {
     fetchUserSubjects();
   }, [state.user]);
 
-  return { userSubjects, isLoading, error };
+  // Ensure we're returning the expected properties
+  return { 
+    userSubjects,
+    subjects: userSubjects, // Add this for compatibility
+    isLoading, 
+    error,
+    refetch: async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('user_subjects')
+          .select('*')
+          .eq('user_id', state.user?.id);
+
+        if (error) {
+          setError(error);
+        } else {
+          setUserSubjects(data || []);
+        }
+      } catch (err: any) {
+        setError(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 }
