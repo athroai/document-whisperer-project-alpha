@@ -1,21 +1,30 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { ArrowRight } from 'lucide-react';
 import { SubjectSelector } from '../core/SubjectSelector';
+import { useToast } from '@/hooks/use-toast';
+import { ConfidenceLabel } from '@/types/confidence';
 
 export const SubjectSelectionStep: React.FC = () => {
   const { selectedSubjects, updateOnboardingStep, setSelectedSubjects } = useOnboarding();
+  const { toast } = useToast();
 
   // Handler to set subjects in the onboarding context
-  const handleUpdateSubjects = (subjects: { subject: string; confidence: 'low' | 'medium' | 'high' }[]) => {
+  const handleUpdateSubjects = (subjects: { subject: string; confidence: ConfidenceLabel }[]) => {
     setSelectedSubjects(subjects);
   };
 
   const handleContinue = () => {
     if (selectedSubjects.length > 0) {
       updateOnboardingStep('availability');
+    } else {
+      toast({
+        title: "Subject selection required",
+        description: "No subjects selected. Please choose your subjects before continuing.",
+        variant: "destructive"
+      });
     }
   };
 

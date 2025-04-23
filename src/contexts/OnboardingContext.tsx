@@ -39,6 +39,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       studySlots,
       learningPreferences,
       setStudySlots,
+      setSelectedSubjects, // Explicitly exposing the setSelectedSubjects function
       ...actions
     }}>
       {children}
