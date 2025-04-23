@@ -1,127 +1,104 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { GCSE_SUBJECTS } from './useSubjects';
 
-export interface UserSubject {
+interface UserSubject {
   subject: string;
-  confidence_level: 'low' | 'medium' | 'high';
+  confidence?: string | number;
 }
 
 export const useUserSubjects = () => {
   const [subjects, setSubjects] = useState<UserSubject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [noSubjectsFound, setNoSubjectsFound] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const { state: authState } = useAuth();
+  const userId = authState.user?.id;
 
-  const fetchUserSubjects = async () => {
-    if (!authState.user?.id) {
-      setIsLoading(false);
-      setNoSubjectsFound(true);
-      return;
-    }
-
+  const fetchSubjects = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setIsLoading(true);
-      setNoSubjectsFound(false);
-      
-      console.log("Fetching user subjects for user ID:", authState.user.id);
-      
-      // First try to get subjects from student_subject_preferences (prioritize this)
-      const { data: prefData, error: prefError } = await supabase
-        .from('student_subject_preferences')
-        .select('subject, confidence_level')
-        .eq('student_id', authState.user.id);
-
-      if (prefError) {
-        console.error('Error fetching user subject preferences:', prefError);
-      }
-      
-      if (prefData && prefData.length > 0) {
-        console.log("Found subjects in student_subject_preferences:", prefData);
-        // Convert numeric confidence_level to low/medium/high
-        const mappedSubjects = prefData.map(subj => ({
-          subject: subj.subject,
-          confidence_level: mapConfidenceLevel(subj.confidence_level)
-        }));
+      // Try to get subjects from database if user is authenticated
+      if (userId) {
+        const { data, error } = await supabase
+          .from('student_subject_preferences')
+          .select('subject, confidence_level')
+          .eq('student_id', userId);
         
-        setSubjects(mappedSubjects);
-        setIsLoading(false);
-        setNoSubjectsFound(false);
-        return;
-      }
-      
-      // If no subjects found in preferences, try student_subjects
-      console.log("No subjects found in preferences, checking student_subjects");
-      const { data: subjData, error: subjError } = await supabase
-        .from('student_subjects')
-        .select('subject_name, help_level')
-        .eq('student_id', authState.user.id);
+        if (error) {
+          console.error('Error fetching user subjects:', error);
+          throw error;
+        }
         
-      if (subjError) {
-        console.error('Error fetching student subjects:', subjError);
+        if (data && data.length > 0) {
+          const formattedSubjects = data.map(row => ({
+            subject: row.subject,
+            confidence: row.confidence_level
+          }));
+          
+          console.log('Fetched user subjects from database:', formattedSubjects);
+          setSubjects(formattedSubjects);
+          return;
+        }
       }
       
-      if (subjData && subjData.length > 0) {
-        console.log("Found subjects in student_subjects:", subjData);
-        const mappedSubjects = subjData.map(subj => ({
-          subject: subj.subject_name,
-          confidence_level: mapHelpLevel(subj.help_level)
-        }));
-        
-        setSubjects(mappedSubjects);
-        setIsLoading(false);
-        setNoSubjectsFound(false);
-        return;
+      // Try to get subjects from localStorage
+      const storedSubjects = localStorage.getItem('athro_selected_subjects');
+      if (storedSubjects) {
+        try {
+          const parsedSubjects = JSON.parse(storedSubjects);
+          if (Array.isArray(parsedSubjects) && parsedSubjects.length > 0) {
+            console.log('Using subjects from localStorage:', parsedSubjects);
+            setSubjects(parsedSubjects);
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing stored subjects:', e);
+        }
       }
       
-      // Only if no subjects found in both tables, set flag
-      console.log("No subjects found in either table, marking noSubjectsFound as true");
-      setNoSubjectsFound(true);
+      // Fallback to onboarding subjects in localStorage
+      const onboardingSubjects = localStorage.getItem('selected_subjects');
+      if (onboardingSubjects) {
+        try {
+          const parsedOnboardingSubjects = JSON.parse(onboardingSubjects);
+          if (Array.isArray(parsedOnboardingSubjects) && parsedOnboardingSubjects.length > 0) {
+            console.log('Using subjects from onboarding:', parsedOnboardingSubjects);
+            setSubjects(parsedOnboardingSubjects.map((subject: string) => ({ subject })));
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing onboarding subjects:', e);
+        }
+      }
+      
+      // Final fallback - just use default subjects
+      setSubjects(GCSE_SUBJECTS.slice(0, 3).map(subject => ({ subject })));
+      
+    } catch (err) {
+      console.error('Error in useUserSubjects:', err);
+      setError('Failed to load user subjects');
       setSubjects([]);
-      
-    } catch (error) {
-      console.error('Error in fetchUserSubjects:', error);
-      setNoSubjectsFound(true);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Helper function to map numeric confidence level to string
-  const mapConfidenceLevel = (level: number | string): 'low' | 'medium' | 'high' => {
-    if (typeof level === 'number') {
-      if (level <= 3) return 'low';
-      if (level <= 7) return 'medium';
-      return 'high';
-    }
-    
-    // If it's already a string, validate and return
-    if (level === 'low' || level === 'medium' || level === 'high') {
-      return level as 'low' | 'medium' | 'high';
-    }
-    
-    return 'medium';
-  };
-  
-  // Helper function to map help level to confidence level
-  const mapHelpLevel = (helpLevel: string): 'low' | 'medium' | 'high' => {
-    switch (helpLevel) {
-      case 'high': return 'low';
-      case 'medium': return 'medium';
-      case 'low': return 'high';
-      default: return 'medium';
-    }
-  };
+  }, [userId]);
 
   useEffect(() => {
-    fetchUserSubjects();
-  }, [authState.user?.id]);
+    fetchSubjects();
+  }, [fetchSubjects]);
 
-  return { 
-    subjects, 
-    isLoading, 
-    noSubjectsFound, 
-    refetch: fetchUserSubjects 
+  const refetch = useCallback(() => {
+    return fetchSubjects();
+  }, [fetchSubjects]);
+
+  return {
+    subjects,
+    isLoading,
+    error,
+    refetch
   };
 };
