@@ -82,11 +82,12 @@ export const createOnboardingActions = (
     }));
   },
 
-  updateStudySlots: async ({ dayOfWeek, slotCount, slotDurationMinutes, preferredStartHour }: {
+  updateStudySlots: async ({ dayOfWeek, slotCount, slotDurationMinutes, preferredStartHour, subject }: {
     dayOfWeek: number,
     slotCount: number,
     slotDurationMinutes: number,
-    preferredStartHour: number
+    preferredStartHour: number,
+    subject: string
   }) => {
     if (!userId) return;
     
@@ -97,6 +98,7 @@ export const createOnboardingActions = (
       slot_count: slotCount,
       slot_duration_minutes: slotDurationMinutes,
       preferred_start_hour: preferredStartHour,
+      subject,
       created_at: new Date().toISOString()
     };
     
@@ -110,7 +112,8 @@ export const createOnboardingActions = (
           day_of_week: dayOfWeek,
           slot_count: slotCount,
           slot_duration_minutes: slotDurationMinutes,
-          preferred_start_hour: preferredStartHour
+          preferred_start_hour: preferredStartHour,
+          subject
         });
     } catch (error) {
       console.error('Error in updateStudySlots:', error);

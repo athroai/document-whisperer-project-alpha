@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Clock } from 'lucide-react';
@@ -8,15 +8,38 @@ import { DaySelector } from '@/components/onboarding/DaySelector';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 
+// Common GCSE subjects for the subject selector
+const COMMON_SUBJECTS = [
+  'Mathematics',
+  'English Language',
+  'English Literature',
+  'Biology',
+  'Chemistry',
+  'Physics',
+  'Combined Science',
+  'History',
+  'Geography',
+  'Computer Science'
+];
+
 export const SimpleScheduleSetup: React.FC = () => {
-  const { updateOnboardingStep, updateStudySlots } = useOnboarding();
+  const { updateOnboardingStep, updateStudySlots, selectedSubjects } = useOnboarding();
   const { toast } = useToast();
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // Default to Mon-Fri
   const [sessionDuration, setSessionDuration] = useState<string>('medium');
   const [preferredStartHour, setPreferredStartHour] = useState<number>(16); // 4 PM default
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+
+  // Set default subject from onboarding context if available
+  useEffect(() => {
+    if (selectedSubjects.length > 0 && !selectedSubject) {
+      setSelectedSubject(selectedSubjects[0].subject);
+    }
+  }, [selectedSubjects, selectedSubject]);
 
   const handleDayToggle = (dayIndex: number) => {
     setSelectedDays(prev => 
@@ -61,6 +84,15 @@ export const SimpleScheduleSetup: React.FC = () => {
       return;
     }
 
+    if (!selectedSubject) {
+      toast({
+        title: "No Subject Selected",
+        description: "Please select a subject for your study sessions",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -73,7 +105,8 @@ export const SimpleScheduleSetup: React.FC = () => {
           dayOfWeek,
           slotCount: 1,
           slotDurationMinutes: durationMinutes,
-          preferredStartHour // Use the selected start hour
+          preferredStartHour, // Use the selected start hour
+          subject: selectedSubject // Add the selected subject
         });
       }
       
@@ -104,6 +137,35 @@ export const SimpleScheduleSetup: React.FC = () => {
           selectedDays={selectedDays} 
           toggleDaySelection={handleDayToggle} 
         />
+      </div>
+
+      <div className="space-y-4">
+        <Label className="text-base font-medium">Select a subject for these sessions</Label>
+        <Select
+          value={selectedSubject}
+          onValueChange={setSelectedSubject}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Choose a subject" />
+          </SelectTrigger>
+          <SelectContent>
+            {/* First show subjects from the user's selected subjects */}
+            {selectedSubjects.length > 0 ? (
+              selectedSubjects.map(subj => (
+                <SelectItem key={subj.subject} value={subj.subject}>
+                  {subj.subject}
+                </SelectItem>
+              ))
+            ) : (
+              // Fall back to common subjects if no subjects are selected in onboarding
+              COMMON_SUBJECTS.map(subject => (
+                <SelectItem key={subject} value={subject}>
+                  {subject}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
       </div>
       
       <div className="space-y-4">
@@ -169,7 +231,7 @@ export const SimpleScheduleSetup: React.FC = () => {
         </Button>
         <Button 
           onClick={handleContinue} 
-          disabled={selectedDays.length === 0 || isSubmitting}
+          disabled={selectedDays.length === 0 || !selectedSubject || isSubmitting}
           className="bg-purple-600 hover:bg-purple-700"
         >
           {isSubmitting ? 'Saving...' : 'Continue'}
