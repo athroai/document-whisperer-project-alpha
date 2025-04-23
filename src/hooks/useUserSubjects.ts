@@ -17,58 +17,58 @@ export const useUserSubjects = () => {
   const { state: authState } = useAuth();
   const userId = authState.user?.id;
 
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      setIsLoading(true);
-      setError(null);
+  const fetchSubjects = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      if (userId) {
+        const { data, error: fetchError } = await supabase
+          .from('student_subject_preferences')
+          .select('*')
+          .eq('student_id', userId);
+        
+        if (fetchError) {
+          throw fetchError;
+        }
+        
+        if (data && data.length > 0) {
+          const mappedSubjects = data.map(preference => ({
+            subject: preference.subject,
+            confidence: preference.confidence_level,
+            priority: preference.priority
+          }));
+          
+          setSubjects(mappedSubjects);
+          return;
+        }
+      }
       
-      try {
-        if (userId) {
-          const { data, error: fetchError } = await supabase
-            .from('student_subject_preferences')
-            .select('*')
-            .eq('student_id', userId);
-          
-          if (fetchError) {
-            throw fetchError;
-          }
-          
-          if (data && data.length > 0) {
-            const mappedSubjects = data.map(preference => ({
-              subject: preference.subject,
-              confidence: preference.confidence_level,
-              priority: preference.priority
-            }));
-            
-            setSubjects(mappedSubjects);
+      // Try to get subjects from localStorage as fallback
+      const storedSubjects = localStorage.getItem('selected_subjects');
+      if (storedSubjects) {
+        try {
+          const parsedSubjects = JSON.parse(storedSubjects);
+          if (Array.isArray(parsedSubjects) && parsedSubjects.length > 0) {
+            setSubjects(parsedSubjects);
             return;
           }
+        } catch (e) {
+          console.error('Error parsing stored subjects:', e);
         }
-        
-        // Try to get subjects from localStorage as fallback
-        const storedSubjects = localStorage.getItem('selected_subjects');
-        if (storedSubjects) {
-          try {
-            const parsedSubjects = JSON.parse(storedSubjects);
-            if (Array.isArray(parsedSubjects) && parsedSubjects.length > 0) {
-              setSubjects(parsedSubjects);
-              return;
-            }
-          } catch (e) {
-            console.error('Error parsing stored subjects:', e);
-          }
-        }
-        
-        setSubjects([]);
-      } catch (err) {
-        console.error('Error fetching subjects:', err);
-        setError('Failed to load subjects');
-        setSubjects([]);
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
+      
+      setSubjects([]);
+    } catch (err) {
+      console.error('Error fetching subjects:', err);
+      setError('Failed to load subjects');
+      setSubjects([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchSubjects();
   }, [userId]);
 
@@ -133,11 +133,17 @@ export const useUserSubjects = () => {
     }
   };
 
+  // Add the refetch function to manually trigger a refresh of subjects
+  const refetch = async () => {
+    await fetchSubjects();
+  };
+
   return {
     subjects,
     isLoading,
     error,
     addSubject,
-    removeSubject
+    removeSubject,
+    refetch // Export the new refetch function
   };
 };
