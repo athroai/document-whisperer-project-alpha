@@ -10,10 +10,13 @@ export const useUserProfile = () => {
 
   const updateProfile = async (data: UserUpdateData) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
       const { error } = await supabase
         .from('profiles')
         .update(objectToSnakeCase(data))
-        .eq('id', auth.uid());
+        .eq('id', user.id);
 
       if (error) throw error;
 

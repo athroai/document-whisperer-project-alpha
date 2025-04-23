@@ -1,8 +1,8 @@
+
 // Define confidence level types
 export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type ConfidenceLabel = 'low' | 'medium' | 'high';
 
-// Helper functions for converting between level and label
 export const mapConfidenceToLabel = (level: ConfidenceLevel): ConfidenceLabel => {
   if (level <= 3) return 'low';
   if (level <= 7) return 'medium';
@@ -18,9 +18,8 @@ export const mapLabelToConfidence = (label: ConfidenceLabel): ConfidenceLevel =>
   }
 };
 
-export const confidenceOptions: ConfidenceLabel[] = ["low", "medium", "high"];
+export const confidenceOptions: ConfidenceLabel[] = ['low', 'medium', 'high'];
 
-// For compatibility with old code
 export const getConfidenceColor = (level: ConfidenceLevel | ConfidenceLabel): string => {
   const label = typeof level === 'string' ? level : mapConfidenceToLabel(level);
   
@@ -31,5 +30,3 @@ export const getConfidenceColor = (level: ConfidenceLevel | ConfidenceLabel): st
     default: return 'bg-gray-100 text-gray-700 border-gray-200';
   }
 };
-
-export { ConfidenceLabel, ConfidenceLevel };

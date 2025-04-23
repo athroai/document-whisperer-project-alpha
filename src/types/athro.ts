@@ -1,6 +1,3 @@
-/**
- * Athro-related type definitions
- */
 
 export type ExamBoard = 'AQA' | 'EDEXCEL' | 'OCR' | 'WJEC' | 'SQA' | 'CCEA';
 
@@ -28,33 +25,17 @@ export interface AthroMessage {
   referencedResources?: any[];
 }
 
-export interface AthroExplanation {
-  content: string;
-  character: AthroCharacter;
-  confidence_level?: number;
-  topic?: string;
-  related_concepts?: string[];
-}
-
-export interface AthroQuiz {
+export interface AthroCharacterAdapter {
   id: string;
+  name: string;
   subject: string;
-  topic?: string;
-  questions: AthroQuestion[];
-  difficulty_level?: 'easy' | 'medium' | 'hard';
-  time_limit_minutes?: number;
+  avatarUrl: string;
+  shortDescription: string;
+  fullDescription?: string;
+  tone?: string;
+  examBoards?: ExamBoard[];
+  topics?: string[];
+  supportedLanguages?: string[];
+  supportsMathNotation?: boolean;
+  supportsSpecialCharacters?: boolean;
 }
-
-export interface AthroQuestion {
-  id: string;
-  text: string;
-  options?: string[];
-  correct_answer: string | number | boolean;
-  explanation?: string;
-  topic?: string;
-  difficulty_level?: 'easy' | 'medium' | 'hard';
-}
-
-export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography';
-
-export type AthroLanguage = 'en' | 'cy' | 'fr' | 'es' | 'de';
