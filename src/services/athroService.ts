@@ -1,6 +1,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { AthroCharacter, ExamBoard, AthroSubject, AthroLanguage } from '@/types/athro';
+import { standardizeAthroCharacter } from '@/utils/athroHelpers';
 
 // Helper function to convert string exam boards to proper ExamBoard type
 const convertToExamBoardType = (boards: string[]): ExamBoard[] => {
@@ -28,19 +29,19 @@ export const getAthroCharacters = async (): Promise<AthroCharacter[]> => {
     }
     
     // Format the data to match AthroCharacter type
-    const characters: AthroCharacter[] = data.map((char: any) => ({
+    const characters: AthroCharacter[] = data.map((char: any) => standardizeAthroCharacter({
       id: char.id,
       name: char.name,
       subject: char.subject,
       tone: char.tone,
-      shortDescription: char.short_description,
-      fullDescription: char.full_description,
-      avatarUrl: char.avatar_url,
-      supportsMathNotation: char.supports_math_notation,
-      supportsSpecialCharacters: char.supports_special_characters,
-      examBoards: convertToExamBoardType(char.exam_boards || []),
+      short_description: char.short_description,
+      full_description: char.full_description,
+      avatar_url: char.avatar_url,
+      supports_math_notation: char.supports_math_notation,
+      supports_special_characters: char.supports_special_characters,
+      exam_boards: convertToExamBoardType(char.exam_boards || []),
       topics: char.topics || [],
-      supportedLanguages: char.supported_languages
+      supported_languages: char.supported_languages
     }));
     
     return characters;
@@ -48,48 +49,48 @@ export const getAthroCharacters = async (): Promise<AthroCharacter[]> => {
     console.error('Error fetching Athro characters:', error);
     // Return fallback characters
     return [
-      {
+      standardizeAthroCharacter({
         id: 'mathematics',
         name: 'AthroMaths',
         subject: 'Mathematics',
-        shortDescription: 'Your mathematics mentor',
-        fullDescription: 'I can help with all areas of GCSE mathematics, from algebra to statistics.',
-        avatarUrl: '/avatars/athro-maths.png',
+        short_description: 'Your mathematics mentor',
+        full_description: 'I can help with all areas of GCSE mathematics, from algebra to statistics.',
+        avatar_url: '/avatars/athro-maths.png',
         tone: 'Clear and methodical',
-        supportsMathNotation: true,
-        supportsSpecialCharacters: false,
-        supportedLanguages: ['en'],
-        examBoards: ['AQA', 'EDEXCEL'] as ExamBoard[],
+        supports_math_notation: true,
+        supports_special_characters: false,
+        supported_languages: ['en'],
+        exam_boards: ['AQA', 'EDEXCEL'] as ExamBoard[],
         topics: ['Algebra', 'Geometry', 'Statistics', 'Number']
-      },
-      {
+      }),
+      standardizeAthroCharacter({
         id: 'science',
         name: 'AthroScience',
         subject: 'Science',
-        shortDescription: 'Your science mentor',
-        fullDescription: 'I can help with physics, chemistry and biology at GCSE level.',
-        avatarUrl: '/avatars/athro-science.png',
+        short_description: 'Your science mentor',
+        full_description: 'I can help with physics, chemistry and biology at GCSE level.',
+        avatar_url: '/avatars/athro-science.png',
         tone: 'Curious and explanatory',
-        supportsMathNotation: true,
-        supportsSpecialCharacters: true,
-        supportedLanguages: ['en'],
-        examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
+        supports_math_notation: true,
+        supports_special_characters: true,
+        supported_languages: ['en'],
+        exam_boards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
         topics: ['Biology', 'Chemistry', 'Physics']
-      },
-      {
+      }),
+      standardizeAthroCharacter({
         id: 'english',
         name: 'AthroEnglish',
         subject: 'English',
-        shortDescription: 'Your English mentor',
-        fullDescription: 'I can help with both English Language and English Literature at GCSE level.',
-        avatarUrl: '/avatars/athro-english.png',
+        short_description: 'Your English mentor',
+        full_description: 'I can help with both English Language and English Literature at GCSE level.',
+        avatar_url: '/avatars/athro-english.png',
         tone: 'Articulate and encouraging',
-        supportsMathNotation: false,
-        supportsSpecialCharacters: false,
-        supportedLanguages: ['en'],
-        examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
+        supports_math_notation: false,
+        supports_special_characters: false,
+        supported_languages: ['en'],
+        exam_boards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
         topics: ['Language', 'Literature', 'Poetry', 'Shakespeare']
-      }
+      })
     ];
   }
 };
@@ -107,20 +108,20 @@ export const getAthroCharacterById = async (id: string): Promise<AthroCharacter 
       throw new Error(error?.message || 'Character not found');
     }
     
-    return {
+    return standardizeAthroCharacter({
       id: data.id,
       name: data.name,
       subject: data.subject,
       tone: data.tone,
-      shortDescription: data.short_description,
-      fullDescription: data.full_description,
-      avatarUrl: data.avatar_url,
-      supportsMathNotation: data.supports_math_notation,
-      supportsSpecialCharacters: data.supports_special_characters,
-      examBoards: convertToExamBoardType(data.exam_boards || []),
+      short_description: data.short_description,
+      full_description: data.full_description,
+      avatar_url: data.avatar_url,
+      supports_math_notation: data.supports_math_notation,
+      supports_special_characters: data.supports_special_characters,
+      exam_boards: convertToExamBoardType(data.exam_boards || []),
       topics: data.topics || [],
-      supportedLanguages: data.supported_languages
-    };
+      supported_languages: data.supported_languages
+    });
   } catch (error) {
     console.error(`Error fetching Athro character with ID ${id}:`, error);
     return null;

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { AthroCharacter } from '@/types/athro';
@@ -6,6 +5,7 @@ import { athroCharacters, getAthroBySubject } from '@/config/athrosConfig';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { verifyAuth } from '@/lib/supabase';
+import { standardizeAthroCharacter } from '@/utils/athroHelpers';
 
 // Ensure these imports are valid based on your project structure
 import { useAuth } from '@/contexts/AuthContext';

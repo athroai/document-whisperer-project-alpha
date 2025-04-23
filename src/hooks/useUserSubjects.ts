@@ -4,11 +4,11 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { SubjectPreference } from '@/types/study';
 
-export type UserSubject = SubjectPreference;
+export type { UserSubject } from '@/types/study';
 
 export function useUserSubjects() {
   const { state } = useAuth();
-  const [userSubjects, setUserSubjects] = useState<UserSubject[]>([]);
+  const [userSubjects, setUserSubjects] = useState<SubjectPreference[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 

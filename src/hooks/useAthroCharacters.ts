@@ -25,15 +25,15 @@ export const useAthroCharacters = () => {
 
         // Convert examBoards fields from API to correct type
         setCharacters((data || []).map((char: any) => {
-          // Ensure examBoards are properly typed as ExamBoard[]
-          const examBoards: ExamBoard[] = (char.examBoards || []).map((eb: string) => {
-            if (eb === 'Edexcel') return 'Edexcel' as ExamBoard;
+          // Ensure exam_boards are properly typed as ExamBoard[]
+          const examBoards: ExamBoard[] = (char.exam_boards || []).map((eb: string) => {
+            if (eb === 'Edexcel') return 'EDEXCEL' as ExamBoard;
             return eb.toUpperCase() as ExamBoard;
           });
           
           return standardizeAthroCharacter({
             ...char,
-            examBoards
+            exam_boards: examBoards
           });
         }));
       } catch (err) {
@@ -46,42 +46,42 @@ export const useAthroCharacters = () => {
             id: 'maths',
             name: 'AthroMaths',
             subject: 'Mathematics',
-            shortDescription: 'Your mathematics tutor',
-            fullDescription: 'I can help with all areas of GCSE mathematics, from algebra to statistics.',
-            avatarUrl: '/avatars/athro-maths.png',
+            short_description: 'Your mathematics tutor',
+            full_description: 'I can help with all areas of GCSE mathematics, from algebra to statistics.',
+            avatar_url: '/avatars/athro-maths.png',
             tone: 'Clear and methodical',
-            supportsMathNotation: true,
-            supportsSpecialCharacters: false,
-            supportedLanguages: ['en'],
-            examBoards: ['AQA', 'EDEXCEL'] as ExamBoard[],
+            supports_math_notation: true,
+            supports_special_characters: false,
+            supported_languages: ['en'],
+            exam_boards: ['AQA', 'EDEXCEL'] as ExamBoard[],
             topics: ['Algebra', 'Geometry', 'Statistics', 'Number']
           }),
           standardizeAthroCharacter({
             id: 'science',
             name: 'AthroScience',
             subject: 'Science',
-            shortDescription: 'Your science tutor',
-            fullDescription: 'I can help with physics, chemistry and biology at GCSE level.',
-            avatarUrl: '/avatars/athro-science.png',
+            short_description: 'Your science tutor',
+            full_description: 'I can help with physics, chemistry and biology at GCSE level.',
+            avatar_url: '/avatars/athro-science.png',
             tone: 'Curious and explanatory',
-            supportsMathNotation: true,
-            supportsSpecialCharacters: true,
-            supportedLanguages: ['en'],
-            examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
+            supports_math_notation: true,
+            supports_special_characters: true,
+            supported_languages: ['en'],
+            exam_boards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
             topics: ['Biology', 'Chemistry', 'Physics']
           }),
           standardizeAthroCharacter({
             id: 'english',
             name: 'AthroEnglish',
             subject: 'English',
-            shortDescription: 'Your English tutor',
-            fullDescription: 'I can help with both English Language and English Literature at GCSE level.',
-            avatarUrl: '/avatars/athro-english.png',
+            short_description: 'Your English tutor',
+            full_description: 'I can help with both English Language and English Literature at GCSE level.',
+            avatar_url: '/avatars/athro-english.png',
             tone: 'Articulate and encouraging',
-            supportsMathNotation: false,
-            supportsSpecialCharacters: false,
-            supportedLanguages: ['en'],
-            examBoards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
+            supports_math_notation: false,
+            supports_special_characters: false,
+            supported_languages: ['en'],
+            exam_boards: ['AQA', 'EDEXCEL', 'OCR'] as ExamBoard[],
             topics: ['Language', 'Literature', 'Poetry', 'Shakespeare']
           })
         ]);

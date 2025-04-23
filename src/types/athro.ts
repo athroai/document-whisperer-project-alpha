@@ -3,7 +3,7 @@
  * Athro-related type definitions
  */
 
-export type ExamBoard = 'AQA' | 'Edexcel' | 'OCR' | 'WJEC' | 'SQA';
+export type ExamBoard = 'AQA' | 'EDEXCEL' | 'OCR' | 'WJEC' | 'SQA' | 'CCEA';
 
 export interface AthroCharacter {
   id: string;
@@ -58,4 +58,4 @@ export interface AthroQuestion {
 
 export type AthroSubject = 'Mathematics' | 'Science' | 'English' | 'History' | 'Geography';
 
-export type AthroLanguage = 'English' | 'Welsh' | 'Spanish' | 'French' | 'German';
+export type AthroLanguage = 'en' | 'cy' | 'fr' | 'es' | 'de';

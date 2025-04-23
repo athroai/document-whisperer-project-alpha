@@ -30,7 +30,7 @@ export interface PreferredStudySlot {
   slot_duration_minutes: number;
   preferred_start_hour: number;
   subject: string;
-  created_at?: string; // Make optional to fix errors
+  created_at?: string;
 }
 
 export interface StudyPlanSession {

@@ -1,7 +1,6 @@
-
-import { supabase } from '@/lib/supabase';
-import { SubjectPreference, Availability, PreferredStudySlot } from '@/types/study';
-import { ConfidenceLabel } from '@/types/study';
+import { supabase } from "@/lib/supabase";
+import { SubjectPreference, Availability, PreferredStudySlot } from "@/types/study";
+import { ConfidenceLabel } from "@/types/confidence";
 
 export const createOnboardingActions = (
   userId: string | undefined,

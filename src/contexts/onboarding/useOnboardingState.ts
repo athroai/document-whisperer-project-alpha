@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { SubjectPreference, Availability, PreferredStudySlot } from '@/types/study';
-import { ConfidenceLabel } from '@/types/study';
+import { ConfidenceLabel } from "@/types/confidence";
 
 export const useOnboardingState = (userId: string | undefined) => {
   const [currentStep, setCurrentStep] = useState<string>('welcome');

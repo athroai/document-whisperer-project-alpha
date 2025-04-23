@@ -20,7 +20,7 @@ export const WelcomeStep: React.FC = () => {
       <div>
         <h2 className="text-2xl font-bold mb-2">Welcome to Athro AI</h2>
         <p className="text-gray-600 mb-4">
-          {state.profile?.full_name ? `Hi ${state.profile.full_name}! ` : ''}
+          {state.profile?.name ? `Hi ${state.profile.name}! ` : ''}
           We're going to create your personalized study plan.
         </p>
       </div>

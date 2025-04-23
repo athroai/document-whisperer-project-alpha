@@ -39,7 +39,10 @@ export interface User {
   schoolId?: string;
   licenseExempt?: boolean;
   examBoard?: ExamBoard;
+  created_at?: string;
 }
+
+export type AuthUser = User;
 
 export interface UploadedFile {
   id: string;
