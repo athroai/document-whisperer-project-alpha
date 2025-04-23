@@ -1,10 +1,9 @@
-
 import { ExamBoard } from './athro';
 
 export interface Profile {
   id: string;
   email: string;
-  name?: string;
+  full_name?: string;
   role: string;
   exam_board?: ExamBoard;
   preferred_language?: string;
@@ -12,7 +11,6 @@ export interface Profile {
   school_id?: string;
   welsh_eligible?: boolean;
   created_at?: string;
-  full_name?: string;
 }
 
 export interface AuthState {
@@ -24,13 +22,12 @@ export interface AuthState {
 }
 
 export interface UserUpdateData {
-  displayName?: string;
-  examBoard?: ExamBoard;
+  full_name?: string;
+  exam_board?: ExamBoard;
   email?: string;
   password?: string;
 }
 
-// Add missing types that other files are trying to import
 export interface User {
   id: string;
   email: string;

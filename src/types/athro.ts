@@ -1,4 +1,3 @@
-
 /**
  * Athro-related type definitions
  */

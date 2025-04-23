@@ -1,4 +1,3 @@
-
 // Define confidence level types
 export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type ConfidenceLabel = 'low' | 'medium' | 'high';
@@ -32,3 +31,5 @@ export const getConfidenceColor = (level: ConfidenceLevel | ConfidenceLabel): st
     default: return 'bg-gray-100 text-gray-700 border-gray-200';
   }
 };
+
+export { ConfidenceLabel, ConfidenceLevel };
