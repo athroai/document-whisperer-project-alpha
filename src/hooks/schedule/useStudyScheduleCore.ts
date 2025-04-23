@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -23,7 +22,6 @@ const sessionDurationForCount = (count: number) => {
   return option ? option.durationMinutes : 45;
 };
 
-// Function to generate a unique session ID
 const getSessionId = (dayIndex: number, sessionIndex: number) => {
   return `session-${dayIndex}-${sessionIndex}-${uuidv4().slice(0, 8)}`;
 };
@@ -52,6 +50,36 @@ export function useStudyScheduleCore() {
 
   const handleSessionsPerDayChange = (newCount: number) => {
     setSessionsPerDay(newCount);
+  };
+
+  const fetchUserSubjects = async () => {
+    if (!authState.user?.id) return [];
+
+    try {
+      const { data: prefData, error: prefError } = await supabase
+        .from('student_subject_preferences')
+        .select('subject')
+        .eq('student_id', authState.user.id);
+
+      if (prefError) {
+        console.error('Error fetching user subject preferences:', prefError);
+        return [];
+      }
+
+      if (prefData && prefData.length > 0) {
+        return prefData.map(item => item.subject);
+      }
+
+      const storedSubjects = localStorage.getItem('selected_subjects');
+      if (storedSubjects) {
+        return JSON.parse(storedSubjects);
+      }
+
+      return [];
+    } catch (error) {
+      console.error('Error in fetchUserSubjects:', error);
+      return [];
+    }
   };
 
   const handleContinue = async () => {
@@ -86,34 +114,9 @@ export function useStudyScheduleCore() {
     setIsSubmitting(true);
 
     try {
-      const newSlots: PreferredStudySlot[] = [];
+      const subjects = await fetchUserSubjects();
 
-      let subjects: string[] = [];
-      try {
-        const { data } = await supabase
-          .from('student_subject_preferences')
-          .select('subject')
-          .eq('student_id', authState.user?.id || '');
-        if (data && data.length > 0) {
-          subjects = data.map(item => item.subject);
-          console.log("Found user subjects for schedule:", subjects);
-        } else {
-          try {
-            const { selectedSubjects } = useOnboarding();
-            if (selectedSubjects && selectedSubjects.length > 0) {
-              subjects = selectedSubjects.map(s => s.subject);
-              console.log("Using subjects from onboarding context:", subjects);
-            }
-          } catch (err) {
-            console.error("Error getting subjects from onboarding context:", err);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching subjects:', err);
-      }
-
-      if (!subjects || subjects.length === 0) {
-        setError("No subjects selected. Please choose your subjects before continuing.");
+      if (subjects.length === 0) {
         toast({
           title: "No Subjects Found",
           description: "You must select at least one subject before setting your schedule.",
@@ -122,6 +125,8 @@ export function useStudyScheduleCore() {
         setIsSubmitting(false);
         return;
       }
+
+      const newSlots: PreferredStudySlot[] = [];
 
       selectedDays.forEach(dayOfWeek => {
         const dayPreference = dayPreferences.find(p => p.dayIndex === dayOfWeek);

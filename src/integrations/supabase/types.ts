@@ -466,6 +466,7 @@ export type Database = {
           preferred_start_hour: number | null
           slot_count: number
           slot_duration_minutes: number
+          subject: string | null
           updated_at: string
           user_id: string
         }
@@ -476,6 +477,7 @@ export type Database = {
           preferred_start_hour?: number | null
           slot_count: number
           slot_duration_minutes: number
+          subject?: string | null
           updated_at?: string
           user_id: string
         }
@@ -486,6 +488,7 @@ export type Database = {
           preferred_start_hour?: number | null
           slot_count?: number
           slot_duration_minutes?: number
+          subject?: string | null
           updated_at?: string
           user_id?: string
         }
