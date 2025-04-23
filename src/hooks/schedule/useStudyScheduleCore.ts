@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { PreferredStudySlot } from '@/types/study';
@@ -7,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDayPreferences, DayPreference } from './useDayPreferences';
 import { useSessionSlotOperations } from './useSessionSlotOperations';
 import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 
 const sessionOptions = [
   { value: 1, label: '1 session (long)', durationMinutes: 120 },
@@ -19,6 +21,11 @@ const sessionOptions = [
 const sessionDurationForCount = (count: number) => {
   const option = sessionOptions.find(opt => opt.value === count);
   return option ? option.durationMinutes : 45;
+};
+
+// Function to generate a unique session ID
+const getSessionId = (dayIndex: number, sessionIndex: number) => {
+  return `session-${dayIndex}-${sessionIndex}-${uuidv4().slice(0, 8)}`;
 };
 
 export function useStudyScheduleCore() {
