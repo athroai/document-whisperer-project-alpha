@@ -33,4 +33,5 @@ export interface OnboardingContextType {
     preferredStartHour: number
   }) => Promise<void>;
   setStudySlots: (slots: PreferredStudySlot[]) => void;
+  setSelectedSubjects: (subjects: SubjectPreference[]) => void;
 }
