@@ -18,6 +18,8 @@ interface EditStudySessionDialogProps {
   onSave: (updatedEvent: Partial<CalendarEvent>) => Promise<void>;
 }
 
+const DEFAULT_TIME = '09:00';
+
 const EditStudySessionDialog: React.FC<EditStudySessionDialogProps> = ({
   open,
   onOpenChange,
@@ -31,7 +33,7 @@ const EditStudySessionDialog: React.FC<EditStudySessionDialogProps> = ({
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
-  const [date, setDate] = useState<Date>(new Date());
+  const [date, setDate] = useState(''); // string for TimeSelector
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState(60);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,11 +43,15 @@ const EditStudySessionDialog: React.FC<EditStudySessionDialogProps> = ({
       setTitle(event.title ?? '');
       setSubject(event.subject ?? '');
       setTopic(event.topic ?? '');
-      setDate(event.start_time ? new Date(event.start_time) : new Date());
-      setStartTime(event.start_time
-        ? new Date(event.start_time).toISOString().substring(11, 16)
-        : '09:00'
-      );
+      // Ensure date string is yyyy-MM-dd for date input
+      if (event.start_time) {
+        const dt = new Date(event.start_time);
+        setDate(dt.toISOString().split('T')[0]);
+        setStartTime(dt.toISOString().substring(11, 16));
+      } else {
+        setDate(new Date().toISOString().split('T')[0]);
+        setStartTime(DEFAULT_TIME);
+      }
       setDuration(
         event.start_time && event.end_time
           ? Math.round(
@@ -61,9 +67,8 @@ const EditStudySessionDialog: React.FC<EditStudySessionDialogProps> = ({
     if (!event) return;
     setIsSubmitting(true);
     try {
-      const start = new Date(date);
-      const [h, m] = startTime.split(':').map(Number);
-      start.setHours(h, m, 0, 0);
+      // Construct start and end time from 'date' (yyyy-MM-dd, string) and 'startTime' (HH:mm, string)
+      const start = new Date(`${date}T${startTime}`);
       const end = new Date(start.getTime() + duration * 60000);
 
       const updates: Partial<CalendarEvent> = {
@@ -111,6 +116,7 @@ const EditStudySessionDialog: React.FC<EditStudySessionDialogProps> = ({
                 <SelectValue placeholder="Select subject" />
               </SelectTrigger>
               <SelectContent>
+                {/* Only show subjects the user has chosen during onboarding */}
                 {subjects.map((s) => (
                   <SelectItem key={s} value={s}>{s}</SelectItem>
                 ))}
@@ -149,4 +155,3 @@ const EditStudySessionDialog: React.FC<EditStudySessionDialogProps> = ({
 };
 
 export default EditStudySessionDialog;
-
