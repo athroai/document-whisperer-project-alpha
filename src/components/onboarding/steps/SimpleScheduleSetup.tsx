@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
 import { COMMON_SUBJECTS } from '@/hooks/useSubjects';
+import { useUserSubjects } from '@/hooks/useUserSubjects';
 
 export const SimpleScheduleSetup: React.FC = () => {
   const { updateOnboardingStep, updateStudySlots, selectedSubjects, setSelectedSubjects } = useOnboarding();
@@ -26,58 +26,63 @@ export const SimpleScheduleSetup: React.FC = () => {
   const [subjectError, setSubjectError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Enhanced loading and error handling for subject data
+  const { subjects: userSubjects, isLoading: userSubjectsLoading, error: userSubjectsError } = useUserSubjects();
+
   useEffect(() => {
     let mounted = true;
-    const loadSubjects = async () => {
-      setIsLoading(true);
+    
+    const initializeSubjects = () => {
+      if (userSubjectsLoading) return;
+      
+      // Reset error
       setSubjectError(null);
 
-      try {
-        // If we already have subjects in context, use them
-        if (selectedSubjects && selectedSubjects.length > 0) {
-          console.log("Using subjects from context:", selectedSubjects);
-          if (mounted) {
-            setSelectedSubject(selectedSubjects[0].subject);
-            setIsLoading(false);
-          }
-          return;
+      // If we have subjects from the useUserSubjects hook
+      if (userSubjects.length > 0) {
+        console.log("Using subjects from user subjects hook:", userSubjects);
+        if (mounted && !selectedSubject) {
+          setSelectedSubject(userSubjects[0].subject);
         }
+        return;
+      }
+      
+      // If we have selectedSubjects from context
+      if (selectedSubjects && selectedSubjects.length > 0) {
+        console.log("Using subjects from context:", selectedSubjects);
+        if (mounted && !selectedSubject) {
+          setSelectedSubject(selectedSubjects[0].subject);
+        }
+        return;
+      }
 
-        // Try to load subjects from localStorage as fallback
+      // Fall back to localStorage
+      try {
         const storedSubjects = localStorage.getItem('athro_selected_subjects');
         if (storedSubjects) {
-          try {
-            const parsedSubjects = JSON.parse(storedSubjects);
-            if (parsedSubjects.length > 0) {
-              console.log("Using subjects from localStorage:", parsedSubjects);
-              setSelectedSubjects(parsedSubjects);
-              if (mounted && parsedSubjects[0] && parsedSubjects[0].subject) {
-                setSelectedSubject(parsedSubjects[0].subject);
-              }
+          const parsedSubjects = JSON.parse(storedSubjects);
+          if (parsedSubjects.length > 0) {
+            console.log("Using subjects from localStorage:", parsedSubjects);
+            if (mounted && !selectedSubject && parsedSubjects[0].subject) {
+              setSelectedSubject(parsedSubjects[0].subject);
             }
-          } catch (error) {
-            console.error("Error parsing stored subjects:", error);
+            return;
           }
         }
       } catch (error) {
-        console.error("Error loading subjects:", error);
-        if (mounted) {
-          setSubjectError("Could not load your subjects. Please try again or go back to select subjects.");
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
+        console.error("Error parsing stored subjects:", error);
+      }
+
+      // If we get here, we have no subjects
+      if (mounted) {
+        setSubjectError("No subjects found. You must select at least one subject before setting your schedule.");
       }
     };
 
-    loadSubjects();
+    initializeSubjects();
     
     return () => { mounted = false; };
-  }, [selectedSubjects, setSelectedSubjects, retryCount]);
+  }, [userSubjects, userSubjectsLoading, selectedSubjects, selectedSubject, retryCount]);
 
-  // Monitor for subject data and show warning if none available
   useEffect(() => {
     if (!isLoading && selectedSubjects.length === 0 && !selectedSubject) {
       setSubjectError("No subjects found. You must select at least one subject before setting your schedule.");
@@ -91,7 +96,6 @@ export const SimpleScheduleSetup: React.FC = () => {
       prev.includes(dayIndex) 
         ? prev.filter(d => d !== dayIndex) 
         : [...prev, dayIndex].sort((a, b) => {
-            // Sort Sunday (0) at the end of the array
             if (a === 0) return 1;
             if (b === 0) return -1;
             return a - b;
@@ -154,28 +158,24 @@ export const SimpleScheduleSetup: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Save study preferences
       const durationMinutes = getDurationMinutes(sessionDuration);
       
-      // Create study slots for each selected day
       for (const dayOfWeek of selectedDays) {
         await updateStudySlots({
           dayOfWeek,
           slotCount: 1,
           slotDurationMinutes: durationMinutes,
-          preferredStartHour, // Use the selected start hour
-          subject: selectedSubject // Ensure subject is always passed
+          preferredStartHour,
+          subject: selectedSubject
         });
       }
       
-      // Cache selected subject in localStorage
       try {
         localStorage.setItem('athro_selected_subject', selectedSubject);
       } catch (e) {
         console.warn("Could not cache selected subject:", e);
       }
       
-      // Proceed to next step
       await updateOnboardingStep('createEvents');
     } catch (error) {
       console.error("Error saving study schedule:", error);
@@ -196,7 +196,6 @@ export const SimpleScheduleSetup: React.FC = () => {
         <p className="text-muted-foreground mt-2">Choose when you'd like to study</p>
       </div>
       
-      {/* Subject Error with Retry and Redirect Options */}
       {subjectError && !isLoading && (
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4 mr-2" />
@@ -242,7 +241,6 @@ export const SimpleScheduleSetup: React.FC = () => {
               <SelectValue placeholder="Choose a subject" />
             </SelectTrigger>
             <SelectContent>
-              {/* First show subjects from the user's selected subjects */}
               {selectedSubjects.length > 0 ? (
                 selectedSubjects.map(subj => (
                   <SelectItem key={subj.subject} value={subj.subject}>
@@ -250,7 +248,6 @@ export const SimpleScheduleSetup: React.FC = () => {
                   </SelectItem>
                 ))
               ) : (
-                // Fall back to common subjects if no subjects are selected in onboarding
                 COMMON_SUBJECTS.map(subject => (
                   <SelectItem key={subject} value={subject}>
                     {subject}
@@ -274,8 +271,8 @@ export const SimpleScheduleSetup: React.FC = () => {
               
               <Slider
                 value={[preferredStartHour]}
-                min={8} // 8 AM
-                max={20} // 8 PM
+                min={8}
+                max={20}
                 step={1}
                 onValueChange={(values) => setPreferredStartHour(values[0])}
               />
