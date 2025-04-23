@@ -3,17 +3,22 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { ArrowRight } from 'lucide-react';
-import { BasicSubjectSelection } from './BasicSubjectSelection';
+import { SubjectSelector } from '../core/SubjectSelector';
 
 export const SubjectSelectionStep: React.FC = () => {
-  const { selectedSubjects, updateOnboardingStep } = useOnboarding();
-  
+  const { selectedSubjects, updateOnboardingStep, setSelectedSubjects } = useOnboarding();
+
+  // Handler to set subjects in the onboarding context
+  const handleUpdateSubjects = (subjects: { subject: string; confidence: 'low' | 'medium' | 'high' }[]) => {
+    setSelectedSubjects(subjects);
+  };
+
   const handleContinue = () => {
     if (selectedSubjects.length > 0) {
       updateOnboardingStep('availability');
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div>
@@ -22,12 +27,15 @@ export const SubjectSelectionStep: React.FC = () => {
           Choose the subjects you're studying. Don't worry, you can change these later.
         </p>
       </div>
-      
-      <BasicSubjectSelection />
-      
+
+      <SubjectSelector
+        subjects={selectedSubjects}
+        updateSubjects={handleUpdateSubjects}
+      />
+
       <div className="pt-4 flex justify-end">
-        <Button 
-          onClick={handleContinue} 
+        <Button
+          onClick={handleContinue}
           disabled={selectedSubjects.length === 0}
         >
           Continue <ArrowRight className="ml-2 h-4 w-4" />
