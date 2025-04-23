@@ -1,17 +1,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-interface SessionTime {
+export interface SessionTime {
   startHour: number;
   durationMinutes: number;
 }
 
-interface DayPreference {
+export interface DayPreference {
   dayIndex: number;
   sessionTimes: SessionTime[];
 }
 
 export function useDayPreferences(sessionsPerDay: number, sessionDurationForCount: (count: number) => number) {
+  // Include weekend days (0 = Sunday, 6 = Saturday) in the default selection
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [dayPreferences, setDayPreferences] = useState<DayPreference[]>([]);
 

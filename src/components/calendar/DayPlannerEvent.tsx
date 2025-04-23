@@ -1,7 +1,7 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, Edit, Play, CheckSquare, Square } from 'lucide-react';
 import { CalendarEvent } from '@/types/calendar';
 import { getEventColor } from '@/utils/calendarUtils';
 import { formatGMTTime } from '@/utils/timeUtils';
@@ -11,84 +11,56 @@ interface DayPlannerEventProps {
   onDelete: (eventId: string) => void;
   onEdit: (event: CalendarEvent) => void;
   onLaunch: (event: CalendarEvent) => void;
-  onMarkComplete: (event: CalendarEvent, completed: boolean) => void;
 }
 
-const DayPlannerEvent = ({
-  event,
-  onDelete,
-  onEdit,
-  onLaunch,
-  onMarkComplete
-}: DayPlannerEventProps) => {
+const DayPlannerEvent = ({ event, onDelete, onEdit, onLaunch }: DayPlannerEventProps) => {
   const colorStyle = getEventColor(event.subject || '');
 
   return (
-    <Card
-      className="border-l-4 hover:shadow-md transition-shadow duration-200 relative"
-      style={{ borderLeftColor: colorStyle.color }}
-    >
-      <CardContent className="p-4 flex items-start justify-between">
-        <div>
-          <h4 className="font-medium">{event.title}</h4>
-          <div className="flex items-center text-sm text-gray-500">
-            <span className="mr-1">
-              <svg width="14" height="14" className="inline-block">
-                <circle cx="7" cy="7" r="7" fill="currentColor" className="text-gray-300" />
-              </svg>
-            </span>
-            {formatGMTTime(event.start_time)} - {formatGMTTime(event.end_time)}
-          </div>
-          {event.subject && (
-            <div
-              className={`mt-2 text-xs inline-block px-2 py-1 rounded ${colorStyle.bg} ${colorStyle.text}`}
-            >
-              {event.subject}
-              {event.topic ? ` • ${event.topic}` : ''}
+    <Card className="border-l-4 transition-shadow duration-200 hover:shadow-md"
+      style={{ borderLeftColor: colorStyle.color }}>
+      <CardContent className="p-4">
+        <div className="space-y-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="font-medium">{event.title}</h4>
+              <div className="text-sm text-gray-500">
+                {formatGMTTime(event.start_time)} - {formatGMTTime(event.end_time)}
+              </div>
+              {event.subject && (
+                <div className={`mt-2 text-xs inline-block px-2 py-1 rounded ${colorStyle.bg} ${colorStyle.text}`}>
+                  {event.subject}
+                  {event.topic && ` • ${event.topic}`}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <div className="flex flex-col items-end space-y-1 ml-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Edit"
-            onClick={() => onEdit(event)}
-            className="hover:bg-blue-100"
-          >
-            <Edit className="h-5 w-5 text-blue-700" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Launch"
-            onClick={() => onLaunch(event)}
-            className="hover:bg-green-100"
-          >
-            <Play className="h-5 w-5 text-green-700" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={event.status === 'completed' ? 'Mark as Incomplete' : 'Mark as Complete'}
-            onClick={() => onMarkComplete(event, !(event.status === 'completed'))}
-            className="hover:bg-purple-100"
-          >
-            {event.status === 'completed' ? (
-              <CheckSquare className="h-5 w-5 text-purple-700" />
-            ) : (
-              <Square className="h-5 w-5 text-gray-400" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Delete"
-            onClick={() => onDelete(event.id)}
-            className="hover:bg-red-100"
-          >
-            <Trash2 className="h-5 w-5 text-red-500" />
-          </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(event)}
+              className="text-purple-600 hover:text-purple-700"
+            >
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onLaunch(event)}
+              className="text-green-600 hover:text-green-700"
+            >
+              Launch
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(event.id)}
+              className="text-red-500 hover:text-red-600"
+            >
+              Delete
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

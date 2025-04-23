@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SubjectSelector } from '@/components/onboarding/core/SubjectSelector';
 import { AvailabilitySettings } from '@/components/onboarding/core/AvailabilitySettings';
-import { StudyPreferences } from '@/components/onboarding/core/StudyPreferences';
 import { PlanGenerator } from '@/components/onboarding/core/PlanGenerator';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -10,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { ScheduleChoiceStep } from '@/components/onboarding/steps/ScheduleChoiceStep';
 
-type OnboardingStep = 'subjects' | 'availability' | 'preferences' | 'generate';
+type OnboardingStep = 'subjects' | 'schedule-choice' | 'availability' | 'generate';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ const OnboardingPage: React.FC = () => {
     preferences: {
       focusMode: 'pomodoro' as 'pomodoro' | 'continuous',
       preferredTime: 'afternoon' as 'morning' | 'afternoon' | 'evening',
-      reviewFrequency: 'weekly' as 'daily' | 'weekly',
+      reviewFrequency: 'daily' as 'daily' | 'weekly',
     }
   });
 
@@ -97,12 +97,12 @@ const OnboardingPage: React.FC = () => {
           });
           return;
         }
+        setCurrentStep('schedule-choice');
+        break;
+      case 'schedule-choice':
         setCurrentStep('availability');
         break;
       case 'availability':
-        setCurrentStep('preferences');
-        break;
-      case 'preferences':
         setCurrentStep('generate');
         break;
       default:
@@ -112,14 +112,14 @@ const OnboardingPage: React.FC = () => {
 
   function prevStep() {
     switch (currentStep) {
-      case 'availability':
+      case 'schedule-choice':
         setCurrentStep('subjects');
         break;
-      case 'preferences':
-        setCurrentStep('availability');
+      case 'availability':
+        setCurrentStep('schedule-choice');
         break;
       case 'generate':
-        setCurrentStep('preferences');
+        setCurrentStep('availability');
         break;
       default:
         break;
@@ -140,13 +140,6 @@ const OnboardingPage: React.FC = () => {
     }));
   }
 
-  function updatePreferences(preferences: typeof onboardingData.preferences) {
-    setOnboardingData(prev => ({
-      ...prev,
-      preferences
-    }));
-  }
-
   async function completeOnboarding() {
     if (!authState.user) {
       toast({
@@ -162,6 +155,19 @@ const OnboardingPage: React.FC = () => {
 
     try {
       setGenerationProgress(20);
+      
+      console.log("Selected subjects before saving:", onboardingData.subjects);
+      
+      if (onboardingData.subjects.length === 0) {
+        toast({
+          title: "No subjects selected",
+          description: "You must select at least one subject before generating a plan.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       const subjectPromises = onboardingData.subjects.map(subject =>
         supabase.from('student_subject_preferences').upsert({
           student_id: authState.user!.id,
@@ -169,33 +175,65 @@ const OnboardingPage: React.FC = () => {
           confidence_level: subject.confidence
         })
       );
-      await Promise.all(subjectPromises);
+      
+      console.log(`Saving ${subjectPromises.length} subjects to the database...`);
+      
+      const results = await Promise.allSettled(subjectPromises);
+      let savedSubjects = 0;
+      results.forEach((result, index) => {
+        const subject = onboardingData.subjects[index].subject;
+        if (result.status === 'fulfilled') {
+          console.log(`Successfully saved subject: ${subject}`);
+          savedSubjects++;
+        } else {
+          console.error(`Failed to save subject ${subject}:`, result.reason);
+        }
+      });
+      
+      if (savedSubjects === 0) {
+        toast({
+          title: "Error saving subjects",
+          description: "Could not save your subject preferences. Please try again.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
       setGenerationProgress(40);
 
       let studySlotsData = [];
       try {
-        const { data, error } = await supabase
-          .from('preferred_study_slots')
-          .select('*')
-          .eq('user_id', authState.user.id);
-          
-        if (error) {
-          throw error;
-        }
-        
-        if (data && data.length > 0) {
-          studySlotsData = data;
-          console.log(`Found ${data.length} saved study slots`);
+        // First try to get study slots with subjects from local storage
+        if (localStorage.getItem('athro_study_slots_with_subjects')) {
+          studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots_with_subjects') || '[]');
         } else {
-          console.log('No study slots found in database, checking local storage');
-          if (localStorage.getItem('athro_study_slots')) {
-            studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
+          // Fall back to database and regular local storage
+          const { data, error } = await supabase
+            .from('preferred_study_slots')
+            .select('*')
+            .eq('user_id', authState.user.id);
+            
+          if (error) {
+            throw error;
+          }
+          
+          if (data && data.length > 0) {
+            studySlotsData = data;
+            console.log(`Found ${data.length} saved study slots`);
+          } else {
+            console.log('No study slots found in database, checking local storage');
+            if (localStorage.getItem('athro_study_slots')) {
+              studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
+            }
           }
         }
       } catch (err) {
         console.error('Error fetching study slots:', err);
-        if (localStorage.getItem('athro_study_slots')) {
+        // Try local storage as fallback
+        if (localStorage.getItem('athro_study_slots_with_subjects')) {
+          studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots_with_subjects') || '[]');
+        } else if (localStorage.getItem('athro_study_slots')) {
           studySlotsData = JSON.parse(localStorage.getItem('athro_study_slots') || '[]');
         }
       }
@@ -215,6 +253,20 @@ const OnboardingPage: React.FC = () => {
       const calendarEvents = [];
       const today = new Date();
 
+      // Use the user selected subjects from onboardingData when creating events
+      const userSubjects = onboardingData.subjects.map(s => s.subject);
+      console.log("Using these subjects for calendar events:", userSubjects);
+      
+      if (userSubjects.length === 0) {
+        toast({
+          title: "No subjects selected",
+          description: "You must select at least one subject before generating a plan.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       for (let slot of studySlotsData) {
         let slotDay = slot.day_of_week;
         let nowDay = today.getDay() || 7;
@@ -230,14 +282,18 @@ const OnboardingPage: React.FC = () => {
         let endTime = new Date(startTime);
         endTime.setMinutes(startTime.getMinutes() + slot.slot_duration_minutes);
 
-        const subjIndex = calendarEvents.length % onboardingData.subjects.length;
-        const subjectObj = onboardingData.subjects[subjIndex];
+        // If the slot has a subject, use it; otherwise assign one from user's selected subjects
+        let subjectName = slot.subject;
+        if (!subjectName && userSubjects.length > 0) {
+          const subjIndex = calendarEvents.length % userSubjects.length;
+          subjectName = userSubjects[subjIndex];
+        }
 
         calendarEvents.push({
-          title: `${subjectObj.subject} Study Session`,
+          title: `${subjectName || 'Study'} Session`,
           description: JSON.stringify({
-            subject: subjectObj.subject,
-            isPomodoro: onboardingData.preferences.focusMode === 'pomodoro',
+            subject: subjectName,
+            isPomodoro: true,
             pomodoroWorkMinutes: 25,
             pomodoroBreakMinutes: 5
           }),
@@ -250,6 +306,9 @@ const OnboardingPage: React.FC = () => {
       }
 
       setGenerationProgress(80);
+      
+      console.log(`Creating ${calendarEvents.length} calendar events with subjects:`, 
+        calendarEvents.map(e => e.title).join(', '));
 
       if (calendarEvents.length > 0) {
         try {
@@ -321,19 +380,11 @@ const OnboardingPage: React.FC = () => {
             updateSubjects={updateSubjects}
           />
         );
+      case 'schedule-choice':
+        return <ScheduleChoiceStep />;
       case 'availability':
         return (
-          <AvailabilitySettings
-            availability={onboardingData.availability}
-            updateAvailability={updateAvailability}
-          />
-        );
-      case 'preferences':
-        return (
-          <StudyPreferences
-            preferences={onboardingData.preferences}
-            updatePreferences={updatePreferences}
-          />
+          <AvailabilitySettings />
         );
       case 'generate':
         return (
@@ -353,10 +404,10 @@ const OnboardingPage: React.FC = () => {
 
   function getProgressPercentage() {
     switch (currentStep) {
-      case 'subjects': return 25;
-      case 'availability': return 50;
-      case 'preferences': return 75;
-      case 'generate': return generationComplete ? 100 : 90;
+      case 'subjects': return 20;
+      case 'schedule-choice': return 40;
+      case 'availability': return 60;
+      case 'generate': return generationComplete ? 100 : 80;
       default: return 0;
     }
   }
@@ -378,8 +429,8 @@ const OnboardingPage: React.FC = () => {
         <div className="mt-8 mb-6">
           <div className="flex justify-between mb-2 text-sm">
             <span className={currentStep === 'subjects' ? 'font-bold text-purple-700' : ''}>Subjects</span>
-            <span className={currentStep === 'availability' ? 'font-bold text-purple-700' : ''}>Schedule</span>
-            <span className={currentStep === 'preferences' ? 'font-bold text-purple-700' : ''}>Preferences</span>
+            <span className={currentStep === 'schedule-choice' ? 'font-bold text-purple-700' : ''}>Schedule Type</span>
+            <span className={currentStep === 'availability' ? 'font-bold text-purple-700' : ''}>Availability</span>
             <span className={currentStep === 'generate' ? 'font-bold text-purple-700' : ''}>Create Plan</span>
           </div>
           <Progress value={getProgressPercentage()} className="h-2" />

@@ -3,11 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { parseISO, startOfDay, isSameDay } from 'date-fns';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEvent } from '@/types/calendar';
+import { useToast } from '@/hooks/use-toast';
 import DayPlannerHeader from './DayPlannerHeader';
 import DayPlannerEvents from './DayPlannerEvents';
 import StudySessionDialog from './StudySessionDialog';
-import EditStudySessionDialog from './EditStudySessionDialog';
-import { useToast } from '@/hooks/use-toast';
 
 interface DayPlannerViewProps {
   selectedDate: Date;
@@ -27,15 +26,19 @@ const DayPlannerView = ({
   const [dayEvents, setDayEvents] = useState<CalendarEvent[]>([]);
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
-  const { deleteEvent, updateEvent, markEventComplete } = useCalendarEvents();
+  const { deleteEvent } = useCalendarEvents();
   const { toast } = useToast();
 
+  // Update the day events when the parent events array changes
   useEffect(() => {
-    // Normalize selectedDate to start of day to ensure proper comparison
     const normalizedSelectedDate = startOfDay(selectedDate);
+    
     const filteredEvents = events.filter(event => {
       try {
-        if (!event.start_time) return false;
+        if (!event.start_time) {
+          return false;
+        }
+        
         const eventDate = startOfDay(parseISO(event.start_time));
         return isSameDay(eventDate, normalizedSelectedDate);
       } catch (err) {
@@ -43,9 +46,11 @@ const DayPlannerView = ({
         return false;
       }
     });
-    filteredEvents.sort((a, b) =>
+    
+    filteredEvents.sort((a, b) => 
       new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
     );
+    
     setDayEvents(filteredEvents);
   }, [selectedDate, events]);
 
@@ -53,40 +58,47 @@ const DayPlannerView = ({
     setIsAddingEvent(true);
   };
 
-  const handleSessionSuccess = () => {
+  const handleSessionSuccess = (newEvent: CalendarEvent) => {
+    // Immediately add the new event to the day's events list
+    setDayEvents(prevEvents => {
+      // Create a new array with the new event
+      const updatedEvents = [...prevEvents, newEvent];
+      
+      // Sort the events by start time
+      return updatedEvents.sort((a, b) => 
+        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      );
+    });
+    
+    // Also refresh the parent's events list
     onRefresh();
+    
+    // Close the dialog
     setIsAddingEvent(false);
+    setEditingEvent(null);
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (window.confirm('Are you sure you want to delete this study session?')) {
+      await deleteEvent(eventId);
+      
+      // Remove the event from the local state immediately
+      setDayEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+      
+      // Also refresh the parent's events list
+      onRefresh();
+    }
   };
 
   const handleEditSession = (event: CalendarEvent) => {
     setEditingEvent(event);
   };
 
-  const handleEditSessionSave = async (updates: Partial<CalendarEvent>) => {
-    if (editingEvent) {
-      await updateEvent(editingEvent.id, updates);
-      onRefresh();
-      setEditingEvent(null);
-    }
-  };
-
-  const handleDeleteEvent = async (eventId: string) => {
-    if (window.confirm('Are you sure you want to delete this study session?')) {
-      await deleteEvent(eventId);
-      onRefresh();
-    }
-  };
-
   const handleLaunchSession = (event: CalendarEvent) => {
     toast({
-      title: `Launching ${event.subject || "Study"} Session`,
-      description: "Launching study session — feature coming soon!",
+      title: "Coming Soon",
+      description: "Launch functionality will be available soon!"
     });
-  };
-
-  const handleMarkComplete = async (event: CalendarEvent, completed: boolean) => {
-    await markEventComplete(event.id, completed);
-    onRefresh();
   };
 
   return (
@@ -98,26 +110,27 @@ const DayPlannerView = ({
             events={dayEvents}
             isLoading={isLoading}
             onDelete={handleDeleteEvent}
-            onEdit={handleEditSession}
-            onLaunch={handleLaunchSession}
-            onMarkComplete={handleMarkComplete}
             onAddSession={handleAddSession}
+            onEditSession={handleEditSession}
+            onLaunchSession={handleLaunchSession}
           />
         </div>
-        <StudySessionDialog
-          open={isAddingEvent}
-          onOpenChange={setIsAddingEvent}
-          selectedDate={selectedDate}
-          onSuccess={handleSessionSuccess}
-        />
-        <EditStudySessionDialog
-          open={!!editingEvent}
-          onOpenChange={(open) => {
-            if (!open) setEditingEvent(null);
-          }}
-          event={editingEvent}
-          onSave={handleEditSessionSave}
-        />
+        
+        {(isAddingEvent || editingEvent) && (
+          <StudySessionDialog
+            open={isAddingEvent || !!editingEvent}
+            onOpenChange={(open) => {
+              if (!open) {
+                setIsAddingEvent(false);
+                setEditingEvent(null);
+              }
+            }}
+            selectedDate={selectedDate}
+            onSuccess={handleSessionSuccess}
+            eventToEdit={editingEvent}
+            existingEvents={events} // Pass all events for time validation
+          />
+        )}
       </div>
     </div>
   );

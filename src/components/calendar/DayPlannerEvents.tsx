@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { CalendarEvent } from '@/types/calendar';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CalendarEvent } from '@/types/calendar';
 import DayPlannerEvent from './DayPlannerEvent';
 import DayPlannerEmpty from './DayPlannerEmpty';
 
@@ -11,22 +11,19 @@ interface DayPlannerEventsProps {
   events: CalendarEvent[];
   isLoading: boolean;
   onDelete: (eventId: string) => void;
-  onEdit: (event: CalendarEvent) => void;
-  onLaunch: (event: CalendarEvent) => void;
-  onMarkComplete: (event: CalendarEvent, completed: boolean) => void;
   onAddSession: () => void;
+  onEditSession: (event: CalendarEvent) => void;
+  onLaunchSession: (event: CalendarEvent) => void;
 }
 
 const DayPlannerEvents = ({
   events,
   isLoading,
   onDelete,
-  onEdit,
-  onLaunch,
-  onMarkComplete,
   onAddSession,
+  onEditSession,
+  onLaunchSession
 }: DayPlannerEventsProps) => {
-
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -49,15 +46,15 @@ const DayPlannerEvents = ({
           <Plus className="mr-1 h-4 w-4" /> Add Session
         </Button>
       </div>
+
       <div className="space-y-3">
-        {events.map(event => (
+        {events.map((event) => (
           <DayPlannerEvent
             key={event.id}
             event={event}
             onDelete={onDelete}
-            onEdit={onEdit}
-            onLaunch={onLaunch}
-            onMarkComplete={onMarkComplete}
+            onEdit={onEditSession}
+            onLaunch={onLaunchSession}
           />
         ))}
       </div>

@@ -13,10 +13,10 @@ interface PlanGeneratorProps {
       sessionsPerDay: number;
       sessionDuration: number;
     };
-    preferences: {
-      focusMode: 'pomodoro' | 'continuous';
-      preferredTime: 'morning' | 'afternoon' | 'evening';
-      reviewFrequency: 'daily' | 'weekly';
+    preferences?: {
+      focusMode?: 'pomodoro' | 'continuous';
+      preferredTime?: 'morning' | 'afternoon' | 'evening';
+      reviewFrequency?: 'daily' | 'weekly';
     };
   };
   completeOnboarding: () => void;
@@ -34,7 +34,14 @@ export const PlanGenerator: React.FC<PlanGeneratorProps> = ({
   isSubmitting,
   goToCalendar,
 }) => {
-  const { subjects, availability, preferences } = onboardingData;
+  const { subjects, availability } = onboardingData;
+  // Set default preferences if they don't exist
+  const preferences = onboardingData.preferences || {
+    focusMode: 'pomodoro',
+    preferredTime: 'afternoon',
+    reviewFrequency: 'daily'
+  };
+  
   const totalSessionsPerWeek = availability.days.length * availability.sessionsPerDay;
   const totalStudyTimePerWeek = totalSessionsPerWeek * availability.sessionDuration;
   const subjectsCount = subjects.length;
@@ -79,7 +86,7 @@ export const PlanGenerator: React.FC<PlanGeneratorProps> = ({
             <p className="text-sm">
               Focus mode: {preferences.focusMode === 'pomodoro' ? 'Pomodoro Technique (25/5)' : 'Continuous Study'}
               <br />
-              Preferred time: {preferences.preferredTime.charAt(0).toUpperCase() + preferences.preferredTime.slice(1)}
+              Preferred time: {preferences.preferredTime?.charAt(0).toUpperCase() + preferences.preferredTime?.slice(1) || 'Afternoon'}
               <br />
               Reviews: {preferences.reviewFrequency === 'daily' ? 'Daily Quick Reviews' : 'Weekly Deep Reviews'}
             </p>

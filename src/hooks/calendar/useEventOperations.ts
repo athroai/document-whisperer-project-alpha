@@ -1,6 +1,5 @@
-
 import { CalendarEvent } from '@/types/calendar';
-import { createDatabaseEvent } from '@/services/calendarEventService';
+import { createDatabaseEvent } from '@/services/calendar/calendarEventService';
 import { supabase } from '@/lib/supabase';
 import { useLocalCalendarEvents } from './useLocalCalendarEvents';
 
@@ -12,14 +11,12 @@ export const useEventOperations = (
 
   const createEvent = async (eventData: Partial<CalendarEvent>, useLocalFallback = true): Promise<CalendarEvent | null> => {
     try {
-      // Get the current session using the correct API method
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       
       if (!userId) {
         if (useLocalFallback) {
           console.log('No authenticated user, saving event locally');
-          // Create a local event with temporary ID
           const localEvent: CalendarEvent = {
             id: `local-${Date.now()}`,
             title: eventData.title || 'Study Session',
@@ -46,7 +43,6 @@ export const useEventOperations = (
         }
       }
       
-      // Try to create in database
       const newEvent = await createDatabaseEvent(userId, {
         ...eventData,
         user_id: userId,
@@ -67,14 +63,12 @@ export const useEventOperations = (
 
   const updateEvent = async (eventId: string, updates: Partial<CalendarEvent>): Promise<CalendarEvent | null> => {
     try {
-      // If it's a local event
       if (eventId.startsWith('local-')) {
         const updatedEvents = events.map(event => 
           event.id === eventId ? { ...event, ...updates } : event
         );
         setEvents(updatedEvents);
         
-        // Update in local storage
         try {
           localStorage.setItem('cached_calendar_events', JSON.stringify(
             updatedEvents.filter(e => e.id.startsWith('local-'))
@@ -86,7 +80,6 @@ export const useEventOperations = (
         return updatedEvents.find(e => e.id === eventId) || null;
       }
       
-      // Otherwise update in database
       const { data, error } = await supabase
         .from('calendar_events')
         .update({
@@ -134,12 +127,10 @@ export const useEventOperations = (
 
   const deleteEvent = async (eventId: string): Promise<boolean> => {
     try {
-      // If it's a local event
       if (eventId.startsWith('local-')) {
         const updatedEvents = events.filter(event => event.id !== eventId);
         setEvents(updatedEvents);
         
-        // Update in local storage
         try {
           localStorage.setItem('cached_calendar_events', JSON.stringify(
             updatedEvents.filter(e => e.id.startsWith('local-'))
@@ -151,7 +142,6 @@ export const useEventOperations = (
         return true;
       }
       
-      // Otherwise delete from database
       const { error } = await supabase
         .from('calendar_events')
         .delete()

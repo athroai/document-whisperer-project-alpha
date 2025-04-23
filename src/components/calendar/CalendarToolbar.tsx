@@ -1,109 +1,202 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Calendar, Trash2 } from 'lucide-react';
+import { CalendarPlus, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
-  AlertDialogTrigger,
+  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction
-} from '@/components/ui/alert-dialog';
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 interface CalendarToolbarProps {
   isLoading: boolean;
   onRefresh: () => void;
-  onRestartOnboarding: () => void;
-  onClearCalendar: () => void;
-  clearLoading?: boolean;
+  onRestartOnboarding?: () => void;
 }
 
-const CalendarToolbar: React.FC<CalendarToolbarProps> = ({ 
-  isLoading, 
+const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
+  isLoading,
   onRefresh,
-  onRestartOnboarding,
-  onClearCalendar,
-  clearLoading = false,
+  onRestartOnboarding
 }) => {
-  // Handle the restart onboarding click with confirmation
-  const handleRestartOnboarding = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const confirmed = window.confirm(
-      "Are you sure you want to restart onboarding? This will reset your study plan setup."
-    );
-    if (confirmed) {
-      onRestartOnboarding();
+  const { toast } = useToast();
+  const [clearingCalendar, setClearingCalendar] = useState(false);
+  const [showFirstConfirmation, setShowFirstConfirmation] = useState(false);
+  const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
+
+  const handleClearCalendar = async () => {
+    try {
+      setClearingCalendar(true);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to clear your calendar",
+          variant: "destructive"
+        });
+        setClearingCalendar(false);
+        setShowFinalConfirmation(false);
+        return;
+      }
+
+      // Call the Edge Function to handle clearing the calendar
+      const { data, error } = await supabase.functions.invoke('clear-calendar', {
+        body: {
+          user_id: session.user.id,
+          preserve_completed: true
+        }
+      });
+      
+      if (error) {
+        console.error('Error calling clear-calendar function:', error);
+        throw new Error(error.message || 'Failed to clear calendar');
+      }
+      
+      const deletedCount = data?.deleted_count || 0;
+      const preservedCount = data?.preserved_count || 0;
+      
+      let description = `${deletedCount} study sessions have been removed from your calendar.`;
+      
+      if (preservedCount > 0) {
+        description += ` ${preservedCount} sessions linked to completed study sessions were preserved.`;
+      }
+
+      toast({
+        title: "Calendar Cleared",
+        description
+      });
+
+      // Close the confirmation dialogs
+      setShowFirstConfirmation(false);
+      setShowFinalConfirmation(false);
+
+      // Allow the user to see the success message before refreshing
+      setTimeout(() => {
+        onRefresh();
+        setClearingCalendar(false);
+      }, 500);
+    } catch (error) {
+      console.error('Error clearing calendar:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear calendar. Please try again.",
+        variant: "destructive"
+      });
+      setClearingCalendar(false);
+      setShowFirstConfirmation(false);
+      setShowFinalConfirmation(false);
     }
   };
-  
-  const [showClearDialog, setShowClearDialog] = useState(false);
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Study Calendar</h1>
-        <p className="text-muted-foreground">
-          View and manage your upcoming study sessions
-        </p>
-      </div>
-      <div className="flex space-x-2 mt-4 sm:mt-0">
-        <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex space-x-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          disabled={isLoading || clearingCalendar}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-1" />
+          )}
+          Refresh Calendar
+        </Button>
+
+        <AlertDialog open={showFirstConfirmation} onOpenChange={setShowFirstConfirmation}>
           <AlertDialogTrigger asChild>
             <Button
               variant="destructive"
-              className="text-sm"
-              disabled={clearLoading}
+              size="sm"
+              disabled={isLoading || clearingCalendar}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {clearLoading ? 'Clearing...' : 'Clear Calendar'}
+              {clearingCalendar ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-1" />
+              )}
+              Clear Calendar
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Clear Calendar</AlertDialogTitle>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will erase all your study sessions except those marked as "completed".
-                Are you sure you want to do this? This action cannot be undone.
+                This action will permanently delete study sessions from your calendar. 
+                Sessions linked to completed study activities will be preserved.
+                This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel aria-label="Cancel clear">Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                aria-label="Confirm clear"
-                onClick={() => {
-                  setShowClearDialog(false);
-                  onClearCalendar();
-                }}
-                disabled={clearLoading}
-              >
-                Yes, clear calendar
-              </AlertDialogAction>
+              <AlertDialogCancel onClick={() => setShowFirstConfirmation(false)}>Cancel</AlertDialogCancel>
+              <AlertDialog open={showFinalConfirmation} onOpenChange={setShowFinalConfirmation}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" onClick={() => setShowFinalConfirmation(true)}>
+                    Yes, clear my calendar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Final confirmation</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you really sure you want to delete your study sessions?
+                      Completed study sessions will remain in your history.
+                      You will need to rebuild your remaining study schedule.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setShowFinalConfirmation(false);
+                        setShowFirstConfirmation(false);
+                      }}
+                    >
+                      No, keep my schedule
+                    </Button>
+                    <Button 
+                      variant="destructive"
+                      onClick={handleClearCalendar}
+                      disabled={clearingCalendar}
+                    >
+                      {clearingCalendar ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          Clearing...
+                        </>
+                      ) : (
+                        "Yes, I'm sure"
+                      )}
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <Button 
-          variant="outline" 
-          onClick={handleRestartOnboarding}
-          className="text-sm"
+      </div>
+
+      {onRestartOnboarding && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onRestartOnboarding}
+          disabled={isLoading || clearingCalendar}
         >
-          <Calendar className="mr-2 h-4 w-4" />
+          <CalendarPlus className="h-4 w-4 mr-1" />
           Restart Onboarding
         </Button>
-        
-        <Button 
-          variant="outline" 
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="text-sm"
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </Button>
-      </div>
+      )}
     </div>
   );
 };
